@@ -63,7 +63,7 @@
   - query key: `appointmentsPlannerKeys.appointmentsPlanner({date, search_type})`(`["appointmentsPlanner", …]`). 이전 데이터를 placeholder로 유지합니다
   - 예약 mutation이 성공하면 `appointmentsPlannerKeys.all`, `deskKeys.appointment(date)`, `deskKeys.appointmentsByDateAndDoctor`, `doctalkKeys.all`, 환자별 예약 이력·요약·`appointmentHistory(예약Id)`를 무효화합니다. 수정 시 `내원여부`가 아니면 `deskKeys.appointment`에 낙관적 갱신을 먼저 반영합니다
   - provide/inject: 카드 액션 핸들러, 예약 요약 Map, 검색 상태, 권한 거부 콜백
-- **근거:** [AppointmentPlannerView.vue](../../restored/views/AppointmentPlannerView.vue), [AppointmentPlannerContent.vue](../../restored/components/appointment/AppointmentPlannerContent.vue), [AppointmentPlannerHeader.vue](../../restored/components/appointment/AppointmentPlannerHeader.vue), [AppointmentPlannerSidebar.vue](../../restored/components/appointment/AppointmentPlannerSidebar.vue), [AppointmentPlannerDaily.vue](../../restored/components/appointment/AppointmentPlannerDaily.vue), [AppointmentPlannerDailyCell.vue](../../restored/components/appointment/AppointmentPlannerDailyCell.vue), [AppointmentCardDroppableAreaWrapper.vue](../../restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue), [AppointmentCardContextMenuWrapper.vue](../../restored/components/appointment/AppointmentCardContextMenuWrapper.vue), [PlannerDragBlockingDialog.vue](../../restored/components/planner/PlannerDragBlockingDialog.vue), [PlannerDragMarkingContextMenu.vue](../../restored/components/planner/PlannerDragMarkingContextMenu.vue), [orderSource.js](../../restored/modules/index/orderSource.js), [usePostPatientsNewMutation.js](../../restored/modules/mutations/usePostPatientsNewMutation.js), [useDeskAppointmentsPlannerQuery.js](../../restored/modules/SidePanelDeskActions/useDeskAppointmentsPlannerQuery.js)
+- **근거:** `re-upstream/restored/views/AppointmentPlannerView.vue`, `re-upstream/restored/components/appointment/AppointmentPlannerContent.vue`, `re-upstream/restored/components/appointment/AppointmentPlannerHeader.vue`, `re-upstream/restored/components/appointment/AppointmentPlannerSidebar.vue`, `re-upstream/restored/components/appointment/AppointmentPlannerDaily.vue`, `re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue`, `re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue`, `re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue`, `re-upstream/restored/components/planner/PlannerDragBlockingDialog.vue`, `re-upstream/restored/components/planner/PlannerDragMarkingContextMenu.vue`, `re-upstream/restored/modules/index/orderSource.js`, `re-upstream/restored/modules/mutations/usePostPatientsNewMutation.js`, `re-upstream/restored/modules/SidePanelDeskActions/useDeskAppointmentsPlannerQuery.js`
 
 ## 예약 상세 패널 — `AppointmentPlannerSideDetail`
 - **목적:** 선택한 예약의 환자 정보, 일시, 진료의, 상태, 메모, 이력을 보여주고 상태에 맞는 액션 버튼을 제공합니다.
@@ -75,7 +75,7 @@
   - 대기 중인 외부 요청: `예약 거절`, `수정`, `예약 확정`
   - SOO 비대면(`등록` 상태): `접수 정보 보기`, `진료 취소 및 환불`, `수정`
 - **데이터:** `GET /patients/{환자Id}`, `GET /settings/display/resident-numbers`, `GET /desk/appointments/{예약Id}/history`(`results`: `{from, to, diff}` 목록과 `비대면여부`)
-- **근거:** [AppointmentPlannerSideDetail.vue](../../restored/components/appointment/AppointmentPlannerSideDetail.vue), [AppointmentPlannerHistory.vue](../../restored/components/appointment/AppointmentPlannerHistory.vue)
+- **근거:** `re-upstream/restored/components/appointment/AppointmentPlannerSideDetail.vue`, `re-upstream/restored/components/appointment/AppointmentPlannerHistory.vue`
 
 ## 예약 사이드 패널(생성·수정) — `DeskViewPatientAppointment`
 - **목적:** 환자, 날짜, 진료의, 시간(여러 슬롯 선택 가능), 진료 항목, 보험 구분, 메모, 예약 알림을 입력해 예약을 만들거나 고칩니다.
@@ -102,7 +102,7 @@
   - 서버가 **409**를 돌려주면 "중복된 예약이 있습니다. 다른 예약 일시를 선택해 주세요."를 보여줍니다
 - **데이터:** `GET /settings/doctors/appointments/{yyyyMMdd}`(`의사별예약정보[{진료의Id, 휴진일태그, 표기이름}]`), `GET /desk/appointments/planner`(해당 일 점유·추가예약제한 계산), `GET /settings/appointments`(`예약시간단위`), `GET /settings/closed-days/{…}`(`병원휴진일`), `GET /chart/medical-treatments`, `GET /patients/{id}`, `GET /patients/{id}/appointments/history`, `GET /patients/{id}/waiting/latest`(`직전내원현황`), `GET crmClient /appointment-notifications/settings?channel=sms|alimtalk`
 - **상태 저장:** `useDeskDateStore.deskDate`(무효화할 원무 날짜), `usePatientStore.recentAppointmentPatientId`
-- **근거:** [DeskViewPatientAppointment.vue](../../restored/components/desk/DeskViewPatientAppointment.vue), [SidePanelDeskActionsPatientAppointment.vue](../../restored/components/side/SidePanelDeskActionsPatientAppointment.vue), [SidePanelDeskActionsPatientAppointmentEdit.vue](../../restored/components/side/SidePanelDeskActionsPatientAppointmentEdit.vue), [part-86.js](../../restored/modules/index/part-86.js), [HeaderLayout.vue](../../restored/components/header/HeaderLayout.vue)
+- **근거:** `re-upstream/restored/components/desk/DeskViewPatientAppointment.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientAppointment.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientAppointmentEdit.vue`, `re-upstream/restored/modules/index/part-86.js`, `re-upstream/restored/components/header/HeaderLayout.vue`
 
 ## 원무 예약 컬럼 — `AppointmentColumn` (원무 `DeskVisitView`, `PatientsStatusAppointments`)
 - **목적:** 원무 화면에서 당일 예약을 시간대별 카드 목록으로 보여줍니다.
@@ -113,7 +113,7 @@
   - 시간대 사이로 드래그하면 `PATCH /desk/appointments/{예약Id}` `{예약시간}`
   - 취소·삭제 동작은 플래너와 같습니다
 - **상태 저장:** localStorage `patientCardType`, `deskVisitHideCancelledNoShow`
-- **근거:** [DeskVisitAppointment.vue](../../restored/components/desk/DeskVisitAppointment.vue), [AppointmentColumnTime.vue](../../restored/components/appointment/AppointmentColumnTime.vue), [AppointmentColumnUnscheduledCard.vue](../../restored/components/appointment/AppointmentColumnUnscheduledCard.vue)
+- **근거:** `re-upstream/restored/components/desk/DeskVisitAppointment.vue`, `re-upstream/restored/components/appointment/AppointmentColumnTime.vue`, `re-upstream/restored/components/appointment/AppointmentColumnUnscheduledCard.vue`
 
 ## 외부 예약 관리(온라인 예약 요청) — `NaverReservationPanel`
 - **목적:** 네이버·카카오(닥톡 경유) 예약 요청을 모아 보고 확정하거나 거절합니다.
@@ -130,7 +130,7 @@
   - 수정: 사이드 패널로 엽니다(위 외부 채널 요청 수정 흐름)
 - **데이터:** 요청 항목 필드는 `예약요청Id`, `요청상태`(`대기`/`승인`/`거절`), `주문출처`, `예약일자`, `예약시간`, `이름`, `휴대전화번호`, `진료항목[]`, `진료의Id`, `환자Id`
 - **상태 저장:** query key `doctalkKeys.reservations(시작일자, 종료일자, 요청상태, limit)`. 패널 열림 상태는 컴포넌트 로컬입니다(일반 상세 패널과 동시에 열리지 않음)
-- **근거:** [NaverReservationPanel.vue](../../restored/components/naver/NaverReservationPanel.vue), [part-94.js](../../restored/modules/index/part-94.js), [useDeskBookingRequestsQuery.js](../../restored/modules/index/useDeskBookingRequestsQuery.js)
+- **근거:** `re-upstream/restored/components/naver/NaverReservationPanel.vue`, `re-upstream/restored/modules/index/part-94.js`, `re-upstream/restored/modules/index/useDeskBookingRequestsQuery.js`
 
 ## 예약 설정 — `/setting/appointment`
 - **목적:** 예약 시간 단위·시간당 가능 수·부도 처리 시점, 진료 항목별 예약 시간, 예약 알림 채널, 외부 채널 예약 연동을 설정합니다.
@@ -150,7 +150,7 @@
   - 외부 채널: `POST /doctalk/signup` `{약관동의여부}`, `POST /doctalk/sso/token`(닥톡 관리 화면 열기). 상태 `SENT`면 loading, `COMPLETED`면 success로 보여줍니다
 - **데이터:** `GET /settings/appointments`, `GET /settings/medical-treatments`, `GET crmClient /appointment-notifications/settings`, `GET crmClient /lite-triggers/status`, `POST /doctalk/sync-status`, `GET /desk/booking-requests`
 - **상태 저장:** `useOnboardingGuideSessionStore`(탭 요청 `request탭`), `useGuideTabControl`
-- **근거:** [SettingAppointment.vue](../../restored/components/setting/SettingAppointment.vue), [SettingAppointmentGeneral.vue](../../restored/components/setting/SettingAppointmentGeneral.vue), [SettingAppointmentTreatmentTime.vue](../../restored/components/setting/SettingAppointmentTreatmentTime.vue), [SettingAppointmentExternalChannel.vue](../../restored/components/setting/SettingAppointmentExternalChannel.vue), [CrmAppointmentNotificationsSetting.vue](../../restored/components/crm/CrmAppointmentNotificationsSetting.vue)
+- **근거:** `re-upstream/restored/components/setting/SettingAppointment.vue`, `re-upstream/restored/components/setting/SettingAppointmentGeneral.vue`, `re-upstream/restored/components/setting/SettingAppointmentTreatmentTime.vue`, `re-upstream/restored/components/setting/SettingAppointmentExternalChannel.vue`, `re-upstream/restored/components/crm/CrmAppointmentNotificationsSetting.vue`
 
 ## 진료 스케줄 — `/setting/schedule`
 - **목적:** 진료의별 정기 스케줄(요일별 시간·휴진)과 날짜별 진료 일정을 관리합니다. 플래너와 예약 패널의 휴진·진료시간 판단에 반영되는 것으로 추정합니다.
@@ -163,7 +163,7 @@
   - 날짜별 일정(`ScheduleViewCalendarScheduleSettingModal`): 시작/종료 시간, "휴진 처리", "다음 진료의로 진료 시간 대체"(`대체진료의Id`) → `PATCH /settings/clinic-schedules/{병원진료일정Id}` `{시작시간, 종료시간, 휴진여부, 대체진료의Id?}`. 임시 진료일이면 "근무·휴진 여부만 설정 가능"합니다
   - 이미지 저장 파일명: `[진료의_]yyyy_MM_진료 스케줄.png`
 - **데이터:** `GET /settings/doctor-schedules`, `GET /settings/clinic-schedules?start_date&end_date`, `GET /settings/clinic-calendar/year/{yyyy}`(시작·종료 연도 각각, `휴무여부`, `임시진료여부`, `임시진료시간`), `GET /settings/doctors`, `GET /settings/onboarding-guide`
-- **근거:** [ScheduleView.vue](../../restored/views/ScheduleView.vue), [ScheduleViewCalendar.vue](../../restored/components/schedule/ScheduleViewCalendar.vue), [ScheduleViewCalendarDoctorScheduleSettingModal.vue](../../restored/components/schedule/ScheduleViewCalendarDoctorScheduleSettingModal.vue), [ScheduleViewCalendarScheduleSettingModal.vue](../../restored/components/schedule/ScheduleViewCalendarScheduleSettingModal.vue)
+- **근거:** `re-upstream/restored/views/ScheduleView.vue`, `re-upstream/restored/components/schedule/ScheduleViewCalendar.vue`, `re-upstream/restored/components/schedule/ScheduleViewCalendarDoctorScheduleSettingModal.vue`, `re-upstream/restored/components/schedule/ScheduleViewCalendarScheduleSettingModal.vue`
 
 ## 연휴 대비 안내 — `HolidayPrepBanner` (전역 `HeaderLayout`)
 - **목적:** 연휴 전에 진료 일정을 설정하도록 안내하고, 닥톡 연동 병원에는 외부 채널에도 일정을 반영하도록 안내하는 플로팅 카드입니다.
@@ -175,7 +175,7 @@
   - CTA 클릭과 닫기는 추적 이벤트로 남깁니다
 - **데이터:** `GET /settings/holidays/schedule-banner`(`id`, `연휴이름`, `연휴시작`, `연휴종료`, `노출시작`, `노출종료`), `GET /settings/clinic-calendar/year/{yyyy}`, `GET /settings/appointments`(`예약시간단위`), `GET /doctalk/products`, `GET /doctalk/products/bookable-times`, `POST /doctalk/sso/token`
 - **상태 저장:** localStorage `bt.연휴대비안내다시보지않기`(캠페인 id), `bt.연휴대비안내닫은날짜`, `bt.연휴외부채널안내닫은날짜`(yyyy-MM-dd)
-- **근거:** [HolidayPrepBanner.vue](../../restored/components/holiday/HolidayPrepBanner.vue), [HolidayPrepBanner.helpers.js](../../restored/components/holiday/HolidayPrepBanner.helpers.js), [HolidayPrepBanner.helpers.helpers.js](../../restored/components/holiday/HolidayPrepBanner.helpers.helpers.js), [useSettingsHolidaysScheduleBannerQuery.js](../../restored/modules/index/useSettingsHolidaysScheduleBannerQuery.js)
+- **근거:** `re-upstream/restored/components/holiday/HolidayPrepBanner.vue`, `re-upstream/restored/components/holiday/HolidayPrepBanner.helpers.js`, `re-upstream/restored/components/holiday/HolidayPrepBanner.helpers.helpers.js`, `re-upstream/restored/modules/index/useSettingsHolidaysScheduleBannerQuery.js`
 
 ## 예약 상태·종류 값
 

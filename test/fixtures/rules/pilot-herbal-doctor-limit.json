@@ -1,0 +1,530 @@
+{
+  "rule": "pilot-herbal-doctor-limit",
+  "description": "Per-doctor pilot herbal (첩건) prescription counts above 8/day, 60/month or 600/year force 본인부담률구분코드 U and show a warning.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "677-681",
+      "origin": "unminified/index-CBEIvlV0.js:122310-122312"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "699-703",
+      "origin": "unminified/index-CBEIvlV0.js:122327-122331"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "745-763",
+      "origin": "unminified/index-CBEIvlV0.js:122371-122388"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "765-818",
+      "origin": "unminified/index-CBEIvlV0.js:122389-122442"
+    },
+    {
+      "file": "re-upstream/restored/modules/DeskPatientRegister/part-4.js",
+      "lines": "13-153",
+      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1439-1575"
+    },
+    {
+      "file": "re-upstream/restored/api/record/records.js",
+      "lines": "17",
+      "origin": "unminified/records-C315hb9A.js:21"
+    }
+  ],
+  "inputSchema": {
+    "function": "Which original function the case exercises: exceedsDoctorLimit (HLt), remainingDoctorQuota (Edn), doctorLimitMessage (Tdn), resolveCopayCode ($dn).",
+    "counts": "Object {일, 월, 년}: the doctor's pilot herbal approval counts for today / this month / this year, as returned by GET /record/list/pcmd-count/{yyyyMMdd}/doctor/{doctorId} -> data.results.한방첩약시범사업승인횟수. May be undefined while the query is loading.",
+    "code": "resolveCopayCode only: selected 첩약상병구분코드 ('01'..'06').",
+    "history": "resolveCopayCode only: HIRA cumulative dosing list (see pilot-herbal-diagnosis-limit).",
+    "expectedConvention": "expected.returned holds the return value; the string 'undefined' means the function returned undefined. expected.throws holds an exception."
+  },
+  "cases": [
+    {
+      "name": "all zero is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "day exactly 8 is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 8,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "day 7 is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 7,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "day 9 exceeds",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 9,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "month exactly 60 is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 60,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "month 59 is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 59,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "month 61 exceeds",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 61,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "year exactly 600 is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 600
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "year 599 is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 599
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "year 601 exceeds",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 601
+        }
+      },
+      "expected": {
+        "returned": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "all exactly at limit is within limit",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": 8,
+          "월": 60,
+          "년": 600
+        }
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "numeric strings are coerced: day '9' exceeds",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {
+          "일": "9",
+          "월": "0",
+          "년": "0"
+        }
+      },
+      "expected": {
+        "returned": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "missing fields never exceed",
+      "input": {
+        "function": "exceedsDoctorLimit",
+        "counts": {}
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "remaining quota from zero",
+      "input": {
+        "function": "remainingDoctorQuota",
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "일": 8,
+          "월": 60,
+          "년": 600
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "remaining quota mid-period",
+      "input": {
+        "function": "remainingDoctorQuota",
+        "counts": {
+          "일": 3,
+          "월": 10,
+          "년": 100
+        }
+      },
+      "expected": {
+        "returned": {
+          "일": 5,
+          "월": 50,
+          "년": 500
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "remaining quota exactly at limit is zero",
+      "input": {
+        "function": "remainingDoctorQuota",
+        "counts": {
+          "일": 8,
+          "월": 60,
+          "년": 600
+        }
+      },
+      "expected": {
+        "returned": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "remaining quota goes negative when over",
+      "input": {
+        "function": "remainingDoctorQuota",
+        "counts": {
+          "일": 9,
+          "월": 61,
+          "년": 601
+        }
+      },
+      "expected": {
+        "returned": {
+          "일": -1,
+          "월": -1,
+          "년": -1
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "message: counts not loaded",
+      "input": {
+        "function": "doctorLimitMessage"
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "message: all at limit gives empty string",
+      "input": {
+        "function": "doctorLimitMessage",
+        "counts": {
+          "일": 8,
+          "월": 60,
+          "년": 600
+        }
+      },
+      "expected": {
+        "returned": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "message: day over takes priority over month and year",
+      "input": {
+        "function": "doctorLimitMessage",
+        "counts": {
+          "일": 9,
+          "월": 61,
+          "년": 601
+        }
+      },
+      "expected": {
+        "returned": "오늘 원장님의 처방 가능 횟수가 초과됐습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "message: month over (day at limit)",
+      "input": {
+        "function": "doctorLimitMessage",
+        "counts": {
+          "일": 8,
+          "월": 61,
+          "년": 601
+        }
+      },
+      "expected": {
+        "returned": "이번달 원장님의 처방 가능 횟수가 초과됐습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "message: year over only",
+      "input": {
+        "function": "doctorLimitMessage",
+        "counts": {
+          "일": 8,
+          "월": 60,
+          "년": 601
+        }
+      },
+      "expected": {
+        "returned": "올해 원장님의 처방 가능 횟수가 초과됐습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: day over forces U even with no history",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [],
+        "counts": {
+          "일": 9,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "U",
+          "본인일부부담이지만전액부담선택가능함": false
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: month over forces U even when history would give G",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          }
+        ],
+        "counts": {
+          "일": 1,
+          "월": 61,
+          "년": 61
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "U",
+          "본인일부부담이지만전액부담선택가능함": false
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: year over forces U even when patient blocked by other clinic",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 601
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "U",
+          "본인일부부담이지만전액부담선택가능함": false
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: exactly at all limits with no history gives G",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [],
+        "counts": {
+          "일": 8,
+          "월": 60,
+          "년": 600
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "G",
+          "본인일부부담이지만전액부담선택가능함": true
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: counts not loaded returns undefined (no change)",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": []
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: history not loaded returns undefined even when over limit",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "counts": {
+          "일": 9,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: no disease code returns undefined",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "",
+        "history": [],
+        "counts": {
+          "일": 9,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Counts are fetched with date = format(new Date(), 'yyyyMMdd') (the browser's today), not the encounter's 기준일시. For a back-dated chart the limit is checked against today's counts. Should the server use the encounter service date?",
+    "The count endpoint returns 한방첩약시범사업승인횟수 (approved counts). It is unknown whether the current encounter's own prescription is already included in the count; with '> 8' semantics the 9th approved prescription trips the limit. Server must decide whether to count before or after including the encounter being saved.",
+    "The pcmd-count query has no `enabled` guard, so it fires with doctorId undefined (URL .../doctor/undefined) before a doctor is chosen. Server-side the rule should require a doctor.",
+    "Month/year windows (calendar month/year vs rolling) are defined only by the server endpoint; the client never computes them.",
+    "Overflow handling in the UI: a watch on the counts sets 첩건본인부담률구분코드 = U whenever HLt is true, overriding a user choice; there is no server-side enforcement visible in the client."
+  ]
+}

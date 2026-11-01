@@ -1,0 +1,263 @@
+{
+  "rule": "appointment-no-show",
+  "description": "No-show timing settings as the client edits and displays them; the no-show transition itself runs on the server.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/setting/SettingAppointmentGeneral.vue.js",
+      "lines": "73-110, 183-229",
+      "origin": "unminified/SettingAppointment-DsssnKZ3.js:1010-1233"
+    },
+    {
+      "file": "re-upstream/restored/components/appointment/AppointmentPlannerHistory.vue.js",
+      "lines": "157-216",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:15743-16051"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/orderSource.js",
+      "lines": "376-386",
+      "origin": "unminified/index-CBEIvlV0.js:70299-70816"
+    }
+  ],
+  "inputSchema": {
+    "check": "settingsView | settingsPatch | historyEntry.",
+    "settings": "GET /settings/appointments fields 부도처리시점 (minutes) and 진료마감부도처리여부 (boolean).",
+    "click": "The object the clicked button passes to the diff-and-PATCH helper."
+  },
+  "cases": [
+    {
+      "name": "settings view: {\"부도처리시점\":30,\"진료마감부도처리여부\":false}",
+      "input": {
+        "check": "settingsView",
+        "settings": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": false
+        }
+      },
+      "expected": {
+        "options": [
+          {
+            "label": "10분 후",
+            "active": false
+          },
+          {
+            "label": "30분 후",
+            "active": true
+          },
+          {
+            "label": "60분 후",
+            "active": false
+          },
+          {
+            "label": "진료 마감 후",
+            "active": false
+          }
+        ],
+        "description": "예약 시간으로부터 [30분] 경과 시 자동으로 [부도] 처리됩니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settings view: {\"부도처리시점\":30,\"진료마감부도처리여부\":true}",
+      "input": {
+        "check": "settingsView",
+        "settings": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": true
+        }
+      },
+      "expected": {
+        "options": [
+          {
+            "label": "10분 후",
+            "active": false
+          },
+          {
+            "label": "30분 후",
+            "active": false
+          },
+          {
+            "label": "60분 후",
+            "active": false
+          },
+          {
+            "label": "진료 마감 후",
+            "active": true
+          }
+        ],
+        "description": "예약 시간과 관계없이 당일 [진료 마감] 이후 자동으로 [부도] 처리됩니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settings view: {\"부도처리시점\":45,\"진료마감부도처리여부\":false}",
+      "input": {
+        "check": "settingsView",
+        "settings": {
+          "부도처리시점": 45,
+          "진료마감부도처리여부": false
+        }
+      },
+      "expected": {
+        "options": [
+          {
+            "label": "10분 후",
+            "active": false
+          },
+          {
+            "label": "30분 후",
+            "active": false
+          },
+          {
+            "label": "60분 후",
+            "active": false
+          },
+          {
+            "label": "진료 마감 후",
+            "active": false
+          }
+        ],
+        "description": "예약 시간으로부터 [45분] 경과 시 자동으로 [부도] 처리됩니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settings view: {\"부도처리시점\":null,\"진료마감부도처리여부\":false}",
+      "input": {
+        "check": "settingsView",
+        "settings": {
+          "부도처리시점": null,
+          "진료마감부도처리여부": false
+        }
+      },
+      "expected": {
+        "options": [
+          {
+            "label": "10분 후",
+            "active": false
+          },
+          {
+            "label": "30분 후",
+            "active": false
+          },
+          {
+            "label": "60분 후",
+            "active": false
+          },
+          {
+            "label": "진료 마감 후",
+            "active": false
+          }
+        ],
+        "description": "예약 시간으로부터 [0분] 경과 시 자동으로 [부도] 처리됩니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "click 60분 후 from 30분",
+      "input": {
+        "check": "settingsPatch",
+        "settings": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": false
+        },
+        "click": {
+          "부도처리시점": 60,
+          "진료마감부도처리여부": false
+        }
+      },
+      "expected": {
+        "부도처리시점": 60
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "click 30분 후 when already 30분 -> no request",
+      "input": {
+        "check": "settingsPatch",
+        "settings": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": false
+        },
+        "click": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": false
+        }
+      },
+      "expected": null,
+      "derivation": "executed"
+    },
+    {
+      "name": "click 진료 마감 후 keeps 부도처리시점",
+      "input": {
+        "check": "settingsPatch",
+        "settings": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": false
+        },
+        "click": {
+          "진료마감부도처리여부": true
+        }
+      },
+      "expected": {
+        "진료마감부도처리여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "click 30분 후 while 진료 마감 mode -> only flag sent",
+      "input": {
+        "check": "settingsPatch",
+        "settings": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": true
+        },
+        "click": {
+          "부도처리시점": 30,
+          "진료마감부도처리여부": false
+        }
+      },
+      "expected": {
+        "진료마감부도처리여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "history: server-created 부도 change renders as timeout no-show",
+      "input": {
+        "check": "historyEntry",
+        "to": {
+          "예약상태": "부도"
+        }
+      },
+      "expected": {
+        "예약상태": "예약부도",
+        "예약이력": "예약시간이 지나 부도 처리됐습니다."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "history: 부도 change with a different 예약일자 renders as no-show by reschedule",
+      "input": {
+        "check": "historyEntry",
+        "from": {
+          "예약일자": "20261101"
+        },
+        "to": {
+          "예약상태": "부도",
+          "예약일자": "20261103"
+        }
+      },
+      "expected": {
+        "예약상태": "부도후_예약일자_변경",
+        "예약이력": "예약 변경으로 부도 처리됐습니다."
+      },
+      "derivation": "traced"
+    }
+  ],
+  "openQuestions": [
+    "The client has no no-show timer; the server applies 부도처리시점/진료마감부도처리여부. Whether 'N minutes after' is measured from 예약시간 start (as the UI text says) and whether the boundary is >= or > is not visible.",
+    "'진료 마감' time source is not in client code (likely clinic hours of that weekday, or the last 시간대 end). Lunch/break and temporary clinic days (임시진료일) handling unknown.",
+    "Whether a booking that is already checked in (내원여부) or canceled is skipped is assumed but not visible.",
+    "Values other than 10/30/60 (e.g. 45 from old data) display no active button but still drive the text."
+  ]
+}

@@ -1,0 +1,726 @@
+{
+  "rule": "visit-status-transitions",
+  "description": "Visit (접수) status transitions the client allows by drag-and-drop between the 대기/치료/수납/수납완료 columns and by card menus, with the request each one sends.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/waiting/WaitingColumn.vue.js",
+      "lines": "157-252, 293-316",
+      "origin": "unminified/DeskView-DTRddRTN.js:6935-7566"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentColumn.vue.js",
+      "lines": "152-203, 249-260",
+      "origin": "unminified/DeskView-DTRddRTN.js:6316-6872"
+    },
+    {
+      "file": "re-upstream/restored/components/payment/PaymentColumn.vue.js",
+      "lines": "80-158, 201-207",
+      "origin": "unminified/DeskView-DTRddRTN.js:5405-5804"
+    },
+    {
+      "file": "re-upstream/restored/components/payment/PaymentCompleteColumn.vue.js",
+      "lines": "89, 122-160",
+      "origin": "unminified/DeskView-DTRddRTN.js:5858-6258"
+    },
+    {
+      "file": "re-upstream/restored/views/DeskVisitView.vue.js",
+      "lines": "112, 184-210",
+      "origin": "unminified/DeskView-DTRddRTN.js:7624-7931"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue.js",
+      "lines": "398-428",
+      "origin": "unminified/useExclusivePopover-BPTgAwCS.js:213-759"
+    },
+    {
+      "file": "re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js",
+      "lines": "528-539",
+      "origin": "unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang-Ci_y_crh.js:1617-2351"
+    },
+    {
+      "file": "re-upstream/restored/components/desk/DeskPatientAccept.vue.js",
+      "lines": "505-506",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:9306-10509"
+    },
+    {
+      "file": "re-upstream/restored/modules/desk-patient/_hoisted_1.js",
+      "lines": "50-137",
+      "origin": "unminified/desk-patient-DPmTX7Cu.js:27-164"
+    }
+  ],
+  "inputSchema": {
+    "from": "Column the card is dragged from (current 상태).",
+    "to": "Column the card is dropped on.",
+    "수납존재여부": "Visit already has a receipt. Also drives isPaymentComplete (whether 수납완료 column accepts the drop).",
+    "permissions": "Granted permission codes (접수생성, 환자생성, 접수수정, 수납생성); all granted unless listed."
+  },
+  "cases": [
+    {
+      "name": "drag 치료 -> 대기 (수납존재여부=false)",
+      "input": {
+        "from": "치료",
+        "to": "대기",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "대기",
+              "이전상태": "치료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 치료 -> 대기 (수납존재여부=true)",
+      "input": {
+        "from": "치료",
+        "to": "대기",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "대기",
+              "이전상태": "치료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 대기 (수납존재여부=false)",
+      "input": {
+        "from": "수납",
+        "to": "대기",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "대기",
+              "이전상태": "수납"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 대기 (수납존재여부=true)",
+      "input": {
+        "from": "수납",
+        "to": "대기",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "대기",
+              "이전상태": "수납"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납완료 -> 대기 (수납존재여부=false)",
+      "input": {
+        "from": "수납완료",
+        "to": "대기",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "대기",
+              "이전상태": "수납완료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납완료 -> 대기 (수납존재여부=true)",
+      "input": {
+        "from": "수납완료",
+        "to": "대기",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "대기",
+              "이전상태": "수납완료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 대기 -> 치료 (수납존재여부=false)",
+      "input": {
+        "from": "대기",
+        "to": "치료",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "movePatientToTreatment",
+            "arg": "배정"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 대기 -> 치료 (수납존재여부=true)",
+      "input": {
+        "from": "대기",
+        "to": "치료",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "movePatientToTreatment",
+            "arg": "배정"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 치료 (수납존재여부=false)",
+      "input": {
+        "from": "수납",
+        "to": "치료",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "movePatientToTreatment",
+            "arg": "배정"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 치료 (수납존재여부=true)",
+      "input": {
+        "from": "수납",
+        "to": "치료",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "movePatientToTreatment",
+            "arg": "배정"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납완료 -> 치료 (수납존재여부=false)",
+      "input": {
+        "from": "수납완료",
+        "to": "치료",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "movePatientToTreatment",
+            "arg": "배정"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납완료 -> 치료 (수납존재여부=true)",
+      "input": {
+        "from": "수납완료",
+        "to": "치료",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "movePatientToTreatment",
+            "arg": "배정"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 대기 -> 수납 (수납존재여부=false)",
+      "input": {
+        "from": "대기",
+        "to": "수납",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납",
+              "이전상태": "대기"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 대기 -> 수납 (수납존재여부=true)",
+      "input": {
+        "from": "대기",
+        "to": "수납",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납",
+              "이전상태": "대기"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 치료 -> 수납 (수납존재여부=false)",
+      "input": {
+        "from": "치료",
+        "to": "수납",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납",
+              "이전상태": "치료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 치료 -> 수납 (수납존재여부=true)",
+      "input": {
+        "from": "치료",
+        "to": "수납",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납",
+              "이전상태": "치료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납완료 -> 수납 (수납존재여부=false)",
+      "input": {
+        "from": "수납완료",
+        "to": "수납",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납",
+              "이전상태": "수납완료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납완료 -> 수납 (수납존재여부=true)",
+      "input": {
+        "from": "수납완료",
+        "to": "수납",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납",
+              "이전상태": "수납완료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 대기 -> 수납완료 (수납존재여부=false)",
+      "input": {
+        "from": "대기",
+        "to": "수납완료",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": false,
+        "effects": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 대기 -> 수납완료 (수납존재여부=true)",
+      "input": {
+        "from": "대기",
+        "to": "수납완료",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 치료 -> 수납완료 (수납존재여부=false)",
+      "input": {
+        "from": "치료",
+        "to": "수납완료",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": false,
+        "effects": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 치료 -> 수납완료 (수납존재여부=true)",
+      "input": {
+        "from": "치료",
+        "to": "수납완료",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납완료",
+              "이전상태": "치료"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 수납완료 (수납존재여부=false)",
+      "input": {
+        "from": "수납",
+        "to": "수납완료",
+        "수납존재여부": false
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "openCheckoutPanel",
+            "arg": {
+              "환자Id": "p1",
+              "내원Id": "v1"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 수납완료 (수납존재여부=true)",
+      "input": {
+        "from": "수납",
+        "to": "수납완료",
+        "수납존재여부": true
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "PATCH /desk/waiting/{id}",
+            "body": {
+              "상태": "수납완료",
+              "이전상태": "수납"
+            }
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 수납완료 without 접수수정 permission",
+      "input": {
+        "from": "수납",
+        "to": "수납완료",
+        "수납존재여부": true,
+        "permissions": [
+          "수납생성"
+        ]
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "permissionDenied"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drag 수납 -> 수납완료 unpaid without 수납생성 permission",
+      "input": {
+        "from": "수납",
+        "to": "수납완료",
+        "수납존재여부": false,
+        "permissions": [
+          "접수수정"
+        ]
+      },
+      "expected": {
+        "dropAllowed": true,
+        "effects": [
+          {
+            "type": "permissionDenied"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "check-in creates visit in 대기 or 치료",
+      "input": {
+        "trigger": "POST /desk/waiting",
+        "상태": [
+          "대기",
+          "치료"
+        ]
+      },
+      "expected": {
+        "allowedInitialStatuses": [
+          "대기",
+          "치료"
+        ],
+        "default": "대기",
+        "moveToTreatmentDefault": "치료"
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "bed modal confirm without a bed sends 상태 치료",
+      "input": {
+        "trigger": "TreatmentRoomBedAssignModal",
+        "bedSelected": false
+      },
+      "expected": {
+        "request": "PATCH /desk/waiting/{id}",
+        "body": {
+          "상태": "치료"
+        }
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "bed modal confirm with a bed assigns the bed instead of PATCHing status",
+      "input": {
+        "trigger": "TreatmentRoomBedAssignModal",
+        "bedSelected": true
+      },
+      "expected": {
+        "request": "PUT treatments patients (치료실설정Id, 치료실베드)",
+        "statusPatch": false
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "move to 치료 with no treatment rooms configured asks to go to settings",
+      "input": {
+        "trigger": "movePatientToTreatment",
+        "treatmentRooms": 0
+      },
+      "expected": {
+        "dialog": "환자 이동 전 치료실 등록이 필요합니다.",
+        "statusChanged": false
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "move to 치료 when 치료실현황.치료완료일시 is set asks for duplicate confirm",
+      "input": {
+        "trigger": "movePatientToTreatment",
+        "치료완료일시": "set"
+      },
+      "expected": {
+        "dialog": "DuplicateTreatmentRoomConfirmDialog",
+        "proceedsOnConfirm": true
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "치료 card menu '대기로 이동'",
+      "input": {
+        "trigger": "menu",
+        "column": "치료",
+        "item": "대기로 이동"
+      },
+      "expected": {
+        "request": "PATCH /desk/waiting/{id}",
+        "body": {
+          "상태": "대기",
+          "이전상태": "치료"
+        }
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "수납 card menu '치료로 이동' sends status directly (no bed modal)",
+      "input": {
+        "trigger": "menu",
+        "column": "수납",
+        "item": "치료로 이동"
+      },
+      "expected": {
+        "request": "PATCH /desk/waiting/{id}",
+        "body": {
+          "상태": "치료",
+          "이전상태": "수납"
+        }
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "checkout success moves visit to 수납완료",
+      "input": {
+        "trigger": "POST /desk/v2/receipts success",
+        "isRepeatCheckout": false
+      },
+      "expected": {
+        "request": "PATCH /desk/waiting/{id}",
+        "body": {
+          "상태": "수납완료"
+        }
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "repeat checkout does not change status",
+      "input": {
+        "trigger": "POST /desk/v2/receipts success",
+        "isRepeatCheckout": true
+      },
+      "expected": {
+        "statusPatch": false,
+        "event": "check-out"
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "접수 취소 exists only on 대기 cards",
+      "input": {
+        "trigger": "menu",
+        "column": "대기",
+        "item": "접수 취소"
+      },
+      "expected": {
+        "request": "DELETE desk waiting (내원Id)",
+        "otherColumns": "no 접수 취소 item"
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "past desk date: card menus keep only non-moving items",
+      "input": {
+        "trigger": "menu",
+        "dateString": "< today"
+      },
+      "expected": {
+        "keptItems": [
+          "예약",
+          "문자 발송",
+          "문진 링크 전송",
+          "문서 발급",
+          "수납 기록"
+        ]
+      },
+      "derivation": "traced"
+    }
+  ],
+  "openQuestions": [
+    "The 수납완료 column accepts a drop from 대기 when the card has 수납존재여부, but handleDrop has no 대기 branch, so nothing happens (see 'drag 대기 -> 수납완료 (수납존재여부=true)'). Apparent bug.",
+    "Drag 수납 -> 수납완료 without an existing receipt opens the checkout panel instead of changing status; 치료 -> 수납완료 without a receipt is rejected; 대기 -> 수납완료 is never possible. The redesigned machine allows WAITING/IN_TREATMENT -> CHECKOUT (COMPLETED) directly.",
+    "The client lets 수납완료 move back to 대기, 치료 and 수납 freely (no check that a receipt exists or must be voided). The redesign only allows COMPLETED -> REOPEN (AWAITING_PAYMENT) and CANCEL.",
+    "The client never sends a CANCELED status: '접수 취소' deletes the visit and exists only in the 대기 column. The redesign allows CANCEL from every state, with cascade from IN_TREATMENT/COMPLETED.",
+    "Drag checks run without a date check; only card menus are restricted on past desk dates. Whether past-date drags should be allowed is unclear.",
+    "The PATCH body carries 이전상태 from drag/menu moves, but not from the bed modal or checkout. Whether the server uses 이전상태 for optimistic concurrency is unknown."
+  ]
+}

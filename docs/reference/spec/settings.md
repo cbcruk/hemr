@@ -43,7 +43,7 @@
   - 부모 `setting` 권한이 없으면 하위 메뉴 전체를 숨깁니다
   - 하위 항목에는 `R6`(서비스 조건), `requiredRoleType`, `requiresDemoAccountInPrd`, `requiredPermission`만 적용합니다. 태블릿·문서 관리에는 `Sct`도 적용합니다. 하위 항목의 `permissionCode`는 걸러내는 데 쓰지 않습니다
   - 하위 항목이 1개만 남으면 부모 메뉴가 그 경로로 바로 연결됩니다
-- **근거:** [SettingView.vue.js](../../restored/views/SettingView.vue.js), [routes.js](../../restored/router/routes.js#L422), [Group.js](../../restored/modules/index/Group.js#L323), [part-74.js](../../restored/modules/index/part-74.js#L76), [part-63.js (`Sct`)](../../restored/lib/index/part-63.js), [enabled.js](../../restored/lib/index/enabled.js), [part-60.js (`nc`)](../../restored/modules/index/part-60.js)
+- **근거:** `re-upstream/restored/views/SettingView.vue.js`, `re-upstream/restored/router/routes.js:422`, `re-upstream/restored/modules/index/Group.js:323`, `re-upstream/restored/modules/index/part-74.js:76`, part-63.js (`Sct`) (`re-upstream/restored/lib/index/part-63.js`), `re-upstream/restored/lib/index/enabled.js`, part-60.js (`nc`) (`re-upstream/restored/modules/index/part-60.js`)
 
 ## 기본 설정 — `/setting/common` (`setting-common`)
 
@@ -63,7 +63,7 @@
   - 내원 경로 추가·수정·삭제 → `/settings/visit-pathways` (`내원경로명`). 사용/미사용 목록으로 나뉩니다
   - 진료 항목 추가·수정·삭제 → `/settings/medical-treatments` (`기본이름`, `이름`, 색, 단축어)
   - 토글: `PATCH /settings/display/chart-numbers` (`차트번호표기여부`), `PATCH /settings/display/resident-numbers` (`주민등록번호뒷자리표시여부`), `PATCH /settings/hospitals/chart-number` (`추천차트번호`. 새 환자 등록 시 이 번호부터 1씩 증가)
-- **근거:** [SettingCommonView.vue](../../restored/views/SettingCommonView.vue), [SettingCommonViewClinicHoursConfig.vue](../../restored/components/setting/SettingCommonViewClinicHoursConfig.vue), [SettingCommonViewPatientSettings.vue](../../restored/components/setting/SettingCommonViewPatientSettings.vue), [SettingCommonViewTreatmentListConfig.vue](../../restored/components/setting/SettingCommonViewTreatmentListConfig.vue), [Tab.js](../../restored/modules/index/Tab.js)
+- **근거:** `re-upstream/restored/views/SettingCommonView.vue`, `re-upstream/restored/components/setting/SettingCommonViewClinicHoursConfig.vue`, `re-upstream/restored/components/setting/SettingCommonViewPatientSettings.vue`, `re-upstream/restored/components/setting/SettingCommonViewTreatmentListConfig.vue`, `re-upstream/restored/modules/index/Tab.js`
 
 ## 비대면 진료 설정 — `/setting/telemedicine` (`setting-telemedicine`)
 
@@ -79,7 +79,7 @@
   - 프로필 사진(10MB 이하 이미지) → `POST /members/upstream/clinics/my/profile`
   - 저장 → `PATCH /members/upstream/clinics/my`. 변경 사항이 없으면 버튼이 비활성입니다. 주소 검색은 `SearchAddress`(juso)를 씁니다
   - 알림 번호는 환자에게 보이지 않는다고 안내합니다
-- **근거:** [SettingTelemedicineView.vue](../../restored/views/SettingTelemedicineView.vue), [SettingCommonViewTelemedicineConfig.vue](../../restored/components/setting/SettingCommonViewTelemedicineConfig.vue), [guards.js](../../restored/router/guards.js#L69), [part-41.js](../../restored/lib/index/part-41.js#L54)
+- **근거:** `re-upstream/restored/views/SettingTelemedicineView.vue`, `re-upstream/restored/components/setting/SettingCommonViewTelemedicineConfig.vue`, `re-upstream/restored/router/guards.js:69`, `re-upstream/restored/lib/index/part-41.js:54`
 
 ## 서비스 연동 — `/setting/service-integration` (`setting-service-integration`)
 
@@ -93,7 +93,7 @@
   - 미연동 "실손" 카드 → `ServiceConnectModal` 확인 → `useSooSignUpStore().실손여부 = true` 후 가입 흐름(`state: "soo"`)으로 이동합니다
   - 연동된 카드: 수는 `ServiceManageModal`, 실손은 별도 모달(`open`)을 엽니다
   - `?openSooConnect=true`로 들어오면 수 연동 모달을 바로 열고 쿼리를 지웁니다
-- **근거:** [SettingServiceIntegrationView.vue.js](../../restored/views/SettingServiceIntegrationView.vue.js), [sooSignUp.js](../../restored/api/integrations/sooSignUp.js)
+- **근거:** `re-upstream/restored/views/SettingServiceIntegrationView.vue.js`, `re-upstream/restored/api/integrations/sooSignUp.js`
 
 ## 병원 정보 설정 — `/setting/hospital` (`setting-hospital-info`)
 
@@ -117,7 +117,7 @@
   - 이미지 업로드 → `POST /settings/images/private` → signed URL에 PUT. 도장은 배경을 자동으로 지웁니다
   - 제주 지원사업: 운영사업(`해녀`·`생존희생자`·`유족`·`며느리`) 체크와 지급 계좌 → `PATCH /settings/jeju-claim` (`운영사업`, `지급은행`, `지급계좌번호`, `예금주`). 수 단독 계정이 아닐 때만 저장합니다. 병원 정보만 저장되고 이 저장이 실패하면 별도 오류를 띄웁니다
   - 선택 약관 → `GET accountClient /terms/my-agreements`, `PUT /terms/optional-agreements` (`약관동의목록`)
-- **근거:** [SettingHospitalView.vue](../../restored/views/SettingHospitalView.vue), [SettingHospitalView.helpers.js](../../restored/views/SettingHospitalView.helpers.js), [SettingHospitalFieldBadge.vue.js](../../restored/components/setting/SettingHospitalFieldBadge.vue.js), [SettingHospitalJejuClaim.vue](../../restored/components/setting/SettingHospitalJejuClaim.vue), [api/users/requests.js](../../restored/api/users/requests.js)
+- **근거:** `re-upstream/restored/views/SettingHospitalView.vue`, `re-upstream/restored/views/SettingHospitalView.helpers.js`, `re-upstream/restored/components/setting/SettingHospitalFieldBadge.vue.js`, `re-upstream/restored/components/setting/SettingHospitalJejuClaim.vue`, `re-upstream/restored/api/users/requests.js`
 
 ## 진료 설정 — `/setting/treatment` (`setting-treatment`)
 
@@ -138,7 +138,7 @@
   - 치료실 → `POST`·`PATCH`·`DELETE /settings/treatments/rooms` (`치료실명`, `베드수`)
     - 최대 10개까지 둘 수 있습니다
     - 치료 중인 환자가 있으면 변경할 수 없습니다 (`GET /treatments/patients/basic`으로 확인)
-- **근거:** [SettingTreatmentView.vue](../../restored/views/SettingTreatmentView.vue), [SettingTreatmentViewExaminationClaim.vue.js](../../restored/components/setting/SettingTreatmentViewExaminationClaim.vue.js#L296), [SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue](../../restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue)
+- **근거:** `re-upstream/restored/views/SettingTreatmentView.vue`, `re-upstream/restored/components/setting/SettingTreatmentViewExaminationClaim.vue.js:296`, `re-upstream/restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue`
 
 ## 처방 및 수가 설정 — `/setting/prescription` (`setting-prescription`)
 
@@ -168,7 +168,7 @@
   - **패키지:** 과세/면세 혼합 패키지를 만들 수 없고, 패키지 이름이 중복되면 안 됩니다
   - **비급여:** 코드와 처방명이 중복되면 안 되고, 금액은 천만원을 넘을 수 없습니다. 수 서비스 전용 처방은 설정에서 추가할 수 없습니다
   - **약속처방:** 이름이 중복되면 안 됩니다
-- **근거:** [SettingPrescriptionView.vue](../../restored/views/SettingPrescriptionView.vue), [Tab.js (`Tab$_4`, `SubTab$`)](../../restored/modules/index/Tab.js), [SettingPrescriptionViewReservedMain.vue](../../restored/components/setting/SettingPrescriptionViewReservedMain.vue), [SettingPrescriptionViewNonBenefitRegistrationPanel.vue](../../restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue), [SettingPrescriptionViewPackageEditPanel.vue](../../restored/components/setting/SettingPrescriptionViewPackageEditPanel.vue), [SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue](../../restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue), [SettingPrescriptionViewChubyak.vue](../../restored/components/setting/SettingPrescriptionViewChubyak.vue), [settingHerb.js](../../restored/stores/settingHerb.js)
+- **근거:** `re-upstream/restored/views/SettingPrescriptionView.vue`, Tab.js (`Tab$_4`, `SubTab$`) (`re-upstream/restored/modules/index/Tab.js`), `re-upstream/restored/components/setting/SettingPrescriptionViewReservedMain.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewPackageEditPanel.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewChubyak.vue`, `re-upstream/restored/stores/settingHerb.js`
 
 ## 상용구 설정 — `/setting/templates` (`setting-templates`)
 
@@ -185,7 +185,7 @@
   - 상용구명은 공백 없이 최대 20자입니다
   - 저장하지 않은 변경이 있으면 이동할 때 확인합니다 (`uZt`)
   - 처방 선택은 수가 코드 사전(`GET /settings/references/reimbursement-codes`, 자보 수가 JSON)으로 검색합니다
-- **근거:** [SettingEditorTemplates.vue](../../restored/components/setting/SettingEditorTemplates.vue), [SettingEditorTemplatesMain.vue](../../restored/components/setting/SettingEditorTemplatesMain.vue), [SettingEditorTemplatesSidebar.vue](../../restored/components/setting/SettingEditorTemplatesSidebar.vue)
+- **근거:** `re-upstream/restored/components/setting/SettingEditorTemplates.vue`, `re-upstream/restored/components/setting/SettingEditorTemplatesMain.vue`, `re-upstream/restored/components/setting/SettingEditorTemplatesSidebar.vue`
 
 ## 계정 및 권한 설정 — `/setting/account-permission` (`setting-account-permission`)
 
@@ -206,7 +206,7 @@
   - 삭제 → `DELETE /users/{id}`. "차트에서 완전히 삭제되며 복구할 수 없습니다"를 안내합니다
   - 권한 편집 → `GET`·`PATCH accountClient /permissions`. MEMBERS 권한 하위 트리(`MembersPermissionToggleSubtree`)도 여기서 편집합니다
   - 도장 → `POST`·`DELETE /users/{id}/stamp` (`이미지명`, `이미지사이즈`). 진료의(대표원장·부원장) 계정에만 등록할 수 있습니다. 배경은 자동으로 제거하고, 실패하면 원본을 그대로 씁니다
-- **근거:** [AccountPermissionsView.vue](../../restored/views/AccountPermissionsView.vue), [AccountPermissionsListDetail.vue](../../restored/components/account/AccountPermissionsListDetail.vue), [AccountPermissionsTable.vue](../../restored/components/account/AccountPermissionsTable.vue)
+- **근거:** `re-upstream/restored/views/AccountPermissionsView.vue`, `re-upstream/restored/components/account/AccountPermissionsListDetail.vue`, `re-upstream/restored/components/account/AccountPermissionsTable.vue`
 
 ## 계정 이력 — `/setting/account-history` (`setting-account-history`)
 
@@ -216,7 +216,7 @@
 - **동작:**
   - 표 3개(`AccountHistoryTable*`)는 하드코딩된 샘플 행을 5번 반복해 그립니다. API 호출은 없습니다
   - `record` 탭은 "디자인 작업 완료후 작업 예정" 텍스트만 보여줍니다
-- **근거:** [AccountHistoryView.vue](../../restored/views/AccountHistoryView.vue), [AccountHistoryView.helpers.js](../../restored/views/AccountHistoryView.helpers.js), [AccountHistoryTableLoginLog.vue.js](../../restored/components/account/AccountHistoryTableLoginLog.vue.js)
+- **근거:** `re-upstream/restored/views/AccountHistoryView.vue`, `re-upstream/restored/views/AccountHistoryView.helpers.js`, `re-upstream/restored/components/account/AccountHistoryTableLoginLog.vue.js`
 
 ## 태블릿 설정 — `/setting/tablet` (`setting-tablet`)
 
@@ -234,7 +234,7 @@
   - 관리자 PIN(접수 화면 로고를 7번 누르면 열리는 메뉴) → `PUT /tablet/settings/admin-pin` (`PIN`, 숫자 4자리). 기본값으로 되돌릴 수 있습니다
   - 언어 → `PUT /tablet/settings/languages` (`languages`). 리뷰 링크 → `PUT /tablet/settings/review-links` (`리뷰링크`)
   - 진료항목 → `PUT /tablet/settings/treatment-items` (`진료항목Ids`). 최소 1개는 남아 있어야 합니다
-- **근거:** [SettingTabletView.vue](../../restored/views/SettingTabletView.vue), [TabletAccountView.vue](../../restored/views/TabletAccountView.vue), [TabletAdminPinCard.vue](../../restored/components/tablet/TabletAdminPinCard.vue)
+- **근거:** `re-upstream/restored/views/SettingTabletView.vue`, `re-upstream/restored/views/TabletAccountView.vue`, `re-upstream/restored/components/tablet/TabletAdminPinCard.vue`
 
 ## 문서 관리 — `/setting/document-management` (`setting-document-management`)
 
@@ -250,7 +250,7 @@
     - 업로드한 문서 위에 서명·체크박스 등 입력폼을 배치합니다. 언어별 variant를 따로 만들 수 있습니다
   - 중앙 배포(공용) 서식은 수정·삭제할 수 없고 복제해서 써야 합니다. 목록에서 내리려면 비공개로 전환합니다
   - 빈 양식 인쇄(`QuestionnaireBlankPrintSheet`, `ConsentBlankPrintSheet`, `TabletFormPrintModal`)를 지원합니다
-- **근거:** [SettingDocumentManagementView.vue](../../restored/views/SettingDocumentManagementView.vue), [SettingTabletQuestionnaire.vue](../../restored/components/setting/SettingTabletQuestionnaire.vue), [SettingTabletConsent.vue](../../restored/components/setting/SettingTabletConsent.vue), [SettingTabletConsentEditor.vue](../../restored/components/setting/SettingTabletConsentEditor.vue)
+- **근거:** `re-upstream/restored/views/SettingDocumentManagementView.vue`, `re-upstream/restored/components/setting/SettingTabletQuestionnaire.vue`, `re-upstream/restored/components/setting/SettingTabletConsent.vue`, `re-upstream/restored/components/setting/SettingTabletConsentEditor.vue`
 
 ## 결제 정보 — `/setting/billing` (`setting-billing`)
 
@@ -267,7 +267,7 @@
   - 결제 → `POST /billing/invoices/payments` (`invoiceIds`, `paymentMethodId`). 오류 문구: 잔액 부족, 연체·유예 시 예치금 결제 불가, 예치금 합산 결제 불가, 청구서 상태 변경됨
   - 기본 결제 수단·세금계산서 정보 → `PUT /billing/payment-methods/default` (`medipayId`, `depositFallbackEnabled`, `billingTaxInvoice*`)
   - 실손 결제 수단 → `GET`·`POST`·`PUT`·`DELETE insuranceClient /hospital/payment-methods`. 메디페이 카드 목록은 `GET /hospital/payment-methods/medipay`, 구독 정보는 `GET /subscriptions`로 봅니다. 구독료는 매월 1일에 정기 결제된다고 안내합니다
-- **근거:** [CrmBillingView.vue](../../restored/views/CrmBillingView.vue), [BillingPaySidePanel.vue](../../restored/components/billing/BillingPaySidePanel.vue), [InsurancePaymentMethodModal.vue](../../restored/components/insurance/InsurancePaymentMethodModal.vue)
+- **근거:** `re-upstream/restored/views/CrmBillingView.vue`, `re-upstream/restored/components/billing/BillingPaySidePanel.vue`, `re-upstream/restored/components/insurance/InsurancePaymentMethodModal.vue`
 
 ## MCP 연동 — `/setting/mcp-tokens` (`setting-mcp-tokens`)
 
@@ -284,7 +284,7 @@
     - 다시 발급하면 기존 키는 즉시 중지됩니다
   - 목록 → `GET /auth/mcp-tokens`. 사용 중지 → `DELETE /auth/mcp-tokens/{id}`
   - 안내 문구: MCP가 작성한 메모·메시지는 본인 확인 뒤에만 정식 저장됩니다. 환자 이름·차트번호·연락처는 모델에 노출하지 않고 핸들로만 다룹니다
-- **근거:** [MCPTokens.vue](../../restored/components/m/MCPTokens.vue), [Group.js](../../restored/modules/index/Group.js#L420)
+- **근거:** `re-upstream/restored/components/m/MCPTokens.vue`, `re-upstream/restored/modules/index/Group.js:420`
 
 ## MCP 승인 대기 — `/setting/mcp-pending-contacts` (`setting-mcp-pending-contacts`)
 
@@ -302,7 +302,7 @@
     - 목록 → `GET /patients/me/pending-notes`. 수정 → `PATCH /patients/memos/{id}`
     - 승인 → `POST /patients/memos/{id}/approve`. 승인하면 본인 명의로 차트에 저장됩니다
     - 거부 → `DELETE /patients/memos/{id}` (추정)
-- **근거:** [McpPendingContacts.vue](../../restored/components/mcp/McpPendingContacts.vue), [McpApprovalContactsTab.vue](../../restored/components/mcp/McpApprovalContactsTab.vue), [McpApprovalNotesTab.vue](../../restored/components/mcp/McpApprovalNotesTab.vue)
+- **근거:** `re-upstream/restored/components/mcp/McpPendingContacts.vue`, `re-upstream/restored/components/mcp/McpApprovalContactsTab.vue`, `re-upstream/restored/components/mcp/McpApprovalNotesTab.vue`
 
 ## 지출내역 수집 — `/setting/expense-collection` (`setting-expense-collection`)
 
@@ -312,7 +312,7 @@
   - `finance-prd` remoteEntry를 federation으로 로드해 마운트합니다
   - 토큰을 동기화(`ls:change`)하고 `update({ token, initialPath })`로 넘깁니다
 - **데이터:** 원격 앱 코드가 번들에 없어서 API는 알 수 없습니다. 자세한 내용은 [analytics-and-remote-apps.md](analytics-and-remote-apps.md)를 보세요
-- **근거:** [SettingExpenseCollectionView.vue](../../restored/views/SettingExpenseCollectionView.vue), [FinanceContainer.vue.js](../../restored/components/finance/FinanceContainer.vue.js), [FinanceContainer.helpers.js](../../restored/components/finance/FinanceContainer.helpers.js)
+- **근거:** `re-upstream/restored/views/SettingExpenseCollectionView.vue`, `re-upstream/restored/components/finance/FinanceContainer.vue.js`, `re-upstream/restored/components/finance/FinanceContainer.helpers.js`
 
 ## 비대면 진료 정산 — `/remote-settlement` (`remote-settlement`)
 
@@ -328,7 +328,7 @@
   - `RemoteSettlementTableContent`: AG Grid 표 (주문 번호·처방·수량·결제금액·결제수수료·정산기준금액·주문/정산 상태·결제일)
   - `RemoteSettlementInfoContent`: 정산 기준 안내
 - **데이터:** `GET thesooClient /settlement/upstream/settlements?year=&month=` → `data.data`
-- **근거:** [RemoteSettlementView.vue](../../restored/views/RemoteSettlementView.vue), [RemoteSettlementTableContent.vue](../../restored/components/remote/RemoteSettlementTableContent.vue), [routes.js](../../restored/router/routes.js#L604)
+- **근거:** `re-upstream/restored/views/RemoteSettlementView.vue`, `re-upstream/restored/components/remote/RemoteSettlementTableContent.vue`, `re-upstream/restored/router/routes.js:604`
 
 ## 미확인·추정
 

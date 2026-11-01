@@ -24,7 +24,7 @@
   - Pinia `deskDate`: `deskDate`, `deskScrollPositions`
     - 스크롤 위치는 날짜·컬럼(`data-desk-scroll` = `board`/`appointment`/`waiting`/`treatment`) 단위로 저장했다가 복원합니다
     - `onActivated`/`onDeactivated` 훅을 쓰므로 keep-alive 안에서 동작합니다 (추정)
-- **근거:** [routes.js](../../restored/router/routes.js), [DeskSuspense.vue](../../restored/components/desk/DeskSuspense.vue), [DeskView.vue](../../restored/views/DeskView.vue), [TodaySummaryBar.vue](../../restored/components/today/TodaySummaryBar.vue), [deskDate.js](../../restored/stores/deskDate.js), [DeskView/part-3.js](../../restored/modules/DeskView/part-3.js) (`Ff` 스크롤 복원)
+- **근거:** `re-upstream/restored/router/routes.js`, `re-upstream/restored/components/desk/DeskSuspense.vue`, `re-upstream/restored/views/DeskView.vue`, `re-upstream/restored/components/today/TodaySummaryBar.vue`, `re-upstream/restored/stores/deskDate.js`, `re-upstream/restored/modules/DeskView/part-3.js` (`Ff` 스크롤 복원)
 
 ## 내원현황 보드 (5개 컬럼)
 
@@ -93,7 +93,7 @@
     - 그룹핑 기준: `deskVisitGroupingCriteria` (`Bxe` 훅)
     - 컬럼별 카드 형태: `patientCardType`(예약), `waitingPatientCardType`, `treatmentPatientCardType`, `paymentPatientCardType`, `paymentCompletePatientCardType`
     - 예약 컬럼 숨김 토글: `deskVisitHideCancelledNoShow`
-- **근거:** [DeskVisitView.vue](../../restored/views/DeskVisitView.vue), [DeskVisitHeader.vue](../../restored/components/desk/DeskVisitHeader.vue), [DeskVisitAppointment.vue](../../restored/components/desk/DeskVisitAppointment.vue), [DeskVisitWaiting.vue](../../restored/components/desk/DeskVisitWaiting.vue), [DeskVisitEmptySection.vue](../../restored/components/desk/DeskVisitEmptySection.vue), [DeskView/part-3.js](../../restored/modules/DeskView/part-3.js), [useDeskWaitingQuery.js](../../restored/modules/index/useDeskWaitingQuery.js), [useDeskAppointmentsByValueQuery.js](../../restored/modules/index/useDeskAppointmentsByValueQuery.js), [WaitingColumn.vue](../../restored/components/waiting/WaitingColumn.vue)
+- **근거:** `re-upstream/restored/views/DeskVisitView.vue`, `re-upstream/restored/components/desk/DeskVisitHeader.vue`, `re-upstream/restored/components/desk/DeskVisitAppointment.vue`, `re-upstream/restored/components/desk/DeskVisitWaiting.vue`, `re-upstream/restored/components/desk/DeskVisitEmptySection.vue`, `re-upstream/restored/modules/DeskView/part-3.js`, `re-upstream/restored/modules/index/useDeskWaitingQuery.js`, `re-upstream/restored/modules/index/useDeskAppointmentsByValueQuery.js`, `re-upstream/restored/components/waiting/WaitingColumn.vue`
 
 ## 접수·대기 상태 값
 
@@ -106,11 +106,11 @@
 | `수납` | 수납 | 대기·치료·수납완료 카드를 수납 컬럼에 드롭 |
 | `수납완료` | 수납 완료 | 수납 완료 처리(`DeskVisitPaymentCheckOut`) 후 자동, 또는 수납 내역이 있는 카드를 드롭 |
 
-- 화면 문구용 이동 단계(`_D`)에는 `차팅 완료`도 있습니다: `["차팅 완료","대기","치료","수납"]`. 분석 이벤트 값은 `no_move`/`waiting`/`treatment`/`payment`/`payment_done`입니다 ([SidePanelDeskActions/part-2.js](../../restored/modules/SidePanelDeskActions/part-2.js))
+- 화면 문구용 이동 단계(`_D`)에는 `차팅 완료`도 있습니다: `["차팅 완료","대기","치료","수납"]`. 분석 이벤트 값은 `no_move`/`waiting`/`treatment`/`payment`/`payment_done`입니다 (`re-upstream/restored/modules/SidePanelDeskActions/part-2.js`)
 
 ### 보험구분 (`S0e`)
 
-`건보`, `자보`, `급여`, `산재`, `일반` ([queries-2.js](../../restored/api/patients/queries-2.js))
+`건보`, `자보`, `급여`, `산재`, `일반` (`re-upstream/restored/api/patients/queries-2.js`)
 
 ### 예약 상태
 
@@ -177,7 +177,7 @@
   - `usePostDeskWaitingMutation` 성공 시 무효화: `desk.waiting(today)`, `desk.appointment(today)`, `appointmentsPlanner.all`, 환자 `QueryKey$.all`, `patientHistory`
   - `usePatchDeskWaitingMutation` 성공 시: `waiting`이 들어간 모든 키를 무효화합니다
   - 패널 상태는 `xft()`가 만든 `sidePanelContextState` ref에 둡니다 (`{ panel, data }`)
-- **근거:** [DeskPatientAccept.vue](../../restored/components/desk/DeskPatientAccept.vue), [SidePanelDeskActionsPatientAccept.vue](../../restored/components/side/SidePanelDeskActionsPatientAccept.vue), [DeskPatientAcceptModal.vue](../../restored/components/desk/DeskPatientAcceptModal.vue), [requests-4.js](../../restored/api/desk/requests-4.js) (`postDeskWaiting`), [usePostPatientsNewMutation.js](../../restored/modules/mutations/usePostPatientsNewMutation.js), [part-86.js](../../restored/modules/index/part-86.js) (`xft`), [PatientHealthInsuranceEligibilityTable.vue](../../restored/components/patient/PatientHealthInsuranceEligibilityTable.vue)
+- **근거:** `re-upstream/restored/components/desk/DeskPatientAccept.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientAccept.vue`, `re-upstream/restored/components/desk/DeskPatientAcceptModal.vue`, `re-upstream/restored/api/desk/requests-4.js` (`postDeskWaiting`), `re-upstream/restored/modules/mutations/usePostPatientsNewMutation.js`, `re-upstream/restored/modules/index/part-86.js` (`xft`), `re-upstream/restored/components/patient/PatientHealthInsuranceEligibilityTable.vue`
 
 ## 대기 상태 전환 (드래그·카드 메뉴)
 
@@ -238,7 +238,7 @@
     - `이전상태`는 요청 body에서 뺍니다
 - **데이터:** `PATCH /desk/waiting/{id}` (`상태`, `진료의Id` 등), `DELETE /desk/waiting/{id}`, `PUT /treatments/patients/{내원Id}`, `PUT`/`DELETE /noti/instructions`
 - **상태 저장:** query `["desk","waiting",date]` 낙관적 갱신. 드래그 데이터 `{ type: Tt.PATIENT_CARD, from: "예약"|"대기"|"치료"|"수납"|"수납완료", …Data }`
-- **근거:** [WaitingColumn.vue](../../restored/components/waiting/WaitingColumn.vue), [TreatmentColumn.vue](../../restored/components/treatment/TreatmentColumn.vue), [PaymentColumn.vue](../../restored/components/payment/PaymentColumn.vue), [PaymentCompleteColumn.vue](../../restored/components/payment/PaymentCompleteColumn.vue), [DeskVisitPatientCardDropArea.vue](../../restored/components/desk/DeskVisitPatientCardDropArea.vue), [DeskView/part-4.js](../../restored/modules/DeskView/part-4.js), [usePutTreatmentsPatientsMutation.js](../../restored/modules/CardDropArea/usePutTreatmentsPatientsMutation.js), [TreatmentRoomBedAssignModal.vue](../../restored/components/treatment/TreatmentRoomBedAssignModal.vue), [desk-patient/_hoisted_1.js](../../restored/modules/desk-patient/_hoisted_1.js), [PatientCard.vue.js](../../restored/components/patient/PatientCard.vue.js)
+- **근거:** `re-upstream/restored/components/waiting/WaitingColumn.vue`, `re-upstream/restored/components/treatment/TreatmentColumn.vue`, `re-upstream/restored/components/payment/PaymentColumn.vue`, `re-upstream/restored/components/payment/PaymentCompleteColumn.vue`, `re-upstream/restored/components/desk/DeskVisitPatientCardDropArea.vue`, `re-upstream/restored/modules/DeskView/part-4.js`, `re-upstream/restored/modules/CardDropArea/usePutTreatmentsPatientsMutation.js`, `re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue`, `re-upstream/restored/modules/desk-patient/_hoisted_1.js`, `re-upstream/restored/components/patient/PatientCard.vue.js`
 
 ## 예약 카드 (데스크 측)
 
@@ -264,7 +264,7 @@
 - **상태 저장:**
   - `usePatchDeskAppointmentsMutation`이 `desk.appointment(date)` 캐시의 `예약`·`시간미정예약내역`을 낙관적으로 갱신합니다
   - 성공하면 `appointmentsByDateAndDoctor`, `appointmentsPlanner.all`, `doctalk.all`, 환자 예약 이력 키를 무효화합니다
-- **근거:** [AppointmentColumn.vue](../../restored/components/appointment/AppointmentColumn.vue), [AppointmentColumnTime.vue](../../restored/components/appointment/AppointmentColumnTime.vue), [PatientCardAppointment.vue](../../restored/components/patient/PatientCardAppointment.vue), [AppointmentCardContextMenuWrapper.vue](../../restored/components/appointment/AppointmentCardContextMenuWrapper.vue), [DeskVisitTelemedicineCard.vue](../../restored/components/desk/DeskVisitTelemedicineCard.vue)
+- **근거:** `re-upstream/restored/components/appointment/AppointmentColumn.vue`, `re-upstream/restored/components/appointment/AppointmentColumnTime.vue`, `re-upstream/restored/components/patient/PatientCardAppointment.vue`, `re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue`, `re-upstream/restored/components/desk/DeskVisitTelemedicineCard.vue`
 
 ## 수납 (환자 수납 사이드패널)
 
@@ -311,7 +311,7 @@
 - **상태 저장:**
   - 수납 후 무효화: `desk.waiting(date)`, `desk.medicalReceipts(차트Id)`, 그리고 키에 `waiting`/`patientInfo`/`getReceiptsKeysByPatientId`/`getReceiptDetailsKeysByPatientId`/`medicalReceipts`가 들어간 모든 쿼리
   - `finally`에서 `desk.receipts(today)`도 무효화합니다
-- **근거:** [DeskVisitPaymentCheckOut.vue](../../restored/components/desk/DeskVisitPaymentCheckOut.vue), [PaymentCalculator.vue](../../restored/components/payment/PaymentCalculator.vue), [DeskVisitPaymentCheckOutCalculator.vue](../../restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue), [DeskVisitPaymentCheckOutFooter.vue](../../restored/components/desk/DeskVisitPaymentCheckOutFooter.vue), [DeskVisitPaymentCheckOutTreatmentCardDetail.vue](../../restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue), [usePostDeskPrepaidChartsChargesMutation.js](../../restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js)
+- **근거:** `re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue`, `re-upstream/restored/components/payment/PaymentCalculator.vue`, `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue`, `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutFooter.vue`, `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue`, `re-upstream/restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js`
 
 ## 수납현황 탭 (수납 내역·시재·지출)
 
@@ -353,7 +353,7 @@
   - **변경 감지:** `GET /desk/receipts/updated-checks/{date}?datetime=` → `isUpdated`이면 "수납 현황에 변경된 내역이 있습니다. 새로고침 후 변경된 내역을 확인해 주세요."를 보여 줍니다
 - **데이터:** `GET /desk/receipts/{date}` → `results.수납현황`, `GET /desk/cash-registers?date=`, `GET /desk/expenses?date=`, `GET desk/expenses/items`, `GET /desk/balances` (`limit`, `offset`, `type`), `GET`/`POST /documents/copayment-ledger`
 - **상태 저장:** query key `desk.receipts(date)`, `desk.cashBalance(date)`, `desk.expenseReceipts(date)`, `desk.expenseItems()`, `desk.checkReceiptUpdate(date, datetime)`
-- **근거:** [DeskPaymentsView.vue](../../restored/views/DeskPaymentsView.vue), [DeskPaymentsHistoryTable.vue](../../restored/components/desk/DeskPaymentsHistoryTable.vue), [DeskPaymentsCashBalance.vue](../../restored/components/desk/DeskPaymentsCashBalance.vue), [DeskPaymentsCashBalanceForm.vue](../../restored/components/desk/DeskPaymentsCashBalanceForm.vue), [DeskPaymentsCashBalanceSettlement.vue](../../restored/components/desk/DeskPaymentsCashBalanceSettlement.vue), [DeskPaymentsExpenseHistory.vue](../../restored/components/desk/DeskPaymentsExpenseHistory.vue), [DeskPaymentsUnusualPatients.vue](../../restored/components/desk/DeskPaymentsUnusualPatients.vue), [DeskView/part-2.js](../../restored/modules/DeskView/part-2.js), [CopaymentLedger.vue](../../restored/components/copayment/CopaymentLedger.vue)
+- **근거:** `re-upstream/restored/views/DeskPaymentsView.vue`, `re-upstream/restored/components/desk/DeskPaymentsHistoryTable.vue`, `re-upstream/restored/components/desk/DeskPaymentsCashBalance.vue`, `re-upstream/restored/components/desk/DeskPaymentsCashBalanceForm.vue`, `re-upstream/restored/components/desk/DeskPaymentsCashBalanceSettlement.vue`, `re-upstream/restored/components/desk/DeskPaymentsExpenseHistory.vue`, `re-upstream/restored/components/desk/DeskPaymentsUnusualPatients.vue`, `re-upstream/restored/modules/DeskView/part-2.js`, `re-upstream/restored/components/copayment/CopaymentLedger.vue`
 
 ## 환자 등록·검색
 
@@ -386,7 +386,7 @@
 - **상태 저장:**
   - 등록·수정 후 무효화: `desk.waiting(date)`, `desk.appointment(date)`, `patientInfo`, `patientProfileImage`, `relationship`, `patientAddresses`, `appointmentInfo`, 동의 이력
   - `usePostPatientsNewMutation`은 환자 `QueryKey$.all`을 무효화합니다
-- **근거:** [DeskPatientRegister.vue](../../restored/components/desk/DeskPatientRegister.vue), [SidePanelDeskActionsPatientRegisterOrModify.vue](../../restored/components/side/SidePanelDeskActionsPatientRegisterOrModify.vue), [DeskPatientAcceptModal.vue](../../restored/components/desk/DeskPatientAcceptModal.vue), [PatientSearch.vue](../../restored/components/patient/PatientSearch.vue), [useDeskWaitingQuery.js](../../restored/modules/index/useDeskWaitingQuery.js), [HeaderLayout.vue](../../restored/components/header/HeaderLayout.vue)
+- **근거:** `re-upstream/restored/components/desk/DeskPatientRegister.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientRegisterOrModify.vue`, `re-upstream/restored/components/desk/DeskPatientAcceptModal.vue`, `re-upstream/restored/components/patient/PatientSearch.vue`, `re-upstream/restored/modules/index/useDeskWaitingQuery.js`, `re-upstream/restored/components/header/HeaderLayout.vue`
 
 ## 사이드패널 (환자 상세 외)
 
@@ -420,7 +420,7 @@
     - `canAccess$(환자상세)`가 없으면 "접근 권한이 없습니다."를 보여 줍니다
   - 수납 완료 카드의 `수납 내역` 버튼은 환자상세를 `initialTab: "수납 내역"`으로 엽니다
 - **상태 저장:** `sidePanelContextState` ref (`{ panel, data }`). `_hoisted_2_2.provide`로 하위에 전달합니다
-- **근거:** [SidePanelDeskActions.vue](../../restored/components/side/SidePanelDeskActions.vue), [part-86.js](../../restored/modules/index/part-86.js), [PatientInfoDetail.vue](../../restored/components/patient/PatientInfoDetail.vue), [SidePanelDeskActionsPatientInfoDetail.vue](../../restored/components/side/SidePanelDeskActionsPatientInfoDetail.vue), [SidePanelDeskActionsChartCreate.vue](../../restored/components/side/SidePanelDeskActionsChartCreate.vue), [SidePanelDeskActionsMessageSend.vue](../../restored/components/side/SidePanelDeskActionsMessageSend.vue)
+- **근거:** `re-upstream/restored/components/side/SidePanelDeskActions.vue`, `re-upstream/restored/modules/index/part-86.js`, `re-upstream/restored/components/patient/PatientInfoDetail.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientInfoDetail.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsChartCreate.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsMessageSend.vue`
 
 ## 서류 발급
 
@@ -438,7 +438,7 @@
   - **본인부담금 수납대장:** `/documents/copayment-ledger` (수납현황 탭)
 - **데이터:** `/documents/*` ([endpoints.md](../../endpoints.md) `/documents` 절)
 - **상태 저장:** Pinia `useDocumentIssueStore` (`currentDocumentType`, `selectedDraftItemId`, `isTempSaving`, `isCompletedSave`, snapshot)
-- **근거:** [DocumentIssueView.vue](../../restored/views/DocumentIssueView.vue), [SidePanelDeskActionsDocumentIssue.vue](../../restored/components/side/SidePanelDeskActionsDocumentIssue.vue), [DocumentIssueView/진료내용.js](../../restored/modules/DocumentIssueView/진료내용.js), [documentIssue.js](../../restored/stores/documentIssue.js)
+- **근거:** `re-upstream/restored/views/DocumentIssueView.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsDocumentIssue.vue`, `re-upstream/restored/modules/DocumentIssueView/진료내용.js`, `re-upstream/restored/stores/documentIssue.js`
 
 ## 실시간 동기화
 
@@ -474,7 +474,7 @@
   - `BT(queryClient, keys)` 디바운스 무효화 헬퍼를 씁니다 (`maxWait`, 추정)
 - **데이터:** Socket.IO `https://socket.upstream.co.kr` ([non-axios-channels.md](../non-axios-channels.md))
 - **상태 저장:** Pinia `socketClient`, `patient` (`recentAcceptPatientId`, `focusRequestPatientId`). `useTreatmentStore`는 데스크 보드 코드에서 쓰지 않습니다
-- **근거:** [part-239.js](../../restored/modules/index/part-239.js) (`XVt`), [part-233.js](../../restored/modules/index/part-233.js) (`NUt`), [socketClient.js](../../restored/stores/socketClient.js), [patient.js](../../restored/stores/patient.js), [App.vue](../../restored/components/app/App.vue)
+- **근거:** `re-upstream/restored/modules/index/part-239.js` (`XVt`), `re-upstream/restored/modules/index/part-233.js` (`NUt`), `re-upstream/restored/stores/socketClient.js`, `re-upstream/restored/stores/patient.js`, `re-upstream/restored/components/app/App.vue`
 
 ## 흐름
 

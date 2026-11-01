@@ -1,0 +1,1667 @@
+{
+  "rule": "settings-validation",
+  "description": "Client-side validations on settings screens: arbitrary formula limits, package tax-type mixing, nonbenefit amount cap and VAT, treatment room bed/room limits, and name duplicate pre-checks.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js",
+      "lines": "3-36",
+      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:7448-7481"
+    },
+    {
+      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue.js",
+      "lines": "188-279",
+      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:7482-8008"
+    },
+    {
+      "file": "re-upstream/restored/modules/PrescriptionInputSearchTreatment/part-3.js",
+      "lines": "5-43",
+      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:455-492"
+    },
+    {
+      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewPackagePrescriptionSidePanel.vue.js",
+      "lines": "105-113",
+      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:4294-4617"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-105.js",
+      "lines": "8",
+      "origin": "unminified/index-CBEIvlV0.js:80244-80371"
+    },
+    {
+      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js",
+      "lines": "502-532",
+      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:13151-13181"
+    },
+    {
+      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js",
+      "lines": "248, 400-460, 567-604",
+      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:12700-13532"
+    },
+    {
+      "file": "re-upstream/restored/modules/SettingPrescriptionView/part-7.js",
+      "lines": "5-19",
+      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:11249-11271"
+    },
+    {
+      "file": "re-upstream/restored/lib/SettingPrescriptionView/part-6.js",
+      "lines": "8-53",
+      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:11199-11248"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js",
+      "lines": "72-105, 212",
+      "origin": "unminified/TreatmentRoomRegisterOrModifyModal.vue_vue_type_script_setup_true_lang-Bip_ua-d.js:87-120, 227"
+    },
+    {
+      "file": "re-upstream/restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js",
+      "lines": "119-136",
+      "origin": "unminified/SettingTreatmentView-BE_swnEi.js:1806-1823"
+    },
+    {
+      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue.js",
+      "lines": "89-100",
+      "origin": "unminified/useOcsV2배송상태-DHC-CIRk.js:6065-6076"
+    }
+  ],
+  "inputSchema": {
+    "check": "arbitraryFormula | packageMix | packageItemAmount | nonBenefitAmount | nonBenefitAmountUnclamped | nonBenefitRegister | treatmentRoom | roomCount | personalFormulaName",
+    "arbitraryFormula": {
+      "처방명": "string",
+      "구성약재": "[{ 상한금액: number (unit price per 규격), 사용량: number|string (g), 규격: number (기준용량 g) }]"
+    },
+    "packageMix": {
+      "items": "[{ 과세구분: '면세'|'별도'|'포함'|null }]",
+      "candidate": "optional { 과세구분 }"
+    },
+    "packageItemAmount": {
+      "단가": "number",
+      "과세구분": "string",
+      "일투여량": "number",
+      "투약일수": "number"
+    },
+    "nonBenefitAmount": {
+      "input": "string as typed (commas allowed)",
+      "과세구분": "'면세'|'별도'|'포함'"
+    },
+    "nonBenefitAmountUnclamped": {
+      "rawValue": "string digits",
+      "과세구분": "string"
+    },
+    "nonBenefitRegister": {
+      "처방명": "string",
+      "코드": "string without 비 prefix",
+      "rawValue": "string",
+      "existingItems": "[{ 처방명, 코드 (with 비 prefix) }]"
+    },
+    "treatmentRoom": {
+      "치료실명": "string",
+      "베드수": "string (input value)",
+      "기존베드수": "string|undefined (edit mode)",
+      "id": "string ('' on create)",
+      "existingRooms": "[{ 치료실Id, 치료실명 }]"
+    },
+    "roomCount": {
+      "existingRoomCount": "number"
+    },
+    "personalFormulaName": {
+      "처방명": "string",
+      "existingNames": "string[] in server order"
+    }
+  },
+  "cases": [
+    {
+      "name": "arbitraryFormula: empty herb list cannot be saved",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": []
+      },
+      "expected": {
+        "총사용량": 0,
+        "총금액": 0,
+        "계산금액목록": [],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: total weight exactly 50g allowed",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 10,
+            "사용량": 30,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 20,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 50,
+        "총금액": 500,
+        "계산금액목록": [
+          300,
+          200
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": true,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: total weight 50.1g exceeds",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 10,
+            "사용량": 30,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 20.1,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 50.1,
+        "총금액": 501,
+        "계산금액목록": [
+          300,
+          201
+        ],
+        "사용량초과": true,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": [
+          "총 투약량은 50g을 초과할 수 없습니다."
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: total amount exactly 3000 allowed",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 100,
+            "사용량": 30,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 30,
+        "총금액": 3000,
+        "계산금액목록": [
+          3000
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": true,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: total amount 3001 exceeds",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 100,
+            "사용량": 30,
+            "규격": 1
+          },
+          {
+            "상한금액": 1,
+            "사용량": 1,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 31,
+        "총금액": 3001,
+        "계산금액목록": [
+          3000,
+          1
+        ],
+        "사용량초과": false,
+        "금액초과": true,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": [
+          "총 투약가가 3,000원을 초과할 수 없습니다."
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: per-herb rounding pushes total over 3000",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 1000.5,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 1000.5,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 999.5,
+            "사용량": 1,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 3,
+        "총금액": 3002,
+        "계산금액목록": [
+          1001,
+          1001,
+          1000
+        ],
+        "사용량초과": false,
+        "금액초과": true,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": [
+          "총 투약가가 3,000원을 초과할 수 없습니다."
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: half rounds up per herb (0.5 -> 1)",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 1,
+            "사용량": 0.5,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 0.5,
+        "총금액": 1,
+        "계산금액목록": [
+          1
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": true,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: unit price per 기준용량 (규격) divides",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 250,
+            "사용량": 3,
+            "규격": 2
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 3,
+        "총금액": 375,
+        "계산금액목록": [
+          375
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": true,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: 15 herbs allowed",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 15,
+        "총금액": 150,
+        "계산금액목록": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": true,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: 16 herbs exceeds",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 16,
+        "총금액": 160,
+        "계산금액목록": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": true,
+        "canSave": false,
+        "errors": [
+          "총 약재 수는 15개를 초과할 수 없습니다."
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: all three limits exceeded at once",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          },
+          {
+            "상한금액": 100,
+            "사용량": 4,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 64,
+        "총금액": 6400,
+        "계산금액목록": [
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400,
+          400
+        ],
+        "사용량초과": true,
+        "금액초과": true,
+        "총약재초과": true,
+        "canSave": false,
+        "errors": [
+          "총 투약량은 50g을 초과할 수 없습니다.",
+          "총 투약가가 3,000원을 초과할 수 없습니다.",
+          "총 약재 수는 15개를 초과할 수 없습니다."
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: empty name blocks save",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "",
+        "구성약재": [
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 1,
+        "총금액": 10,
+        "계산금액목록": [
+          10
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: any herb with 0 usage blocks save",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 10,
+            "사용량": 1,
+            "규격": 1
+          },
+          {
+            "상한금액": 10,
+            "사용량": "0",
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 1,
+        "총금액": 10,
+        "계산금액목록": [
+          10,
+          0
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: total amount 0 blocks save",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 0,
+            "사용량": 5,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 5,
+        "총금액": 0,
+        "계산금액목록": [
+          0
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: rounded-to-zero amount still counted as 0",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 1,
+            "사용량": 0.4,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 0.4,
+        "총금액": 0,
+        "계산금액목록": [
+          0
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": false,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "arbitraryFormula: float sum 0.1+0.2 weight",
+      "input": {
+        "check": "arbitraryFormula",
+        "처방명": "A",
+        "구성약재": [
+          {
+            "상한금액": 1000,
+            "사용량": 0.1,
+            "규격": 1
+          },
+          {
+            "상한금액": 1000,
+            "사용량": 0.2,
+            "규격": 1
+          }
+        ]
+      },
+      "expected": {
+        "총사용량": 0.30000000000000004,
+        "총금액": 300,
+        "계산금액목록": [
+          100,
+          200
+        ],
+        "사용량초과": false,
+        "금액초과": false,
+        "총약재초과": false,
+        "canSave": true,
+        "errors": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageMix: empty package",
+      "input": {
+        "check": "packageMix",
+        "items": [],
+        "candidate": {
+          "과세구분": "포함"
+        }
+      },
+      "expected": {
+        "is과세패키지": null,
+        "isValid": true,
+        "message": "",
+        "showMixBanner": false,
+        "canAddCandidate": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageMix: single tax-exempt item shows banner",
+      "input": {
+        "check": "packageMix",
+        "items": [
+          {
+            "과세구분": "면세"
+          }
+        ],
+        "candidate": {
+          "과세구분": "별도"
+        }
+      },
+      "expected": {
+        "is과세패키지": false,
+        "isValid": true,
+        "message": "",
+        "showMixBanner": true,
+        "canAddCandidate": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageMix: 별도 and 포함 are both taxable (not mixed)",
+      "input": {
+        "check": "packageMix",
+        "items": [
+          {
+            "과세구분": "별도"
+          },
+          {
+            "과세구분": "포함"
+          }
+        ],
+        "candidate": {
+          "과세구분": "포함"
+        }
+      },
+      "expected": {
+        "is과세패키지": true,
+        "isValid": true,
+        "message": "",
+        "showMixBanner": false,
+        "canAddCandidate": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageMix: 면세 + 포함 is mixed",
+      "input": {
+        "check": "packageMix",
+        "items": [
+          {
+            "과세구분": "면세"
+          },
+          {
+            "과세구분": "포함"
+          }
+        ]
+      },
+      "expected": {
+        "is과세패키지": false,
+        "isValid": false,
+        "message": "과세 항목과 면세 항목을 함께 추가할 수 없습니다.",
+        "showMixBanner": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageMix: null/unknown 과세구분 treated as tax-exempt",
+      "input": {
+        "check": "packageMix",
+        "items": [
+          {
+            "과세구분": null
+          },
+          {
+            "과세구분": "면세"
+          },
+          {
+            "과세구분": ""
+          }
+        ],
+        "candidate": {
+          "과세구분": null
+        }
+      },
+      "expected": {
+        "is과세패키지": false,
+        "isValid": true,
+        "message": "",
+        "showMixBanner": false,
+        "canAddCandidate": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageMix: first item decides package type",
+      "input": {
+        "check": "packageMix",
+        "items": [
+          {
+            "과세구분": "포함"
+          },
+          {
+            "과세구분": "포함"
+          }
+        ],
+        "candidate": {
+          "과세구분": "면세"
+        }
+      },
+      "expected": {
+        "is과세패키지": true,
+        "isValid": true,
+        "message": "",
+        "showMixBanner": false,
+        "canAddCandidate": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageItemAmount: 면세 no tax",
+      "input": {
+        "check": "packageItemAmount",
+        "단가": 10000,
+        "과세구분": "면세",
+        "일투여량": 2,
+        "투약일수": 3
+      },
+      "expected": {
+        "세금": 0,
+        "금액": 60000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageItemAmount: 별도 adds 10%",
+      "input": {
+        "check": "packageItemAmount",
+        "단가": 10000,
+        "과세구분": "별도",
+        "일투여량": 1,
+        "투약일수": 1
+      },
+      "expected": {
+        "세금": 1000,
+        "금액": 11000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageItemAmount: 포함 also adds 10% on top",
+      "input": {
+        "check": "packageItemAmount",
+        "단가": 10000,
+        "과세구분": "포함",
+        "일투여량": 1,
+        "투약일수": 1
+      },
+      "expected": {
+        "세금": 1000,
+        "금액": 11000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packageItemAmount: tax rounding half-up",
+      "input": {
+        "check": "packageItemAmount",
+        "단가": 15,
+        "과세구분": "별도",
+        "일투여량": 1,
+        "투약일수": 2
+      },
+      "expected": {
+        "세금": 2,
+        "금액": 34
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmount: exactly 10,000,000 allowed",
+      "input": {
+        "check": "nonBenefitAmount",
+        "input": "10000000",
+        "과세구분": "면세"
+      },
+      "expected": {
+        "rawValue": "10000000",
+        "label": "단가",
+        "errorMessage": "",
+        "단가": "10000000",
+        "VAT금액": 0,
+        "포함시단가표시": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmount: 10,000,001 clamped to 10,000,000 on input",
+      "input": {
+        "check": "nonBenefitAmount",
+        "input": "10000001",
+        "과세구분": "면세"
+      },
+      "expected": {
+        "rawValue": "10000000",
+        "label": "단가",
+        "errorMessage": "",
+        "단가": "10000000",
+        "VAT금액": 0,
+        "포함시단가표시": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmount: formatted input with commas",
+      "input": {
+        "check": "nonBenefitAmount",
+        "input": "9,999,999",
+        "과세구분": "별도"
+      },
+      "expected": {
+        "rawValue": "9999999",
+        "label": "단가",
+        "errorMessage": "",
+        "단가": "9999999",
+        "VAT금액": 1000000,
+        "포함시단가표시": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmount: 포함 label is 진료비, VAT split",
+      "input": {
+        "check": "nonBenefitAmount",
+        "input": "11000",
+        "과세구분": "포함"
+      },
+      "expected": {
+        "rawValue": "11000",
+        "label": "진료비",
+        "errorMessage": "",
+        "단가": "11000",
+        "VAT금액": 1000,
+        "포함시단가표시": 10000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmount: 별도 VAT rounding",
+      "input": {
+        "check": "nonBenefitAmount",
+        "input": "15",
+        "과세구분": "별도"
+      },
+      "expected": {
+        "rawValue": "15",
+        "label": "단가",
+        "errorMessage": "",
+        "단가": "15",
+        "VAT금액": 2,
+        "포함시단가표시": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmount: empty input defaults to 0",
+      "input": {
+        "check": "nonBenefitAmount",
+        "input": "",
+        "과세구분": "면세"
+      },
+      "expected": {
+        "rawValue": "0",
+        "label": "단가",
+        "errorMessage": "",
+        "단가": "0",
+        "VAT금액": 0,
+        "포함시단가표시": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmountUnclamped: Pe error above 10,000,000",
+      "input": {
+        "check": "nonBenefitAmountUnclamped",
+        "rawValue": "10000001",
+        "과세구분": "포함"
+      },
+      "expected": {
+        "errorMessage": "진료비는 천만원을 초과할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitAmountUnclamped: Pe no error at 10,000,000",
+      "input": {
+        "check": "nonBenefitAmountUnclamped",
+        "rawValue": "10000000",
+        "과세구분": "별도"
+      },
+      "expected": {
+        "errorMessage": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nonBenefitRegister: valid registration prefixes code with 비",
+      "input": {
+        "check": "nonBenefitRegister",
+        "처방명": "약침A",
+        "코드": "001",
+        "rawValue": "5000",
+        "existingItems": []
+      },
+      "expected": {
+        "blocked": false,
+        "payload": {
+          "처방명": "약침A",
+          "비급여코드": "비001",
+          "단가": "5000"
+        }
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "nonBenefitRegister: duplicate name in loaded list",
+      "input": {
+        "check": "nonBenefitRegister",
+        "처방명": " 약침A ",
+        "코드": "002",
+        "rawValue": "5000",
+        "existingItems": [
+          {
+            "처방명": "약침A",
+            "코드": "비001"
+          }
+        ]
+      },
+      "expected": {
+        "blocked": true,
+        "field": "처방명",
+        "message": "이미 존재하는 처방명입니다."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "nonBenefitRegister: duplicate code compared with 비 prefix",
+      "input": {
+        "check": "nonBenefitRegister",
+        "처방명": "약침B",
+        "코드": "001",
+        "rawValue": "5000",
+        "existingItems": [
+          {
+            "처방명": "약침A",
+            "코드": "비001"
+          }
+        ]
+      },
+      "expected": {
+        "blocked": true,
+        "field": "코드",
+        "message": "이미 존재하는 비급여 코드입니다."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "nonBenefitRegister: 수 service-only name blocked",
+      "input": {
+        "check": "nonBenefitRegister",
+        "처방명": "경옥고",
+        "코드": "003",
+        "rawValue": "5000",
+        "existingItems": []
+      },
+      "expected": {
+        "blocked": true,
+        "field": "처방명",
+        "message": "수 서비스 전용 처방으로 설정에서 추가할 수 없습니다."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "nonBenefitRegister: blank name required",
+      "input": {
+        "check": "nonBenefitRegister",
+        "처방명": "  ",
+        "코드": "003",
+        "rawValue": "5000",
+        "existingItems": []
+      },
+      "expected": {
+        "blocked": true,
+        "field": "처방명",
+        "message": "처방명을 입력해주세요."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "treatmentRoom: 20 beds allowed",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "새방",
+        "베드수": "20",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": true,
+        "bedCountOnBlur": "20",
+        "nameError": "",
+        "canSave": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: 21 beds invalid, blur resets to 20 on create",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "새방",
+        "베드수": "21",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": false,
+        "bedCountOnBlur": "20",
+        "nameError": "",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: 21 beds on edit resets to previous count",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "1번방",
+        "베드수": "21",
+        "기존베드수": "8",
+        "id": "r1",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": false,
+        "bedCountOnBlur": "8",
+        "nameError": "",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: 0 beds valid input but save disabled",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "새방",
+        "베드수": "0",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": true,
+        "bedCountOnBlur": "0",
+        "nameError": "",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: negative beds invalid",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "새방",
+        "베드수": "-1",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": false,
+        "bedCountOnBlur": "0",
+        "nameError": "",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: non-numeric beds invalid",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "새방",
+        "베드수": "abc",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": false,
+        "bedCountOnBlur": "0",
+        "nameError": "",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: duplicate name against other room",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "1번방",
+        "베드수": "5",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": true,
+        "bedCountOnBlur": "5",
+        "nameError": "중복된 치료실이 있습니다.",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: same name allowed when editing itself",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "1번방",
+        "베드수": "5",
+        "id": "r1",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": true,
+        "bedCountOnBlur": "5",
+        "nameError": "",
+        "canSave": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: name over 20 chars blocks save",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "가가가가가가가가가가가가가가가가가가가가가",
+        "베드수": "5",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": true,
+        "bedCountOnBlur": "5",
+        "nameError": "",
+        "canSave": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "treatmentRoom: fractional bed count passes client check",
+      "input": {
+        "check": "treatmentRoom",
+        "치료실명": "새방",
+        "베드수": "2.5",
+        "id": "",
+        "existingRooms": [
+          {
+            "치료실Id": "r1",
+            "치료실명": "1번방"
+          }
+        ]
+      },
+      "expected": {
+        "bedCountValid": true,
+        "bedCountOnBlur": "2.5",
+        "nameError": "",
+        "canSave": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "roomCount: 9 rooms can add",
+      "input": {
+        "check": "roomCount",
+        "existingRoomCount": 9
+      },
+      "expected": {
+        "allowed": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "roomCount: 10 rooms blocked",
+      "input": {
+        "check": "roomCount",
+        "existingRoomCount": 10
+      },
+      "expected": {
+        "allowed": false,
+        "dialog": "치료실은 최대 10개까지 추가할 수 있습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "personalFormulaName: trimmed duplicate",
+      "input": {
+        "check": "personalFormulaName",
+        "처방명": " 보중익기탕 ",
+        "existingNames": [
+          "보중익기탕 "
+        ]
+      },
+      "expected": {
+        "duplicate": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "personalFormulaName: blank is not duplicate",
+      "input": {
+        "check": "personalFormulaName",
+        "처방명": "  ",
+        "existingNames": [
+          ""
+        ]
+      },
+      "expected": {
+        "duplicate": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "personalFormulaName: only first 100 loaded names checked",
+      "input": {
+        "check": "personalFormulaName",
+        "처방명": "X101",
+        "existingNames": [
+          "X0",
+          "X1",
+          "X2",
+          "X3",
+          "X4",
+          "X5",
+          "X6",
+          "X7",
+          "X8",
+          "X9",
+          "X10",
+          "X11",
+          "X12",
+          "X13",
+          "X14",
+          "X15",
+          "X16",
+          "X17",
+          "X18",
+          "X19",
+          "X20",
+          "X21",
+          "X22",
+          "X23",
+          "X24",
+          "X25",
+          "X26",
+          "X27",
+          "X28",
+          "X29",
+          "X30",
+          "X31",
+          "X32",
+          "X33",
+          "X34",
+          "X35",
+          "X36",
+          "X37",
+          "X38",
+          "X39",
+          "X40",
+          "X41",
+          "X42",
+          "X43",
+          "X44",
+          "X45",
+          "X46",
+          "X47",
+          "X48",
+          "X49",
+          "X50",
+          "X51",
+          "X52",
+          "X53",
+          "X54",
+          "X55",
+          "X56",
+          "X57",
+          "X58",
+          "X59",
+          "X60",
+          "X61",
+          "X62",
+          "X63",
+          "X64",
+          "X65",
+          "X66",
+          "X67",
+          "X68",
+          "X69",
+          "X70",
+          "X71",
+          "X72",
+          "X73",
+          "X74",
+          "X75",
+          "X76",
+          "X77",
+          "X78",
+          "X79",
+          "X80",
+          "X81",
+          "X82",
+          "X83",
+          "X84",
+          "X85",
+          "X86",
+          "X87",
+          "X88",
+          "X89",
+          "X90",
+          "X91",
+          "X92",
+          "X93",
+          "X94",
+          "X95",
+          "X96",
+          "X97",
+          "X98",
+          "X99",
+          "X101"
+        ]
+      },
+      "expected": {
+        "duplicate": false
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Brief/design say 'treatment room bedCount <= 10'; the client actually limits beds per room to 0-20 (save requires >= 1) and the number of rooms to 10. Confirm which the server should enforce.",
+    "Design doc says nonbenefit amount '< 10,000,000'; client clamps input to 10,000,000 and only errors when > 10,000,000, so exactly 10,000,000 is accepted.",
+    "Package item amount adds 10% VAT on top of 단가 for both '별도' and '포함'. For '포함' the registration panel stores 단가 as the VAT-inclusive 진료비, so a '포함' item may be double-taxed unless the server stores a net 단가. Needs server-side confirmation.",
+    "Name uniqueness for arbitrary formula, package, package group and nonbenefit is decided by the server (validate endpoints or error message containing '중복된이름'); when the validate call fails the client treats the name as valid (fail-open). Only treatment room and personal formula (약속처방) names are checked purely client-side, the latter against the first 100 loaded rows only.",
+    "Arbitrary formula weight sum uses floating point without rounding (0.1+0.2 = 0.30000000000000004); a total like 49.99999999 vs 50.00000001 could flip the >50 check.",
+    "Fractional bed counts (e.g. '2.5') pass the client check; server should decide whether to require an integer."
+  ]
+}

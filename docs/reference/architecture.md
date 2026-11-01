@@ -15,21 +15,21 @@
 
 | 이름 | baseURL | 파일 |
 |---|---|---|
-| `accountClient` | `"https://auth-api.upstream.co.kr/api"` | [api/MembersView/client.js](../restored/api/MembersView/client.js) |
-| `accountApplicationClient` | `"https://auth-api.upstream.co.kr/api"` | [api/accountApplications/client.js](../restored/api/accountApplications/client.js) |
-| `authClient` | `"https://auth-api.upstream.co.kr/api/auth"` | [api/clients/authClient.js](../restored/api/clients/authClient.js) |
-| `syncClient` | `"https://sync-api.upstream.co.kr/v1"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `emrClient` | `"https://emr-api.upstream.co.kr"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `staticClient` | `"https://static.upstream.co.kr/upstream-emr/master"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `crmClient` | `"https://crm-api.upstream.co.kr"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `accountClient` | `"https://auth-api.upstream.co.kr/api"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `thesooClient` | `"https://public-api.thesoo.co"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `medistreamClient` | `"https://public-api.medistream.co.kr/"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `insuranceClient` | `"https://insurance-api.upstream.co.kr"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `biClient` | `"https://public-api.upstream.co.kr/bi"` | [api/clients/index.js](../restored/api/clients/index.js) |
-| `jusoClient` | `"https://business.juso.go.kr/addrlink/addrLinkApi.do"` | [api/clients/jusoClient.js](../restored/api/clients/jusoClient.js) |
-| `portalClient` | `"https://public-api.upstream.co.kr/portal"` | [api/clients/portalClient.js](../restored/api/clients/portalClient.js) |
-| `webClient` | `baseURL$` | [api/clients/webClient.js](../restored/api/clients/webClient.js) |
+| `accountClient` | `"https://auth-api.upstream.co.kr/api"` | `re-upstream/restored/api/MembersView/client.js` |
+| `accountApplicationClient` | `"https://auth-api.upstream.co.kr/api"` | `re-upstream/restored/api/accountApplications/client.js` |
+| `authClient` | `"https://auth-api.upstream.co.kr/api/auth"` | `re-upstream/restored/api/clients/authClient.js` |
+| `syncClient` | `"https://sync-api.upstream.co.kr/v1"` | `re-upstream/restored/api/clients/index.js` |
+| `emrClient` | `"https://emr-api.upstream.co.kr"` | `re-upstream/restored/api/clients/index.js` |
+| `staticClient` | `"https://static.upstream.co.kr/upstream-emr/master"` | `re-upstream/restored/api/clients/index.js` |
+| `crmClient` | `"https://crm-api.upstream.co.kr"` | `re-upstream/restored/api/clients/index.js` |
+| `accountClient` | `"https://auth-api.upstream.co.kr/api"` | `re-upstream/restored/api/clients/index.js` |
+| `thesooClient` | `"https://public-api.thesoo.co"` | `re-upstream/restored/api/clients/index.js` |
+| `medistreamClient` | `"https://public-api.medistream.co.kr/"` | `re-upstream/restored/api/clients/index.js` |
+| `insuranceClient` | `"https://insurance-api.upstream.co.kr"` | `re-upstream/restored/api/clients/index.js` |
+| `biClient` | `"https://public-api.upstream.co.kr/bi"` | `re-upstream/restored/api/clients/index.js` |
+| `jusoClient` | `"https://business.juso.go.kr/addrlink/addrLinkApi.do"` | `re-upstream/restored/api/clients/jusoClient.js` |
+| `portalClient` | `"https://public-api.upstream.co.kr/portal"` | `re-upstream/restored/api/clients/portalClient.js` |
+| `webClient` | `baseURL$` | `re-upstream/restored/api/clients/webClient.js` |
 
 ## 라우트
 
@@ -135,7 +135,7 @@
 
 ## 앱 셸
 
-모든 화면을 감싸는 [App](../restored/components/app/App.vue)과 `components/app/`·`Layout*` 컴포넌트입니다.
+모든 화면을 감싸는 App (`re-upstream/restored/components/app/App.vue`)과 `components/app/`·`Layout*` 컴포넌트입니다.
 
 - 스토어: `useOnboardingGuideSessionStore`, `usePatientStore`, `useSocketClientStore`, `useToastNotificationStore`, `useTreatmentStore`
 
@@ -189,7 +189,7 @@
 
 ### `/crm/consult-script` · crm-consult-script
 
-- 화면: [CrmConsultScriptView](../restored/views/CrmConsultScriptView.vue)
+- 화면: CrmConsultScriptView (`re-upstream/restored/views/CrmConsultScriptView.vue`)
 - meta: 권한 `연락목록` · `requiresAuth`
 - 컴포넌트: 전용 3 · 공유 11 · API: 화면 7 · 전체 도달 102
 - 스토어: `useToastNotificationStore`
@@ -231,7 +231,7 @@
 
 ### `/login` · auth-login
 
-- 화면: [LoginView](../restored/views/LoginView.vue)
+- 화면: LoginView (`re-upstream/restored/views/LoginView.vue`)
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 3 · 전체 도달 3
 - 스토어: `useDeskDateStore`
 
@@ -260,7 +260,7 @@
 
 ### `/login/unlock` · auth-unlock
 
-- 화면: [AccountUnlockView](../restored/views/AccountUnlockView.vue)
+- 화면: AccountUnlockView (`re-upstream/restored/views/AccountUnlockView.vue`)
 - 컴포넌트: 전용 3 · 공유 10 · API: 화면 2 · 전체 도달 2
 - 스토어: `useToastNotificationStore`
 
@@ -298,7 +298,7 @@
 
 ### `/auth/callback` · auth-callback
 
-- 화면: [AccountApplicationsAuth](../restored/components/account/AccountApplicationsAuth.vue)
+- 화면: AccountApplicationsAuth (`re-upstream/restored/components/account/AccountApplicationsAuth.vue`)
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 7 · 전체 도달 7
 - 스토어: `useAccountApplicationsAuthStore`, `useMembersSignUpStore`, `useSooSignUpStore`
 
@@ -330,7 +330,7 @@
 
 ### `/logout` · logout
 
-- 화면: [LogoutView](../restored/views/LogoutView.vue)
+- 화면: LogoutView (`re-upstream/restored/views/LogoutView.vue`)
 - meta: `requiresAuth`
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 - 스토어: `useAiAgentStore`, `useClaimWarningStore`, `useDeskDateStore`, `useMedicalAidsStore`, `usePatientStore`, `useSocketClientStore`, `useToastNotificationStore`, `useTreatmentStore`, `useWindowStore`
@@ -339,7 +339,7 @@
 
 ### `/onboarding` · auth-onboarding
 
-- 화면: [OnboardingView](../restored/views/OnboardingView.vue)
+- 화면: OnboardingView (`re-upstream/restored/views/OnboardingView.vue`)
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 2 · 전체 도달 13
 - 스토어: `useSooSignUpStore`
 
@@ -371,7 +371,7 @@
 
 ### `/sign-up/soo` · soo-sign-up
 
-- 화면: [SooSignUpView](../restored/views/SooSignUpView.vue)
+- 화면: SooSignUpView (`re-upstream/restored/views/SooSignUpView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 - 스토어: `useSooSignUpStore`
 
@@ -379,7 +379,7 @@
 
 ### `/sign-up/soo/form` · soo-sign-up-form
 
-- 화면: [SooSignUpFormView](../restored/views/SooSignUpFormView.vue)
+- 화면: SooSignUpFormView (`re-upstream/restored/views/SooSignUpFormView.vue`)
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 6 · 전체 도달 8
 - 스토어: `useSooSignUpStore`
 
@@ -408,7 +408,7 @@
 
 ### `/sign-up/soo/complete` · soo-sign-up-complete
 
-- 화면: [SooSignUpCompleteView](../restored/views/SooSignUpCompleteView.vue)
+- 화면: SooSignUpCompleteView (`re-upstream/restored/views/SooSignUpCompleteView.vue`)
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 - 스토어: `useSooSignUpStore`
 
@@ -423,7 +423,7 @@
 
 ### `/sign-up/ondang` · ondang-sign-up
 
-- 화면: [OndangSignUpView](../restored/views/OndangSignUpView.vue)
+- 화면: OndangSignUpView (`re-upstream/restored/views/OndangSignUpView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 - 스토어: `useAccountApplicationsAuthStore`, `useOndangSignUpStore`
 
@@ -431,7 +431,7 @@
 
 ### `/sign-up/ondang/form` · ondang-sign-up-form
 
-- 화면: [OndangSignUpFormView](../restored/views/OndangSignUpFormView.vue)
+- 화면: OndangSignUpFormView (`re-upstream/restored/views/OndangSignUpFormView.vue`)
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 7 · 전체 도달 8
 - 스토어: `useOndangSignUpStore`
 
@@ -468,7 +468,7 @@
 
 ### `/sign-up/ondang/complete` · ondang-sign-up-complete
 
-- 화면: [OndangSignUpCompleteView](../restored/views/OndangSignUpCompleteView.vue)
+- 화면: OndangSignUpCompleteView (`re-upstream/restored/views/OndangSignUpCompleteView.vue`)
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 - 스토어: `useOndangSignUpStore`
 
@@ -483,7 +483,7 @@
 
 ### `/terms/:documentNumber` · terms-content
 
-- 화면: [TermsContentView](../restored/views/TermsContentView.vue)
+- 화면: TermsContentView (`re-upstream/restored/views/TermsContentView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 1 · 전체 도달 1
 
 <details>
@@ -499,14 +499,14 @@
 
 ### `/terms/doctalk/:type` · doctalk-terms
 
-- 화면: [DoctalkTermsView](../restored/views/DoctalkTermsView.vue)
+- 화면: DoctalkTermsView (`re-upstream/restored/views/DoctalkTermsView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 
 <a id="route-component-preview"></a>
 
 ### `/preview` · component-preview
 
-- 화면: [ComponentPreview](../restored/components/component/ComponentPreview.vue)
+- 화면: ComponentPreview (`re-upstream/restored/components/component/ComponentPreview.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 29 · API: 화면 0 · 전체 도달 4
 - 스토어: `useToastNotificationStore`
@@ -549,7 +549,7 @@
 
 ### `/canvas` · canvas
 
-- 화면: [CanvasView](../restored/views/CanvasView.vue)
+- 화면: CanvasView (`re-upstream/restored/views/CanvasView.vue`)
 - 컴포넌트: 전용 6 · 공유 17 · API: 화면 12 · 전체 도달 12
 - 스토어: `useToastNotificationStore`
 
@@ -604,7 +604,7 @@
 
 ### `/desk` · desk
 
-- 화면: [DeskSuspense](../restored/components/desk/DeskSuspense.vue)
+- 화면: DeskSuspense (`re-upstream/restored/components/desk/DeskSuspense.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 324
 
@@ -621,7 +621,7 @@
 
 ### `/treatment` · treatment
 
-- 화면: [TreatmentSuspense](../restored/components/treatment/TreatmentSuspense.vue)
+- 화면: TreatmentSuspense (`re-upstream/restored/components/treatment/TreatmentSuspense.vue`)
 - meta: 권한 `진료` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 19
 
@@ -639,7 +639,7 @@
 
 ### `/treatment/repeat-results` · treatment-repeat-results
 
-- 화면: [TreatmentRepeatResultsView](../restored/views/TreatmentRepeatResultsView.vue)
+- 화면: TreatmentRepeatResultsView (`re-upstream/restored/views/TreatmentRepeatResultsView.vue`)
 - meta: `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 4 · API: 화면 2 · 전체 도달 293
 - 스토어: `useRepeatedTreatmentStore`
@@ -669,7 +669,7 @@
 
 ### `/treatment-rooms` · treatment-rooms
 
-- 화면: [TreatmentRoomsSuspense](../restored/components/treatment/TreatmentRoomsSuspense.vue)
+- 화면: TreatmentRoomsSuspense (`re-upstream/restored/components/treatment/TreatmentRoomsSuspense.vue`)
 - meta: 권한 `치료실` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 329
 
@@ -687,7 +687,7 @@
 
 ### `/tablet/auth-link` · tablet-auth-link
 
-- 화면: [TabletAuthLinkView](../restored/views/TabletAuthLinkView.vue)
+- 화면: TabletAuthLinkView (`re-upstream/restored/views/TabletAuthLinkView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 2 · 전체 도달 2
 - 스토어: `useDeskDateStore`
 
@@ -705,7 +705,7 @@
 
 ### `/tablet/treatment-rooms` · tablet-treatment-rooms
 
-- 화면: [TabletTreatmentRoomsView](../restored/views/TabletTreatmentRoomsView.vue)
+- 화면: TabletTreatmentRoomsView (`re-upstream/restored/views/TabletTreatmentRoomsView.vue`)
 - meta: 권한 `치료실` · `requiresAuth`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 329
 
@@ -720,7 +720,7 @@
 
 ### `/appointment-planner` · appointment-planner
 
-- 화면: [AppointmentPlannerView](../restored/views/AppointmentPlannerView.vue)
+- 화면: AppointmentPlannerView (`re-upstream/restored/views/AppointmentPlannerView.vue`)
 - meta: 권한 `예약관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 11 · 공유 49 · API: 화면 18 · 전체 도달 305
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -814,7 +814,7 @@
 
 ### `/ocs` · ocs
 
-- 화면: [OcsView](../restored/views/OcsView.vue)
+- 화면: OcsView (`re-upstream/restored/views/OcsView.vue`)
 - meta: 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 21 · 공유 49 · API: 화면 19 · 전체 도달 80
 - 스토어: `useToastNotificationStore`
@@ -924,7 +924,7 @@
 
 ### `/ocs/prescription/list` · tangjeon-prescription-list
 
-- 화면: [TangjeonPrescriptionListView](../restored/views/TangjeonPrescriptionListView.vue)
+- 화면: TangjeonPrescriptionListView (`re-upstream/restored/views/TangjeonPrescriptionListView.vue`)
 - meta: 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 17 · API: 화면 11 · 전체 도달 163
 - 스토어: `useToastNotificationStore`
@@ -974,7 +974,7 @@
 
 ### `/ocs/prescription/create` · tangjeon-prescription-create
 
-- 화면: [TangjeonPrescriptionCreateView](../restored/views/TangjeonPrescriptionCreateView.vue)
+- 화면: TangjeonPrescriptionCreateView (`re-upstream/restored/views/TangjeonPrescriptionCreateView.vue`)
 - meta: 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 15 · API: 화면 12 · 전체 도달 19
 - 스토어: `useToastNotificationStore`
@@ -1024,7 +1024,7 @@
 
 ### `/ocs-v2-herb-order-create` · ocs-v2-herb-order-create
 
-- 화면: [OndangGateView](../restored/views/OndangGateView.vue)
+- 화면: OndangGateView (`re-upstream/restored/views/OndangGateView.vue`)
 - meta: 권한 `메디원탕` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 5 · API: 화면 2 · 전체 도달 88
 
@@ -1053,7 +1053,7 @@
 
 ### `/ocs-v2-herb-order-list` · ocs-v2-herb-order-list
 
-- 화면: [OndangGateView](../restored/views/OndangGateView.vue)
+- 화면: OndangGateView (`re-upstream/restored/views/OndangGateView.vue`)
 - meta: 권한 `메디원탕` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 5 · API: 화면 2 · 전체 도달 88
 
@@ -1082,7 +1082,7 @@
 
 ### `/crm` · crm
 
-- 화면: [CrmView](../restored/views/CrmView.vue)
+- 화면: CrmView (`re-upstream/restored/views/CrmView.vue`)
 - meta: 권한 `고객관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 6 · API: 화면 1 · 전체 도달 3
 
@@ -1111,7 +1111,7 @@
 
 ### `/crm/routines` · crm-routines
 
-- 화면: [CrmRoutineView](../restored/views/CrmRoutineView.vue) · 부모 라우트 `crm`
+- 화면: CrmRoutineView (`re-upstream/restored/views/CrmRoutineView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 19 · 공유 27 · API: 화면 10 · 전체 도달 46
 - 스토어: `useToastNotificationStore`
@@ -1187,7 +1187,7 @@
 
 ### `/crm/routines/new` · crm-routines-new
 
-- 화면: [CrmRoutineCanvasView](../restored/views/CrmRoutineCanvasView.vue) · 부모 라우트 `crm`
+- 화면: CrmRoutineCanvasView (`re-upstream/restored/views/CrmRoutineCanvasView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 16 · 공유 21 · API: 화면 6 · 전체 도달 43
 - 스토어: `useToastNotificationStore`
@@ -1251,7 +1251,7 @@
 
 ### `/crm/routines/:routineId` · crm-routines-detail
 
-- 화면: [CrmRoutineCanvasView](../restored/views/CrmRoutineCanvasView.vue) · 부모 라우트 `crm`
+- 화면: CrmRoutineCanvasView (`re-upstream/restored/views/CrmRoutineCanvasView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 16 · 공유 21 · API: 화면 6 · 전체 도달 43
 - 스토어: `useToastNotificationStore`
@@ -1315,7 +1315,7 @@
 
 ### `/crm/reminder` · crm-reminder
 
-- 화면: [CrmReminderView](../restored/views/CrmReminderView.vue) · 부모 라우트 `crm`
+- 화면: CrmReminderView (`re-upstream/restored/views/CrmReminderView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 8 · 공유 13 · API: 화면 0 · 전체 도달 1
 - 스토어: `useToastNotificationStore`
@@ -1349,7 +1349,7 @@
 
 ### `/crm/nonbenefit-patients` · crm-nonbenefit-patients
 
-- 화면: [NonBenefitPatientsView](../restored/views/NonBenefitPatientsView.vue) · 부모 라우트 `crm`
+- 화면: NonBenefitPatientsView (`re-upstream/restored/views/NonBenefitPatientsView.vue`) · 부모 라우트 `crm`
 - 컴포넌트: 전용 15 · 공유 27 · API: 화면 17 · 전체 도달 307
 - 스토어: `useToastNotificationStore`
 
@@ -1414,7 +1414,7 @@
 
 ### `/crm/contacts` · crm-contacts
 
-- 화면: [CrmContactsView](../restored/views/CrmContactsView-2.vue) · 부모 라우트 `crm`
+- 화면: CrmContactsView (`re-upstream/restored/views/CrmContactsView-2.vue`) · 부모 라우트 `crm`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 17 · 공유 38 · API: 화면 20 · 전체 도달 311
 - 스토어: `useToastNotificationStore`
@@ -1512,7 +1512,7 @@
 
 ### `/crm/contacts-v2` · crm-contacts-v2
 
-- 화면: [CrmContactsView](../restored/views/CrmContactsView.vue) · 부모 라우트 `crm`
+- 화면: CrmContactsView (`re-upstream/restored/views/CrmContactsView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 14 · 공유 55 · API: 화면 21 · 전체 도달 337
 - 스토어: `useToastNotificationStore`
@@ -1616,7 +1616,7 @@
 
 ### `/crm/soo-scheduler` · crm-soo-scheduler
 
-- 화면: [CrmSooSchedulerView](../restored/views/CrmSooSchedulerView.vue) · 부모 라우트 `crm`
+- 화면: CrmSooSchedulerView (`re-upstream/restored/views/CrmSooSchedulerView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 7 · 공유 22 · API: 화면 8 · 전체 도달 88
 - 스토어: `useToastNotificationStore`
@@ -1674,7 +1674,7 @@
 
 ### `/crm/patients` · crm-emr-patients
 
-- 화면: [EmrPatientsView](../restored/views/EmrPatientsView.vue) · 부모 라우트 `crm`
+- 화면: EmrPatientsView (`re-upstream/restored/views/EmrPatientsView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `환자목록`
 - 컴포넌트: 전용 6 · 공유 21 · API: 화면 6 · 전체 도달 298
 - 스토어: `useToastNotificationStore`
@@ -1728,7 +1728,7 @@
 
 ### `/crm/message` · crm-message
 
-- 화면: [MessageView](../restored/views/MessageView.vue) · 부모 라우트 `crm`
+- 화면: MessageView (`re-upstream/restored/views/MessageView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 22 · 공유 43 · API: 화면 42 · 전체 도달 326
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -1854,7 +1854,7 @@
 
 ### `/crm/contents/view/:token` · crm-contents-view
 
-- 화면: [CrmContentPatientPreview](../restored/components/crm/CrmContentPatientPreview.vue) · 부모 라우트 `crm`
+- 화면: CrmContentPatientPreview (`re-upstream/restored/components/crm/CrmContentPatientPreview.vue`) · 부모 라우트 `crm`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 2 · 전체 도달 2
 
@@ -1872,7 +1872,7 @@
 
 ### `/crm/message/send-completed` · crm-message-send-completed
 
-- 화면: [MessageSendCompletedView](../restored/views/MessageSendCompletedView.vue) · 부모 라우트 `crm`
+- 화면: MessageSendCompletedView (`re-upstream/restored/views/MessageSendCompletedView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 1 · 전체 도달 1
 
@@ -1896,7 +1896,7 @@
 
 ### `/crm/message/results` · crm-message-results
 
-- 화면: [MessageResultsView](../restored/views/MessageResultsView.vue) · 부모 라우트 `crm`
+- 화면: MessageResultsView (`re-upstream/restored/views/MessageResultsView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `전송이력`
 - 컴포넌트: 전용 16 · 공유 28 · API: 화면 13 · 전체 도달 18
 - 스토어: `useCrmMessageResultLinksStore`, `useToastNotificationStore`
@@ -1965,7 +1965,7 @@
 
 ### `/crm/refusal` · crm-refusal
 
-- 화면: [CrmRefusalView](../restored/views/CrmRefusalView.vue) · 부모 라우트 `crm`
+- 화면: CrmRefusalView (`re-upstream/restored/views/CrmRefusalView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `수신거부목록`
 - 컴포넌트: 전용 9 · 공유 27 · API: 화면 6 · 전체 도달 299
 - 스토어: `useToastNotificationStore`
@@ -2028,7 +2028,7 @@
 
 ### `/message` · 
 
-- 화면: [MessageView](../restored/modules/MessageView)
+- 화면: `re-upstream/restored/modules/MessageView`
 - meta: `requiresAuth`
 - 컴포넌트: 전용 0 · 공유 0 · API: 화면 0 · 전체 도달 0
 
@@ -2036,7 +2036,7 @@
 
 ### `/claim` · 
 
-- 화면: [ClaimView](../restored/views/ClaimView.vue)
+- 화면: ClaimView (`re-upstream/restored/views/ClaimView.vue`)
 - meta: 권한 `청구` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 0
 
@@ -2053,7 +2053,7 @@
 
 ### `/claim/hira` · claim-hira
 
-- 화면: [ClaimHiraView](../restored/views/ClaimHiraView.vue)
+- 화면: ClaimHiraView (`re-upstream/restored/views/ClaimHiraView.vue`)
 - meta: 권한 `심평원청구`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 338
 
@@ -2071,7 +2071,7 @@
 
 ### `/claim/hira-submit-items` · claim-hira-submit-items
 
-- 화면: [HiraSubmitItemsView](../restored/views/HiraSubmitItemsView.vue)
+- 화면: HiraSubmitItemsView (`re-upstream/restored/views/HiraSubmitItemsView.vue`)
 - meta: 권한 `추나첩약제출현황`
 - 컴포넌트: 전용 20 · 공유 25 · API: 화면 15 · 전체 도달 43
 - 스토어: `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
@@ -2152,7 +2152,7 @@
 
 ### `/claim/medical-aids` · claim-medical-aids
 
-- 화면: [MedicalAidsView](../restored/views/MedicalAidsView.vue)
+- 화면: MedicalAidsView (`re-upstream/restored/views/MedicalAidsView.vue`)
 - meta: 권한 `의료급여진료승인현황`
 - 컴포넌트: 전용 10 · 공유 17 · API: 화면 8 · 전체 도달 9
 - 스토어: `useMedicalAidsStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
@@ -2208,7 +2208,7 @@
 
 ### `/claim/home-visit` · claim-home-visit
 
-- 화면: [ClaimHomeVisitView](../restored/views/ClaimHomeVisitView.vue)
+- 화면: ClaimHomeVisitView (`re-upstream/restored/views/ClaimHomeVisitView.vue`)
 - meta: 권한 `청구`
 - 컴포넌트: 전용 1 · 공유 5 · API: 화면 2 · 전체 도달 2
 - 스토어: `useToastNotificationStore`
@@ -2237,7 +2237,7 @@
 
 ### `/claim/telemedicine-pilot` · claim-telemedicine-pilot
 
-- 화면: [ClaimTelemedicinePilotView](../restored/views/ClaimTelemedicinePilotView.vue)
+- 화면: ClaimTelemedicinePilotView (`re-upstream/restored/views/ClaimTelemedicinePilotView.vue`)
 - meta: 권한 `청구`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 2 · 전체 도달 2
 
@@ -2264,7 +2264,7 @@
 
 ### `/claim/year-settlement` · year-settlement
 
-- 화면: [YearSettlement](../restored/components/year/YearSettlement.vue)
+- 화면: YearSettlement (`re-upstream/restored/components/year/YearSettlement.vue`)
 - meta: 권한 `청구`
 - 컴포넌트: 전용 14 · 공유 19 · API: 화면 6 · 전체 도달 6
 - 스토어: `useToastNotificationStore`
@@ -2312,7 +2312,7 @@
 
 ### `/insurance-inquiry` · insurance-inquiry
 
-- 화면: [InsuranceInquiryView](../restored/views/InsuranceInquiryView.vue)
+- 화면: InsuranceInquiryView (`re-upstream/restored/views/InsuranceInquiryView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 11 · API: 화면 11 · 전체 도달 115
 - 스토어: `useSocketClientStore`, `useToastNotificationStore`
@@ -2357,7 +2357,7 @@
 
 ### `/electronic-signature` · electronic-signature
 
-- 화면: [ElectronicSignatureView](../restored/views/ElectronicSignatureView.vue)
+- 화면: ElectronicSignatureView (`re-upstream/restored/views/ElectronicSignatureView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 1 · 전체 도달 22
 
@@ -2388,7 +2388,7 @@
 
 ### `/setting` · setting
 
-- 화면: [SettingView](../restored/views/SettingView.vue)
+- 화면: SettingView (`re-upstream/restored/views/SettingView.vue`)
 - meta: 권한 `설정` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 1 · 전체 도달 1
 
@@ -2413,7 +2413,7 @@
 
 ### `/setting/common` · setting-common
 
-- 화면: [SettingCommonView](../restored/views/SettingCommonView.vue) · 부모 라우트 `setting`
+- 화면: SettingCommonView (`re-upstream/restored/views/SettingCommonView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `기본설정`
 - 컴포넌트: 전용 8 · 공유 16 · API: 화면 24 · 전체 도달 31
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2479,7 +2479,7 @@
 
 ### `/setting/telemedicine` · setting-telemedicine
 
-- 화면: [SettingTelemedicineView](../restored/views/SettingTelemedicineView.vue) · 부모 라우트 `setting`
+- 화면: SettingTelemedicineView (`re-upstream/restored/views/SettingTelemedicineView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `기본설정`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 8
 
@@ -2495,7 +2495,7 @@
 
 ### `/setting/service-integration` · setting-service-integration
 
-- 화면: [SettingServiceIntegrationView](../restored/views/SettingServiceIntegrationView.vue) · 부모 라우트 `setting`
+- 화면: SettingServiceIntegrationView (`re-upstream/restored/views/SettingServiceIntegrationView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `기본설정`
 - 컴포넌트: 전용 1 · 공유 6 · API: 화면 3 · 전체 도달 13
 - 스토어: `useOnboardingGuideSessionStore`, `useSooSignUpStore`
@@ -2527,7 +2527,7 @@
 
 ### `/setting/hospital` · setting-hospital-info
 
-- 화면: [SettingHospitalView](../restored/views/SettingHospitalView.vue) · 부모 라우트 `setting`
+- 화면: SettingHospitalView (`re-upstream/restored/views/SettingHospitalView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `병원정보설정`
 - 컴포넌트: 전용 6 · 공유 11 · API: 화면 28 · 전체 도달 29
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2594,7 +2594,7 @@
 
 ### `/setting/treatment` · setting-treatment
 
-- 화면: [SettingTreatmentView](../restored/views/SettingTreatmentView.vue) · 부모 라우트 `setting`
+- 화면: SettingTreatmentView (`re-upstream/restored/views/SettingTreatmentView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `진료설정`
 - 컴포넌트: 전용 7 · 공유 14 · API: 화면 14 · 전체 도달 16
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2650,7 +2650,7 @@
 
 ### `/setting/prescription` · setting-prescription
 
-- 화면: [SettingPrescriptionView](../restored/views/SettingPrescriptionView.vue) · 부모 라우트 `setting`
+- 화면: SettingPrescriptionView (`re-upstream/restored/views/SettingPrescriptionView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `처방수가설정`
 - 컴포넌트: 전용 81 · 공유 66 · API: 화면 111 · 전체 도달 137
 - 스토어: `useOnboardingGuideSessionStore`, `useSettingChubyakPrescriptionStore`, `useSettingHerbStore`, `useToastNotificationStore`
@@ -2905,7 +2905,7 @@
 
 ### `/setting/templates` · setting-templates
 
-- 화면: [SettingEditorTemplates](../restored/components/setting/SettingEditorTemplates.vue) · 부모 라우트 `setting`
+- 화면: SettingEditorTemplates (`re-upstream/restored/components/setting/SettingEditorTemplates.vue`) · 부모 라우트 `setting`
 - meta: 권한 `상용구설정`
 - 컴포넌트: 전용 8 · 공유 16 · API: 화면 19 · 전체 도달 19
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2963,7 +2963,7 @@
 
 ### `/setting/caller-numbers` · setting-caller-numbers
 
-- 화면: [CrmSettingCallerNumbers](../restored/components/crm/CrmSettingCallerNumbers.vue) · 부모 라우트 `setting`
+- 화면: CrmSettingCallerNumbers (`re-upstream/restored/components/crm/CrmSettingCallerNumbers.vue`) · 부모 라우트 `setting`
 - meta: 권한 `발신번호설정`
 - 컴포넌트: 전용 7 · 공유 17 · API: 화면 7 · 전체 도달 19
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3015,7 +3015,7 @@
 
 ### `/setting/consult-templates` · setting-consult-templates
 
-- 화면: [CrmSettingConsultTemplates](../restored/components/crm/CrmSettingConsultTemplates.vue) · 부모 라우트 `setting`
+- 화면: CrmSettingConsultTemplates (`re-upstream/restored/components/crm/CrmSettingConsultTemplates.vue`) · 부모 라우트 `setting`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 7
 
@@ -3030,7 +3030,7 @@
 
 ### `/setting/message-templates` · setting-message-templates
 
-- 화면: [CrmSettingMessageTemplates](../restored/components/crm/CrmSettingMessageTemplates.vue) · 부모 라우트 `setting`
+- 화면: CrmSettingMessageTemplates (`re-upstream/restored/components/crm/CrmSettingMessageTemplates.vue`) · 부모 라우트 `setting`
 - meta: 권한 `메시지템플릿관리`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 36
 
@@ -3045,7 +3045,7 @@
 
 ### `/setting/contents` · setting-contents
 
-- 화면: [CrmSettingContents](../restored/components/crm/CrmSettingContents.vue) · 부모 라우트 `setting`
+- 화면: CrmSettingContents (`re-upstream/restored/components/crm/CrmSettingContents.vue`) · 부모 라우트 `setting`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 9
 
@@ -3060,7 +3060,7 @@
 
 ### `/setting/account-permission` · setting-account-permission
 
-- 화면: [AccountPermissionsView](../restored/views/AccountPermissionsView.vue) · 부모 라우트 `setting`
+- 화면: AccountPermissionsView (`re-upstream/restored/views/AccountPermissionsView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `계정권한설정`
 - 컴포넌트: 전용 8 · 공유 17 · API: 화면 11 · 전체 도달 19
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3116,7 +3116,7 @@
 
 ### `/setting/account-history` · setting-account-history
 
-- 화면: [AccountHistoryView](../restored/views/AccountHistoryView.vue) · 부모 라우트 `setting`
+- 화면: AccountHistoryView (`re-upstream/restored/views/AccountHistoryView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 5 · 공유 2 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3135,7 +3135,7 @@
 
 ### `/setting/tablet` · setting-tablet
 
-- 화면: [SettingTabletView](../restored/views/SettingTabletView.vue) · 부모 라우트 `setting`
+- 화면: SettingTabletView (`re-upstream/restored/views/SettingTabletView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 18
 
 <details>
@@ -3151,7 +3151,7 @@
 
 ### `/setting/document-management` · setting-document-management
 
-- 화면: [SettingDocumentManagementView](../restored/views/SettingDocumentManagementView.vue) · 부모 라우트 `setting`
+- 화면: SettingDocumentManagementView (`re-upstream/restored/views/SettingDocumentManagementView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 18
 
 <details>
@@ -3167,7 +3167,7 @@
 
 ### `/setting/schedule` · setting-schedule
 
-- 화면: [ScheduleView](../restored/views/ScheduleView.vue) · 부모 라우트 `setting`
+- 화면: ScheduleView (`re-upstream/restored/views/ScheduleView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `진료스케줄설정`
 - 컴포넌트: 전용 7 · 공유 13 · API: 화면 8 · 전체 도달 8
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3210,7 +3210,7 @@
 
 ### `/setting/billing` · setting-billing
 
-- 화면: [CrmBillingView](../restored/views/CrmBillingView.vue) · 부모 라우트 `setting`
+- 화면: CrmBillingView (`re-upstream/restored/views/CrmBillingView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `결제메뉴접근` · `supportsMobile`
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 1 · 전체 도달 15
 
@@ -3242,7 +3242,7 @@
 
 ### `/setting/appointment` · setting-appointment
 
-- 화면: [SettingAppointment](../restored/components/setting/SettingAppointment.vue) · 부모 라우트 `setting`
+- 화면: SettingAppointment (`re-upstream/restored/components/setting/SettingAppointment.vue`) · 부모 라우트 `setting`
 - meta: 권한 `예약설정`
 - 컴포넌트: 전용 4 · 공유 13 · API: 화면 9 · 전체 도달 40
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3289,7 +3289,7 @@
 
 ### `/setting/mcp-tokens` · setting-mcp-tokens
 
-- 화면: [MCPTokens](../restored/components/m/MCPTokens.vue) · 부모 라우트 `setting`
+- 화면: MCPTokens (`re-upstream/restored/components/m/MCPTokens.vue`) · 부모 라우트 `setting`
 - meta: `requiresAuth` · `requiresDemoAccountInPrd`
 - 등록 조건: `Yu() \|\| Un()`
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 5 · 전체 도달 5
@@ -3325,7 +3325,7 @@
 
 ### `/setting/mcp-pending-contacts` · setting-mcp-pending-contacts
 
-- 화면: [McpPendingContacts](../restored/components/mcp/McpPendingContacts.vue) · 부모 라우트 `setting`
+- 화면: McpPendingContacts (`re-upstream/restored/components/mcp/McpPendingContacts.vue`) · 부모 라우트 `setting`
 - meta: `requiresAuth` · `requiresDemoAccountInPrd`
 - 등록 조건: `Yu() \|\| Un()`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 16
@@ -3344,7 +3344,7 @@
 
 ### `/setting/expense-collection` · setting-expense-collection
 
-- 화면: [SettingExpenseCollectionView](../restored/views/SettingExpenseCollectionView.vue) · 부모 라우트 `setting`
+- 화면: SettingExpenseCollectionView (`re-upstream/restored/views/SettingExpenseCollectionView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3358,7 +3358,7 @@
 
 ### `/remote-settlement` · remote-settlement
 
-- 화면: [RemoteSettlementView](../restored/views/RemoteSettlementView.vue)
+- 화면: RemoteSettlementView (`re-upstream/restored/views/RemoteSettlementView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 6 · 공유 4 · API: 화면 2 · 전체 도달 2
 
@@ -3391,7 +3391,7 @@
 
 ### `/help` · 
 
-- 화면: [HelpView](../restored/modules/HelpView.js)
+- 화면: HelpView (`re-upstream/restored/modules/HelpView.js`)
 - meta: `requiresAuth`
 - 컴포넌트: 전용 0 · 공유 0 · API: 화면 0 · 전체 도달 0
 
@@ -3399,7 +3399,7 @@
 
 ### `/analytics` · analytics
 
-- 화면: [AnalyticsView](../restored/views/AnalyticsView.vue)
+- 화면: AnalyticsView (`re-upstream/restored/views/AnalyticsView.vue`)
 - meta: 권한 `경영지표` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 0
 
@@ -3415,7 +3415,7 @@
 
 ### `/analytics/revenue` · analytics-revenue
 
-- 화면: [RevenueTableView](../restored/views/RevenueTableView.vue) · 부모 라우트 `analytics`
+- 화면: RevenueTableView (`re-upstream/restored/views/RevenueTableView.vue`) · 부모 라우트 `analytics`
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/RevenueTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
@@ -3431,7 +3431,7 @@
 
 ### `/analytics/appointment` · analytics-appointment
 
-- 화면: [AppointmentTableView](../restored/views/AppointmentTableView.vue) · 부모 라우트 `analytics`
+- 화면: AppointmentTableView (`re-upstream/restored/views/AppointmentTableView.vue`) · 부모 라우트 `analytics`
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/AppointmentTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
@@ -3447,7 +3447,7 @@
 
 ### `/analytics/patient` · analytics-patient
 
-- 화면: [PatientTableView](../restored/views/PatientTableView.vue) · 부모 라우트 `analytics`
+- 화면: PatientTableView (`re-upstream/restored/views/PatientTableView.vue`) · 부모 라우트 `analytics`
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/PatientTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
@@ -3463,7 +3463,7 @@
 
 ### `/analytics/soo-dashboard` · analytics-soo-dashboard
 
-- 화면: [SooDashboardView](../restored/views/SooDashboardView.vue) · 부모 라우트 `analytics`
+- 화면: SooDashboardView (`re-upstream/restored/views/SooDashboardView.vue`) · 부모 라우트 `analytics`
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/SooDashboardContainer`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
@@ -3478,7 +3478,7 @@
 
 ### `/analytics/incoming-path` · analytics-incoming-path
 
-- 화면: [IncomingPathTableView](../restored/views/IncomingPathTableView.vue) · 부모 라우트 `analytics`
+- 화면: IncomingPathTableView (`re-upstream/restored/views/IncomingPathTableView.vue`) · 부모 라우트 `analytics`
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/IncomingPathTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 292
@@ -3496,7 +3496,7 @@
 
 ### `/analytics/doctor` · analytics-doctor
 
-- 화면: [DoctorTableView](../restored/views/DoctorTableView.vue) · 부모 라우트 `analytics`
+- 화면: DoctorTableView (`re-upstream/restored/views/DoctorTableView.vue`) · 부모 라우트 `analytics`
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/DoctorTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
@@ -3512,7 +3512,7 @@
 
 ### `/finance` · finance
 
-- 화면: [FinanceView](../restored/views/FinanceView.vue)
+- 화면: FinanceView (`re-upstream/restored/views/FinanceView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 0
 
@@ -3528,7 +3528,7 @@
 
 ### `/finance/daily-briefing` · finance-daily-briefing
 
-- 화면: [DailyBriefingView](../restored/views/DailyBriefingView.vue) · 부모 라우트 `finance`
+- 화면: DailyBriefingView (`re-upstream/restored/views/DailyBriefingView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3542,7 +3542,7 @@
 
 ### `/finance/expenses` · finance-expenses
 
-- 화면: [ExpensesView](../restored/views/ExpensesView.vue) · 부모 라우트 `finance`
+- 화면: ExpensesView (`re-upstream/restored/views/ExpensesView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3556,7 +3556,7 @@
 
 ### `/finance/pnl` · finance-pnl
 
-- 화면: [PnlView](../restored/views/PnlView.vue) · 부모 라우트 `finance`
+- 화면: PnlView (`re-upstream/restored/views/PnlView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3570,7 +3570,7 @@
 
 ### `/finance/budget` · finance-budget
 
-- 화면: [BudgetView](../restored/views/BudgetView.vue) · 부모 라우트 `finance`
+- 화면: BudgetView (`re-upstream/restored/views/BudgetView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3584,7 +3584,7 @@
 
 ### `/finance/cashflow` · finance-cashflow
 
-- 화면: [CashflowView](../restored/views/CashflowView.vue) · 부모 라우트 `finance`
+- 화면: CashflowView (`re-upstream/restored/views/CashflowView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3598,7 +3598,7 @@
 
 ### `/challenge` · challenge
 
-- 화면: [ChallengeView](../restored/views/ChallengeView.vue)
+- 화면: ChallengeView (`re-upstream/restored/views/ChallengeView.vue`)
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/SooRisingContainer`
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 2 · 전체 도달 5
@@ -3626,7 +3626,7 @@
 
 ### `/portal` · portal
 
-- 화면: [SooView](../restored/views/SooView.vue)
+- 화면: SooView (`re-upstream/restored/views/SooView.vue`)
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-emr-portal/SooPortalContainer`
 - meta: `requiresAuth` · `usesGlobalLayout` · `supportsMobile`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
@@ -3642,7 +3642,7 @@
 
 ### `/library` · library-window
 
-- 화면: [LibraryWindowView](../restored/views/LibraryWindowView.vue)
+- 화면: LibraryWindowView (`re-upstream/restored/views/LibraryWindowView.vue`)
 - 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-emr-portal/SooPortalContainer`
 - meta: `requiresAuth`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 1
@@ -3659,7 +3659,7 @@
 
 ### `/members/:pathMatch(.*)*` · members
 
-- 화면: [MembersView](../restored/views/MembersView.vue)
+- 화면: MembersView (`re-upstream/restored/views/MembersView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout` · `supportsMobile`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 2 · 전체 도달 296
 
@@ -3688,55 +3688,55 @@
 
 ### `useAccountApplicationsAuthStore`
 
-- 파일: [stores/accountApplicationsAuth.js](../restored/stores/accountApplicationsAuth.js)
+- 파일: `re-upstream/restored/stores/accountApplicationsAuth.js`
 
 _API 호출 없음_
 
 ### `useAiAgentStore`
 
-- 파일: [stores/aiAgent.js](../restored/stores/aiAgent.js)
+- 파일: `re-upstream/restored/stores/aiAgent.js`
 
 _API 호출 없음_
 
 ### `useClaimWarningOffStore`
 
-- 파일: [stores/claimWarningOff.js](../restored/stores/claimWarningOff.js)
+- 파일: `re-upstream/restored/stores/claimWarningOff.js`
 
 _API 호출 없음_
 
 ### `useClaimWarningStore`
 
-- 파일: [stores/claimWarning.js](../restored/stores/claimWarning.js)
+- 파일: `re-upstream/restored/stores/claimWarning.js`
 
 _API 호출 없음_
 
 ### `useCrmMessageResultLinksStore`
 
-- 파일: [stores/crmMessageResultLinks.js](../restored/stores/crmMessageResultLinks.js)
+- 파일: `re-upstream/restored/stores/crmMessageResultLinks.js`
 
 _API 호출 없음_
 
 ### `useDeskDateStore`
 
-- 파일: [stores/deskDate.js](../restored/stores/deskDate.js)
+- 파일: `re-upstream/restored/stores/deskDate.js`
 
 _API 호출 없음_
 
 ### `useDocumentIssueStore`
 
-- 파일: [stores/documentIssue.js](../restored/stores/documentIssue.js)
+- 파일: `re-upstream/restored/stores/documentIssue.js`
 
 _API 호출 없음_
 
 ### `useHiraSubmissionStore`
 
-- 파일: [stores/hiraSubmission.js](../restored/stores/hiraSubmission.js)
+- 파일: `re-upstream/restored/stores/hiraSubmission.js`
 
 _API 호출 없음_
 
 ### `useInquiryBotStore`
 
-- 파일: [stores/inquiryBot.js](../restored/stores/inquiryBot.js)
+- 파일: `re-upstream/restored/stores/inquiryBot.js`
 
 <details>
 <summary>훅 → API (6)</summary>
@@ -3754,61 +3754,61 @@ _API 호출 없음_
 
 ### `useIntakeLinkPromptStore`
 
-- 파일: [stores/intakeLinkPrompt.js](../restored/stores/intakeLinkPrompt.js)
+- 파일: `re-upstream/restored/stores/intakeLinkPrompt.js`
 
 _API 호출 없음_
 
 ### `useMedicalAidsStore`
 
-- 파일: [stores/medicalAids.js](../restored/stores/medicalAids.js)
+- 파일: `re-upstream/restored/stores/medicalAids.js`
 
 _API 호출 없음_
 
 ### `useMembersSignUpStore`
 
-- 파일: [stores/membersSignUp.js](../restored/stores/membersSignUp.js)
+- 파일: `re-upstream/restored/stores/membersSignUp.js`
 
 _API 호출 없음_
 
 ### `useOnboardingGuideSessionStore`
 
-- 파일: [stores/onboardingGuideSession.js](../restored/stores/onboardingGuideSession.js)
+- 파일: `re-upstream/restored/stores/onboardingGuideSession.js`
 
 _API 호출 없음_
 
 ### `useOndangSignUpStore`
 
-- 파일: [stores/ondangSignUp.js](../restored/stores/ondangSignUp.js)
+- 파일: `re-upstream/restored/stores/ondangSignUp.js`
 
 _API 호출 없음_
 
 ### `usePatientStore`
 
-- 파일: [stores/patient.js](../restored/stores/patient.js)
+- 파일: `re-upstream/restored/stores/patient.js`
 
 _API 호출 없음_
 
 ### `useRepeatedTreatmentStore`
 
-- 파일: [stores/repeatedTreatment.js](../restored/stores/repeatedTreatment.js)
+- 파일: `re-upstream/restored/stores/repeatedTreatment.js`
 
 _API 호출 없음_
 
 ### `useSettingChubyakPrescriptionStore`
 
-- 파일: [stores/settingChubyakPrescription.js](../restored/stores/settingChubyakPrescription.js)
+- 파일: `re-upstream/restored/stores/settingChubyakPrescription.js`
 
 _API 호출 없음_
 
 ### `useSettingHerbStore`
 
-- 파일: [stores/settingHerb.js](../restored/stores/settingHerb.js)
+- 파일: `re-upstream/restored/stores/settingHerb.js`
 
 _API 호출 없음_
 
 ### `useSocketClientStore`
 
-- 파일: [stores/socketClient.js](../restored/stores/socketClient.js)
+- 파일: `re-upstream/restored/stores/socketClient.js`
 
 <details>
 <summary>훅 → API (1)</summary>
@@ -3821,19 +3821,19 @@ _API 호출 없음_
 
 ### `useSooSignUpStore`
 
-- 파일: [stores/sooSignUp.js](../restored/stores/sooSignUp.js)
+- 파일: `re-upstream/restored/stores/sooSignUp.js`
 
 _API 호출 없음_
 
 ### `useToastNotificationStore`
 
-- 파일: [stores/toastNotification.js](../restored/stores/toastNotification.js)
+- 파일: `re-upstream/restored/stores/toastNotification.js`
 
 _API 호출 없음_
 
 ### `useTreatmentStore`
 
-- 파일: [stores/treatment.js](../restored/stores/treatment.js) · 참조 스토어 `useClaimWarningStore`
+- 파일: `re-upstream/restored/stores/treatment.js` · 참조 스토어 `useClaimWarningStore`
 
 <details>
 <summary>훅 → API (17)</summary>
@@ -3861,13 +3861,13 @@ _API 호출 없음_
 
 ### `useTreatmentWindowStore`
 
-- 파일: [stores/treatmentWindow.js](../restored/stores/treatmentWindow.js)
+- 파일: `re-upstream/restored/stores/treatmentWindow.js`
 
 _API 호출 없음_
 
 ### `useWindowStore`
 
-- 파일: [stores/window.js](../restored/stores/window.js) · 참조 스토어 `usePatientStore`
+- 파일: `re-upstream/restored/stores/window.js` · 참조 스토어 `usePatientStore`
 
 _API 호출 없음_
 
@@ -3875,10 +3875,10 @@ _API 호출 없음_
 
 클라이언트 모듈의 최상위 문장(인터셉터 등)에서 호출하는 API입니다. 모든 요청에 걸리므로 화면 목록에서는 뺐습니다.
 
-- [api/MembersView/client.js](../restored/api/MembersView/client.js): `POST authClient /token/refresh`
-- [api/clients/index.js](../restored/api/clients/index.js): API 호출 없음
-- [api/clients/portalClient.js](../restored/api/clients/portalClient.js): API 호출 없음
-- [api/clients/webClient.js](../restored/api/clients/webClient.js): `POST authClient /token/refresh`
+- `re-upstream/restored/api/MembersView/client.js`: `POST authClient /token/refresh`
+- `re-upstream/restored/api/clients/index.js`: API 호출 없음
+- `re-upstream/restored/api/clients/portalClient.js`: API 호출 없음
+- `re-upstream/restored/api/clients/webClient.js`: `POST authClient /token/refresh`
 
 ## 참조되지 않는 호출
 
@@ -3886,6 +3886,6 @@ _API 호출 없음_
 
 | 함수 | 엔드포인트 |
 |---|---|
-| [postChangeRequestsDocuments](../restored/api/users/requests.js) | `POST accountClient {mI}/documents` |
-| [postChangeRequests](../restored/api/users/requests.js) | `POST accountClient <mI>` |
-| [getChangeRequests](../restored/api/users/requests.js) | `GET accountClient <mI>` |
+| postChangeRequestsDocuments (`re-upstream/restored/api/users/requests.js`) | `POST accountClient {mI}/documents` |
+| postChangeRequests (`re-upstream/restored/api/users/requests.js`) | `POST accountClient <mI>` |
+| getChangeRequests (`re-upstream/restored/api/users/requests.js`) | `GET accountClient <mI>` |

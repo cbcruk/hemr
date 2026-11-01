@@ -215,13 +215,13 @@ Idempotency-Key: ...
 
 서버 검증 (현행 클라이언트 규칙):
 
-| 규칙 | 오류 |
-|---|---|
-| 건보 급여제한 대상이면 `SELF_PAY`만 가능 | 422 `NHIS_BENEFIT_RESTRICTED` |
-| 선택의료기관(B005) 대상인데 기관 미선택 | 422 `SELECTED_INSTITUTION_REQUIRED` |
-| 자보 누적 진료비가 지급보증 한도 초과 (`fullSelfPay` 아니면) | 422 `AUTO_INSURANCE_LIMIT_EXCEEDED` |
-| 자보 지급보증 기간 만료 | 422 `AUTO_INSURANCE_CASE_EXPIRED` |
-| 예약일이 오늘이 아님 | 422 `APPOINTMENT_NOT_TODAY` |
+| 규칙 | 오류 | 현행 동작 ([check-in-validation](../reference/rules/check-in-validation.md)) |
+|---|---|---|
+| 건보 급여제한 대상이면 `SELF_PAY`만 가능 | 422 `NHIS_BENEFIT_RESTRICTED` | 급여제한 코드 `01`(무자격)만 일반으로 자동 전환하고 경고. `02`–`05`는 그대로 |
+| 의료급여(자격 7·8) + 본인부담 M001/M002/B001/B002 환자가 선택기관 1–4에 우리 기관이 없으면 선택 사유(B005 등) 필수 | 422 `SELECTED_INSTITUTION_REQUIRED` | 같음 |
+| 자보 누적 진료비가 지급보증 한도 초과 (`fullSelfPay` 아니면) | 422 `AUTO_INSURANCE_LIMIT_EXCEEDED` | 다이얼로그 경고 |
+| 자보 지급보증 기간 만료 | 422 `AUTO_INSURANCE_CASE_EXPIRED` | **신규 규칙.** 현행은 검사하지 않음 |
+| 예약일이 오늘이 아님 | 422 `APPOINTMENT_NOT_TODAY` | 버튼 비활성으로만 막음 |
 
 **보험구분 변경**(`:change-coverage`)은 이미 승인된 처방(추나·첩약 심평원 승인)이 있으면 409입니다. 새 보험구분에서 쓸 수 없는 처방 라인은 서버가 지우지 않고 `invalid: COVERAGE_MISMATCH`로 표시해 응답의 `invalidatedPrescriptionLines[]`로 알립니다. 진료가 `DRAFT`면 의사가 고치기 전까지 진료 완료가 막히고, 이미 `COMPLETED`면 [정정 제안](clinical.md#진료-encounter)이 만들어집니다. 처방은 면허 행위라 데스크 동작이 진료기록을 직접 바꾸지 않게 합니다. 현행은 클라이언트가 판단해 `record/save`로 지웠습니다.
 
@@ -342,7 +342,7 @@ Idempotency-Key: ...
 - **금액 미리보기:** `POST /visits/{id}:quote-checkout`이 같은 입력으로 계산만 해서 `quoteId`와 함께 돌려줍니다. 화면은 이 값을 그립니다
 - **동시성:** 수납은 내원 `version`(`If-Match`)이 아니라 `quoteId`로 검증합니다. 다른 단말이 베드나 메모를 바꿔도 수납은 통과하고, 청구 금액에 영향을 주는 변경(처방 수정)이 있을 때만 409로 다시 견적을 받게 합니다
 - 409가 나도 미리 기록한 결제는 `UNAPPLIED`로 남아 있으므로 새 견적으로 다시 수납하면 됩니다
-- **남은 금액 판정**은 서버가 합니다. 현행 스펙 원문의 판정식은 부호가 모호했습니다. 재설계 정의: `due - received > 0`이면 `OUTSTANDING`(미수), `< 0`이면 `OVERPAID`(과수납), `writeOffRemainder`이면 `WRITTEN_OFF`(손비)
+- **남은 금액 판정**은 서버가 합니다. 현행 코드도 `due − received`(과세+비과세 합산)로 판정해 아래 정의와 방향이 같습니다 ([checkout-settlement](../reference/rules/checkout-settlement.md)). 정의: `due - received > 0`이면 `OUTSTANDING`(미수), `< 0`이면 `OVERPAID`(과수납), `writeOffRemainder`이면 `WRITTEN_OFF`(손비)
 - 과수납이면 손비 처리를 할 수 없습니다 (422)
 - 입력 금액이 0인데 받을 금액이 있으면 미수 확인이 필요합니다: `acknowledge: ["OUTSTANDING"]`
 

@@ -13,7 +13,7 @@
 | 마지막 로그인 타입 | localStorage `lastLoginType` (`bt.마지막로그인타입`): `upstream` / `soo` / `insurance` / `ondang` / `members` |
 | 로그인 이벤트 | 세션을 저장한 쪽이 `window`에 `auth:login`을 보냄 → `App`이 소켓 재연결·쿼리 재조회 등 (추정) |
 
-가드([router/guards.js](../../restored/router/guards.js))에서 이 영역과 관계된 규칙:
+가드(`re-upstream/restored/router/guards.js`)에서 이 영역과 관계된 규칙:
 
 - `meta.requiresAuth` 라우트에 토큰 없이 들어오면 `?redirect=<fullPath>`를 붙여 로그인으로 보냅니다. `lastLoginType === "soo"`면 `soo-login`, 아니면 `auth-login`인데, `soo-login`(`/login/soo`)은 `auth-login`으로 redirect만 하는 라우트입니다
 - 로그인한 상태로 `auth-login`·`soo-login`·`auth-unlock`에 오면 계정 홈(`kL(서비스연동, …, { chartLayout })`)으로 보냅니다
@@ -46,7 +46,7 @@
   - "다른 네이버 계정으로 가입하기" → 메디스트림 `/logout`을 거쳐 같은 로그인 URL(`refer=logout`)로 이동합니다
 - **데이터:** `POST /login` 응답 `results`(토큰 묶음), `GET /auth/me` → `me.서비스연동`, `me.역할타입`, `me.차트레이아웃`, `me.요양기관기호`, `me.권한목록`
 - **상태 저장:** `userAuthData`, `lastLoginType`
-- **근거:** [LoginView.vue](../../restored/views/LoginView.vue), [LoginView.vue.js](../../restored/views/LoginView.vue.js), [setupLoginSession (part-231.js)](../../restored/modules/index/part-231.js), [medistreamAuthToken.js](../../restored/modules/medistreamAuthToken.js), [api/sso/requests.js](../../restored/api/sso/requests.js), [constants.js](../../restored/modules/constants.js)
+- **근거:** `re-upstream/restored/views/LoginView.vue`, `re-upstream/restored/views/LoginView.vue.js`, setupLoginSession (part-231.js) (`re-upstream/restored/modules/index/part-231.js`), `re-upstream/restored/modules/medistreamAuthToken.js`, `re-upstream/restored/api/sso/requests.js`, `re-upstream/restored/modules/constants.js`
 
 ## 계정 잠금 해제 — `/login/unlock` (`auth-unlock`)
 
@@ -62,7 +62,7 @@
   - 인증번호 요청 → `POST authClient /unlock/request-otp` `{ 아이디, 이름, 생년월일, 주민등록번호뒷자리첫자리, 통신사, 휴대폰번호, 재발송인증거래번호? }`
     - 응답 `인증거래번호`를 보관하고 180초 타이머를 시작합니다. 재발송 한도는 3회입니다
   - 확인 → `POST authClient /unlock/confirm-otp` `{ 아이디, 인증거래번호, 휴대폰번호, 인증번호 }` → 성공하면 완료 단계로 바뀝니다
-  - 오류 분류 ([message.js](../../restored/modules/AccountUnlockView/message.js)):
+  - 오류 분류 (`re-upstream/restored/modules/AccountUnlockView/message.js`):
 
     | 분류 | 조건 | 처리 |
     |---|---|---|
@@ -75,7 +75,7 @@
   - 진행 중에 닫으면 "본인인증을 취소하시겠습니까?" 확인 창을 띄웁니다. 인증번호를 이미 받았으면 만료 안내를 덧붙입니다
 - **데이터:** 위 두 엔드포인트. 응답은 `data.results`
 - **상태 저장:** 컴포넌트 로컬 상태만 씁니다
-- **근거:** [AccountUnlockView.vue](../../restored/views/AccountUnlockView.vue), [AccountUnlockStepPhoneVerification.vue.js](../../restored/components/account/AccountUnlockStepPhoneVerification.vue.js), [AccountUnlockIdentityVerificationModal.vue.js](../../restored/components/account/AccountUnlockIdentityVerificationModal.vue.js), [api/unlock/requests.js](../../restored/api/unlock/requests.js)
+- **근거:** `re-upstream/restored/views/AccountUnlockView.vue`, `re-upstream/restored/components/account/AccountUnlockStepPhoneVerification.vue.js`, `re-upstream/restored/components/account/AccountUnlockIdentityVerificationModal.vue.js`, `re-upstream/restored/api/unlock/requests.js`
 
 ## SSO 콜백 — `/auth/callback` (`auth-callback`)
 
@@ -125,7 +125,7 @@
   - `GET /auth/check-ssoid` → `available`, `원탕금곡가입여부`
   - `GET /integrations/soo` → `linked`
 - **상태 저장:** `accountApplicationsAuth`(메모리), `sooSignUp`·`membersSignUp`(sessionStorage persist), `userAuthData`, `lastLoginType`
-- **근거:** [AccountApplicationsAuth.vue.js](../../restored/components/account/AccountApplicationsAuth.vue.js), [MedistreamAuth.vue.js](../../restored/components/medistream/MedistreamAuth.vue.js), [INTEGRATIONS_MEMBERS_PATH.js](../../restored/modules/AccountApplicationsAuth/INTEGRATIONS_MEMBERS_PATH.js), [stores/membersSignUp.js](../../restored/stores/membersSignUp.js), [api/integrations/sooSignUp.js](../../restored/api/integrations/sooSignUp.js)
+- **근거:** `re-upstream/restored/components/account/AccountApplicationsAuth.vue.js`, `re-upstream/restored/components/medistream/MedistreamAuth.vue.js`, `re-upstream/restored/modules/AccountApplicationsAuth/INTEGRATIONS_MEMBERS_PATH.js`, `re-upstream/restored/stores/membersSignUp.js`, `re-upstream/restored/api/integrations/sooSignUp.js`
 
 ## 온보딩(계정 신청) — `/onboarding` (`auth-onboarding`)
 
@@ -152,7 +152,7 @@
     - 차트 라이트 / 실손 → `sooSignUp.from = "auth-onboarding"`, `실손여부`를 false/true로 정하고 메디스트림 로그인(`state=soo`)으로 갑니다
     - 업스트림 차트 → `차트사용여부확인`
     - 메디원탕 → `ondang-sign-up`. `GET /auth/check-ssoid`가 `원탕금곡가입여부 && available`일 때만 켜집니다. 부제는 상태에 따라 "이미 가입된 계정입니다…" 또는 "공동이용계약을 먼저 완료해주세요"로 바뀝니다
-  - 계정 신청 폼 (vee-validate + yup, [OnboardingView.helpers.js](../../restored/views/OnboardingView.helpers.js)):
+  - 계정 신청 폼 (vee-validate + yup, `re-upstream/restored/views/OnboardingView.helpers.js`):
 
     | 단계 | 필드 | 주요 검증 |
     |---|---|---|
@@ -182,7 +182,7 @@
 - **상태 저장:**
   - query key `["accountApplications","application" | "businessLicense" | "terms"]`. 신청 계열 뮤테이션이 성공하면 `application`·`businessLicense`를 무효화합니다
   - `accountApplicationsAuth.accountApplicationsToken`
-- **근거:** [OnboardingView.vue](../../restored/views/OnboardingView.vue), [OnboardingView.vue.js](../../restored/views/OnboardingView.vue.js), [AccountApplicationsForm.vue.js](../../restored/components/account/AccountApplicationsForm.vue.js), [AccountApplicationsFormTermsAgreement.vue.js](../../restored/components/account/AccountApplicationsFormTermsAgreement.vue.js), [AccountApplicationsFormHospitalInfo.vue.js](../../restored/components/account/AccountApplicationsFormHospitalInfo.vue.js), [AccountApplicationsRejected.vue.js](../../restored/components/account/AccountApplicationsRejected.vue.js), [AccountApplicationsStepSelectChart.vue.js](../../restored/components/account/AccountApplicationsStepSelectChart.vue.js), [prefetchAccountApplicationApplicationsQuery.js](../../restored/modules/OnboardingView/prefetchAccountApplicationApplicationsQuery.js), [api/accountApplications/client.js](../../restored/api/accountApplications/client.js), [api/account-applications/query-keys.js](../../restored/api/account-applications/query-keys.js)
+- **근거:** `re-upstream/restored/views/OnboardingView.vue`, `re-upstream/restored/views/OnboardingView.vue.js`, `re-upstream/restored/components/account/AccountApplicationsForm.vue.js`, `re-upstream/restored/components/account/AccountApplicationsFormTermsAgreement.vue.js`, `re-upstream/restored/components/account/AccountApplicationsFormHospitalInfo.vue.js`, `re-upstream/restored/components/account/AccountApplicationsRejected.vue.js`, `re-upstream/restored/components/account/AccountApplicationsStepSelectChart.vue.js`, `re-upstream/restored/modules/OnboardingView/prefetchAccountApplicationApplicationsQuery.js`, `re-upstream/restored/api/accountApplications/client.js`, `re-upstream/restored/api/account-applications/query-keys.js`
 
 ## 차트 라이트(수) 가입 — `/sign-up/soo` (`soo-sign-up`), `/sign-up/soo/form` (`soo-sign-up-form`)
 
@@ -226,7 +226,7 @@
   - 첫 단계에서 "취소"를 누르면 `sooSignUp.from`, 없으면 `auth-login`으로 갑니다
 - **데이터:** 약관 `GET /terms?type=signup&service=soo` → `terms[]`. 수 프로필 필드: `이름`, `휴대폰번호`, `병원명`, `한의원전화번호`, `사업자등록번호`, `주소`
 - **상태 저장:** `useSooSignUpStore`(sessionStorage): `authToken`, `integrationStatus`, `sooProfile`, `flowType`, `from`, `실손여부`, `migration`, `completedData`
-- **근거:** [SooSignUpView.vue.js](../../restored/views/SooSignUpView.vue.js), [SooSignUpFormView.vue.js](../../restored/views/SooSignUpFormView.vue.js), [termsWithoutDetailPage.js (어댑터 `wu`)](../../restored/modules/SooSignUpFormView/termsWithoutDetailPage.js), [ServiceSignUpFormView.vue](../../restored/views/ServiceSignUpFormView.vue), [ServiceSignUpFormView.vue.js](../../restored/views/ServiceSignUpFormView.vue.js), [ServiceSignUpFormView.helpers-3.js](../../restored/views/ServiceSignUpFormView.helpers-3.js), [stores/sooSignUp.js](../../restored/stores/sooSignUp.js)
+- **근거:** `re-upstream/restored/views/SooSignUpView.vue.js`, `re-upstream/restored/views/SooSignUpFormView.vue.js`, termsWithoutDetailPage.js (어댑터 `wu`) (`re-upstream/restored/modules/SooSignUpFormView/termsWithoutDetailPage.js`), `re-upstream/restored/views/ServiceSignUpFormView.vue`, `re-upstream/restored/views/ServiceSignUpFormView.vue.js`, `re-upstream/restored/views/ServiceSignUpFormView.helpers-3.js`, `re-upstream/restored/stores/sooSignUp.js`
 
 ## 메디원탕(원외탕전) 가입 — `/sign-up/ondang` (`ondang-sign-up`), `/sign-up/ondang/form` (`ondang-sign-up-form`)
 
@@ -263,7 +263,7 @@
   - 오류: 400 입력 확인, 409 "이미 가입된 계정입니다."(서버 `message` 우선), 그 밖 "회원가입 중 오류가 발생했습니다."
 - **데이터:** 약관 `GET /terms?type=signup&service=wontang`. 가입 신청 토큰을 `accountApplicationClient` 기본 헤더로 씁니다
 - **상태 저장:** `useOndangSignUpStore`(sessionStorage): `authToken`, `ondangProfile`, `flowType`, `from`, `원탕전용약관여부`, `completedData`. query key `["ondangSignUp", "checkSsoId" | "profile" | "terms"]`
-- **근거:** [OndangSignUpView.vue.js](../../restored/views/OndangSignUpView.vue.js), [OndangSignUpFormView.vue](../../restored/views/OndangSignUpFormView.vue), [OndangSignUpFormView.vue.js](../../restored/views/OndangSignUpFormView.vue.js), [api/auth/queries.js](../../restored/api/auth/queries.js), [stores/ondangSignUp.js](../../restored/stores/ondangSignUp.js)
+- **근거:** `re-upstream/restored/views/OndangSignUpView.vue.js`, `re-upstream/restored/views/OndangSignUpFormView.vue`, `re-upstream/restored/views/OndangSignUpFormView.vue.js`, `re-upstream/restored/api/auth/queries.js`, `re-upstream/restored/stores/ondangSignUp.js`
 
 ## 가입 완료 — `/sign-up/soo/complete` (`soo-sign-up-complete`), `/sign-up/ondang/complete` (`ondang-sign-up-complete`)
 
@@ -278,7 +278,7 @@
   - "원외탕전 계약하러 가기" → 수 멤버스 센터를 새 탭으로 열고 `auth-login`으로 갑니다
 - **데이터:** 없음 (스토어 `completedData`만)
 - **상태 저장:** `sooSignUp.completedData`, `ondangSignUp.completedData`
-- **근거:** [SooSignUpCompleteView.vue](../../restored/views/SooSignUpCompleteView.vue), [OndangSignUpCompleteView.vue](../../restored/views/OndangSignUpCompleteView.vue)
+- **근거:** `re-upstream/restored/views/SooSignUpCompleteView.vue`, `re-upstream/restored/views/OndangSignUpCompleteView.vue`
 
 ## 약관 보기 — `/terms/:documentNumber` (`terms-content`), `/terms/doctalk/:type` (`doctalk-terms`)
 
@@ -296,7 +296,7 @@
     - `DoctalkSignupModal`에서 엽니다
 - **데이터:** `GET /marketing-agreement/terms/list` → `[{ documentNumber, contents, … }]`
 - **상태 저장:** query key `["terms","list",<domain>]`, staleTime 30분
-- **근거:** [TermsContentView.vue.js](../../restored/views/TermsContentView.vue.js), [api/terms/query-keys.js](../../restored/api/terms/query-keys.js), [api/marketing-agreement/requests.js](../../restored/api/marketing-agreement/requests.js), [DoctalkTermsView.vue.js](../../restored/views/DoctalkTermsView.vue.js)
+- **근거:** `re-upstream/restored/views/TermsContentView.vue.js`, `re-upstream/restored/api/terms/query-keys.js`, `re-upstream/restored/api/marketing-agreement/requests.js`, `re-upstream/restored/views/DoctalkTermsView.vue.js`
 
 ## 통합 약관 동의 게이트 (로그인 후)
 
@@ -321,7 +321,7 @@
   - `GET accountClient /terms/hospital-agreements?type=signup` (staleTime 0)
   - `GET /terms/documents?type=signup` → `documents`
   - `POST /terms/agreements` `{ 약관동의목록[{약관문서번호, 동의여부: true}] }` → 판정 쿼리 무효화
-- **근거:** [api/unified-terms/query-keys.js](../../restored/api/unified-terms/query-keys.js), [api/terms/requests.js](../../restored/api/terms/requests.js), [UnifiedTermsConsentScreen.vue](../../restored/components/unified/UnifiedTermsConsentScreen.vue), [CrmView.vue](../../restored/views/CrmView.vue)
+- **근거:** `re-upstream/restored/api/unified-terms/query-keys.js`, `re-upstream/restored/api/terms/requests.js`, `re-upstream/restored/components/unified/UnifiedTermsConsentScreen.vue`, `re-upstream/restored/views/CrmView.vue`
 
 ## 로그아웃 — `/logout` (`logout`)
 
@@ -338,7 +338,7 @@
   7. `clearAllDrafts()`로 IndexedDB의 진료기록 임시 저장분을 지웁니다
   8. `auth-api …/api/auth/sso/logout?redirect_uri=<origin><경로>`로 `location.replace`합니다
 - **상태 저장:** `lastLoginType`은 남깁니다
-- **근거:** [LogoutView.vue.js](../../restored/views/LogoutView.vue.js), [stores/window.js](../../restored/stores/window.js), [clearAllDrafts.js](../../restored/modules/index/clearAllDrafts.js), [App.vue.js](../../restored/components/app/App.vue.js)
+- **근거:** `re-upstream/restored/views/LogoutView.vue.js`, `re-upstream/restored/stores/window.js`, `re-upstream/restored/modules/index/clearAllDrafts.js`, `re-upstream/restored/components/app/App.vue.js`
 
 ## 토큰 저장·갱신
 
@@ -355,7 +355,7 @@
 | 외부 채널 | `getAuthToken$({ withRefresh })`로 소켓 등도 같은 토큰을 씁니다 ([non-axios-channels.md](../non-axios-channels.md)) |
 | 기타 | `insuranceClient`가 403 `INS_HOSPITAL_CONSENT_REQUIRED`를 받으면 전역 카운터(`URe`)를 올립니다. 병원 동의 모달 트리거로 보입니다 (추정) |
 
-- **근거:** [getAuthToken.js](../../restored/modules/index/getAuthToken.js), [lib/index/part-4.js](../../restored/lib/index/part-4.js), [lib/index/baseURL.js](../../restored/lib/index/baseURL.js), [webClient.js](../../restored/api/clients/webClient.js), [authClient.js](../../restored/api/clients/authClient.js)
+- **근거:** `re-upstream/restored/modules/index/getAuthToken.js`, `re-upstream/restored/lib/index/part-4.js`, `re-upstream/restored/lib/index/baseURL.js`, `re-upstream/restored/api/clients/webClient.js`, `re-upstream/restored/api/clients/authClient.js`
 
 ## 흐름
 

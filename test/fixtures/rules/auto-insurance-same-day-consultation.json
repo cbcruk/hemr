@@ -1,0 +1,1087 @@
+{
+  "rule": "auto-insurance-same-day-consultation",
+  "description": "When a patient has 자보 encounters for two or more different accident numbers on the same day, the later encounter is designated '1일 2차' and must not carry a consultation fee (codes 10100*/10200*).",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/index/local.js",
+      "lines": "174-202",
+      "origin": "unminified/index-CBEIvlV0.js:125957-125985"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/local.js",
+      "lines": "699-774",
+      "origin": "unminified/index-CBEIvlV0.js:126476-126550"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-221.js",
+      "lines": "423-434",
+      "origin": "unminified/index-CBEIvlV0.js:124401-124412"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js",
+      "lines": "68-157",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:27893-27982"
+    },
+    {
+      "file": "re-upstream/restored/modules/ClaimHiraView/codes.js",
+      "lines": "3547-3572",
+      "origin": "unminified/ClaimHiraView-hepxiFdR.js:6651-6676"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
+      "lines": "84-87",
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:3823-3826"
+    }
+  ],
+  "inputSchema": {
+    "kind": "claimWarning (effective claim warnings via HFt 자보 branch), IBt(raw, dropped by HFt), banner (editor banner + auto-designation), claimSpecifics (claim 명세서 특정내역).",
+    "현재진료": "Current encounter: 진료Id, 보험구분 '자보', 기준일시 yyyyMMddHHmm, 보험조회.사고접수번호, 자보1일2차여부 true|false|null|undefined, 진료처방[]/처방[] with 수가코드.",
+    "같은날자보진료기록 / 최근진료기록": "The patient's 자보 encounters from the last 90 days (GET record list type=자보 days_ago=90 limit=90); only those with the same yyyyMMdd are used.",
+    "canWriteTreatmentRecord": "Editor permission; auto-designation only runs with write permission.",
+    "expected (banner)": "상황 = >=2 distinct accident numbers that day; 후보 = an earlier same-day 자보 encounter exists (기준일시 smaller, or equal with smaller 진료Id); 형제2차지정 = another same-day encounter already flagged; willAutoAssign mirrors the watch(c) guard (c && canWrite && flag == null); afterAutoAssign = encounter after the edit (flag true, lines starting 10100/10200 removed)."
+  },
+  "cases": [
+    {
+      "name": "only one 자보 encounter today -> none",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011",
+              "카테고리숫자코드": "73001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": []
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "two same-day encounters, same accident -> none",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "different accidents, current later, has 진찰료 -> J0014 on 진찰료 lines",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            },
+            {
+              "id": "f3",
+              "수가코드": "10100",
+              "카테고리숫자코드": "31001001"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011",
+              "카테고리숫자코드": "73001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": [
+          {
+            "에러코드": "J0014",
+            "원인제공자Ids": [
+              "f2",
+              "f3"
+            ]
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "different accidents, current earlier -> none for current",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r1",
+          "보험구분": "자보",
+          "기준일시": "202611010900",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "진료처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r2",
+            "보험구분": "자보",
+            "기준일시": "202611011400",
+            "보험조회": {
+              "사고접수번호": "B"
+            },
+            "진료처방": [
+              {
+                "id": "f2",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "same 기준일시 tie, current 진료Id greater -> treated as later",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r9",
+          "보험구분": "자보",
+          "기준일시": "202611011000",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f9",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611011000",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": [
+          {
+            "에러코드": "J0014",
+            "원인제공자Ids": [
+              "f9"
+            ]
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "same 기준일시 tie, current 진료Id smaller -> treated as first",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r1",
+          "보험구분": "자보",
+          "기준일시": "202611011000",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "진료처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r9",
+            "보험구분": "자보",
+            "기준일시": "202611011000",
+            "보험조회": {
+              "사고접수번호": "B"
+            },
+            "진료처방": [
+              {
+                "id": "f9",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "different accidents, current later, 진찰료 already removed -> none",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "a2",
+              "수가코드": "40011",
+              "카테고리숫자코드": "73001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "day boundary: other at 23:59 previous day -> none",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611010001",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202610312359",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "other same-day encounter is 건보 -> none",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "건보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "other encounter has no accident number -> none",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {},
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "current flagged 2차 but 진찰료 re-added -> J0014 still raised",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ],
+          "자보1일2차여부": true
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": [
+          {
+            "에러코드": "J0014",
+            "원인제공자Ids": [
+              "f2"
+            ]
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "sibling flagged 2차, current later with 진찰료 -> J0014 (flag not consulted)",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [],
+            "자보1일2차여부": true
+          }
+        ]
+      },
+      "expected": {
+        "warnings": [
+          {
+            "에러코드": "J0014",
+            "원인제공자Ids": [
+              "f2"
+            ]
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "only codes starting 10100/10200 count: 10400 ignored, 1020010 counted",
+      "input": {
+        "kind": "claimWarning",
+        "현재진료": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "진료처방": [
+            {
+              "id": "x1",
+              "수가코드": "10400",
+              "카테고리숫자코드": "31001001"
+            },
+            {
+              "id": "x2",
+              "수가코드": "1020010",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [
+              {
+                "id": "f1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "warnings": [
+          {
+            "에러코드": "J0014",
+            "원인제공자Ids": [
+              "x2"
+            ]
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "IBt raw J0014 for first encounter is discarded by HFt filter",
+      "input": {
+        "kind": "IBt(raw, dropped by HFt)",
+        "현재진료": {
+          "진료Id": "r1",
+          "보험구분": "자보",
+          "기준일시": "202611010900",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "진료처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료목록": [
+          {
+            "사고접수번호": "A",
+            "자보1일2차여부": null
+          },
+          {
+            "사고접수번호": "B",
+            "자보1일2차여부": null
+          }
+        ]
+      },
+      "expected": {
+        "rawWarning": {
+          "에러코드": "J0014",
+          "원인제공자Ids": []
+        },
+        "effectiveWarnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "IBt suppressed when any same-day encounter flagged 2차",
+      "input": {
+        "kind": "IBt(raw, dropped by HFt)",
+        "현재진료": {
+          "진료Id": "r1",
+          "보험구분": "자보",
+          "기준일시": "202611010900",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "진료처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날자보진료목록": [
+          {
+            "사고접수번호": "A",
+            "자보1일2차여부": null
+          },
+          {
+            "사고접수번호": "B",
+            "자보1일2차여부": true
+          }
+        ]
+      },
+      "expected": {
+        "rawWarning": null,
+        "effectiveWarnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "later encounter, different accident, flag unset -> auto-assign 2차 and strip 진찰료",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": []
+          }
+        ],
+        "canWriteTreatmentRecord": true
+      },
+      "expected": {
+        "상황": true,
+        "후보": true,
+        "형제2차지정": false,
+        "bannerVisible": true,
+        "autoAssignTrigger": true,
+        "willAutoAssign": true,
+        "afterAutoAssign": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "자보1일2차여부": true,
+          "처방": [
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "flag explicitly false (user undid) -> banner shown, no auto-assign",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "자보1일2차여부": false,
+          "처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": []
+          }
+        ],
+        "canWriteTreatmentRecord": true
+      },
+      "expected": {
+        "상황": true,
+        "후보": true,
+        "형제2차지정": false,
+        "bannerVisible": true,
+        "autoAssignTrigger": true,
+        "willAutoAssign": false,
+        "afterAutoAssign": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "sibling already 2차, current unflagged -> banner hidden",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": [],
+            "자보1일2차여부": true
+          }
+        ],
+        "canWriteTreatmentRecord": true
+      },
+      "expected": {
+        "상황": true,
+        "후보": true,
+        "형제2차지정": true,
+        "bannerVisible": false,
+        "autoAssignTrigger": false,
+        "willAutoAssign": false,
+        "afterAutoAssign": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "current flagged 2차 -> banner shown",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "자보1일2차여부": true,
+          "처방": [
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": []
+          }
+        ],
+        "canWriteTreatmentRecord": true
+      },
+      "expected": {
+        "상황": true,
+        "후보": true,
+        "형제2차지정": false,
+        "bannerVisible": true,
+        "autoAssignTrigger": true,
+        "willAutoAssign": false,
+        "afterAutoAssign": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "current is first of day -> no banner",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611010800",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": []
+          }
+        ],
+        "canWriteTreatmentRecord": true
+      },
+      "expected": {
+        "상황": true,
+        "후보": false,
+        "형제2차지정": false,
+        "bannerVisible": false,
+        "autoAssignTrigger": false,
+        "willAutoAssign": false,
+        "afterAutoAssign": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "same accident number -> no banner",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "A"
+          },
+          "처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": []
+          }
+        ],
+        "canWriteTreatmentRecord": true
+      },
+      "expected": {
+        "상황": false,
+        "후보": true,
+        "형제2차지정": false,
+        "bannerVisible": false,
+        "autoAssignTrigger": false,
+        "willAutoAssign": false,
+        "afterAutoAssign": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "no write permission -> banner shown but no auto-assign",
+      "input": {
+        "kind": "banner",
+        "진료내용": {
+          "진료Id": "r2",
+          "보험구분": "자보",
+          "기준일시": "202611011400",
+          "보험조회": {
+            "사고접수번호": "B"
+          },
+          "처방": [
+            {
+              "id": "f2",
+              "수가코드": "10200"
+            },
+            {
+              "id": "a2",
+              "수가코드": "40011"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "r1",
+            "보험구분": "자보",
+            "기준일시": "202611010900",
+            "보험조회": {
+              "사고접수번호": "A"
+            },
+            "진료처방": []
+          }
+        ],
+        "canWriteTreatmentRecord": false
+      },
+      "expected": {
+        "상황": true,
+        "후보": true,
+        "형제2차지정": false,
+        "bannerVisible": true,
+        "autoAssignTrigger": true,
+        "willAutoAssign": false,
+        "afterAutoAssign": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "claim: 자보 2차 -> MT001=U",
+      "input": {
+        "kind": "claimSpecifics",
+        "보험구분": "자보",
+        "자보1일2차여부": true,
+        "처방목록": []
+      },
+      "expected": {
+        "명세서특정내역": [
+          {
+            "특정내역구분": "MT001",
+            "특정내역": "U"
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "claim: 자보 not 2차 -> none",
+      "input": {
+        "kind": "claimSpecifics",
+        "보험구분": "자보",
+        "자보1일2차여부": false,
+        "처방목록": []
+      },
+      "expected": {
+        "명세서특정내역": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "claim: 자보 flag null -> none",
+      "input": {
+        "kind": "claimSpecifics",
+        "보험구분": "자보",
+        "자보1일2차여부": null,
+        "처방목록": []
+      },
+      "expected": {
+        "명세서특정내역": []
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Same accident number twice on one day triggers nothing (no banner, no J0014, consultation fee kept on both). Is a second same-accident visit on one day allowed to bill 진찰료?",
+    "HFt raises J0014 on the later encounter whenever it carries 10100/10200 lines, without looking at 자보1일2차여부 on any encounter. If the user used '다른 진료를 2차로 지정' to flag the earlier encounter, the later one keeps 진찰료 and still gets J0014. Looks like a bug.",
+    "'Later' is decided by 기준일시 string then 진료Id string comparison; with equal timestamps the order depends on ID lexical order.",
+    "With 3+ same-day accidents every encounter after the first is a candidate, but the banner only auto-flags while no sibling is flagged; once one is flagged, others are not auto-flagged.",
+    "Consultation fee detection uses prefixes 10100/10200 only (VFt), while other rules use Gt.진찰료임 (any code starting '10'). Which set is the authoritative 진찰료 list for 자보?",
+    "Auto-designation is a client watch that edits the draft and shows a toast; the server must decide whether to auto-adjust on save or only warn."
+  ]
+}

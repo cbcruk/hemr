@@ -71,7 +71,7 @@ POST   /settings/{resource}/{id}:duplicate
 
 - **가격 변경 영향:** 비급여 단가·과세구분을 바꾸면 그 항목을 쓰는 패키지 상품이 영향을 받습니다. 현행은 `GET .../affected-packages/delete`로 미리 보고 `POST .../affected-packages/update`로 반영합니다
   - 재설계: `PATCH /settings/nonbenefit-items/{id}?dryRun=true`가 `impacts.packageProducts[]`를 돌려주고, 실제 PATCH 본문의 `propagateTo: ["packageProducts"]`로 함께 반영합니다
-- **검증 규칙(서버):** 임의처방 약재 15종·50g·3,000원 이하, 비급여 금액 1천만원 미만, 한 패키지에 과세·면세 혼합 불가, 이름 중복 불가 (현행 클라이언트 규칙, `docs/reference/spec/settings.md`)
+- **검증 규칙(서버):** 임의처방 약재 15종·50g·3,000원 이하(약재별 반올림 후 합산), 비급여 금액 10,000,000원 이하, 한 패키지에 과세·면세 혼합 불가, 이름 중복 불가. 현행 동작과 경계값은 [settings-validation](../reference/rules/settings-validation.md)
 - **가격은 기간을 가집니다.** 진료 당시 단가로 수납·청구를 다시 계산할 수 있도록 `validFrom`을 둡니다. 처방 라인은 생성 시 단가를 복사해 둡니다 ([clinical.md](clinical.md#처방-라인))
 
 ### 운영
@@ -85,7 +85,7 @@ POST   /settings/{resource}/{id}:duplicate
 | `visit-types` | `/settings/medical-treatments` | 현행 "진료항목". 이름 충돌을 피하려고 `visit-types`로 바꿈. `defaultDurationMinutes`, `exclusiveBooking`(현행 `추가예약제한`) |
 | `patient-grades` | `/settings/patient-levels` | `discountRate` |
 | `referral-sources` | `/settings/visit-pathways` | 내원경로 |
-| `treatment-rooms` | `/settings/treatments/rooms` | `bedCount`(≤10) |
+| `treatment-rooms` | `/settings/treatments/rooms` | 치료실 최대 10개, 치료실당 `bedCount` 1–20 정수 (현행은 소수도 통과) |
 | `procedure-sets` | `/treatments/groups` | 치료실 세트. 현행은 설정인데 런타임 경로에 있음 |
 | `procedure-timers` (단일) | `/treatments/timer-config` | |
 | `encounter-policy` (단일) | `/settings/treatments`, `/treatments/auto-record`, `/initial-records`, `/treatments/vitals` | 초진 산정일수, 시술 자동기록, 초진기록 자동고정, 추나 자동승인, 활력징후 항목 |

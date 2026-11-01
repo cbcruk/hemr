@@ -127,17 +127,18 @@ If-Match: "8"
 
 모두 서버가 `serviceAt` 기준 참조데이터와 정책으로 판정합니다.
 
-| 규칙 | 오류 코드 | 현행 위치 |
+| 규칙 | 오류 코드 | 현행 동작 ([규칙 근거](../reference/rules/README.md)) |
 |---|---|---|
-| 첩약 시범사업 처방은 모두 심평원 승인 상태여야 함 | `PILOT_HERBAL_NOT_APPROVED` | 클라이언트 |
-| 의사별 첩약 처방 한도 하루 8 / 월 60 / 연 600. 초과분은 본인부담률 코드 `U`로 자동 변경 + 경고 | `PILOT_HERBAL_DOCTOR_LIMIT` (warning) | 클라이언트 상수 |
-| 다른 상병코드로 누적 투약 이력이 2개 이상이면 처방 불가 | `PILOT_HERBAL_DIAGNOSIS_LIMIT` | 클라이언트 |
-| 추나 연 20회 한도 | `CHUNA_ANNUAL_LIMIT` | 클라이언트 상수 |
-| 같은 날 진찰료 중복 | `DUPLICATE_CONSULTATION_FEE` | 클라이언트 |
-| 자보 같은 날 두 번째 진료는 진찰료 제외 | 자동 조정 + warning | 클라이언트 |
-| 산정특례 특정기호와 상병 일치 | `SPECIAL_CASE_CODE_MISMATCH` | 클라이언트 |
-| 야간·공휴·토요 가산 | 서버가 진찰료 수가코드 결정 | 클라이언트 |
-| 보험구분과 처방 카테고리 대역 일치 (건보 31·33·34·35, 비급여 51·53·54, 자보 73·74, 산재 93·94) | `COVERAGE_CATEGORY_MISMATCH` | 클라이언트 |
+| 첩약 시범사업 처방(카테고리 `35001001`)은 모두 심평원 승인 상태여야 함 | `PILOT_HERBAL_NOT_APPROVED` | [pilot-herbal-approval-required](../reference/rules/pilot-herbal-approval-required.md) |
+| 의사별 첩약 처방 한도 하루 8 / 월 60 / 연 600 (초과는 9/61/601부터). 초과분은 본인부담률 코드 `U`로 자동 변경 + 경고 | `PILOT_HERBAL_DOCTOR_LIMIT` (warning) | [pilot-herbal-doctor-limit](../reference/rules/pilot-herbal-doctor-limit.md) |
+| 같은 기관 누적 투약 20일 이상이면 `U` + 경고, 다른 상병 이력 2개 이상이면 처방 불가 | `PILOT_HERBAL_DIAGNOSIS_LIMIT` | [pilot-herbal-diagnosis-limit](../reference/rules/pilot-herbal-diagnosis-limit.md). 현행 두 함수가 서로 다르게 판정 |
+| 첩약 시범사업 청구 검사 C0001–C0012 | 검사별 warning | [pilot-herbal-claim-checks](../reference/rules/pilot-herbal-claim-checks.md). 현행은 C0001·C0003·C0005만 결과에 남음 |
+| 추나 연 20회 한도 | `CHUNA_ANNUAL_LIMIT` | [chuna-annual-limit](../reference/rules/chuna-annual-limit.md). 건보·산재의 경계가 서로 다름 |
+| 같은 날 대면·비대면 진찰료 중복 | `DUPLICATE_CONSULTATION_FEE` (`acknowledge` 가능) | [duplicate-consultation-fee](../reference/rules/duplicate-consultation-fee.md). 현행은 확인 후 저장 가능 |
+| 자보 같은 날 다른 사고번호의 두 번째 진료는 진찰료 제외 | 자동 조정 + warning | [auto-insurance-same-day-consultation](../reference/rules/auto-insurance-same-day-consultation.md) |
+| 산정특례 등록번호(05·14·21·23)면 특정기호 4자 필수. 상병과 특정기호 일치는 **신규 규칙** | `SPECIAL_CASE_CODE_MISMATCH` | [special-case-code-match](../reference/rules/special-case-code-match.md). 현행은 상병 일치를 검사하지 않음 |
+| 초진·재진, 야간·공휴·토요 가산 | 서버가 진찰료 수가코드 결정 | [consultation-fee-code](../reference/rules/consultation-fee-code.md), [procedure-fee-modifiers](../reference/rules/procedure-fee-modifiers.md) |
+| 보험구분과 처방 카테고리 일치 | `COVERAGE_CATEGORY_MISMATCH` | [coverage-category-band](../reference/rules/coverage-category-band.md). 현행은 대역 일치가 아니라 "다른 보험 전용 카테고리"만 막고, 보험구분을 바꿀 때만 검사 |
 | `OWN` 범위 사용자는 담당 환자 진료만 | 403 | 클라이언트 + (추정) 서버 |
 | 이관된 진료는 수정·반복 불가 | `MIGRATED_ENCOUNTER_READONLY` | 클라이언트 |
 

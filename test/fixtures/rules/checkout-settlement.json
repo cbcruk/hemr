@@ -1,0 +1,1405 @@
+{
+  "rule": "checkout-settlement",
+  "description": "Checkout settlement: amount due, Jeju subsidy line, overpaid-credit use, remaining-amount status (미수/과수납/손비), zero-input confirmation, prepaid split and patient-grade discount as computed by the client.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js",
+      "lines": "219-348, 380-400",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:20779-21530"
+    },
+    {
+      "file": "re-upstream/restored/components/payment/PaymentCalculator.vue.js",
+      "lines": "173-210",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:21639-22019"
+    },
+    {
+      "file": "re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js",
+      "lines": "266-303, 368-416, 417-539, 710-724",
+      "origin": "unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang-Ci_y_crh.js:1617-2351"
+    },
+    {
+      "file": "re-upstream/restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js",
+      "lines": "117-139, 399-471",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:18683-19127"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js",
+      "lines": "171-200",
+      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:3485-4044"
+    }
+  ],
+  "inputSchema": {
+    "check": "settle | jejuSubsidyLine | dueSplit | needsOutstandingConfirm | overpaidCreditApplied | toPaymentRows | gradeDiscount.",
+    "받을금액_비과세": "Sum of 비과세미수금액 (+ in-checkout edits) of the selected treatments.",
+    "받을금액_과세": "Sum of 과세미수금액 (+ edits) of the selected treatments.",
+    "과수금액": "Patient's overpaid credit from GET /patients/{id}; negative values are treated as extra due.",
+    "제주지원금": "Jeju subsidy line amount (output of jejuSubsidyLine).",
+    "과수납금사용여부": "{비과세, 과세} toggles; at most one is true.",
+    "손비처리": "Write-off checkbox.",
+    "결제내역": "Payment rows {결제수단, 비과세, 과세} with amounts as entered strings.",
+    "receipts": "GET /patients/v2/chart/{차트Id}/medical-receipts rows (진료Id, 상태, 비과세미수금액, 과세미수금액, 제주지원금).",
+    "선수금잔액": "Prepaid balance per series {현금, 카드}.",
+    "a": "Selected due (selectedDue).",
+    "n": "Jeju line.",
+    "o": "Sum of entered amounts excluding the Jeju row."
+  },
+  "cases": [
+    {
+      "name": "settle: received equals due -> no remaining status",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "10000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 10000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: received one under due -> 미수",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "9999",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 9999,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 1,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "미수",
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: received one over due -> 과수납",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "10001",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 10001,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": -1,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "과수납",
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: nothing received -> 미수 of full due",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 0,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 10000,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "미수",
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: 손비 with remaining -> 손비",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "손비처리": true,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "7000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 7000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 3000,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "손비",
+        "손비처리Forced": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: 손비 with zero remaining still reports 손비",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "손비처리": true,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "10000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 10000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "손비",
+        "손비처리Forced": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: 과수납 wins over 손비 and 손비 is turned off",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "손비처리": true,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "12000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 12000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": -2000,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "과수납",
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: taxable and non-taxable remainders are summed before sign check",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 5000,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "현금",
+            "비과세": "12000",
+            "과세": "3000"
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 5000,
+        "총_수납_금액_비과세": 12000,
+        "총_수납_금액_과세": 3000,
+        "총_미수_금액_비과세": -2000,
+        "총_미수_금액_과세": 2000,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: non-numeric input counts as 0",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "4000",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "abc",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 4000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 6000,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "미수",
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: overpaid credit used on non-taxable reduces due",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 3000,
+        "제주지원금": 0,
+        "과수납금사용여부": {
+          "비과세": true,
+          "과세": false
+        },
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "7000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 7000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 7000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: overpaid credit larger than due clamps due to 0",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 15000,
+        "제주지원금": 0,
+        "과수납금사용여부": {
+          "비과세": true,
+          "과세": false
+        },
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 0,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 0,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: overpaid credit present but not used",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 3000,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "10000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 10000,
+        "effectiveDue비과세": 10000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 10000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: overpaid credit used on taxable",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 0,
+        "받을금액_과세": 5000,
+        "과수금액": 2000,
+        "제주지원금": 0,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": true
+        },
+        "결제내역": [
+          {
+            "결제수단": "현금",
+            "비과세": "",
+            "과세": "3000"
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 0,
+        "effectiveDue비과세": 0,
+        "effectiveDue과세": 3000,
+        "총_수납_금액_비과세": 0,
+        "총_수납_금액_과세": 3000,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: negative 과수금액 is added to non-taxable due",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": -2000,
+        "제주지원금": 0,
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "10000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 12000,
+        "effectiveDue비과세": 12000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 10000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 2000,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": "미수",
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: Jeju subsidy is subtracted from non-taxable due and its row is excluded from received",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 10000,
+        "받을금액_과세": 0,
+        "과수금액": 0,
+        "제주지원금": 4000,
+        "결제내역": [
+          {
+            "결제수단": "제주지원금",
+            "비과세": "4000",
+            "과세": ""
+          },
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "6000",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "",
+            "과세": ""
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 6000,
+        "effectiveDue비과세": 6000,
+        "effectiveDue과세": 0,
+        "총_수납_금액_비과세": 6000,
+        "총_수납_금액_과세": 0,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "settle: Jeju subsidy larger than non-taxable due clamps to 0",
+      "input": {
+        "check": "settle",
+        "받을금액_비과세": 3000,
+        "받을금액_과세": 5000,
+        "과수금액": 0,
+        "제주지원금": 6000,
+        "결제내역": [
+          {
+            "결제수단": "제주지원금",
+            "비과세": "6000",
+            "과세": ""
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "",
+            "과세": "5000"
+          }
+        ]
+      },
+      "expected": {
+        "displayedDue비과세": 0,
+        "effectiveDue비과세": 0,
+        "effectiveDue과세": 5000,
+        "총_수납_금액_비과세": 0,
+        "총_수납_금액_과세": 5000,
+        "총_미수_금액_비과세": 0,
+        "총_미수_금액_과세": 0,
+        "남은금액상태": null,
+        "손비처리Forced": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "jeju: subsidy below due -> full subsidy",
+      "input": {
+        "check": "jejuSubsidyLine",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [
+          "r1",
+          "r2"
+        ],
+        "edits": {}
+      },
+      "expected": {
+        "selectedDue": 15000,
+        "제주지원금": 3000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "jeju: subsidy above due -> capped at due (min)",
+      "input": {
+        "check": "jejuSubsidyLine",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [
+          "r3"
+        ],
+        "edits": {}
+      },
+      "expected": {
+        "selectedDue": 1000,
+        "제주지원금": 1000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "jeju: subsidy equals due",
+      "input": {
+        "check": "jejuSubsidyLine",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [
+          "r1"
+        ],
+        "edits": {
+          "r1": {
+            "비과세": -7000,
+            "과세": 0
+          }
+        }
+      },
+      "expected": {
+        "selectedDue": 3000,
+        "제주지원금": 3000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "jeju: no subsidy on selection",
+      "input": {
+        "check": "jejuSubsidyLine",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [
+          "r2"
+        ],
+        "edits": {}
+      },
+      "expected": {
+        "selectedDue": 5000,
+        "제주지원금": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "jeju: nothing selected",
+      "input": {
+        "check": "jejuSubsidyLine",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [],
+        "edits": {}
+      },
+      "expected": {
+        "selectedDue": 0,
+        "제주지원금": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "jeju: due includes taxable part when capping",
+      "input": {
+        "check": "jejuSubsidyLine",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [
+          "r1"
+        ],
+        "edits": {
+          "r1": {
+            "비과세": -7000,
+            "과세": 0
+          }
+        }
+      },
+      "expected": {
+        "selectedDue": 3000,
+        "제주지원금": 3000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "due split: only selected receipts",
+      "input": {
+        "check": "dueSplit",
+        "receipts": [
+          {
+            "진료Id": "r1",
+            "상태": "수납필요",
+            "비과세미수금액": 8000,
+            "과세미수금액": 2000,
+            "제주지원금": 3000
+          },
+          {
+            "진료Id": "r2",
+            "상태": "수납필요",
+            "비과세미수금액": 5000,
+            "과세미수금액": 0,
+            "제주지원금": 0
+          },
+          {
+            "진료Id": "r3",
+            "상태": "미수납",
+            "비과세미수금액": 1000,
+            "과세미수금액": 0,
+            "제주지원금": 20000
+          }
+        ],
+        "selected": [
+          "r1",
+          "r3"
+        ]
+      },
+      "expected": {
+        "비과세": 9000,
+        "과세": 2000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: due remains and nothing entered -> ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 0,
+        "o": 0,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": false,
+        "전액미수처리": false
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: something entered -> no ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 0,
+        "o": 1,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": false,
+        "전액미수처리": false
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: Jeju covers full due -> no ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 10000,
+        "o": 0,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": false,
+        "전액미수처리": false
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: due minus Jeju is 1 -> ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 9999,
+        "o": 0,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": false,
+        "전액미수처리": false
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: 손비 chosen -> no ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 0,
+        "o": 0,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": true,
+        "전액미수처리": false
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: 전액 미수 chosen -> no ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 0,
+        "o": 0,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": false,
+        "전액미수처리": true
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "confirm: overpaid credit chosen -> no ask",
+      "input": {
+        "check": "needsOutstandingConfirm",
+        "a": 10000,
+        "n": 0,
+        "o": 0,
+        "과수납금사용여부": {
+          "비과세": true,
+          "과세": false
+        },
+        "손비처리": false,
+        "전액미수처리": false
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "credit: due smaller than credit -> due",
+      "input": {
+        "check": "overpaidCreditApplied",
+        "받을금액_비과세": 3000,
+        "받을금액_과세": 0,
+        "과수금액": 5000,
+        "과수납금사용여부": {
+          "비과세": true,
+          "과세": false
+        }
+      },
+      "expected": {
+        "비과세": 3000,
+        "과세": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "credit: due equal to credit -> credit",
+      "input": {
+        "check": "overpaidCreditApplied",
+        "받을금액_비과세": 5000,
+        "받을금액_과세": 0,
+        "과수금액": 5000,
+        "과수납금사용여부": {
+          "비과세": true,
+          "과세": false
+        }
+      },
+      "expected": {
+        "비과세": 5000,
+        "과세": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "credit: taxable only",
+      "input": {
+        "check": "overpaidCreditApplied",
+        "받을금액_비과세": 9000,
+        "받을금액_과세": 1000,
+        "과수금액": 5000,
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": true
+        }
+      },
+      "expected": {
+        "비과세": 0,
+        "과세": 1000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "prepaid: fully covered by cash-series balance",
+      "input": {
+        "check": "toPaymentRows",
+        "결제내역": [
+          {
+            "결제수단": "선수금",
+            "비과세": "5000",
+            "과세": ""
+          },
+          {
+            "결제수단": "카드",
+            "비과세": "",
+            "과세": ""
+          }
+        ],
+        "선수금잔액": {
+          "현금": 8000,
+          "카드": 10000
+        }
+      },
+      "expected": [
+        {
+          "결제수단": "선수금-현금",
+          "비과세_진료비": 5000,
+          "과세_진료비": 0
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "prepaid: cash balance exhausted, rest goes to card series",
+      "input": {
+        "check": "toPaymentRows",
+        "결제내역": [
+          {
+            "결제수단": "선수금",
+            "비과세": "5000",
+            "과세": "2000"
+          }
+        ],
+        "선수금잔액": {
+          "현금": 6000,
+          "카드": 10000
+        }
+      },
+      "expected": [
+        {
+          "결제수단": "선수금-현금",
+          "비과세_진료비": 5000,
+          "과세_진료비": 1000
+        },
+        {
+          "결제수단": "선수금-카드",
+          "비과세_진료비": 0,
+          "과세_진료비": 1000
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "prepaid: cash balance exactly equals non-taxable",
+      "input": {
+        "check": "toPaymentRows",
+        "결제내역": [
+          {
+            "결제수단": "선수금",
+            "비과세": "6000",
+            "과세": "1000"
+          }
+        ],
+        "선수금잔액": {
+          "현금": 6000,
+          "카드": 10000
+        }
+      },
+      "expected": [
+        {
+          "결제수단": "선수금-현금",
+          "비과세_진료비": 6000,
+          "과세_진료비": 0
+        },
+        {
+          "결제수단": "선수금-카드",
+          "비과세_진료비": 0,
+          "과세_진료비": 1000
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "prepaid: negative cash balance treated as 0",
+      "input": {
+        "check": "toPaymentRows",
+        "결제내역": [
+          {
+            "결제수단": "선수금",
+            "비과세": "3000",
+            "과세": ""
+          }
+        ],
+        "선수금잔액": {
+          "현금": -100,
+          "카드": 0
+        }
+      },
+      "expected": [
+        {
+          "결제수단": "선수금-카드",
+          "비과세_진료비": 3000,
+          "과세_진료비": 0
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "prepaid: rows with empty or 0 amounts are dropped",
+      "input": {
+        "check": "toPaymentRows",
+        "결제내역": [
+          {
+            "결제수단": "카드",
+            "비과세": "0",
+            "과세": "0"
+          },
+          {
+            "결제수단": "현금",
+            "비과세": "",
+            "과세": ""
+          },
+          {
+            "결제수단": "통장",
+            "비과세": "1000",
+            "과세": "0"
+          }
+        ],
+        "선수금잔액": {
+          "현금": 0,
+          "카드": 0
+        }
+      },
+      "expected": [
+        {
+          "결제수단": "통장",
+          "비과세_진료비": 1000,
+          "과세_진료비": 0
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "grade discount: 10% of 15,000",
+      "input": {
+        "check": "gradeDiscount",
+        "단가": 15000,
+        "세금": 0,
+        "일투여량": 1,
+        "투약일수": 1,
+        "할인율": 10
+      },
+      "expected": {
+        "원금액": 15000,
+        "할인후금액": 13500,
+        "할인금액": 1500
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "grade discount: rounding half up (12,345 x 0.9 = 11,110.5)",
+      "input": {
+        "check": "gradeDiscount",
+        "단가": 12345,
+        "세금": 0,
+        "일투여량": 1,
+        "투약일수": 1,
+        "할인율": 10
+      },
+      "expected": {
+        "원금액": 12345,
+        "할인후금액": 11111,
+        "할인금액": 1234
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "grade discount: tax included and quantity multiplied",
+      "input": {
+        "check": "gradeDiscount",
+        "단가": 10000,
+        "세금": 1000,
+        "일투여량": 2,
+        "투약일수": 3,
+        "할인율": 15
+      },
+      "expected": {
+        "원금액": 66000,
+        "할인후금액": 56100,
+        "할인금액": 9900
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "grade discount: 0%",
+      "input": {
+        "check": "gradeDiscount",
+        "단가": 10000,
+        "세금": 0,
+        "일투여량": 1,
+        "투약일수": 1,
+        "할인율": 0
+      },
+      "expected": {
+        "원금액": 10000,
+        "할인후금액": 10000,
+        "할인금액": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "grade discount: 100%",
+      "input": {
+        "check": "gradeDiscount",
+        "단가": 10000,
+        "세금": 0,
+        "일투여량": 1,
+        "투약일수": 1,
+        "할인율": 100
+      },
+      "expected": {
+        "원금액": 10000,
+        "할인후금액": 0,
+        "할인금액": 10000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "payload: treatment with remaining due sends 미수 amounts, otherwise full amounts",
+      "input": {
+        "check": "payload",
+        "treatment": {
+          "비과세미수금액": 0,
+          "과세미수금액": 0,
+          "비과세금액": 12000,
+          "과세금액": 0
+        }
+      },
+      "expected": {
+        "비과세_진료비": 12000,
+        "과세_진료비": 0,
+        "note": "only 진료Id is actually sent in 진료목록"
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "payload: 전액 미수 toggle zeroes all rows and clears credit and 손비",
+      "input": {
+        "check": "fullOutstandingToggle",
+        "on": true
+      },
+      "expected": {
+        "결제내역": "all '0'",
+        "과수납금사용여부": {
+          "비과세": false,
+          "과세": false
+        },
+        "손비처리": false
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "손비 checkbox disabled while 과수납 or 전액 미수",
+      "input": {
+        "check": "writeOffEnabled",
+        "남은금액상태": "과수납"
+      },
+      "expected": {
+        "disabled": true
+      },
+      "derivation": "traced"
+    }
+  ],
+  "openQuestions": [
+    "Sign resolved from code: remaining = (due − received) summed over 비과세+과세; remaining < 0 → 과수납, else 손비처리 → 손비, else remaining > 0 → 미수, remaining == 0 → no status. desk.md's wording 'received − due negative → 과수납' is inverted; the redesign's `due − received > 0 → OUTSTANDING` matches the code.",
+    "과수납 is checked before 손비, and 손비 with zero remaining still yields 손비 (case '손비 with zero remaining still reports 손비').",
+    "Over-payment on 비과세 offsets unpaid 과세 (status null when the sum is 0); the server cannot tell which part is 미수 from the status alone.",
+    "Jeju line = min(sum of selected 제주지원금, total due incl. 과세), but the calculator subtracts it only from the 비과세 due and the line is sent as 비과세금액. When 제주지원금 > 비과세 due the payload's 비과세 total exceeds the 비과세 due (case 'Jeju subsidy larger than non-taxable due clamps to 0'). Apparent bug.",
+    "Negative 과수금액 is added to 비과세 due only. Meaning of a negative 과수금액 on the server side is unknown.",
+    "Prepaid split takes the 현금 series first, then 카드, without checking the 카드 balance (case 'negative cash balance treated as 0'). Whether the server validates balance is unknown.",
+    "Patient-grade discount is computed in the treatment prescription row (not at checkout): Math.round((단가+세금)×일투여량×투약일수×(1−할인율/100)); the discount is then stored per prescription as 할인금액 = 원금액 − 금액. Floating-point rounding (e.g. 11,110.5) follows JS Math.round.",
+    "The '미수금 처리' confirmation uses `a − n > 0` (due minus Jeju) while settlement uses per-part clamped values; they can disagree when 제주지원금 > 비과세 due."
+  ]
+}

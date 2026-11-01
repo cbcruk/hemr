@@ -1,0 +1,1190 @@
+{
+  "rule": "check-in-validation",
+  "description": "Check-in (접수) validations: NHIS benefit restriction auto-switch, insurance eligibility, selected-medical-institution (B005) gate, self-verification requirement, auto-insurance guarantee limit and expiry, and today-only check-in from an appointment.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/desk/DeskPatientAccept.vue.js",
+      "lines": "395-460, 652-656, 686-691, 805-823, 884-900",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:9306-10509"
+    },
+    {
+      "file": "re-upstream/restored/modules/SidePanelDeskActions/선택된기관기호.js",
+      "lines": "10-78, 97-116, 149-159",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:2840-2985"
+    },
+    {
+      "file": "re-upstream/restored/modules/insurance.js",
+      "lines": "41-57",
+      "origin": "unminified/insurance-DbeX1NlJ.js:12-166"
+    },
+    {
+      "file": "re-upstream/restored/api/patients/queries-2.js",
+      "lines": "765-872",
+      "origin": "unminified/index-CBEIvlV0.js:117270-118177"
+    },
+    {
+      "file": "re-upstream/restored/modules/DeskPatientRegister/part-3.js",
+      "lines": "47",
+      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1352-1430"
+    },
+    {
+      "file": "re-upstream/restored/modules/MedicalAidsHospitalSelect/part-1.js",
+      "lines": "84",
+      "origin": "unminified/MedicalAidsHospitalSelect.vue_vue_type_script_setup_true_lang-CIv0SXBi.js:12-127"
+    },
+    {
+      "file": "re-upstream/restored/components/appointment/AppointmentPlannerSideDetail.vue.js",
+      "lines": "210-262, 549-553",
+      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:803-1326"
+    }
+  ],
+  "inputSchema": {
+    "check": "benefitRestrictionSwitch | x0e | validateInsuranceType | selectedInstitutionGate | AD | ED | autoInsuranceLimitExceeded | prefillPreviousAutoInsurance | selfVerification | appointmentCheckInButton.",
+    "급여제한여부": "NHIS eligibility response code ('01' 무자격자, '02' 6회 이상 체납, '03' 외국인·재외국민 체납, '04' 사망자, '05' 국외이민자).",
+    "자격여부": "NHIS eligibility code: '1'-'6' health insurance, '7'/'8' medical aid.",
+    "본인부담여부": "Co-payment code from eligibility (M001/M002/B001/B002 = selected-institution enrollees).",
+    "선택기관기호목록": "선택기관기호1관할지사코드, 선택기관기호2, 3, 4 from eligibility.",
+    "선택된본인부담여부": "Co-payment code the clerk picked (U001 full self-pay, B005/B006/B008 require an institution).",
+    "보증한도금액": "Auto-insurance guarantee limit (string as stored).",
+    "진료비총액": "Accumulated cost from GET /patients/{id}/car-waiting/amount/{사고접수번호}.",
+    "만나이": "Patient age in years (the client derives it from 주민등록번호앞7자리; the harness passes it directly).",
+    "today": "Local date used for new Date()."
+  },
+  "cases": [
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=\"01\"",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": "01"
+      },
+      "expected": {
+        "보험구분": "일반",
+        "warning": "건강보험 무자격자로 확인되어 보험 구분을 일반으로 변경했습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=\"02\"",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": "02"
+      },
+      "expected": {
+        "보험구분": "건보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=\"03\"",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": "03"
+      },
+      "expected": {
+        "보험구분": "건보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=\"04\"",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": "04"
+      },
+      "expected": {
+        "보험구분": "건보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=\"05\"",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": "05"
+      },
+      "expected": {
+        "보험구분": "건보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=\"\"",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": ""
+      },
+      "expected": {
+        "보험구분": "건보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 건보 with 급여제한여부=null",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "건보",
+        "급여제한여부": null
+      },
+      "expected": {
+        "보험구분": "건보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "benefit restriction: 자보 with 급여제한여부=01 is untouched",
+      "input": {
+        "check": "benefitRestrictionSwitch",
+        "selectedInsuranceType": "자보",
+        "급여제한여부": "01"
+      },
+      "expected": {
+        "보험구분": "자보",
+        "warning": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "자격여부 \"1\" maps to",
+      "input": {
+        "check": "x0e",
+        "자격여부": "1"
+      },
+      "expected": "건보",
+      "derivation": "executed"
+    },
+    {
+      "name": "자격여부 \"6\" maps to",
+      "input": {
+        "check": "x0e",
+        "자격여부": "6"
+      },
+      "expected": "건보",
+      "derivation": "executed"
+    },
+    {
+      "name": "자격여부 \"7\" maps to",
+      "input": {
+        "check": "x0e",
+        "자격여부": "7"
+      },
+      "expected": "급여",
+      "derivation": "executed"
+    },
+    {
+      "name": "자격여부 \"8\" maps to",
+      "input": {
+        "check": "x0e",
+        "자격여부": "8"
+      },
+      "expected": "급여",
+      "derivation": "executed"
+    },
+    {
+      "name": "자격여부 \"9\" maps to",
+      "input": {
+        "check": "x0e",
+        "자격여부": "9"
+      },
+      "expected": null,
+      "derivation": "executed"
+    },
+    {
+      "name": "자격여부 \"\" maps to",
+      "input": {
+        "check": "x0e",
+        "자격여부": ""
+      },
+      "expected": null,
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 건보 with eligibility 5 passes",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "건보",
+        "자격여부": "5"
+      },
+      "expected": {
+        "ok": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 건보 with no eligibility result",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "건보",
+        "자격여부": "",
+        "조회결과있음": false
+      },
+      "expected": {
+        "ok": false,
+        "dialog": "건강보험 자격이 없는 환자입니다.\n보험 구분을 일반으로 변경해주세요."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 건보 with unknown eligibility code",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "건보",
+        "자격여부": "9"
+      },
+      "expected": {
+        "ok": false,
+        "dialog": "건강보험 자격이 없는 환자입니다.\n보험 구분을 일반으로 변경해주세요."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 건보 with medical-aid eligibility 7 passes",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7"
+      },
+      "expected": {
+        "ok": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 산정특례 visit without selection",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "건보",
+        "자격여부": "5",
+        "산정특례진료임": true
+      },
+      "expected": {
+        "ok": false,
+        "dialog": "산정 특례 선택이 필요합니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 본인확인 required but unchecked",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "건보",
+        "자격여부": "5",
+        "본인확인필수미체크": true
+      },
+      "expected": {
+        "ok": false,
+        "fieldError": "본인확인 여부를 체크해주세요."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "validate: 일반 skips all checks",
+      "input": {
+        "check": "validateInsuranceType",
+        "selectedInsuranceType": "일반",
+        "자격여부": ""
+      },
+      "expected": {
+        "ok": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: medical-aid M001 patient, our clinic not selected, nothing chosen -> blocked",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": true,
+        "blockedByDialog": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: our clinic is one of selected institutions -> not a gate",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "12345678",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": false,
+        "blockedByDialog": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: chose U001 (full self-pay) -> passes",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "U001",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": true,
+        "blockedByDialog": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: chose B005 without institution -> blocked",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "B005",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": true,
+        "blockedByDialog": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: chose B005 with institution -> passes",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "B005",
+        "선택된기관기호": "11111111"
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": true,
+        "blockedByDialog": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: chose other code (B006) -> blocked",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "B006",
+        "선택된기관기호": "11111111"
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": true,
+        "blockedByDialog": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: 본인부담여부 B005 from eligibility is not in gate list",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "B005",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": false,
+        "blockedByDialog": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: 건강보험 eligibility (5) is never gated",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "5",
+        "본인부담여부": "M001",
+        "요양기관기호": "12345678",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": false,
+        "blockedByDialog": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selected inst: our 요양기관기호 unknown -> not gated",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "selectedInsuranceType": "건보",
+        "자격여부": "7",
+        "본인부담여부": "M001",
+        "요양기관기호": "",
+        "선택기관기호목록": [
+          "11111111",
+          "",
+          "",
+          ""
+        ],
+        "선택된본인부담여부": "",
+        "선택된기관기호": ""
+      },
+      "expected": {
+        "isSelectedInstitutionPatient": false,
+        "blockedByDialog": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"B005\" with institution \"\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "B005",
+        "선택된기관기호": ""
+      },
+      "expected": "본인부담여부를 B005로 선택한 경우 선택의료기관을 함께 지정해 주세요.",
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"B005\" with institution \"없음\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "B005",
+        "선택된기관기호": "없음"
+      },
+      "expected": "본인부담여부를 B005로 선택한 경우 선택의료기관을 함께 지정해 주세요.",
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"B005\" with institution \"11111111\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "B005",
+        "선택된기관기호": "11111111"
+      },
+      "expected": null,
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"B006\" with institution \"\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "B006",
+        "선택된기관기호": ""
+      },
+      "expected": "본인부담여부를 B006로 선택한 경우 선택의료기관을 함께 지정해 주세요.",
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"B008\" with institution \"\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "B008",
+        "선택된기관기호": ""
+      },
+      "expected": "본인부담여부를 B008로 선택한 경우 선택의료기관을 함께 지정해 주세요.",
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"U001\" with institution \"\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "U001",
+        "선택된기관기호": ""
+      },
+      "expected": null,
+      "derivation": "executed"
+    },
+    {
+      "name": "AD: 본인부담여부 \"\" with institution \"\"",
+      "input": {
+        "check": "AD",
+        "선택된본인부담여부": "",
+        "선택된기관기호": ""
+      },
+      "expected": null,
+      "derivation": "executed"
+    },
+    {
+      "name": "ED: 급여 + 해당없음 + no institution -> sends 없음",
+      "input": {
+        "check": "ED",
+        "보험구분": "급여",
+        "선택된본인부담여부": "해당없음",
+        "선택된기관": {
+          "선택된기관기호": "",
+          "선택된기관이름": ""
+        }
+      },
+      "expected": {
+        "선택된기관기호": "없음",
+        "선택된기관이름": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "ED: 급여 + B005 + institution -> sends institution",
+      "input": {
+        "check": "ED",
+        "보험구분": "급여",
+        "선택된본인부담여부": "B005",
+        "선택된기관": {
+          "선택된기관기호": "11111111",
+          "선택된기관이름": "A한의원"
+        }
+      },
+      "expected": {
+        "선택된기관기호": "11111111",
+        "선택된기관이름": "A한의원"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "ED: 급여 + U001 with stale institution -> sends 없음",
+      "input": {
+        "check": "ED",
+        "보험구분": "급여",
+        "선택된본인부담여부": "U001",
+        "선택된기관": {
+          "선택된기관기호": "11111111",
+          "선택된기관이름": "A한의원"
+        }
+      },
+      "expected": {
+        "선택된기관기호": "없음",
+        "선택된기관이름": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "ED: 건보 passes institution through",
+      "input": {
+        "check": "ED",
+        "보험구분": "건보",
+        "선택된본인부담여부": "",
+        "선택된기관": {
+          "선택된기관기호": "",
+          "선택된기관이름": ""
+        }
+      },
+      "expected": {
+        "선택된기관기호": "",
+        "선택된기관이름": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: total one under limit",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": false,
+        "보증한도금액": "1000000",
+        "진료비총액": 999999
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: total exactly at limit is allowed",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": false,
+        "보증한도금액": "1000000",
+        "진료비총액": 1000000
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: total one over limit",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": false,
+        "보증한도금액": "1000000",
+        "진료비총액": 1000001
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: 본부금 100% checked skips check",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": true,
+        "보증한도금액": "1000000",
+        "진료비총액": 2000000
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: limit 0 or empty means no limit",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": false,
+        "보증한도금액": "",
+        "진료비총액": 2000000
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: non-numeric limit means no limit",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": false,
+        "보증한도금액": "무한",
+        "진료비총액": 2000000
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: missing total counts as 0",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "자보",
+        "자보100체크": false,
+        "보증한도금액": "1000000",
+        "진료비총액": null
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit: not 자보",
+      "input": {
+        "check": "autoInsuranceLimitExceeded",
+        "selectedInsuranceType": "건보",
+        "자보100체크": false,
+        "보증한도금액": "1000000",
+        "진료비총액": 2000000
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto prefill: guarantee end yesterday -> not prefilled",
+      "input": {
+        "check": "prefillPreviousAutoInsurance",
+        "보증종료일자": "20261031",
+        "today": "20261101"
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto prefill: guarantee end today -> prefilled",
+      "input": {
+        "check": "prefillPreviousAutoInsurance",
+        "보증종료일자": "20261101",
+        "today": "20261101"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto prefill: guarantee end tomorrow -> prefilled",
+      "input": {
+        "check": "prefillPreviousAutoInsurance",
+        "보증종료일자": "20261102",
+        "today": "20261101"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "auto prefill: no guarantee end -> prefilled",
+      "input": {
+        "check": "prefillPreviousAutoInsurance",
+        "보증종료일자": "",
+        "today": "20261101"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: returning adult never verified, unchecked -> blocks",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "만나이": 36,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": false,
+          "reason": "본인확인 예외 대상자 아님"
+        },
+        "blocks": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: same, checked -> passes",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "만나이": 36,
+        "본인확인체크": true,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": false,
+          "reason": "본인확인 예외 대상자 아님"
+        },
+        "blocks": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: verified exactly 6 months ago -> exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": "20260501"
+        },
+        "만나이": 36,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": false,
+        "exempt": {
+          "value": true,
+          "reason": "본인확인한 날로부터 6개월 이내"
+        },
+        "blocks": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: verified 6 months + 1 day ago -> blocks",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": "20260430"
+        },
+        "만나이": 36,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": false,
+          "reason": "본인확인 예외 대상자 아님"
+        },
+        "blocks": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: first visit (no 최초내원일) -> required, blocks unless exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": null,
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "만나이": 36,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": false,
+          "reason": "본인확인 예외 대상자 아님"
+        },
+        "blocks": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: under 19 -> exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "만나이": 18,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": true,
+          "reason": "19세 미만"
+        },
+        "blocks": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: age 19 -> not age-exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "만나이": 19,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": false,
+          "reason": "본인확인 예외 대상자 아님"
+        },
+        "blocks": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: pregnant -> exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": "",
+          "임산부여부": true
+        },
+        "만나이": 30,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": true,
+          "reason": "임산부"
+        },
+        "blocks": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: NHIS exception flag Y -> exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "건보자격조회결과": {
+          "본인확인예외여부": "Y"
+        },
+        "만나이": 36,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": true,
+          "reason": "본인확인 예외 \"Y\""
+        },
+        "blocks": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "self-verify: 건보 100% checked -> exempt",
+      "input": {
+        "check": "selfVerification",
+        "환자정보": {
+          "최초내원일": "20240101",
+          "주민등록번호앞7자리": "9001011",
+          "본인확인일자": ""
+        },
+        "건보100체크": true,
+        "만나이": 36,
+        "본인확인체크": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "required": true,
+        "exempt": {
+          "value": true,
+          "reason": "건보100% 체크함"
+        },
+        "blocks": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment today, 등록",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "등록",
+        "예약일자": "20261101",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": true,
+        "editVisible": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment yesterday, 등록 -> check-in disabled",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "등록",
+        "예약일자": "20261031",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": false,
+        "editVisible": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment tomorrow, 등록 -> check-in disabled",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "등록",
+        "예약일자": "20261102",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": false,
+        "editVisible": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment today, 부도 -> check-in enabled",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "부도",
+        "예약일자": "20261101",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": true,
+        "editVisible": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment yesterday, 부도 -> edit hidden, check-in disabled",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "부도",
+        "예약일자": "20261031",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": false,
+        "editVisible": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment today, 취소 -> check-in visible and enabled",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "취소",
+        "예약일자": "20261101",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": true,
+        "editVisible": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment today, 내원 -> check-in hidden",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "내원",
+        "예약일자": "20261101",
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": false,
+        "checkInEnabled": true,
+        "editVisible": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "appointment today, no 접수생성 permission",
+      "input": {
+        "check": "appointmentCheckInButton",
+        "예약상태": "등록",
+        "예약일자": "20261101",
+        "can접수생성": false,
+        "today": "20261101"
+      },
+      "expected": {
+        "checkInVisible": true,
+        "checkInEnabled": false,
+        "editVisible": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "auto limit exceeded: dialog confirm aborts check-in",
+      "input": {
+        "check": "autoInsuranceLimitDialog",
+        "exceeded": true,
+        "dialogResult": "확인"
+      },
+      "expected": {
+        "submitted": false,
+        "dialog": "누적 진료비가 보증한도를 초과했습니다."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "selected inst: blocked dialog text",
+      "input": {
+        "check": "selectedInstitutionGate",
+        "blockedByDialog": true
+      },
+      "expected": {
+        "dialog": "선택의료기관 환자입니다.",
+        "submitted": false
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "insurance change blocked when an approved prescription exists",
+      "input": {
+        "check": "editAccept",
+        "보험구분Changed": true,
+        "approvedPrescriptions": 1
+      },
+      "expected": {
+        "submitted": false,
+        "dialog": "이미 제출된 {처방명}이/가 있어 보험 구분을\n변경할 수 없습니다."
+      },
+      "derivation": "traced"
+    }
+  ],
+  "openQuestions": [
+    "Only 급여제한여부 '01' (무자격자) switches 건보 → 일반. Codes 02-05 (체납, 사망, 국외이민) do not. desk.md says 'if 급여제한여부 is present' and front-desk.md maps it to NHIS_BENEFIT_RESTRICTED; the server must decide whether 02-05 also restrict.",
+    "The client switches insurance type automatically with a warning instead of rejecting. The redesign returns 422 NHIS_BENEFIT_RESTRICTED.",
+    "Selected-institution gate applies only to medical-aid (자격여부 7/8) patients whose 본인부담여부 is M001/M002/B001/B002 and whose 선택기관기호1-4 do not include this clinic's 요양기관기호. B005 itself is the clerk's choice, not the trigger.",
+    "Picking B006/B008 with an institution still blocks the gate (ta is true for anything other than U001/B005), although AD accepts it. Possibly a bug.",
+    "Auto-insurance limit: blocked only when total > limit (total == limit passes) and limit > 0. A non-numeric or empty limit disables the check.",
+    "The limit dialog has only a '확인' button; the check-in aborts only if the dialog resolves truthy. If closing the dialog resolves falsy, check-in proceeds. BaseConfirmDialog's close value was not traced.",
+    "Guarantee expiry is not a validation: an expired 보증종료일자 (before today) only stops prefilling the previous visit's auto-insurance data. A manually entered expired guarantee is not rejected. The redesign's AUTO_INSURANCE_CASE_EXPIRED has no client counterpart.",
+    "Today-only check-in from an appointment is a button disable (isToday(예약일자)) in the planner detail panel; POST /desk/waiting itself sends 예약Id without a date check.",
+    "Self-verification (본인확인) is required when first visit or last 본인확인일자 is older than 6 months (exactly 6 months ago counts as within); exempt for 본인확인예외여부 'Y', under 19, pregnant, or 건보 100%. Age is computed by the client's mx() helper, which the harness did not execute."
+  ]
+}

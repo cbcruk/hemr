@@ -7,11 +7,13 @@ Backend API server for a Korean medicine clinic EMR, redesigned from a static an
 | Path | Contents |
 |---|---|
 | `docs/design/` | Domain design (Korean). Start with [`docs/design/README.md`](docs/design/README.md) |
-| `docs/reference/` | Evidence from the analysis: feature specs, endpoint list, permission codes |
+| `docs/reference/` | Evidence from the analysis: feature specs, endpoint list, permission codes, screen map |
+| `docs/reference/rules/` | Business rules of the current client, extracted by executing the original code (Korean). Index: [`docs/reference/rules/README.md`](docs/reference/rules/README.md) |
+| `test/fixtures/rules/` | Input → output cases for each rule, used as server test data |
 | `src/shared/` | Cross-cutting conventions: prefixed ids, RFC 9457 problem details, job types |
 | `src/modules/` | Bounded contexts as modules of a modular monolith |
 
-The reverse-engineered client code that `docs/design/review.md` cites as `re-upstream/restored/` is kept outside this repository.
+Paths written as `re-upstream/restored/...` point to the reverse-engineered client tree used during analysis. That tree is not part of this repository; the rule documents quote the code they depend on.
 
 ## Development
 

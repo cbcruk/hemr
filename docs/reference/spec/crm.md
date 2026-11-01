@@ -21,7 +21,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
 - **발신 인증 배너:** `SendAuthNoticeBanner`가 문자 보내기(`위치="문자보내기"`)와 연락 일정(`위치="연락일정"`) 화면 위에 붙습니다.
 - **공통 queryKey 루트:** `crmKeys.all = ["crm"]`. 하위 키는 `["crm","messages",…]`(발송 그룹), `["crm","messageResults",…]`(전송 결과), `["crm","refusals"]`, `["crm","contents"]`, `["crm","consultTemplates"]`, `["crm","liteTriggers",…]`, `["crm","callerNumbers"]`, `["crm","templates","messageTemplates"]`, `["patientMessageSend"]`(환자별 개별 발송)입니다.
 - **스토어:** `/crm` 화면은 대부분 `useToastNotificationStore`만 씁니다. 그 밖에는 `useOnboardingGuideSessionStore`(`/crm/message`, `/setting/caller-numbers`)와 `useCrmMessageResultLinksStore`(`/crm/message/results`)가 있습니다.
-- **근거:** [CrmView.vue](../../restored/views/CrmView.vue), [part-196.js (`l0e`)](../../restored/lib/index/part-196.js), [useUnifiedTermsGate/part-1.js](../../restored/lib/useUnifiedTermsGate/part-1.js), [unified-terms/query-keys.js](../../restored/api/unified-terms/query-keys.js), [routes.js](../../restored/router/routes.js), [crm/query-keys.js](../../restored/api/crm/query-keys.js)
+- **근거:** `re-upstream/restored/views/CrmView.vue`, part-196.js (`l0e`) (`re-upstream/restored/lib/index/part-196.js`), `re-upstream/restored/lib/useUnifiedTermsGate/part-1.js`, `re-upstream/restored/api/unified-terms/query-keys.js`, `re-upstream/restored/router/routes.js`, `re-upstream/restored/api/crm/query-keys.js`
 
 ## 메시지 유형·채널
 
@@ -37,7 +37,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
 - **야간 제한(`Da`/`jn`):** `광고`는 20:50–08:00에 즉시 발송할 수 없고, 이 시간대로 예약할 수도 없습니다. 이때 경고 배너를 띄우고 테스트 전송 버튼을 막습니다.
 - **장문 자동 전환(`smsOverflowPolicy`):** 기본값은 `upgrade_lms`로, 변수 치환 후 90byte를 넘는 수신자에게 장문으로 보냅니다. `exclude`로 끄면 단문으로만 보내고 90byte를 넘는 수신자는 제외합니다.
 - **카카오 대체 발송:** 그룹을 저장할 때 `fallback` 필드를 함께 보내고, 결과 화면에서는 "문자로 대체 전송" 상태로 표시합니다.
-- **근거:** [CrmMessagePreview/part-1.js](../../restored/modules/CrmMessagePreview/part-1.js), [useMessagesPatientsTemplateVariablesByPatientIdQuery.js](../../restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js), [CrmKakaoBrandMessageTypeSelector.vue](../../restored/components/crm/CrmKakaoBrandMessageTypeSelector.vue), [MessageViewSend.vue](../../restored/components/message/MessageViewSend.vue)
+- **근거:** `re-upstream/restored/modules/CrmMessagePreview/part-1.js`, `re-upstream/restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js`, `re-upstream/restored/components/crm/CrmKakaoBrandMessageTypeSelector.vue`, `re-upstream/restored/components/message/MessageViewSend.vue`
 
 ## 메시지 변수 치환
 
@@ -52,7 +52,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 환자 단위: `GET crmClient /messages/patients/{patientId}/template-variables`
 - **단축 링크:** 본문의 단축 URL은 저장 전에 5자 코드로 정규화(`R`)하고, 불러올 때 복원(`I`)합니다. 링크는 `POST /messages/links`로 만듭니다.
 - **상담 스크립트:** 템플릿 본문을 `{...log.hospital_input_variables, ...환자 template-variables}`로 치환한 뒤 문자나 카카오톡 발송으로 넘깁니다.
-- **근거:** [message.js](../../restored/modules/message.js), [MessageView.vue](../../restored/views/MessageView.vue), [CrmConsultScriptTemplatePane.vue](../../restored/components/crm/CrmConsultScriptTemplatePane.vue)
+- **근거:** `re-upstream/restored/modules/message.js`, `re-upstream/restored/views/MessageView.vue`, `re-upstream/restored/components/crm/CrmConsultScriptTemplatePane.vue`
 
 ## 고객관리 컨테이너 — `/crm` (`crm`)
 - **목적:** CRM 하위 화면의 공통 틀(권한 검사·약관 게이트·KeepAlive)입니다.
@@ -61,7 +61,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
 - **동작:** "공통" 절의 표를 참고하세요. `/crm` 자체에는 기본 자식이나 리다이렉트가 없습니다.
 - **데이터:** `GET accountClient /terms/hospital-agreements` → `hasDirector`, `canAgree`, `terms[]`(`documentNumber`, `currentRevision`, `agreedRevision`, `agreed`, `required`, `currentPublishedDate`).
 - **상태 저장:** queryKey `["unifiedTerms","verdict"]`.
-- **근거:** [CrmView.vue](../../restored/views/CrmView.vue)
+- **근거:** `re-upstream/restored/views/CrmView.vue`
 
 ## 비급여 환자 관리 — `/crm/nonbenefit-patients` (`crm-nonbenefit-patients`)
 - **목적:** 비급여 처방(일반 처방·패키지)을 받은 환자의 복용 경과를 관리하고, 연락·문자·관리 종료를 처리합니다. 수 비대면 진료 접수도 이 화면에서 다룹니다.
@@ -84,7 +84,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - **비대면:** 접수 배너 → 진료 시작 / 접수 정보 보기 / 취소·환불입니다. `GET /desk/appointments/telemedicine`, `…/cancelled`, `PATCH /desk/telemedicine-consultations/{id}/status`, `thesooClient members/upstream/orders/{id}`를 씁니다.
 - **데이터:** `GET /crm/nonbenefit-patients` → `patients[]`(`환자Id`, `유형`(`일반`|패키지), `처방명`/`패키지명`, `진료일자`, `최근시술일`, `패키지상태`, `현재회차`/`총회차`, `사용횟수`/`총횟수`, `비대면진료상태`, `비급여처방관리Id(s)`, `예약일시`), `hasMore`. 그 밖에 `GET /settings/nonbenefits/v2`, `GET /patients/{id}/memos`, `POST /patients/{pid}/memos`를 씁니다.
 - **상태 저장:** 컴포넌트 로컬 ref(탭·필터·선택 행). `useDeskAppointmentsTelemedicineCancelledQuery`, `useMembersUpstreamClinicsMyQuery`.
-- **근거:** [NonBenefitPatientsView.vue](../../restored/views/NonBenefitPatientsView.vue), [NonBenefitPatientsViewToolbar.vue](../../restored/components/nonbenefit/NonBenefitPatientsViewToolbar.vue), [NonBenefitPatientsViewTelemedicineBanner.vue](../../restored/components/nonbenefit/NonBenefitPatientsViewTelemedicineBanner.vue)
+- **근거:** `re-upstream/restored/views/NonBenefitPatientsView.vue`, `re-upstream/restored/components/nonbenefit/NonBenefitPatientsViewToolbar.vue`, `re-upstream/restored/components/nonbenefit/NonBenefitPatientsViewTelemedicineBanner.vue`
 
 ## 연락 목록(v1) — `/crm/contacts` (`crm-contacts`)
 - **목적:** 연락 규칙(contact-list rules)과 수 복용관리 스케줄러(lite trigger)가 만든 환자별 연락 일정을 보고 완료 처리합니다.
@@ -101,7 +101,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - **상세:** `GET /crm/contact-list/schedules/patient/{patientId}`(최근 3개월 처방, 예정된 예약, 최종내원일), `GET /crm/contact-list/action-logs/patient/{patientId}`.
 - **데이터:** 행 = `환자`(`id`, `이름`, `성별`, `주민등록번호앞7자리`, `등급명`/`등급색명`, `휴대전화번호`, `최근진료`, `최근상담메모`), `처방정보[]`(`규칙Id`/`규칙명`/`규칙색상`/`진료기준일시` → `N일차`), `schedule`(`id`, `scheduledDate`/`effectiveAt`, `status`, `completedAt`), `nextContactSchedule`. 그 밖에 `GET crmClient /lite-triggers/status`, `GET /crm/contact-list/rules`.
 - **상태 저장:** queryKey `["crm","liteTriggers",…]`(`tf`), `["crm","contactActionLogs",…]`.
-- **근거:** [CrmContactsView-2.vue](../../restored/views/CrmContactsView-2.vue), [CrmContactsViewHeader.vue](../../restored/components/crm/CrmContactsViewHeader.vue), [CrmContactsViewListTable.vue](../../restored/components/crm/CrmContactsViewListTable.vue), [CrmContactsViewListTableContactDatesPickerContent.vue](../../restored/components/crm/CrmContactsViewListTableContactDatesPickerContent.vue), [crm/requests-4.js](../../restored/api/crm/requests-4.js)
+- **근거:** `re-upstream/restored/views/CrmContactsView-2.vue`, `re-upstream/restored/components/crm/CrmContactsViewHeader.vue`, `re-upstream/restored/components/crm/CrmContactsViewListTable.vue`, `re-upstream/restored/components/crm/CrmContactsViewListTableContactDatesPickerContent.vue`, `re-upstream/restored/api/crm/requests-4.js`
 
 ## 연락 일정(v2, 트리거 엔진) — `/crm/contacts-v2` (`crm-contacts-v2`)
 - **목적:** 트리거 엔진의 프로그램(연락 시나리오)이 만든 실행 로그(연락·자동 발송)를 목록과 캘린더로 관리합니다.
@@ -131,7 +131,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
 
 - **데이터:** 실행 로그(`log_id`, `patient`, `scheduled_date`, `status`, `delivery_mode`(`semi_auto` 등), `completed_at`, `isEnabled`, 채널, 연락 사유/규칙). 정렬 옵션: 예정일순 / 환자명순.
 - **상태 저장:** 탭은 URL query `tab`(`useRouteQueryRef`), 패널 너비는 로컬 ref, queryKey `["crm","messageResults","crmDeliveryStatus",…]`.
-- **근거:** [CrmContactsView.vue](../../restored/views/CrmContactsView.vue), [CrmContactsViewDetailScheduledContacts.vue](../../restored/components/crm/CrmContactsViewDetailScheduledContacts.vue), [CrmContactsViewCalendarChip.vue](../../restored/components/crm/CrmContactsViewCalendarChip.vue), [crm/requests-5.js](../../restored/api/crm/requests-5.js), [CrmContactsView/part-20.js](../../restored/modules/CrmContactsView/part-20.js)
+- **근거:** `re-upstream/restored/views/CrmContactsView.vue`, `re-upstream/restored/components/crm/CrmContactsViewDetailScheduledContacts.vue`, `re-upstream/restored/components/crm/CrmContactsViewCalendarChip.vue`, `re-upstream/restored/api/crm/requests-5.js`, `re-upstream/restored/modules/CrmContactsView/part-20.js`
 
 ### 연락 일정 상태
 
@@ -155,7 +155,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 규칙 조회와 수정: `GET /crm/lite-trigger/rules`, `PATCH /crm/lite-trigger/rules/{id}`.
 - **데이터:** `GET crmClient /lite-triggers/status`, `GET /crm/contact-list/scheduler`, `/scheduler/summary`, `GET /crm/lite-trigger/events`, `GET /crm/contact-list/rules`.
 - **상태 저장:** queryKey `["crm","liteTriggers","status"|"events"|"rules"|…]`.
-- **근거:** [CrmSooSchedulerView.vue](../../restored/views/CrmSooSchedulerView.vue), [CrmSooSchedulerViewHeader.vue](../../restored/components/crm/CrmSooSchedulerViewHeader.vue), [crm/requests-4.js](../../restored/api/crm/requests-4.js)
+- **근거:** `re-upstream/restored/views/CrmSooSchedulerView.vue`, `re-upstream/restored/components/crm/CrmSooSchedulerViewHeader.vue`, `re-upstream/restored/api/crm/requests-4.js`
 
 ## 상담 스크립트 — `/crm/consult-script` (`crm-consult-script`)
 - **목적:** 연락 일정 하나를 두고 상담 템플릿을 보며 전화 상담을 한 뒤, 문자나 카카오톡으로 보내고 연락을 완료합니다. 별도 팝업 창(1280×960)으로 열립니다.
@@ -174,7 +174,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - **연락 완료:** 오늘까지 예정된 `semi_auto` 로그를 `POST /crm/trigger-engine/execution-logs/complete`(`logIds`)로 완료하고 창을 닫습니다(`window.close()`).
 - **데이터:** `GET /crm/contact-list/schedules/patient/{patientId}`(`prescriptionMonths: 3`), `GET crmClient /messages/patients/{patientId}/template-variables`.
 - **상태 저장:** 로컬 ref(선택 로그, 패널 열림), queryKey `["crm","consultTemplates",…]`, `["patientMessageSend",…]`.
-- **근거:** [CrmConsultScriptView.vue](../../restored/views/CrmConsultScriptView.vue), [CrmConsultScriptTemplatePane.vue](../../restored/components/crm/CrmConsultScriptTemplatePane.vue), [CrmContactsView/part-20.js](../../restored/modules/CrmContactsView/part-20.js)
+- **근거:** `re-upstream/restored/views/CrmConsultScriptView.vue`, `re-upstream/restored/components/crm/CrmConsultScriptTemplatePane.vue`, `re-upstream/restored/modules/CrmContactsView/part-20.js`
 
 ## 환자 목록 — `/crm/patients` (`crm-emr-patients`)
 - **목적:** CRM용 EMR 환자 전체 목록을 보고, 엑셀로 올리거나 내려받고, 행 단위 작업을 합니다.
@@ -187,7 +187,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 엑셀 다운로드: 사유를 입력하면 `POST /patients/download-logs`를 보낸 뒤 파일을 생성합니다.
 - **데이터:** 행(`환자Id`, `이름`, `차트번호`, `주민등록번호앞7자리`/`생일`, `광고수신동의여부`, `알림정보수신동의여부`(동의/거부/미정), `가족정보`, `소개환자정보`, `메모`).
 - **상태 저장:** queryKey `["asyncTasks",…]`, AG Grid `gridApi`.
-- **근거:** [EmrPatientsView.vue](../../restored/views/EmrPatientsView.vue), [EmrPatientsViewTableActions.vue](../../restored/components/emr/EmrPatientsViewTableActions.vue), [EmrPatientsExcelUploadModal.vue](../../restored/components/emr/EmrPatientsExcelUploadModal.vue)
+- **근거:** `re-upstream/restored/views/EmrPatientsView.vue`, `re-upstream/restored/components/emr/EmrPatientsViewTableActions.vue`, `re-upstream/restored/components/emr/EmrPatientsExcelUploadModal.vue`
 
 ## 문자·카카오톡 보내기 — `/crm/message` (`crm-message`)
 - **목적:** 여러 환자에게 문자 또는 카카오톡(브랜드 메시지·알림톡)을 즉시 또는 예약 발송합니다.
@@ -237,7 +237,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - localStorage `crm-message-send-current-tab`(`message`|`kakao`).
   - queryKey `["crm","messages","sendGroupById",id,withCount]`, `…"sendGroupReceivers"`, `…"sendGroupReceiverCount"`, `…"sendGroupEstimate"`, `…"sendGroupDuplicateReceivers"`.
   - `useOnboardingGuideSessionStore`.
-- **근거:** [MessageView.vue](../../restored/views/MessageView.vue), [MessageViewReceivers.vue](../../restored/components/message/MessageViewReceivers.vue), [MessageViewSend.vue](../../restored/components/message/MessageViewSend.vue), [messages/sendGroups.js](../../restored/api/messages/sendGroups.js), [messages/requests-2.js](../../restored/api/messages/requests-2.js), [useMessagesSendGroupsQuery.js](../../restored/modules/CrmCommonMessageFormReservedAt/useMessagesSendGroupsQuery.js)
+- **근거:** `re-upstream/restored/views/MessageView.vue`, `re-upstream/restored/components/message/MessageViewReceivers.vue`, `re-upstream/restored/components/message/MessageViewSend.vue`, `re-upstream/restored/api/messages/sendGroups.js`, `re-upstream/restored/api/messages/requests-2.js`, `re-upstream/restored/modules/CrmCommonMessageFormReservedAt/useMessagesSendGroupsQuery.js`
 
 ## 전송 완료 — `/crm/message/send-completed` (`crm-message-send-completed`)
 - **목적:** 발송 직후 결과를 안내합니다.
@@ -249,7 +249,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 버튼은 각각 `/crm/message/results`와 `/crm/message`로 이동합니다.
 - **데이터:** 발송 그룹 `reservedAt`.
 - **상태 저장:** 없음(로컬 ref).
-- **근거:** [MessageSendCompletedView.vue](../../restored/views/MessageSendCompletedView.vue)
+- **근거:** `re-upstream/restored/views/MessageSendCompletedView.vue`
 
 ## 전송 내역 — `/crm/message/results` (`crm-message-results`)
 - **목적:** 문자·카카오톡 발송 이력, 비용, 수신자별 결과를 확인하고 예약을 관리하거나 재전송합니다.
@@ -279,7 +279,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
     - 수신자 선택 후 "N명에게 새로 전송"도 할 수 있습니다.
 - **데이터:** 목록 행(`messageStatus`, `reservedAt`, `receiverCount`, `successCount`, `failCount`, `platformType`, `messageType`, `sendingType`). 수신자(`status`, `fallbackStatus`, `fallbackType`, `failureReason`).
 - **상태 저장:** queryKey `["crm","messageResults",…]`(`crmMessageResultsList`, `…Receivers`, `…ReceiverDetail`, `crmKakaoMessageResultsReceiverDetail`, `crmMessageResultsLinkInfo`), 스토어 `useCrmMessageResultLinksStore`.
-- **근거:** [MessageResultsView.vue](../../restored/views/MessageResultsView.vue), [MessageResultsList.vue](../../restored/components/message/MessageResultsList.vue), [MessageResultsDetailSidePanelFooter.vue](../../restored/components/message/MessageResultsDetailSidePanelFooter.vue), [MessageResultsDetailSidePanel/part-3.js](../../restored/modules/MessageResultsDetailSidePanel/part-3.js), [messages/requests-4.js](../../restored/api/messages/requests-4.js)
+- **근거:** `re-upstream/restored/views/MessageResultsView.vue`, `re-upstream/restored/components/message/MessageResultsList.vue`, `re-upstream/restored/components/message/MessageResultsDetailSidePanelFooter.vue`, `re-upstream/restored/modules/MessageResultsDetailSidePanel/part-3.js`, `re-upstream/restored/api/messages/requests-4.js`
 
 ### 전송 상태
 
@@ -318,7 +318,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 다운로드: 사유 입력 모달 → `POST /refusals/download`(`refusalSource`, `searchKeyword`, body `reason`) → 파일 `수신거부목록_…`.
 - **데이터:** 행(`id`, `contactId`, `emrPatientId`, 환자명, 휴대폰번호, `emrSsnPrefix`, 동의 상태, 등록일).
 - **상태 저장:** queryKey `["crm","refusals",…]`.
-- **근거:** [CrmRefusalView.vue](../../restored/views/CrmRefusalView.vue), [CrmRefusalViewListHospital.vue](../../restored/components/crm/CrmRefusalViewListHospital.vue), [CrmRefusalViewListHospitalRegisterPanel.vue](../../restored/components/crm/CrmRefusalViewListHospitalRegisterPanel.vue), [refusals/requests.js](../../restored/api/refusals/requests.js)
+- **근거:** `re-upstream/restored/views/CrmRefusalView.vue`, `re-upstream/restored/components/crm/CrmRefusalViewListHospital.vue`, `re-upstream/restored/components/crm/CrmRefusalViewListHospitalRegisterPanel.vue`, `re-upstream/restored/api/refusals/requests.js`
 
 ## 콘텐츠 환자 열람 미리보기 — `/crm/contents/view/:token` (`crm-contents-view`)
 - **목적:** 메시지에 첨부한 콘텐츠 묶음을 환자가 보는 화면 그대로 미리 봅니다(상단에 "환자 열람 페이지 (미리보기)" 표시).
@@ -333,7 +333,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 응답이 없으면 "링크가 만료되었거나 찾을 수 없습니다", 콘텐츠가 없으면 "콘텐츠가 더 이상 제공되지 않습니다"를 보여줍니다.
 - **데이터:** `GET /contents/bundles/{token}` → `hospitalName`, `contents[]`(`id`, `title`, `contentType`, `embedUrl`, `images[]`, `thumbnailUrl`, `sourceUrl`).
 - **상태 저장:** `useContentsBundlesQuery`(queryKey `["crm","contents",…]`).
-- **근거:** [CrmContentPatientPreview.vue](../../restored/components/crm/CrmContentPatientPreview.vue), [contents/requests.js](../../restored/api/contents/requests.js)
+- **근거:** `re-upstream/restored/components/crm/CrmContentPatientPreview.vue`, `re-upstream/restored/api/contents/requests.js`
 
 ## 발신번호 및 채널 설정 — `/setting/caller-numbers` (`setting-caller-numbers`)
 - **목적:** 문자 발신번호를 등록·심사·기본값으로 지정하고, 카카오톡 채널을 연동합니다.
@@ -348,7 +348,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 채널 연동: `GET /kakao/channels/categories` → `POST /kakao/channels/token`(`phoneNumber`, `yellowId`) → 인증번호 입력 → `POST /kakao/channels`(`categoryCode`, `phoneNumber`, `token`, `yellowId`). 공개·검색 허용과 비즈니스 인증이 된 채널이어야 합니다.
 - **데이터:** 발신번호(`id`, `callerNumber`, `numberHolder`, `status`, `isDefault`, 비고). 최대 15개까지 등록할 수 있고, 증명원은 1개월 이내에 발급한 것이어야 합니다.
 - **상태 저장:** queryKey `["crm","callerNumbers",…]`, `useOnboardingGuideSessionStore`.
-- **근거:** [CrmSettingCallerNumbers.vue](../../restored/components/crm/CrmSettingCallerNumbers.vue), [CrmSettingCallerNumbersTableCellStatus.vue](../../restored/components/crm/CrmSettingCallerNumbersTableCellStatus.vue), [CrmSettingCallerNumbersTableCellAction.vue](../../restored/components/crm/CrmSettingCallerNumbersTableCellAction.vue), [CrmCommonCallerNumbersAddModal.vue](../../restored/components/crm/CrmCommonCallerNumbersAddModal.vue), [CrmKakaoChannelsAddModal.vue](../../restored/components/crm/CrmKakaoChannelsAddModal.vue)
+- **근거:** `re-upstream/restored/components/crm/CrmSettingCallerNumbers.vue`, `re-upstream/restored/components/crm/CrmSettingCallerNumbersTableCellStatus.vue`, `re-upstream/restored/components/crm/CrmSettingCallerNumbersTableCellAction.vue`, `re-upstream/restored/components/crm/CrmCommonCallerNumbersAddModal.vue`, `re-upstream/restored/components/crm/CrmKakaoChannelsAddModal.vue`
 
 | 발신번호 `status` | 배지 | 의미 |
 |---|---|---|
@@ -367,7 +367,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 템플릿: `POST`/`PATCH`/`DELETE /consult-templates/templates[/{id}]`(`groupId`, `title`, `body`).
 - **데이터:** 그룹·템플릿 트리. 본문은 `#{변수}`를 포함할 수 있습니다(추정: 상담 스크립트에서 치환하므로).
 - **상태 저장:** queryKey `["crm","consultTemplates",…]`.
-- **근거:** [CrmSettingConsultTemplates.vue](../../restored/components/crm/CrmSettingConsultTemplates.vue), [CrmConsultTemplatesManager.vue](../../restored/components/crm/CrmConsultTemplatesManager.vue), [consult-templates/requests.js](../../restored/api/consult-templates/requests.js)
+- **근거:** `re-upstream/restored/components/crm/CrmSettingConsultTemplates.vue`, `re-upstream/restored/components/crm/CrmConsultTemplatesManager.vue`, `re-upstream/restored/api/consult-templates/requests.js`
 
 ## 메시지 템플릿 관리 — `/setting/message-templates` (`setting-message-templates`)
 - **목적:** 문자와 카카오톡(알림톡·브랜드) 템플릿, 템플릿 그룹을 관리합니다.
@@ -380,7 +380,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 라이브러리: `GET /messages/template-library`, `/messages/templates/sources[/counts]`, `/messages/kakao-templates/frequently-used`.
   - 문구: `GET`/`POST`/`PATCH`/`DELETE /messages/phrases`.
 - **상태 저장:** queryKey `["crm","templates","messageTemplates",…]`, `["crm","templates","templateSources",…]`.
-- **근거:** [CrmSettingMessageTemplates.vue](../../restored/components/crm/CrmSettingMessageTemplates.vue), [CrmMessageTemplatesManager.vue](../../restored/components/crm/CrmMessageTemplatesManager.vue)
+- **근거:** `re-upstream/restored/components/crm/CrmSettingMessageTemplates.vue`, `re-upstream/restored/components/crm/CrmMessageTemplatesManager.vue`
 
 ## 콘텐츠 관리 — `/setting/contents` (`setting-contents`)
 - **목적:** 메시지에 첨부해 환자에게 보낼 콘텐츠(링크·이미지)를 그룹별로 등록합니다.
@@ -394,7 +394,7 @@ API는 대부분 `crmClient`(메시지·템플릿·수신거부·콘텐츠)와 `
   - 그룹: `POST`/`PATCH`/`DELETE /contents/groups[/{id}]`(`name`).
   - 발송 화면에서는 `CrmSendAsideTabs` → `CrmContentListDock`으로 첨부합니다.
 - **상태 저장:** queryKey `["crm","contents",…]`.
-- **근거:** [CrmSettingContents.vue](../../restored/components/crm/CrmSettingContents.vue), [CrmContentRegisterPane.vue](../../restored/components/crm/CrmContentRegisterPane.vue), [contents/requests.js](../../restored/api/contents/requests.js)
+- **근거:** `re-upstream/restored/components/crm/CrmSettingContents.vue`, `re-upstream/restored/components/crm/CrmContentRegisterPane.vue`, `re-upstream/restored/api/contents/requests.js`
 
 ## dev 전용 라우트 (prod 미등록)
 

@@ -1,0 +1,2016 @@
+{
+  "rule": "chuna-auto-approval",
+  "description": "On encounter completion, automatically submits the first unapproved chuna line to HIRA when the clinic policy allows it, the annual limit is not exhausted and no same-day chuna is already on record.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-2.js",
+      "lines": "53-130",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:19462-19538"
+    },
+    {
+      "file": "re-upstream/restored/modules/TreatmentViewBoard/part-16.js",
+      "lines": "192-262",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:19297-19365"
+    },
+    {
+      "file": "re-upstream/restored/modules/hiraChuna.js",
+      "lines": "5-39",
+      "origin": "unminified/hiraChuna-gwDnfLOu.js:12-39"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-11.js",
+      "lines": "68-82",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22836-22852"
+    },
+    {
+      "file": "re-upstream/restored/api/chart/query-keys.js",
+      "lines": "17-81",
+      "origin": "unminified/dispensaryRoomType-C2K7HUhv.js:22-83"
+    }
+  ],
+  "inputSchema": {
+    "isElectron": "Desktop app only; web never auto-submits.",
+    "autoApproveSetting": "settings.진료설정.추나승인자동승인여부.",
+    "isLoading/isError/추나횟수소진/조회목록": "From the chuna-annual-limit computation (조회목록 rows have 시술일 Date and 삭제여부).",
+    "진료일시": "Encounter 기준일시 as Date.",
+    "진료내용": "Encounter: 보험구분, 보험조회 (자격여부 / 사고접수번호 / 장애여부, 희귀난치의료비지원대상자 20-char string, 차상위대상자 21-char string), 상병[].상병코드, 처방[] (카테고리숫자코드 33001005 = 추나, 승인여부, 시술진료의Id).",
+    "doctorList/기본시술자Id": "Settings doctors (진료의Id, 면허번호) and the default performer when the line has none.",
+    "lockAvailable": "Whether the per-patient/day HIRA submission lock could be taken.",
+    "제출건조회": "Result of the pre-check lookup of an existing HIRA submission for the same day/patient (null = none, 'throw' = lookup failed).",
+    "createResult": "[response, error] tuple of the HIRA submission call.",
+    "matchSubmission": "Rows from HIRA 병원별 추나요법 목록조회 and the key used to pick the matching submission.",
+    "expected": "actions: ordered side effects (warning/error toast, fetch제출건조회, createChunaData payload, invalidate, 승인상태반영 line+performer, endProcessing)."
+  },
+  "cases": [
+    {
+      "name": "happy path 건보: submits to HIRA and marks approved",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "4",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "0"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d1",
+              "면허번호": "L-111"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "not Electron (web) -> no-op",
+      "input": {
+        "isElectron": false,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "policy flag off -> no-op",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": false,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "chuna history still loading -> no-op",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": true,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "chuna history lookup error -> no-op",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": true,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "annual limit exhausted -> warning, no submission",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": true,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "warning",
+            "추나요법 연간 시술 가능 횟수(20회)를 모두 사용해 자동 제출하지 않았습니다."
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "limit unknown (undefined) -> proceeds",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "4",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "0"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d1",
+              "면허번호": "L-111"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "same-day row already in history -> silent skip",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [
+          {
+            "시술일": "2026-11-01T00:00:00+09:00",
+            "삭제여부": false,
+            "본원": true
+          }
+        ],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "same-day row that is deleted still skips (no 삭제여부 check)",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [
+          {
+            "시술일": "2026-11-01T00:00:00+09:00",
+            "삭제여부": true,
+            "본원": true
+          }
+        ],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "previous-day row only (day boundary) -> proceeds",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [
+          {
+            "시술일": "2026-10-31T00:00:00+09:00",
+            "삭제여부": false,
+            "본원": true
+          }
+        ],
+        "진료일시": "2026-11-01T00:05:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "4",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "0"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d1",
+              "면허번호": "L-111"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "no unapproved chuna line -> no-op",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": true,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "no diagnoses -> error toast",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "error",
+            "상병 정보가 없기 때문에 추나 승인을 진행할 수 없습니다."
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "performer has no license -> error toast",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "error",
+            "시술자 정보가 없기 때문에 추나 승인을 진행할 수 없습니다."
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "performer falls back to default doctor when line has none",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d2",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-222",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "4",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "0"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d2",
+              "면허번호": "L-222"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "processing lock held -> silent skip",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": false,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "pre-check lookup throws -> skip",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": "throw",
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "already submitted at HIRA with subset diagnoses -> sync approved state only",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": {
+          "상병기호": "M5450, M5456",
+          "의사면허번호": "L-222"
+        },
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d2",
+              "면허번호": "L-222"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "already submitted at HIRA but diagnoses differ -> nothing",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": {
+          "상병기호": "M5450,S134",
+          "의사면허번호": "L-222"
+        },
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "submission returns error -> error toast",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": [
+          null,
+          "fail"
+        ]
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "4",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "0"
+            }
+          ],
+          [
+            "error",
+            "추나 승인 중 오류가 발생했습니다."
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "자보 with accident number -> payload carries 사고접수번호, code 8",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "자보",
+          "보험조회": {
+            "사고접수번호": "ACC-9"
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "8",
+              "수가코드": [
+                "40710"
+              ],
+              "사고접수번호": "ACC-9"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d1",
+              "면허번호": "L-111"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "자보 without accident number -> error toast",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "자보",
+          "보험조회": {},
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "error",
+            "사고접수번호가 없기 때문에 추나 승인을 진행할 수 없습니다."
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "급여 자격여부 7 -> 보험자구분코드 5, 의료급여종별코드 1",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "급여",
+          "보험조회": {
+            "자격여부": "7",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "                     "
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "5",
+              "의료급여종별코드": "1",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "0"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d1",
+              "면허번호": "L-111"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보 차상위 C within period -> 공상구분코드 C",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "자격여부": "4",
+            "장애여부": "N",
+            "희귀난치의료비지원대상자": "                    ",
+            "차상위대상자": "C00020260101        1"
+          },
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "fetch제출건조회"
+          ],
+          [
+            "createChunaData",
+            {
+              "요양기관기호": "12345678",
+              "수진자명": "홍길동",
+              "수진자주민등록번호": "9001011234567",
+              "의사면허번호": "L-111",
+              "상병기호": [
+                "M5450",
+                "M5456"
+              ],
+              "진료일자": "20261101",
+              "보험자구분코드": "4",
+              "수가코드": [
+                "40710"
+              ],
+              "공상구분코드": "C"
+            }
+          ],
+          [
+            "invalidate"
+          ],
+          [
+            "승인상태반영",
+            {
+              "id": "rx1",
+              "수가코드": "40710"
+            },
+            {
+              "시술자Id": "d1",
+              "면허번호": "L-111"
+            }
+          ],
+          [
+            "endProcessing"
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보 without 보험조회 -> error toast",
+      "input": {
+        "isElectron": true,
+        "autoApproveSetting": true,
+        "isLoading": false,
+        "isError": false,
+        "추나횟수소진": false,
+        "조회목록": [],
+        "진료일시": "2026-11-01T09:30:00+09:00",
+        "진료내용": {
+          "보험구분": "건보",
+          "상병": [
+            {
+              "상병코드": "M5450"
+            },
+            {
+              "상병코드": "M5456"
+            }
+          ],
+          "처방": [
+            {
+              "id": "rx1",
+              "카테고리숫자코드": "33001005",
+              "수가코드": "40710",
+              "승인여부": false,
+              "시술진료의Id": "d1"
+            }
+          ]
+        },
+        "patient": {
+          "이름": "홍길동",
+          "주민등록번호앞자리": "900101",
+          "주민등록번호뒷자리": "1234567"
+        },
+        "doctorList": [
+          {
+            "진료의Id": "d1",
+            "면허번호": "L-111"
+          },
+          {
+            "진료의Id": "d2",
+            "면허번호": "L-222"
+          }
+        ],
+        "기본시술자Id": "d1",
+        "lockAvailable": true,
+        "제출건조회": null,
+        "createResult": null
+      },
+      "expected": {
+        "actions": [
+          [
+            "error",
+            "건강보험 조회 정보가 없습니다."
+          ]
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exact key match picks highest 일련번호, ignores deleted",
+      "input": {
+        "kind": "matchSubmission",
+        "rows": [
+          {
+            "진료일자": "20261101",
+            "수진자명": "홍 길동",
+            "수진자생년월일": "19900101",
+            "수진자성별": 1,
+            "보험자구분코드": "4",
+            "사고접수번호": "",
+            "삭제여부": "N",
+            "일련번호": "1"
+          },
+          {
+            "진료일자": "20261101",
+            "수진자명": "홍 길동",
+            "수진자생년월일": "19900101",
+            "수진자성별": 1,
+            "보험자구분코드": "4",
+            "사고접수번호": "",
+            "삭제여부": "N",
+            "일련번호": "3"
+          },
+          {
+            "진료일자": "20261101",
+            "수진자명": "홍 길동",
+            "수진자생년월일": "19900101",
+            "수진자성별": 1,
+            "보험자구분코드": "4",
+            "사고접수번호": "",
+            "삭제여부": "Y",
+            "일련번호": "9"
+          }
+        ],
+        "key": {
+          "진료일": "20261101",
+          "환자명": "홍길동",
+          "생년월일": "19900101",
+          "성별": 1,
+          "보험자구분코드": "4"
+        }
+      },
+      "expected": {
+        "match": {
+          "진료일자": "20261101",
+          "수진자명": "홍 길동",
+          "수진자생년월일": "19900101",
+          "수진자성별": 1,
+          "보험자구분코드": "4",
+          "사고접수번호": "",
+          "삭제여부": "N",
+          "일련번호": "3"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback ignoring 보험자구분코드 when unique",
+      "input": {
+        "kind": "matchSubmission",
+        "rows": [
+          {
+            "진료일자": "20261101",
+            "수진자명": "홍 길동",
+            "수진자생년월일": "19900101",
+            "수진자성별": 1,
+            "보험자구분코드": "5",
+            "사고접수번호": "",
+            "삭제여부": "N",
+            "일련번호": "2"
+          }
+        ],
+        "key": {
+          "진료일": "20261101",
+          "환자명": "홍길동",
+          "생년월일": "19900101",
+          "성별": 1,
+          "보험자구분코드": "4"
+        }
+      },
+      "expected": {
+        "match": {
+          "진료일자": "20261101",
+          "수진자명": "홍 길동",
+          "수진자생년월일": "19900101",
+          "수진자성별": 1,
+          "보험자구분코드": "5",
+          "사고접수번호": "",
+          "삭제여부": "N",
+          "일련번호": "2"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback ambiguous (two 보험자구분코드) -> null",
+      "input": {
+        "kind": "matchSubmission",
+        "rows": [
+          {
+            "진료일자": "20261101",
+            "수진자명": "홍 길동",
+            "수진자생년월일": "19900101",
+            "수진자성별": 1,
+            "보험자구분코드": "5",
+            "사고접수번호": "",
+            "삭제여부": "N",
+            "일련번호": "1"
+          },
+          {
+            "진료일자": "20261101",
+            "수진자명": "홍 길동",
+            "수진자생년월일": "19900101",
+            "수진자성별": 1,
+            "보험자구분코드": "7",
+            "사고접수번호": "",
+            "삭제여부": "N",
+            "일련번호": "1"
+          }
+        ],
+        "key": {
+          "진료일": "20261101",
+          "환자명": "홍길동",
+          "생년월일": "19900101",
+          "성별": 1,
+          "보험자구분코드": "4"
+        }
+      },
+      "expected": {
+        "match": null
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "The same-day skip checks any history row on the encounter date, including rows with 삭제여부 true; a deleted (cancelled) submission therefore still blocks auto-submission. Intended?",
+    "Only the first unapproved chuna line is submitted (find, not filter); multiple chuna lines on one encounter are not all submitted.",
+    "Auto-approval runs after done() and its failures are swallowed (toast only); the redesign moves this to a queued hiraSubmission. Which failures must block completion, if any?",
+    "Existing-submission branch accepts it when the HIRA 상병기호 list is a subset of the current diagnoses; a superset/different set silently does nothing (no toast).",
+    "자보: the limit check uses the accident-scoped count against the same 20 constant; confirm whether 자보 chuna has a 20-session limit."
+  ]
+}

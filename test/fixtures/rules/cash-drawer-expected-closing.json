@@ -1,0 +1,461 @@
+{
+  "rule": "cash-drawer-expected-closing",
+  "description": "Expected cash-drawer closing amount: server value when 현금흐름 is present, otherwise start + cash receipts − (expenses + cash-only refunds); plus cash register state and re-settlement flag.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/DeskView/part-2.js",
+      "lines": "7-86",
+      "origin": "unminified/DeskView-DTRddRTN.js:234-314"
+    },
+    {
+      "file": "re-upstream/restored/modules/DeskView/part-1.js",
+      "lines": "15, 60-77, 92-95",
+      "origin": "unminified/DeskView-DTRddRTN.js:48-153"
+    },
+    {
+      "file": "re-upstream/restored/views/DeskPaymentsView.vue.js",
+      "lines": "50-53",
+      "origin": "unminified/DeskView-DTRddRTN.js:4202-4271"
+    }
+  ],
+  "inputSchema": {
+    "check": "expectedClosing | cashRegisterState.",
+    "cashRegister": "GET /desk/cash-registers?date= : 시작금액 (null = not registered), 마감금액, 현금정산일시, 마감후수정여부, optional 현금흐름{수납현금, 선수금현금충전, 수납현금환불, 선수금현금환불, 지출, 예상마감금액}.",
+    "receipts": "GET /desk/receipts/{date} rows: 행유형, 결제정보{현금, 카드, 통장}, 환불.",
+    "expenses": "GET /desk/expenses?date= rows: 지출금액."
+  },
+  "cases": [
+    {
+      "name": "server cash flow present -> server 예상마감금액 is used as-is",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 100000,
+          "현금흐름": {
+            "수납현금": 50000,
+            "선수금현금충전": 10000,
+            "수납현금환불": 3000,
+            "선수금현금환불": 1000,
+            "지출": 5000,
+            "예상마감금액": 151000
+          }
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 30000
+            },
+            "환불": 0
+          },
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 10000,
+              "카드": 5000
+            },
+            "환불": 2000
+          },
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 0
+            },
+            "환불": 4000
+          },
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "카드": 20000
+            },
+            "환불": 0
+          },
+          {
+            "행유형": "지출",
+            "결제정보": {
+              "현금": 99999
+            },
+            "환불": 99999
+          }
+        ],
+        "expenses": [
+          {
+            "지출금액": 7000
+          }
+        ]
+      },
+      "expected": {
+        "현금수납": 60000,
+        "현금환불": 4000,
+        "현금지출": 5000,
+        "예상마감금액": 151000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "server cash flow present but inconsistent -> still server value",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 100000,
+          "현금흐름": {
+            "수납현금": 50000,
+            "선수금현금충전": 0,
+            "수납현금환불": 0,
+            "선수금현금환불": 0,
+            "지출": 0,
+            "예상마감금액": 1
+          }
+        },
+        "receipts": [],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 50000,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 1,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback: start + cash receipts - (expenses + cash-only refunds)",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 100000
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 30000
+            },
+            "환불": 0
+          },
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 10000,
+              "카드": 5000
+            },
+            "환불": 2000
+          },
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 0
+            },
+            "환불": 4000
+          },
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "카드": 20000
+            },
+            "환불": 0
+          },
+          {
+            "행유형": "지출",
+            "결제정보": {
+              "현금": 99999
+            },
+            "환불": 99999
+          }
+        ],
+        "expenses": [
+          {
+            "지출금액": 5000
+          },
+          {
+            "지출금액": 2500
+          }
+        ]
+      },
+      "expected": {
+        "현금수납": 40000,
+        "현금환불": 4000,
+        "현금지출": 7500,
+        "예상마감금액": 128500,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback: refund on mixed cash+card receipt is not counted as cash refund",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 0
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 10000,
+              "카드": 5000
+            },
+            "환불": 2000
+          }
+        ],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 10000,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 10000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback: null start amount treated as 0",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": null
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 10000
+            },
+            "환불": 0
+          }
+        ],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 10000,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 10000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback: no receipts and no expenses",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 50000
+        },
+        "receipts": [],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 0,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 50000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "fallback: can go negative",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 0
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 1000
+            },
+            "환불": 0
+          }
+        ],
+        "expenses": [
+          {
+            "지출금액": 3000
+          }
+        ]
+      },
+      "expected": {
+        "현금수납": 1000,
+        "현금환불": 0,
+        "현금지출": 3000,
+        "예상마감금액": -2000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "recount needed: 마감금액 differs from expected",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 100000,
+          "마감금액": 120000
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 20001
+            },
+            "환불": 0
+          }
+        ],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 20001,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 120001,
+        "is재정산필요": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "recount not needed: 마감금액 equals expected",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 100000,
+          "마감금액": 120000
+        },
+        "receipts": [
+          {
+            "행유형": "수납",
+            "결제정보": {
+              "현금": 20000
+            },
+            "환불": 0
+          }
+        ],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 20000,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 120000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "recount not needed: 마감금액 not set",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 100000,
+          "마감금액": null
+        },
+        "receipts": [],
+        "expenses": []
+      },
+      "expected": {
+        "현금수납": 0,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 100000,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "server cash flow present, expense list ignored",
+      "input": {
+        "check": "expectedClosing",
+        "cashRegister": {
+          "시작금액": 0,
+          "현금흐름": {
+            "수납현금": 0,
+            "선수금현금충전": 0,
+            "수납현금환불": 0,
+            "선수금현금환불": 0,
+            "지출": 0,
+            "예상마감금액": 0
+          }
+        },
+        "receipts": [],
+        "expenses": [
+          {
+            "지출금액": 9999
+          }
+        ]
+      },
+      "expected": {
+        "현금수납": 0,
+        "현금환불": 0,
+        "현금지출": 0,
+        "예상마감금액": 0,
+        "is재정산필요": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "cash register state: 미등록 when start amount is null",
+      "input": {
+        "check": "cashRegisterState",
+        "시작금액": null,
+        "현금정산일시": null,
+        "마감후수정여부": false
+      },
+      "expected": "미등록",
+      "derivation": "executed"
+    },
+    {
+      "name": "cash register state: start amount 0 is registered (정산전)",
+      "input": {
+        "check": "cashRegisterState",
+        "시작금액": 0,
+        "현금정산일시": null,
+        "마감후수정여부": false
+      },
+      "expected": "정산전",
+      "derivation": "executed"
+    },
+    {
+      "name": "cash register state: 정산완료",
+      "input": {
+        "check": "cashRegisterState",
+        "시작금액": 100000,
+        "현금정산일시": "2026-11-01T20:00:00",
+        "마감후수정여부": false
+      },
+      "expected": "정산완료",
+      "derivation": "executed"
+    },
+    {
+      "name": "cash register state: 정산후수정",
+      "input": {
+        "check": "cashRegisterState",
+        "시작금액": 100000,
+        "현금정산일시": "2026-11-01T20:00:00",
+        "마감후수정여부": true
+      },
+      "expected": "정산후수정",
+      "derivation": "executed"
+    },
+    {
+      "name": "cash register state: 미등록 wins over settled flags",
+      "input": {
+        "check": "cashRegisterState",
+        "시작금액": null,
+        "현금정산일시": "2026-11-01T20:00:00",
+        "마감후수정여부": true
+      },
+      "expected": "미등록",
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Fallback cash receipts are 결제정보.현금 of 수납 rows only; prepaid cash top-ups (선수금현금충전) are not included, unlike the server 현금흐름 (desk.md says the fallback includes them — it does not).",
+    "Fallback cash refunds count 환불 only on rows whose 결제정보 has exactly one key '현금'; refunds on mixed-method rows are ignored.",
+    "When 현금흐름 is present the server's 예상마감금액 is used even if it disagrees with its own components; the client never recomputes it.",
+    "is재정산필요 compares 마감금액 with the expected amount by strict inequality; it is computed but its consumer was not traced.",
+    "시작금액 0 counts as registered (정산전); only null is 미등록."
+  ]
+}

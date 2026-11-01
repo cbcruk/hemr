@@ -1,0 +1,395 @@
+{
+  "rule": "reference-version-selection",
+  "description": "Chooses which reference data version applies to a visit date: static KCD/KOICD/자보수가 JSON switches at a hardcoded 2026-01-01 cutoff, while 건보 fee codes use the latest server 적용일자 not after the visit date.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/index/useKcd20260101JsonQuery.js",
+      "lines": "10-23",
+      "origin": "unminified/index-CBEIvlV0.js:101231-101244"
+    },
+    {
+      "file": "re-upstream/restored/api/settings/requests-7.js",
+      "lines": "6-10",
+      "origin": "unminified/index-CBEIvlV0.js:101005-101026"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/KOICD_20240829_JSON_PATH.js",
+      "lines": "3-13",
+      "origin": "unminified/index-CBEIvlV0.js:100994-101004"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-169.js",
+      "lines": "42-100",
+      "origin": "unminified/index-CBEIvlV0.js:101085-101144"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-169.js",
+      "lines": "146-176",
+      "origin": "unminified/index-CBEIvlV0.js:101184-101214"
+    }
+  ],
+  "inputSchema": {
+    "fn": "'O0' (static JSON version) or 'qF' (fee 적용일자 selection).",
+    "기준일시": "Visit datetime 'yyyyMMddHHmm' (O0) or any string whose digits form yyyyMMdd... (qF).",
+    "timeZone": "O0 only: process time zone the client ran in; the cutoff is built with new Date('2026-01-01') (UTC) then startOfDay in local time.",
+    "적용일자목록": "qF only: GET /settings/references/reimbursement-available-dates -> results.적용일자목록."
+  },
+  "cases": [
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 2025-12-31 23:59 -> legacy (undefined)",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202512312359",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 2026-01-01 00:00 -> 20260101",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202601010000",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 2026-01-01 08:59 -> 20260101",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202601010859",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 2025-01-01 -> legacy",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202501011000",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 2027-03-01 -> 20260101",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202703011000",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 8-digit 20260101 is unparseable as yyyyMMddHHmm -> Invalid Date -> 20260101",
+      "input": {
+        "fn": "O0",
+        "기준일시": "20260101",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 8-digit 20251231 is unparseable -> Invalid Date -> 20260101 (not legacy)",
+      "input": {
+        "fn": "O0",
+        "기준일시": "20251231",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=Asia/Seoul] staticVersion 2025-12-31 00:00 -> legacy",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202512310000",
+        "timeZone": "Asia/Seoul"
+      },
+      "expected": {
+        "version": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion exact match on an available date",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20250401",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250401"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion between two dates -> latest date <= query",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20250630",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250401"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion one day before a date -> previous date",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20251231",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250701"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion exactly 2026-01-01",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20260101",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion after latest -> latest",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20271231",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion before earliest -> earliest (fallback, not empty)",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20241231",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion 12-digit 기준일시 truncated to 8 digits",
+      "input": {
+        "fn": "qF",
+        "기준일시": "202601010000",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion dashes stripped from query",
+      "input": {
+        "fn": "qF",
+        "기준일시": "2025-04-01",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250401"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion empty query -> latest",
+      "input": {
+        "fn": "qF",
+        "기준일시": "",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion query with no digits -> latest",
+      "input": {
+        "fn": "qF",
+        "기준일시": "abc",
+        "적용일자목록": [
+          "20250101",
+          "20250401",
+          "20260101",
+          "20250701"
+        ]
+      },
+      "expected": {
+        "적용일자": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion dates list empty -> empty string",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20260101",
+        "적용일자목록": []
+      },
+      "expected": {
+        "적용일자": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion list entries with dashes are kept verbatim",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20250415",
+        "적용일자목록": [
+          "2025-01-01",
+          "2025-04-01"
+        ]
+      },
+      "expected": {
+        "적용일자": "2025-04-01"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion list entry without digits is dropped",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20250415",
+        "적용일자목록": [
+          "N/A",
+          "20250101"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "feeVersion unsorted list is sorted numerically",
+      "input": {
+        "fn": "qF",
+        "기준일시": "20250515",
+        "적용일자목록": [
+          "20260101",
+          "20250101",
+          "20250501"
+        ]
+      },
+      "expected": {
+        "적용일자": "20250501"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=America/Los_Angeles] staticVersion 2025-12-31 23:59 -> legacy (undefined)",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202512312359",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "[TZ=America/Los_Angeles] staticVersion 2025-12-31 00:00 -> legacy",
+      "input": {
+        "fn": "O0",
+        "기준일시": "202512310000",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "version": "20260101"
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "O0 returns undefined (legacy files kcd/20250722, koicd/20240829, jaboReimbursement/20250108) before 2026-01-01 and '20260101' on/after. Each future reference release needs another hardcoded cutoff; the server should own a version table instead.",
+    "new Date('2026-01-01') is UTC midnight, so in time zones west of UTC the cutoff moves to 2025-12-31 local. In KST it is correct. The server must use an explicit Asia/Seoul date.",
+    "An unparseable 기준일시 (e.g. 8-digit 'yyyyMMdd') gives Invalid Date, and isBefore(Invalid, cutoff) is false, so it silently picks the 2026 version.",
+    "Several screens call the static queries without 기준일시 (DiseaseSearchModal KOICD tree, ReservedDisease, DocumentDiseaseSearchModal, settings templates, PrescriptionInputSearchCrm), so they always use today's version even when editing an older record.",
+    "qF falls back to the earliest 적용일자 when the visit is before every available date (instead of failing). Should the server reject such dates?",
+    "qF returns the original list string, so a dashed entry such as '2025-04-01' is passed verbatim to /settings/references/reimbursement-codes?적용일자=; the server format of 적용일자목록 entries is not confirmed."
+  ]
+}

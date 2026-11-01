@@ -1,0 +1,832 @@
+{
+  "rule": "duplicate-consultation-fee",
+  "description": "Warns before saving or completing a 건보/급여 encounter when another encounter on the same day with the opposite face-to-face/telemedicine mode also carries a consultation fee.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/ReservedProcedures/처방명.js",
+      "lines": "239-261",
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5498-5518"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js",
+      "lines": "279-308",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22626-22655"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-12.js",
+      "lines": "45-66",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:23676-23781"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-221.js",
+      "lines": "904-958",
+      "origin": "unminified/index-CBEIvlV0.js:124854-124909"
+    }
+  ],
+  "inputSchema": {
+    "kind": "saveGuard (the confirm dialog run by savePatientRecord when 진찰료중복안내 is true) or telemedicineClaimWarning (ZBt T0004).",
+    "now": "Frozen device clock (Asia/Seoul); only affects dialog wording.",
+    "보험구분": "Only 건보 and 급여 are checked.",
+    "현재진료": "진료Id, 기준일시 yyyyMMddHHmm, 비대면시범사업여부 (true = telemedicine; anything else = face-to-face), 처방[] with 수가코드.",
+    "최근진료기록": "Recent encounters from the editor store (진료Id, 기준일시, 비대면시범사업여부, 진료처방[]).",
+    "waitingPatientsData": "Today's desk waiting list rows (진료Id, 상태); 상태 '수납완료' switches the wording to the definite overpayment message.",
+    "userChoice": "true = '이대로 저장' (continue), false = '진찰료 정리하기' (abort save/complete).",
+    "expected": "conflictingRecordId = Uh result; proceedSave = validate result; dialog = shown dialog text or null."
+  },
+  "cases": [
+    {
+      "name": "face-to-face current + same-day telemedicine with 진찰료, user keeps -> dialog, save proceeds",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": true
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "same, user chooses to clean up -> save aborted",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": false
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": false,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "telemedicine current + same-day face-to-face with 진찰료 -> dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": true,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10100",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "ftf",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": false,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": true
+      },
+      "expected": {
+        "conflictingRecordId": "ftf",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "two face-to-face encounters same day both with 진찰료 -> no dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "ftf",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": false,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": null,
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "two telemedicine encounters same day -> no dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": true,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": null,
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "other encounter previous day 23:59 -> no dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611010001",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202610312359",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": null,
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "other has only 비대면 관리료 91001 -> no dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "m1",
+                "수가코드": "91001",
+                "카테고리숫자코드": "31001001"
+              },
+              {
+                "id": "a",
+                "수가코드": "40011",
+                "카테고리숫자코드": "33001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": null,
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "current has no 진찰료 -> no dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "a",
+              "수가코드": "40011",
+              "카테고리숫자코드": "33001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": null,
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "any code starting with 10 counts as 진찰료 (e.g. 10400)",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10400",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10101",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "자보 -> check skipped",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "자보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "산재 -> check skipped",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "산재",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "급여 -> check applies",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "급여",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "today and conflicting record already paid -> '확정' overpayment wording",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [
+          {
+            "진료Id": "tele",
+            "상태": "수납완료"
+          }
+        ],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료입니다. 진찰료를 제외하면 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "past date with paid record -> '가정' wording (today check fails)",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202610301400",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202610300900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [
+          {
+            "진료Id": "tele",
+            "상태": "수납완료"
+          }
+        ],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "missing 기준일시 -> no dialog",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "비대면시범사업여부": false,
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": null,
+        "proceedSave": true,
+        "dialog": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "비대면 flag undefined treated as face-to-face",
+      "input": {
+        "kind": "saveGuard",
+        "now": "2026-11-01T15:00:00+09:00",
+        "보험구분": "건보",
+        "현재진료": {
+          "진료Id": "cur",
+          "기준일시": "202611011400",
+          "처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "최근진료기록": [
+          {
+            "진료Id": "tele",
+            "기준일시": "202611010900",
+            "비대면시범사업여부": true,
+            "진료처방": [
+              {
+                "id": "t1",
+                "수가코드": "10200",
+                "카테고리숫자코드": "31001001"
+              }
+            ]
+          }
+        ],
+        "waitingPatientsData": [],
+        "userChoice": null
+      },
+      "expected": {
+        "conflictingRecordId": "tele",
+        "proceedSave": true,
+        "dialog": {
+          "title": "동일일자 대면/비대면 진찰료 중 1가지만 산정가능합니다.\n1가지만 남겨주세요.",
+          "description": "이미 수납이 완료된 진료라면, 진찰료를 제외할 때 과수납금이 발생할 수 있습니다.",
+          "actionButtonText": "이대로 저장",
+          "cancelButtonText": "진찰료 정리하기"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "telemedicine with 진찰료 and same-day face-to-face 진찰료 -> T0004 raw, filtered from claim warnings",
+      "input": {
+        "kind": "telemedicineClaimWarning",
+        "현재진료": {
+          "비대면시범사업여부": true,
+          "진료처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            },
+            {
+              "id": "m1",
+              "수가코드": "91001",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "비대면산정횟수": {
+          "환자월횟수": 0,
+          "환자월한도": 2
+        },
+        "같은날대면진료있음": true,
+        "같은날대면진찰료있음": true
+      },
+      "expected": {
+        "rawWarnings": [
+          {
+            "에러코드": "T0004",
+            "원인제공자Ids": [
+              "f1"
+            ]
+          }
+        ],
+        "shownInClaimWarnings": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "face-to-face current -> ZBt returns nothing",
+      "input": {
+        "kind": "telemedicineClaimWarning",
+        "현재진료": {
+          "비대면시범사업여부": false,
+          "진료처방": [
+            {
+              "id": "f1",
+              "수가코드": "10200",
+              "카테고리숫자코드": "31001001"
+            }
+          ]
+        },
+        "같은날대면진료있음": true,
+        "같은날대면진찰료있음": true
+      },
+      "expected": {
+        "rawWarnings": [],
+        "shownInClaimWarnings": []
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Two face-to-face encounters (or two telemedicine encounters) on the same day, both with 진찰료, are not checked at all on the client. Is a same-mode duplicate consultation fee allowed, or is it checked elsewhere (server/claim)?",
+    "The check is a soft confirm: '이대로 저장' saves and completes with both fees. The redesign lists DUPLICATE_CONSULTATION_FEE as a completion violation; should it be blocking or acknowledgeable (acknowledge[])?",
+    "진찰료 is any code starting with '10' except 비대면 관리료 91001-91004 (which never start with '10', so the ck() exclusion is redundant). Confirm the fee code set.",
+    "The telemedicine claim rule T0004 (same intent) is computed but filtered out of the claim warning list (code not in the displayed set), so it never shows.",
+    "Only the first conflicting encounter is reported (find)."
+  ]
+}

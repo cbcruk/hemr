@@ -7,7 +7,7 @@
 
 ### 런타임
 
-- federation 런타임은 [_virtual___federation__-0.js](../../restored/vendor/_virtual___federation__/_virtual___federation__-0.js)에 있습니다. 재노출은 [_chunks/_virtual___federation__-GOYwUxr7.js](../../restored/_chunks/_virtual___federation__-GOYwUxr7.js)가 합니다. 이름 규칙을 보면 Vite federation 플러그인 산출물로 보입니다 (추정)
+- federation 런타임은 `re-upstream/restored/vendor/_virtual___federation__/_virtual___federation__-0.js`에 있습니다. 재노출은 `re-upstream/restored/_chunks/_virtual___federation__-GOYwUxr7.js`가 합니다. 이름 규칙을 보면 Vite federation 플러그인 산출물로 보입니다 (추정)
 - 원격 4개를 모두 `format: "esm"`, `from: "vite"`로 등록합니다
 - `y(remote, "./Module")`의 동작:
   1. 처음 쓰일 때 remoteEntry를 `import()`합니다
@@ -18,9 +18,9 @@
 
   | 패키지 | 버전 | 청크 |
   |---|---|---|
-  | `vue` | 3.5.35 | [__federation_shared_vue](../../restored/_chunks/__federation_shared_vue-C2ahgQls.js) (Vue 런타임 export 전체 재노출) |
-  | `react` | 19.1.0 | [__federation_shared_react](../../restored/_chunks/__federation_shared_react-CzYBVFPb.js) |
-  | `react-dom` | 19.1.0 | [__federation_shared_react-dom](../../restored/_chunks/__federation_shared_react-dom-BdiQ3A5x.js) |
+  | `vue` | 3.5.35 | __federation_shared_vue (`re-upstream/restored/_chunks/__federation_shared_vue-C2ahgQls.js`) (Vue 런타임 export 전체 재노출) |
+  | `react` | 19.1.0 | __federation_shared_react (`re-upstream/restored/_chunks/__federation_shared_react-CzYBVFPb.js`) |
+  | `react-dom` | 19.1.0 | __federation_shared_react-dom (`re-upstream/restored/_chunks/__federation_shared_react-dom-BdiQ3A5x.js`) |
 
   - `globalThis.__federation_shared__`가 있으면 그 값과 합칩니다
 
@@ -40,10 +40,10 @@
 
 | 컨테이너 | 원격 export 형태 | 호스트가 하는 일 |
 |---|---|---|
-| [BiContainer](../../restored/components/bi/BiContainer.vue.js) / [BiContainer-2](../../restored/components/bi/BiContainer-2.vue.js) | **React 컴포넌트** (함수) | 호스트가 번들한 `react-dom`의 `createRoot(div)`로 루트를 만들고 `createElement(Component, props)`를 렌더합니다. props가 바뀌면 같은 루트에 다시 `render` |
-| [FinanceContainer](../../restored/components/finance/FinanceContainer.vue.js) | `mount(el, { token, initialPath })` → `{ update, unmount }` (`default.mount` 또는 `mount`) | 토큰이 바뀌면 `update`, `initialPath`가 바뀌면 다시 마운트 |
-| [PortalContainer](../../restored/components/portal/PortalContainer.vue.js) | `mount(el, props)` → `{ update, unmount }` | 라우트 쿼리나 슬롯이 바뀌면 `update(props)` |
-| [MembersView](../../restored/views/MembersView.vue.js) | `default(el, options)` → `{ navigate, unmount }` | 라우트 `pathMatch`가 바뀌면 `navigate(path)` |
+| BiContainer (`re-upstream/restored/components/bi/BiContainer.vue.js`) / BiContainer-2 (`re-upstream/restored/components/bi/BiContainer-2.vue.js`) | **React 컴포넌트** (함수) | 호스트가 번들한 `react-dom`의 `createRoot(div)`로 루트를 만들고 `createElement(Component, props)`를 렌더합니다. props가 바뀌면 같은 루트에 다시 `render` |
+| FinanceContainer (`re-upstream/restored/components/finance/FinanceContainer.vue.js`) | `mount(el, { token, initialPath })` → `{ update, unmount }` (`default.mount` 또는 `mount`) | 토큰이 바뀌면 `update`, `initialPath`가 바뀌면 다시 마운트 |
+| PortalContainer (`re-upstream/restored/components/portal/PortalContainer.vue.js`) | `mount(el, props)` → `{ update, unmount }` | 라우트 쿼리나 슬롯이 바뀌면 `update(props)` |
+| MembersView (`re-upstream/restored/views/MembersView.vue.js`) | `default(el, options)` → `{ navigate, unmount }` | 라우트 `pathMatch`가 바뀌면 `navigate(path)` |
 
 **BI 모듈 로드 시점:**
 - `BiContainer` 두 파일은 모듈 최상위에서 `await y(...)`로 노출 모듈 6개를 미리 받습니다
@@ -64,12 +64,12 @@
 
 ### 인증 토큰 동기화
 
-[useModuleFederationTokenSync](../../restored/modules/useModuleFederationTokenSync/part-1.js) `L(onChange)`를 씁니다.
+useModuleFederationTokenSync (`re-upstream/restored/modules/useModuleFederationTokenSync/part-1.js`) `L(onChange)`를 씁니다.
 
 - **토큰 출처:** localStorage `userAuthData`(`bt.사용자로그인정보`)의 JSON입니다. 원격에는 `accessToken`만 넘깁니다
 - **유효성:** `accessToken`이 있어야 합니다. `exp`(초 단위)가 있으면 현재 시각보다 뒤여야 합니다
 - **변경 감지:**
-  - `patchLocalStorageNotifier`가 `localStorage.setItem`·`removeItem`을 감쌉니다. 같은 탭 안의 변경은 `ls:change` CustomEvent로 알립니다. 감싸기는 참조 카운트로 관리합니다 ([patchLocalStorageNotifier.js](../../restored/modules/useModuleFederationTokenSync/patchLocalStorageNotifier.js))
+  - `patchLocalStorageNotifier`가 `localStorage.setItem`·`removeItem`을 감쌉니다. 같은 탭 안의 변경은 `ls:change` CustomEvent로 알립니다. 감싸기는 참조 카운트로 관리합니다 (`re-upstream/restored/modules/useModuleFederationTokenSync/patchLocalStorageNotifier.js`)
   - 그 밖에 `storage` 이벤트, `focus`, `visibilitychange`를 받습니다
   - BI·포털은 1초 간격 폴링도 합니다. 재무는 폴링하지 않습니다
 - **토큰이 무효일 때:**
@@ -80,7 +80,7 @@
 
 ### 재시도와 캐시 무효화
 
-**BI** (`Qs`, [useBiStyles-2.js](../../restored/vendor/react/useBiStyles-2.js)) / **포털** (`Se`, [PortalContainer/getBaseUrl.js](../../restored/lib/PortalContainer/getBaseUrl.js)):
+**BI** (`Qs`, `re-upstream/restored/vendor/react/useBiStyles-2.js`) / **포털** (`Se`, `re-upstream/restored/lib/PortalContainer/getBaseUrl.js`):
 - `ensureRemoteEntryLoaded`: `<script type="module" src=remoteEntry?t=…>`를 넣습니다. 전역 federation 객체가 생길 때까지 100ms 간격으로 최대 50번 확인합니다
 - `invalidateModuleFederationCache`가 지우는 것:
   - `__webpack_require__.cache`
@@ -93,7 +93,7 @@
 
 **포털 전용:** 모듈 로드에 실패하면 sessionStorage `portalModuleReloaded`를 세우고 한 번만 새로고침합니다. 그래도 실패하면 오류 화면을 보여줍니다.
 
-**재무** ([FinanceContainer.helpers.js](../../restored/components/finance/FinanceContainer.helpers.js) `z`):
+**재무** (`re-upstream/restored/components/finance/FinanceContainer.helpers.js` `z`):
 - 재시도(`loadFinanceMount(true)`)에서는 federation 런타임을 거치지 않습니다
   - `remoteEntry.js?t=…`를 직접 `import`합니다
   - `init({})`(빈 공유 스코프)으로 초기화하고 `./financeMount`를 받습니다
@@ -102,7 +102,7 @@
 
 ### 스타일 주입
 
-[useRemoteStyles.js](../../restored/composables/useRemoteStyles.js) `T({ styleAttribute, getBaseUrl, hrefPolicy })`를 씁니다.
+`re-upstream/restored/composables/useRemoteStyles.js` `T({ styleAttribute, getBaseUrl, hrefPolicy })`를 씁니다.
 
 - `<link rel=stylesheet>`를 `<head>`에 넣습니다. 참조 카운트로 관리합니다
 - 기본 정책은 `${base}/style.css` 한 개입니다
@@ -114,7 +114,7 @@
 |---|---|---|
 | BI | `data-bi-styles` | 기본 (`style.css`) |
 | 포털 | `data-portal-styles` | 기본 |
-| MEMBERS | `data-members-styles` | 원격이 스스로 넣은 `${base}/…` 링크를 정리할 때 `rememberHrefs`로 기억해 뒀다가 다음 `ensure`에서 다시 넣습니다 ([api/MembersView/client.js](../../restored/api/MembersView/client.js)) |
+| MEMBERS | `data-members-styles` | 원격이 스스로 넣은 `${base}/…` 링크를 정리할 때 `rememberHrefs`로 기억해 뒀다가 다음 `ensure`에서 다시 넣습니다 (`re-upstream/restored/api/MembersView/client.js`) |
 | 재무 | — | 호스트가 스타일을 주입하지 않습니다 |
 
 - KeepAlive 비활성화(`onDeactivated`) 때 스타일을 정리하고, 재활성화 때 다시 넣습니다 (BI·포털·MEMBERS)
@@ -123,11 +123,11 @@
 
 - **목적:** 매출·예약·환자·수 대시보드·유입경로·진료의별 현황 BI 화면입니다. 사이드바 메뉴 id 70 "경영지표 관리"에 있습니다
 - **접근 조건:**
-  - **권한:** [AnalyticsView](../../restored/views/AnalyticsView.vue.js)가 권한 로드(`DB()`)를 기다립니다. 그다음 `route.matched` 중 `permissionRequired`가 있는 모든 라우트의 `permissionCode`를 `canAccess$`로 확인합니다
+  - **권한:** AnalyticsView (`re-upstream/restored/views/AnalyticsView.vue.js`)가 권한 로드(`DB()`)를 기다립니다. 그다음 `route.matched` 중 `permissionRequired`가 있는 모든 라우트의 `permissionCode`를 `canAccess$`로 확인합니다
     - `/analytics`와 하위 5개는 `경영지표`(`bi`)를 요구합니다
     - 실패하면 `AccessDeniedNotice` "접근 권한이 없습니다. / 대표원장에게 권한을 요청해 주세요."를 보여줍니다
   - **`/analytics/soo-dashboard`:** 자기 `permissionCode`는 없지만 부모 `analytics`가 매칭되므로 `bi`도 필요합니다. 라우터 가드는 `meta.requiredRoleType` `01`(대표원장)이 아니면 홈으로 보냅니다
-  - **사이드바 노출** ([lib/index/part-41.js](../../restored/lib/index/part-41.js) `R6`):
+  - **사이드바 노출** (`re-upstream/restored/lib/index/part-41.js` `R6`):
     - revenue·appointment·patient·incoming-path·doctor는 풀 차트(`a0`)일 때만 보입니다
     - soo-dashboard는 `soo` 연동이거나 원탕 계약만 있는 계정(`kHe`)일 때 보이고, 역할 `01`도 필요합니다
     - 메뉴 id 70은 보험 단독 또는 `members` 계정에서 숨겨집니다
@@ -158,16 +158,16 @@
   - `/analytics/incoming-path`만 호스트 쪽 코드가 있습니다. `SidePanelDeskActionsPatientInfoDetail`(`additional.actionButtons: true`)과 `SidePanelDeskActionsMessageSend`를 함께 렌더합니다
   - [architecture.md](../architecture.md)에서 이 라우트의 엔드포인트 수가 많게 잡히는 것은 이 두 사이드패널(환자 상세·접수·문자 발송 등)의 의존성 때문입니다. 유입경로 데이터 자체는 원격 쪽입니다
 - **근거:**
-  - [routes.js](../../restored/router/routes.js), [AnalyticsView.vue](../../restored/views/AnalyticsView.vue), [BiContainer.vue](../../restored/components/bi/BiContainer.vue), [BiContainer-2.vue](../../restored/components/bi/BiContainer-2.vue)
-  - [IncomingPathTableView.vue.js](../../restored/views/IncomingPathTableView.vue.js), [SooDashboardView.vue.js](../../restored/views/SooDashboardView.vue.js)
-  - [modules/index/Group.js](../../restored/modules/index/Group.js) (메뉴), [router/guards.js](../../restored/router/guards.js)
+  - `re-upstream/restored/router/routes.js`, `re-upstream/restored/views/AnalyticsView.vue`, `re-upstream/restored/components/bi/BiContainer.vue`, `re-upstream/restored/components/bi/BiContainer-2.vue`
+  - `re-upstream/restored/views/IncomingPathTableView.vue.js`, `re-upstream/restored/views/SooDashboardView.vue.js`
+  - `re-upstream/restored/modules/index/Group.js` (메뉴), `re-upstream/restored/router/guards.js`
 
 ## 재무 — `/finance`, `/finance/daily-briefing`, `/finance/expenses`, `/finance/pnl`, `/finance/budget`, `/finance/cashflow`
 
 - **목적:** 일간 브리핑·지출내역·손익분석·예산·현금흐름 화면입니다. 메뉴 id 72 "재무"에 있습니다
 - **접근 조건:**
   - `/finance`는 `finance-daily-briefing`으로 redirect합니다
-  - [FinanceView](../../restored/views/FinanceView.vue.js)가 권한 로드를 기다린 뒤 경로별 요구 권한(`Frn`, [modules/index/part-60.js](../../restored/modules/index/part-60.js))을 `vct`로 검사합니다. 코드 중 하나라도 허용되면 통과입니다:
+  - FinanceView (`re-upstream/restored/views/FinanceView.vue.js`)가 권한 로드를 기다린 뒤 경로별 요구 권한(`Frn`, `re-upstream/restored/modules/index/part-60.js`)을 `vct`로 검사합니다. 코드 중 하나라도 허용되면 통과입니다:
 
     | 경로 | 요구 코드 (`access`) |
     |---|---|
@@ -189,7 +189,7 @@
   - `mount(el, { token, initialPath })` 후 `update({ token, initialPath })`
   - 루트 div는 `overflow-y-auto`입니다
 - **데이터:** 호스트 쪽 재무 엔드포인트는 없습니다
-- **근거:** [FinanceView.vue](../../restored/views/FinanceView.vue), [FinanceContainer.vue](../../restored/components/finance/FinanceContainer.vue), [FinanceContainer.helpers.js](../../restored/components/finance/FinanceContainer.helpers.js), [DailyBriefingView.vue.js](../../restored/views/DailyBriefingView.vue.js), [SettingExpenseCollectionView.vue.js](../../restored/views/SettingExpenseCollectionView.vue.js), [lib/index/part-61.js](../../restored/lib/index/part-61.js)
+- **근거:** `re-upstream/restored/views/FinanceView.vue`, `re-upstream/restored/components/finance/FinanceContainer.vue`, `re-upstream/restored/components/finance/FinanceContainer.helpers.js`, `re-upstream/restored/views/DailyBriefingView.vue.js`, `re-upstream/restored/views/SettingExpenseCollectionView.vue.js`, `re-upstream/restored/lib/index/part-61.js`
 
 ## MEMBERS — `/members/:pathMatch(.*)*`
 
@@ -241,11 +241,11 @@
     - 그 밖의 경우 `null`을 돌려줍니다
   - `onRequireLogin`: `/login`으로 이동합니다
 - **데이터:** 호스트에서는 `/integrations/members/subscribers` 하나만 부릅니다. 지표 데이터는 원격이 `apiBaseUrl`과 토큰으로 직접 요청할 것으로 보입니다 (추정)
-- **근거:** [MembersView.vue.js](../../restored/views/MembersView.vue.js), [api/MembersView/client.js](../../restored/api/MembersView/client.js), [lib/index/part-41.js](../../restored/lib/index/part-41.js), [lib/index/part-72.js](../../restored/lib/index/part-72.js), [router/guards.js](../../restored/router/guards.js), [MembersRetroTermsGate.vue](../../restored/components/members/MembersRetroTermsGate.vue)
+- **근거:** `re-upstream/restored/views/MembersView.vue.js`, `re-upstream/restored/api/MembersView/client.js`, `re-upstream/restored/lib/index/part-41.js`, `re-upstream/restored/lib/index/part-72.js`, `re-upstream/restored/router/guards.js`, `re-upstream/restored/components/members/MembersRetroTermsGate.vue`
 
 ## 자료·공지 포털 — `/portal`, `/library`
 
-- **목적:** 게시판형 자료·공지입니다. 문서 제목은 "자료·공지"입니다 ([modules/index/part-229.js](../../restored/modules/index/part-229.js))
+- **목적:** 게시판형 자료·공지입니다. 문서 제목은 "자료·공지"입니다 (`re-upstream/restored/modules/index/part-229.js`)
 - **접근 조건:**
   - 둘 다 `requiresAuth`만 요구하고 권한 코드는 없습니다
   - **`/portal`:** 전역 레이아웃을 쓰고 모바일을 지원합니다(`supportsMobile`). 모바일 GNB 링크가 있습니다
@@ -268,7 +268,7 @@
     - `onPostChange({ boardId, postId, history })`: 새 글을 열 때나 `history === "push"`이거나 검색 중이면 `push`, 아니면 `replace`
     - `onSearchChange({ query, spaceKey })`: 검색 쿼리 갱신
     - `onNavigate(to)`: `router.push`
-    - `onTrack(name, params)`: `gtag` 이벤트 전송 ([PortalContainer/getBaseUrl.js](../../restored/lib/PortalContainer/getBaseUrl.js) `Pe`)
+    - `onTrack(name, params)`: `gtag` 이벤트 전송 (`re-upstream/restored/lib/PortalContainer/getBaseUrl.js` `Pe`)
       - 이벤트 이름은 `portal_[a-z0-9_]{1,33}`만 받습니다
       - 파라미터는 키 형식이 맞는 원시값만, 최대 25개, 문자열은 100자로 자릅니다
   - 쿼리 동기화는 현재 라우트 이름이 `ownerRouteName`일 때만 합니다
@@ -276,7 +276,7 @@
     - `pageId`는 32자리 hex만 받습니다
     - board/post는 쿼리 대신 내부 ref에 둡니다
 - **데이터:** 호스트 쪽 포털 엔드포인트는 없습니다. 사이드바 배너용 `portalClient`(`getV1Banners`)는 이 화면과 별개입니다
-- **근거:** [SooView.vue.js](../../restored/views/SooView.vue.js), [LibraryWindowView.vue.js](../../restored/views/LibraryWindowView.vue.js), [PortalContainer.vue](../../restored/components/portal/PortalContainer.vue), [PortalContainer.vue.js](../../restored/components/portal/PortalContainer.vue.js), [SidebarNav.vue.js](../../restored/components/sidebar/SidebarNav.vue.js)
+- **근거:** `re-upstream/restored/views/SooView.vue.js`, `re-upstream/restored/views/LibraryWindowView.vue.js`, `re-upstream/restored/components/portal/PortalContainer.vue`, `re-upstream/restored/components/portal/PortalContainer.vue.js`, `re-upstream/restored/components/sidebar/SidebarNav.vue.js`
 
 ## 챌린지 — `/challenge`
 
@@ -285,7 +285,7 @@
   - 라우터 가드가 `HQt`(토큰별 캐시)로 다음을 부릅니다:
     1. `GET /api/surachal/cohort`
     2. `GET /api/surachal/me?cohort_no=`
-  - `access.menu === true`일 때만 들어갈 수 있고, 아니면 홈으로 보냅니다. 404이면 접근 없음으로 캐시합니다 ([lib/index/part-261.js](../../restored/lib/index/part-261.js))
+  - `access.menu === true`일 때만 들어갈 수 있고, 아니면 홈으로 보냅니다. 404이면 접근 없음으로 캐시합니다 (`re-upstream/restored/lib/index/part-261.js`)
   - 탭 노출은 `access.educationLinks` / `dashboard` / `leaderboard`가 `true`인지로 정합니다 (`Ce`)
 - **화면 구성 / 원격 모듈:**
   - 현재 탭은 쿼리 `tab`(`materials` | `taskSubmission` | `leaderboard`)입니다
@@ -302,7 +302,7 @@
   - `GET /api/surachal/cohort`, `/me`, `/progress`
   - `GET`·`POST /api/surachal/submissions`
   - 출처: [endpoints.md](../../endpoints.md)
-- **근거:** [ChallengeView.vue.js](../../restored/views/ChallengeView.vue.js), [SooRisingMaterialsPane.vue.js](../../restored/components/soo/SooRisingMaterialsPane.vue.js), [modules/ChallengeView/UniqueKey.js](../../restored/modules/ChallengeView/UniqueKey.js), [useApiSurachalCohortQuery.js](../../restored/modules/index/useApiSurachalCohortQuery.js), [router/guards.js](../../restored/router/guards.js)
+- **근거:** `re-upstream/restored/views/ChallengeView.vue.js`, `re-upstream/restored/components/soo/SooRisingMaterialsPane.vue.js`, `re-upstream/restored/modules/ChallengeView/UniqueKey.js`, `re-upstream/restored/modules/index/useApiSurachalCohortQuery.js`, `re-upstream/restored/router/guards.js`
 
 ## 자리표시·개발용 — `/message`, `/help`, `/preview`
 
@@ -313,7 +313,7 @@
 - **화면 구성 / 원격 모듈:** 원격 앱은 없습니다
 - **호스트가 넘기는 값:** 없음
 - **데이터:** API 호출은 보이지 않습니다
-- **근거:** [modules/MessageView.js](../../restored/modules/MessageView.js), [modules/HelpView.js](../../restored/modules/HelpView.js), [ComponentPreview.vue.js](../../restored/components/component/ComponentPreview.vue.js)
+- **근거:** `re-upstream/restored/modules/MessageView.js`, `re-upstream/restored/modules/HelpView.js`, `re-upstream/restored/components/component/ComponentPreview.vue.js`
 
 ## 미확인·추정
 

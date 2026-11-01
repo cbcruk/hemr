@@ -99,16 +99,20 @@ MCP 승인 대기 화면은 prod에서도 데모 계정에 열려 있습니다 (
 
 현행 규칙의 근거가 클라이언트 코드뿐이라, 서버로 옮기면서 경계값을 잘못 옮길 수 있습니다.
 
-| 규칙 | 현행 근거 | 확인 방법 |
-|---|---|---|
-| 첩약 한도 하루 8 / 월 60 / 연 600, 초과 시 본인부담률 `U` | `re-upstream/restored/modules/index/첩건본인부담률구분코드.js` | 심평원 시범사업 지침 원문 대조 + 경계값 테스트 |
-| 추나 연 20회 | `re-upstream/restored/modules/index/part-210.js` | 고시 대조 |
-| 야간·공휴·토요 가산 | 진찰료 수가코드 판정 (`docs/reference/spec/treatment.md`) | 수가 고시 대조 |
-| 자보 같은 날 2차 진료 진찰료 제외 | `re-upstream/restored/modules/index/local.js` | 자보 진료수가 기준 대조 |
-| 예약 수용 한도 (`추가예약제한` → 1건) | `docs/reference/spec/appointment.md` | 현행 화면 동작 재현 테스트 |
-| 수납 남은 금액 판정 | `docs/reference/spec/desk.md` (판정식 부호 모호) | 이 문서의 정의(`due - received > 0` → 미수)가 업무 의미와 맞는지 데스크 실무자 확인 |
+현행 클라이언트 규칙 23개를 원본 코드를 실행해 입력·출력 케이스로 뽑아 두었습니다 ([docs/reference/rules](../reference/rules/README.md), 픽스처는 `test/fixtures/rules/`). 케이스는 **현행 동작**이며, 버그로 보이는 동작도 그대로 담았습니다. 서버 구현은 각 규칙 문서의 "서버 이전 시 주의"와 픽스처의 `openQuestions`를 하나씩 결정한 뒤, 따를 케이스와 일부러 바꿀 케이스를 나눠 테스트로 씁니다.
 
-**권장:** 규칙 하나마다 "현행 클라이언트 함수 입력 → 출력" 표를 만들어 서버 구현의 테스트 픽스처로 씁니다. `re-upstream/restored/`에 함수가 남아 있으므로 같은 입력을 양쪽에 넣어 비교할 수 있습니다.
+| 결정이 필요한 대표 차이 | 규칙 |
+|---|---|
+| 같은 상병 이력 판정을 두 함수가 다르게 해서 "코드는 G, 화면은 처방 불가"가 생김 | [pilot-herbal-diagnosis-limit](../reference/rules/pilot-herbal-diagnosis-limit.md) |
+| 청구 검사 12개 중 9개는 계산 후 버려지고, C0004·C0010은 날짜 차이 부호가 반대, C0007은 존재하지 않는 상수 참조 | [pilot-herbal-claim-checks](../reference/rules/pilot-herbal-claim-checks.md) |
+| 추나 20회째에 경고가 뜨는지(산재) 21회째부터인지(건보), 자보에 한도가 있는지 | [chuna-annual-limit](../reference/rules/chuna-annual-limit.md) |
+| 나이 계산에서 월을 1 빼지 않아 1세 미만 가산·65세 이상 제외가 틀어짐 | [consultation-fee-code](../reference/rules/consultation-fee-code.md) |
+| `2026-01-01` 컷오프가 UTC 자정이라 시간대에 따라 하루 밀림 | [reference-version-selection](../reference/rules/reference-version-selection.md) |
+| 보험구분·처방 카테고리 대역 일치는 현행에 없음 (신규 규칙으로 할지) | [coverage-category-band](../reference/rules/coverage-category-band.md) |
+| 예약 한도 초과를 화면마다 `>`/`>=`로 다르게 보여 주고 막지는 않음 | [appointment-acceptance](../reference/rules/appointment-acceptance.md) |
+| 제주 지원금 행이 과세 포함 금액으로 상한을 잡고 비과세에서만 차감 | [checkout-settlement](../reference/rules/checkout-settlement.md) |
+| 원외탕전 precheck가 `catch {}`와 응답 필드 오독으로 사실상 결제를 막지 못함 | [external-herbal-precheck](../reference/rules/external-herbal-precheck.md) |
+| 패키지 항목 VAT `포함`에도 10%를 더함 | [settings-validation](../reference/rules/settings-validation.md) |
 
 ### 오프라인
 
@@ -173,5 +177,5 @@ D1에서 오프라인 접수·수납을 지원하기로 했습니다. 설계는 
 
 1. **D2 결정.** 오프라인 엣지 구현의 선행 조건입니다. 온라인 모듈(D7 순서)은 D2 없이 시작할 수 있습니다
 2. **Front Desk·Clinical OpenAPI 명세 작성.** 이 문서의 리소스·커맨드를 `openapi.yaml`로 옮기고, 오류 코드 목록을 확정합니다
-3. **규칙 픽스처 추출.** [위험](#규칙-이전-시-동작-차이) 표의 규칙마다 `re-upstream/restored/` 함수에서 입력·출력 케이스를 뽑습니다
+3. **규칙 결정.** [규칙 이전 시 동작 차이](#규칙-이전-시-동작-차이)의 `openQuestions`를 정하고, 픽스처 중 따를 케이스를 서버 테스트로 옮깁니다
 4. **기술 스택 선택.** TypeScript(strict) 기준이면 Hono 또는 Fastify + PostgreSQL + outbox 릴레이를 후보로 둡니다

@@ -7,11 +7,11 @@
 
 - **권한 코드:** `/ocs`·`/ocs/prescription/*` → `탕전관리`(`ocs`), `/ocs-v2-herb-order-*` → `메디원탕`(`medi_ocs`). 모든 라우트가 `requiresAuth`, `permissionRequired`, `usesGlobalLayout`입니다
 - **화면 안 권한 확인:** 각 뷰는 `l0e()`의 `isPermissionPending`/`hasPageAccess`를 보고 로딩 → 본문 → "접근 권한이 없습니다. / 대표원장에게 권한을 요청해 주세요."(`AccessDeniedNotice`) 순으로 분기합니다
-- **신형·구형은 서로 배타적입니다** ([guards.js](../../restored/router/guards.js)). 가드가 `vne(accessToken)`으로 받은 `요양기관기호`를 하드코딩 목록 판정 `epe()`([part-63.js](../../restored/lib/index/part-63.js))에 넣습니다
+- **신형·구형은 서로 배타적입니다** (`re-upstream/restored/router/guards.js`). 가드가 `vne(accessToken)`으로 받은 `요양기관기호`를 하드코딩 목록 판정 `epe()`(`re-upstream/restored/lib/index/part-63.js`)에 넣습니다
   - 목록에 없는 기관이 `tangjeon-prescription-list`/`create`(`GQt`)로 오면 `ocs`로 보냅니다
   - 목록에 든 기관이 `ocs`로 오면 `tangjeon-prescription-list`로 보냅니다
-  - 사이드바도 같은 판정을 씁니다. id 50 "탕전관리" 항목의 `href`가 `/ocs` 대신 `/ocs/prescription/list`(`_ct`)로 바뀝니다 ([part-74.js](../../restored/modules/index/part-74.js), [Group.js](../../restored/modules/index/Group.js))
-  - 같은 판정을 컴포저블로 감싼 것이 `use탕전관리v2활성`이고, 진료 화면의 탭 노출에 쓰입니다 ([use탕전관리v2활성.js](../../restored/composables/use탕전관리v2활성.js))
+  - 사이드바도 같은 판정을 씁니다. id 50 "탕전관리" 항목의 `href`가 `/ocs` 대신 `/ocs/prescription/list`(`_ct`)로 바뀝니다 (`re-upstream/restored/modules/index/part-74.js`, `re-upstream/restored/modules/index/Group.js`)
+  - 같은 판정을 컴포저블로 감싼 것이 `use탕전관리v2활성`이고, 진료 화면의 탭 노출에 쓰입니다 (`re-upstream/restored/composables/use탕전관리v2활성.js`)
 - **서비스 연동:** 서비스 연동 조건을 못 채운 계정이 `ocs`로 오면 기본 홈으로 보냅니다 (`WQt`, [access-control.md](../access-control.md))
 - **사이드바:** id 55 "메디원탕"(아이콘 `원외탕전`)의 하위 메뉴는 "처방전 작성"(`/ocs-v2-herb-order-create`)과 "처방내역"(`/ocs-v2-herb-order-list`)입니다
 - **헤더 제목:** `/ocs` 헤더는 조건(`Yu() || gHe()`)에 따라 "탕전현황" 또는 "탕전관리"로 보입니다. 조건의 뜻은 확인하지 못했습니다
@@ -68,7 +68,7 @@
 - **상태 저장:**
   - TanStack 쿼리 키 `ocsKeys` (`["ocs", "list"|"infiniteList"|"stats"|"detail"|"dictionary"|"category", …]`)
   - `usePatchOcsMutation`은 성공 시 상세·목록·통계와 환자 일반한약처방 목록·상세를 무효화합니다. delivery 뮤테이션은 상세·목록만, taking 뮤테이션은 상세·목록·통계를 무효화합니다
-- **근거:** [OcsView.vue](../../restored/views/OcsView.vue), [OcsViewContent.vue](../../restored/components/ocs/OcsViewContent.vue), [OcsViewList.vue](../../restored/components/ocs/OcsViewList.vue), [OcsViewListTable.vue](../../restored/components/ocs/OcsViewListTable.vue), [OcsViewListTableReceiveTypeCell.vue](../../restored/components/ocs/OcsViewListTableReceiveTypeCell.vue), [OcsViewListTablePrescriptionSidePanel.vue](../../restored/components/ocs/OcsViewListTablePrescriptionSidePanel.vue), [OcsViewPrescriptionPanel.vue](../../restored/components/ocs/OcsViewPrescriptionPanel.vue), [api/ocs/requests.js](../../restored/api/ocs/requests.js), [usePatchOcsMutation.js](../../restored/modules/mutations/usePatchOcsMutation.js), [api/ocs/query-keys.js](../../restored/api/ocs/query-keys.js)
+- **근거:** `re-upstream/restored/views/OcsView.vue`, `re-upstream/restored/components/ocs/OcsViewContent.vue`, `re-upstream/restored/components/ocs/OcsViewList.vue`, `re-upstream/restored/components/ocs/OcsViewListTable.vue`, `re-upstream/restored/components/ocs/OcsViewListTableReceiveTypeCell.vue`, `re-upstream/restored/components/ocs/OcsViewListTablePrescriptionSidePanel.vue`, `re-upstream/restored/components/ocs/OcsViewPrescriptionPanel.vue`, `re-upstream/restored/api/ocs/requests.js`, `re-upstream/restored/modules/mutations/usePatchOcsMutation.js`, `re-upstream/restored/api/ocs/query-keys.js`
 
 ## 탕전 처방 목록 (신형) — `/ocs/prescription/list`
 
@@ -141,7 +141,7 @@
   | `94` | 산재 | 산재 | 산재 약재 |
 
 - **상태 저장:** `tangjeonKeys` (`["tangjeon","prescriptions", "list"|"infinite-list"|"stats"|"detail"|"by-treatment"|"histories"|"prescription-documents"|"document-ledger"|"unregistered", …]`, `["tangjeon","treatment-prescriptions",…]`, `["tangjeon","herbs"|"herbs-all"|"dispensary-rooms"|"dictionaries",…]`). 화면 탭은 라우트 쿼리에 둡니다
-- **근거:** [TangjeonPrescriptionListView.vue](../../restored/views/TangjeonPrescriptionListView.vue), [TangjeonPrescriptionListContent.vue](../../restored/components/tangjeon/TangjeonPrescriptionListContent.vue), [helpers.js (액션)](../../restored/components/tangjeon/TangjeonPrescriptionListContent.helpers.js), [helpers-2.js (작성 진입)](../../restored/components/tangjeon/TangjeonPrescriptionListContent.helpers-2.js), [TangjeonListStatusCell.vue](../../restored/components/tangjeon/TangjeonListStatusCell.vue), [처방작성변환.js](../../restored/modules/처방작성변환.js), [part-64.js](../../restored/modules/index/part-64.js), [part-4.js (탭)](../../restored/modules/TangjeonPrescriptionListView/part-4.js), [api/tangjeon/requests.js](../../restored/api/tangjeon/requests.js)
+- **근거:** `re-upstream/restored/views/TangjeonPrescriptionListView.vue`, `re-upstream/restored/components/tangjeon/TangjeonPrescriptionListContent.vue`, helpers.js (액션) (`re-upstream/restored/components/tangjeon/TangjeonPrescriptionListContent.helpers.js`), helpers-2.js (작성 진입) (`re-upstream/restored/components/tangjeon/TangjeonPrescriptionListContent.helpers-2.js`), `re-upstream/restored/components/tangjeon/TangjeonListStatusCell.vue`, `re-upstream/restored/modules/처방작성변환.js`, `re-upstream/restored/modules/index/part-64.js`, part-4.js (탭) (`re-upstream/restored/modules/TangjeonPrescriptionListView/part-4.js`), `re-upstream/restored/api/tangjeon/requests.js`
 
 ## 탕전 처방 작성 — `/ocs/prescription/create`
 
@@ -190,7 +190,7 @@
     - 약재 항목(`약재[]`): `한약재명`, `처방용량`, `원방용량`, `단위`, `단가`, `후하`, `메모`, `주성분코드`, `병원첩건약재제품Id`, `제품코드`, `가중평균가`, `레퍼런스한약재공정서Id`
 - **데이터:** 위 엔드포인트, `GET /tangjeon/dictionaries`(방제사전: `보험구분`, `search_keyword`), 개인방제(`SETTINGS_PERSONAL_FORMULAS_PATH`), `GET /settings/treatments`
 - **상태 저장:** 폼 상태는 컴포넌트 안의 `yl()`이 들고 있습니다 (`isDirty`, `markClean`, 잠금 플래그). 쿼리 키는 `tangjeonKeys`를 씁니다
-- **근거:** [TangjeonPrescriptionCreateView.vue](../../restored/views/TangjeonPrescriptionCreateView.vue), [TangjeonPrescriptionCreateContent.vue](../../restored/components/tangjeon/TangjeonPrescriptionCreateContent.vue), [helpers-3.js (검증)](../../restored/components/tangjeon/TangjeonPrescriptionCreateContent.helpers-3.js), [helpers-6.js (저장)](../../restored/components/tangjeon/TangjeonPrescriptionCreateContent.helpers-6.js), [use처방작성진입.js](../../restored/composables/use처방작성진입.js), [TangjeonTreatmentModal.vue](../../restored/components/tangjeon/TangjeonTreatmentModal.vue)
+- **근거:** `re-upstream/restored/views/TangjeonPrescriptionCreateView.vue`, `re-upstream/restored/components/tangjeon/TangjeonPrescriptionCreateContent.vue`, helpers-3.js (검증) (`re-upstream/restored/components/tangjeon/TangjeonPrescriptionCreateContent.helpers-3.js`), helpers-6.js (저장) (`re-upstream/restored/components/tangjeon/TangjeonPrescriptionCreateContent.helpers-6.js`), `re-upstream/restored/composables/use처방작성진입.js`, `re-upstream/restored/components/tangjeon/TangjeonTreatmentModal.vue`
 
 ## 진료 화면 연동
 
@@ -198,7 +198,7 @@
   - 표시: "이 진료로 만든 탕전 처방" 목록 (`GET /tangjeon/prescriptions/by-treatment/{진료Id}`)과 청구 약재 대조 결과
   - 버튼: "탕전실로 조제 지시"(`TangjeonTreatmentModal` 진료모달), "처방전 발급", "탕전관리에서 보기"
 - `TreatmentViewBoardAside`에는 `원외탕전주문` 탭이 있고, 그 탭이 `OcsV2DecoctionOrderAsideAccordion`(메디원탕 주문 요약·작성)을 렌더합니다. 탭 노출 조건은 확인하지 못했습니다 (추정)
-- 근거: [TangjeonLinkedPrescriptions.vue](../../restored/components/tangjeon/TangjeonLinkedPrescriptions.vue), [TreatmentViewBoardAside.vue](../../restored/components/treatment/TreatmentViewBoardAside.vue)
+- 근거: `re-upstream/restored/components/tangjeon/TangjeonLinkedPrescriptions.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoardAside.vue`
 
 ## 처방전 발급 — `HerbalPrescriptionIssue*`
 
@@ -216,7 +216,7 @@
     - 처방전에 새로 추가된 약재는 `GET /tangjeon/herbs`로 매칭해 추가합니다. 못 넣은 약재는 경고합니다
     - 수령희망일이 바뀌었으면 `PATCH …/{id}/delivery`로 `{수령일}`을 보냅니다
   - 패널을 닫으면 `tangjeonKeys.prescriptionDocuments(id)`와 `documentLedgerAll()`을 무효화합니다
-- **근거:** [TangjeonPrescriptionIssuePanels.vue](../../restored/components/tangjeon/TangjeonPrescriptionIssuePanels.vue), [prefetchTangjeonPrescriptionsQuery.js](../../restored/modules/TangjeonPrescriptionIssuePanels/prefetchTangjeonPrescriptionsQuery.js), [HerbalPrescriptionIssuePanel.vue](../../restored/components/herbal/HerbalPrescriptionIssuePanel.vue), [HerbalPrescriptionUnassignedIssuePanel.vue.js](../../restored/components/herbal/HerbalPrescriptionUnassignedIssuePanel.vue.js)
+- **근거:** `re-upstream/restored/components/tangjeon/TangjeonPrescriptionIssuePanels.vue`, `re-upstream/restored/modules/TangjeonPrescriptionIssuePanels/prefetchTangjeonPrescriptionsQuery.js`, `re-upstream/restored/components/herbal/HerbalPrescriptionIssuePanel.vue`, `re-upstream/restored/components/herbal/HerbalPrescriptionUnassignedIssuePanel.vue.js`
 
 ## 약재 편집기·방제 사전
 
@@ -229,7 +229,7 @@
 - **방제 사전:**
   - 구형: `OcsViewPrescriptionOcsDictionary`. 처방명 검색, 카테고리 세로 탭(`/ocs/dictionaries/categories`), 개인 방제와 사전 처방 목록을 보여 주고, 더블클릭하면 적용합니다
   - 신형: `TangjeonCreateDictionaryCard`. 방제사전(`/tangjeon/dictionaries`), 개인방제, 약재목록(`/tangjeon/herbs`) 탭이 있습니다. 첩건은 진료를 불러와 탕전실이 정해져야 약재가 보입니다
-- **근거:** [HerbTableEditor.vue.js](../../restored/components/herb/HerbTableEditor.vue.js), [OcsViewPrescriptionOcsDictionary.vue](../../restored/components/ocs/OcsViewPrescriptionOcsDictionary.vue), [TangjeonCreateDictionaryCard.vue.js](../../restored/components/tangjeon/TangjeonCreateDictionaryCard.vue.js)
+- **근거:** `re-upstream/restored/components/herb/HerbTableEditor.vue.js`, `re-upstream/restored/components/ocs/OcsViewPrescriptionOcsDictionary.vue`, `re-upstream/restored/components/tangjeon/TangjeonCreateDictionaryCard.vue.js`
 
 ## 메디원탕 게이트·원탕 계약 — `/ocs-v2-herb-order-create`, `/ocs-v2-herb-order-list`
 
@@ -246,7 +246,7 @@
   - 모달이 열려 있는 동안 창에 포커스가 오면 `userKeys.me()`와 `sooSubscriptionKeys.sooProStatus()`를 무효화합니다. 이용 가능해지면 모달을 자동으로 닫습니다
   - 하위 화면에는 `provide(계약게이트, { 이용가능, open계약모달 })`로 상태를 넘깁니다
 - **원탕 가입:** `/sign-up/ondang/*`에서 합니다 (`GET`/`POST /integrations/onboarding/wontang/profile|signup`). 자세한 내용은 [account-onboarding.md](account-onboarding.md)에 있습니다
-- **근거:** [OndangGateView.vue.js](../../restored/views/OndangGateView.vue.js), [OndangContractRequiredModal.vue](../../restored/components/ondang/OndangContractRequiredModal.vue), [_hoisted_1.js (계약 판정)](../../restored/modules/OndangContractRequiredModal/_hoisted_1.js), [part-195.js](../../restored/modules/index/part-195.js)
+- **근거:** `re-upstream/restored/views/OndangGateView.vue.js`, `re-upstream/restored/components/ondang/OndangContractRequiredModal.vue`, _hoisted_1.js (계약 판정) (`re-upstream/restored/modules/OndangContractRequiredModal/_hoisted_1.js`), `re-upstream/restored/modules/index/part-195.js`
 
 ## 메디원탕 주문 작성 — `/ocs-v2-herb-order-create`
 
@@ -287,7 +287,7 @@
   - `ocsV2Keys` (`["ocsV2","drafts","list"|"detail",…]`, `snapshots`, `orderStatus`, `herbs/search`, `orderOptions`, `paymentMethods`, `sameday/classify`, `eligibility`, `contract`)와 `["ocsV2","dispensary"]`
   - 초안 상태(`현재draftId`)는 `sg()`가 들고 있습니다
   - 스냅샷: `GET /ocsv2/drafts/{id}/snapshots`. 주문 상태: `GET /ocsv2/orders/{id}/status`
-- **근거:** [OcsV2OrderCreateView.vue](../../restored/views/OcsV2OrderCreateView.vue), [OcsV2OrderCreateView.vue.js](../../restored/views/OcsV2OrderCreateView.vue.js), [part-7.js (submitOrderAndPay)](../../restored/modules/useOcsV2배송상태/part-7.js), [api/ocs-v2/query-keys.js](../../restored/api/ocs-v2/query-keys.js), [OcsV2OrderEligibilityBlockModal.vue.js](../../restored/components/ocsV2/OcsV2OrderEligibilityBlockModal.vue.js)
+- **근거:** `re-upstream/restored/views/OcsV2OrderCreateView.vue`, `re-upstream/restored/views/OcsV2OrderCreateView.vue.js`, part-7.js (submitOrderAndPay) (`re-upstream/restored/modules/useOcsV2배송상태/part-7.js`), `re-upstream/restored/api/ocs-v2/query-keys.js`, `re-upstream/restored/components/ocsV2/OcsV2OrderEligibilityBlockModal.vue.js`
 
 ## 메디원탕 처방내역 — `/ocs-v2-herb-order-list`
 
@@ -317,11 +317,11 @@
   - **주문서 열기:** 메디마켓 주문서(`/orders/{메디마켓주문ID}`)를 새 탭으로 엽니다
   - **상태 조회:** `GET /ocsv2/orders/{id}/status` → 토스트 "주문진행상태: …"
   - 계속작성·수정·재주문은 진입 정보를 담아 `ocs-v2-herb-order-create`로 이동합니다
-- **근거:** [OcsV2OrderListView.vue](../../restored/views/OcsV2OrderListView.vue), [OcsV2OrderListView/part-1.js](../../restored/modules/OcsV2OrderListView/part-1.js), [OcsV2OrderListView/part-2.js](../../restored/modules/OcsV2OrderListView/part-2.js), [useOcsV2OrderListMock.js](../../restored/composables/useOcsV2OrderListMock.js)
+- **근거:** `re-upstream/restored/views/OcsV2OrderListView.vue`, `re-upstream/restored/modules/OcsV2OrderListView/part-1.js`, `re-upstream/restored/modules/OcsV2OrderListView/part-2.js`, `re-upstream/restored/composables/useOcsV2OrderListMock.js`
 
 ## 조제·배송 상태 값
 
-### 탕전·OCS `조제상태` ([ocsDispensingStatus.js](../../restored/modules/ocsDispensingStatus.js))
+### 탕전·OCS `조제상태` (`re-upstream/restored/modules/ocsDispensingStatus.js`)
 
 | 값 | 라벨 | 배지 색 | 수동 선택 | 비고 |
 |---|---|---|---|---|

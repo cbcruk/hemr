@@ -1,0 +1,1427 @@
+{
+  "rule": "special-case-code-match",
+  "description": "Requires a 4-character 산정특례 특정기호 (MT002) when a 건보 record carries a rare/intractable-disease 산정특례 registration number (MT014), and resolves which 특정기호 candidates fit a diagnosis code via the rare-disease reference ranges.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js",
+      "lines": "255-282",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22602-22629"
+    },
+    {
+      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardEditHeader.vue.js",
+      "lines": "279-300",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:27261-27282"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-103.js",
+      "lines": "153-406",
+      "origin": "unminified/index-CBEIvlV0.js:79877-80118"
+    },
+    {
+      "file": "re-upstream/restored/modules/ReservedProcedures/part-9.js",
+      "lines": "6-8",
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:4562-4563"
+    },
+    {
+      "file": "re-upstream/restored/modules/DiseaseInputDropdown/part-2.js",
+      "lines": "9-136",
+      "origin": "unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang-CzWw_49p.js:72-198"
+    },
+    {
+      "file": "re-upstream/restored/modules/DiseaseInputDropdown/part-1.js",
+      "lines": "3-64",
+      "origin": "unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang-CzWw_49p.js:15-71"
+    }
+  ],
+  "inputSchema": {
+    "fn": "'validateSpecialCaseCode' (save/complete gate), 'dE/din' (registration prefix category), 'ce' (연계상병 range matcher), 'resolveSpecialCaseCandidates' (diagnosis -> 특정기호 candidates).",
+    "진료내용": "{보험구분, 희귀난치의료비지원진료여부?, 명세서특정내역: [{특정내역구분: 'MT002' 특정기호 | 'MT014' 등록번호, 특정코드내용}], 보험조회?}. 보험조회 is given here as the already-parsed eligibility entity (the client parses XML with rb.convertInsuranceXMLToEntity, stubbed as identity in the harness).",
+    "희귀상병데이터": "Rows of rareDiseases/20241018.json {id, 특정기호코드, 연계상병, 질환명}; rows in this fixture are synthetic.",
+    "연계상병": "Comma-separated KCD codes or ranges ('E70-E72').",
+    "상병코드": "Diagnosis KCD code (dots/case ignored)."
+  },
+  "cases": [
+    {
+      "name": "건보, 희귀질환(21) 등록번호, MT002 V101 -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V101"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 empty -> invalid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 'V12' (3 chars) -> invalid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V12"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 'V1234' (5 chars) -> invalid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V1234"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 ' V101 ' (leading space: not seen as V-prefixed by lin) -> check skipped -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": " V101 "
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 lowercase 'v101' -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "v101"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 'H101' (not V-prefixed) -> lin false -> check skipped -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "H101"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀질환(21), MT002 entry missing -> lin false -> check skipped -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀난치(05), MT002 empty -> invalid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "05000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 중증난치(23), MT002 empty -> invalid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "23000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 기타염색체이상(14), MT002 empty -> invalid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "14000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 암(01), MT002 empty -> not a checked category -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "01000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 결핵(07), MT002 empty -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "07000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 극희귀(11), MT002 empty -> not checked -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "11000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 상세불명희귀(13), MT002 empty -> not checked -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "13000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 중증치매(15), MT002 empty -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "15000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, MT014 content empty -> L=해당없음 -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": ""
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, single-char 등록번호 '2' -> din length!=2 -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "2"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "자보, 희귀질환(21), MT002 empty -> not 건보 -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "자보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "급여, 희귀질환(21), MT002 empty -> not 건보 -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "급여",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 희귀난치의료비지원진료여부=true -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "희귀난치의료비지원진료여부": true,
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보, 명세서특정내역 null -> valid",
+      "input": {
+        "fn": "validateSpecialCaseCode",
+        "진료내용": {
+          "보험구분": "건보",
+          "명세서특정내역": null
+        }
+      },
+      "expected": {
+        "valid": true,
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 01",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "01"
+      },
+      "expected": {
+        "category": "암",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 05",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "05"
+      },
+      "expected": {
+        "category": "희귀난치질환",
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 07",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "07"
+      },
+      "expected": {
+        "category": "결핵",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 08",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "08"
+      },
+      "expected": {
+        "category": "결핵",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 09",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "09"
+      },
+      "expected": {
+        "category": "중증화상",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 11",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "11"
+      },
+      "expected": {
+        "category": "극희귀질환",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 13",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "13"
+      },
+      "expected": {
+        "category": "상세불명희귀질환",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 14",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "14"
+      },
+      "expected": {
+        "category": "기타염색체이상질환",
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 15",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "15"
+      },
+      "expected": {
+        "category": "중증치매",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 21",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "21"
+      },
+      "expected": {
+        "category": "희귀질환",
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 22",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "22"
+      },
+      "expected": {
+        "category": "잠복결핵",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 23",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "23"
+      },
+      "expected": {
+        "category": "중증난치질환",
+        "requiresSpecificCode": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "category of 등록번호 prefix 99",
+      "input": {
+        "fn": "dE/din",
+        "prefix": "99"
+      },
+      "expected": {
+        "category": "",
+        "requiresSpecificCode": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'G12.2' matches 'G12.2'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "G12.2",
+        "상병코드": "G12.2"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'G12.2' matches 'G122'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "G12.2",
+        "상병코드": "G122"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'G12.2' matches 'G1221'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "G12.2",
+        "상병코드": "G1221"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'G12.2' matches 'G12'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "G12.2",
+        "상병코드": "G12"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'G12.2' matches 'g12.2'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "G12.2",
+        "상병코드": "g12.2"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E70'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E70"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E71.5'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E71.5"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E72'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E72"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E72.9'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E72.9"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E73'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E73"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E69'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E69"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'E70-E72' matches 'E7'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "E70-E72",
+        "상병코드": "E7"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'Q00-R99' matches 'Q00'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "Q00-R99",
+        "상병코드": "Q00"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'Q00-R99' matches 'Q55'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "Q00-R99",
+        "상병코드": "Q55"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'Q00-R99' matches 'R99'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "Q00-R99",
+        "상병코드": "R99"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'Q00-R99' matches 'R50'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "Q00-R99",
+        "상병코드": "R50"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'M05,M06' matches 'M05.3'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "M05,M06",
+        "상병코드": "M05.3"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'M05,M06' matches 'M06'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "M05,M06",
+        "상병코드": "M06"
+      },
+      "expected": {
+        "matches": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 'M05,M06' matches 'M07'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "M05,M06",
+        "상병코드": "M07"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "연계상병 '' matches 'A00'",
+      "input": {
+        "fn": "ce",
+        "연계상병": "",
+        "상병코드": "A00"
+      },
+      "expected": {
+        "matches": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "registered V101, dx in V101 연계상병 -> [V101]",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V101",
+              "등록번호": "21000123"
+            }
+          },
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V101"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "G12.2"
+      },
+      "expected": {
+        "candidates": [
+          {
+            "specificCode": "V101",
+            "diseaseName": "synthetic-A"
+          }
+        ],
+        "활성특정기호": "V101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "registered V101, dx outside 연계상병 -> []",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V101",
+              "등록번호": "21000123"
+            }
+          },
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V101"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "I10"
+      },
+      "expected": {
+        "candidates": [],
+        "활성특정기호": "V101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "registered V101, dx E71 belongs to other codes only -> []",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V101",
+              "등록번호": "21000123"
+            }
+          },
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V101"
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "E71"
+      },
+      "expected": {
+        "candidates": [],
+        "활성특정기호": "V101"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "registered V999 (not in rare-disease data), 등록번호 prefix 21 -> falls back to all rows -> dx E71 -> [V102,V103]",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V999",
+              "등록번호": "21000123"
+            }
+          },
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "21000123"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "E71"
+      },
+      "expected": {
+        "candidates": [
+          {
+            "specificCode": "V102",
+            "diseaseName": "synthetic-B"
+          },
+          {
+            "specificCode": "V103",
+            "diseaseName": "synthetic-C"
+          }
+        ],
+        "활성특정기호": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "registered V999, 등록번호 prefix 01 (암) -> no fallback -> []",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V999",
+              "등록번호": "01000123"
+            }
+          },
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "01000123"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "E71"
+      },
+      "expected": {
+        "candidates": [],
+        "활성특정기호": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "no 보험조회 (자보) but active MT002 V102 without MT014 -> rows for V102 -> dx E72 -> [V102]",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "자보",
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": "V102"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "E72"
+      },
+      "expected": {
+        "candidates": [
+          {
+            "specificCode": "V102",
+            "diseaseName": "synthetic-B"
+          }
+        ],
+        "활성특정기호": "V102"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "nothing selected (empty 명세서, 자보) -> []",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "자보",
+          "명세서특정내역": []
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "G12.2"
+      },
+      "expected": {
+        "candidates": [],
+        "활성특정기호": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보 entity has two registrations; MT014 selects the second -> only its code",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V101",
+              "등록번호": "21000001"
+            },
+            "산정특례중증난치질환등록대상자": {
+              "특정기호": "V102",
+              "등록번호": "23000002"
+            }
+          },
+          "명세서특정내역": [
+            {
+              "특정내역구분": "MT002",
+              "특정코드내용": ""
+            },
+            {
+              "특정내역구분": "MT014",
+              "특정코드내용": "23000002"
+            }
+          ]
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "E70"
+      },
+      "expected": {
+        "candidates": [
+          {
+            "specificCode": "V102",
+            "diseaseName": "synthetic-B"
+          }
+        ],
+        "활성특정기호": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "건보 entity has two registrations, no MT014 -> both codes considered",
+      "input": {
+        "fn": "resolveSpecialCaseCandidates",
+        "진료내용": {
+          "보험구분": "건보",
+          "보험조회": {
+            "산정특례희귀질환등록대상자": {
+              "특정기호": "V101",
+              "등록번호": "21000001"
+            },
+            "산정특례중증난치질환등록대상자": {
+              "특정기호": "V102",
+              "등록번호": "23000002"
+            }
+          },
+          "명세서특정내역": []
+        },
+        "희귀상병데이터": [
+          {
+            "id": 1,
+            "특정기호코드": "V101",
+            "연계상병": "G12.2",
+            "질환명": "synthetic-A"
+          },
+          {
+            "id": 2,
+            "특정기호코드": "V102",
+            "연계상병": "E70-E72",
+            "질환명": "synthetic-B"
+          },
+          {
+            "id": 3,
+            "특정기호코드": "V103",
+            "연계상병": "E71,M05",
+            "질환명": "synthetic-C"
+          }
+        ],
+        "상병코드": "G12.2"
+      },
+      "expected": {
+        "candidates": [
+          {
+            "specificCode": "V101",
+            "diseaseName": "synthetic-A"
+          }
+        ],
+        "활성특정기호": ""
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "The client never checks that the chosen 특정기호 actually matches the diagnosis at save/complete; it only requires MT002 to be 4 characters when the registration prefix is 05/14/21/23. Candidate matching (resolveSpecialCaseCandidates) is a UI suggestion only. Should SPECIAL_CASE_CODE_MISMATCH enforce real code-diagnosis matching?",
+    "Prefixes 11 (극희귀) and 13 (상세불명희귀) are not in din(), so those registrations skip the 특정기호 check. Intended?",
+    "lin() treats MT002 as present only when empty or starting with 'v' (case-insensitive, no trim). A value with leading space or a non-V code makes the whole check skip.",
+    "When the registered 특정기호 is not found in the rare-disease data and the prefix is 05/14/21/23, every rare-disease row becomes a candidate.",
+    "Cross-letter ranges such as 'Q00-R99' degrade to prefix matches of the two endpoints only.",
+    "The validation dialog offers '상병 선택'; cancel blocks save. Save skips the check when called with 산정특례검증생략: true, which the header passes when saving after a coverage change (TreatmentViewBoardEditHeader.vue.js:754-758); 진료 완료 (finishPatientRecord) always checks. Should the server validate only at completion?"
+  ]
+}

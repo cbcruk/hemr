@@ -1,0 +1,482 @@
+{
+  "rule": "crm-send-window",
+  "description": "Night-time restriction for advertising messages: manual send blocks 20:50-08:00, scheduled contacts and contact rules only allow 08:00-20:30.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js",
+      "lines": "19-42",
+      "origin": "unminified/queries-HFyu0TR7.js:1927-1949"
+    },
+    {
+      "file": "re-upstream/restored/modules/CrmContactsView/part-1.js",
+      "lines": "111-124",
+      "origin": "unminified/CrmContactsView-BkGPdTuw.js:161-171"
+    },
+    {
+      "file": "re-upstream/restored/modules/CrmContactsView/part-1.js",
+      "lines": "518-526",
+      "origin": "unminified/CrmContactsView-BkGPdTuw.js:539-547"
+    },
+    {
+      "file": "re-upstream/restored/components/crm/CrmScheduleAddContactPopover.vue.js",
+      "lines": "186-200, 346-349",
+      "origin": "unminified/CrmContactsView-BkGPdTuw.js:6395-6409, 6555-6558"
+    }
+  ],
+  "inputSchema": {
+    "check": "isNightForAd | manualSendCheck | scheduledSendWindow | contactRuleWindow",
+    "isNightForAd": {
+      "atKst": "HH:mm in Asia/Seoul",
+      "messageType": "'광고'|'알림'|null"
+    },
+    "manualSendCheck": {
+      "form": "{ messageType, reservedAt?: ISO }",
+      "nowKst": "HH:mm"
+    },
+    "scheduledSendWindow": {
+      "messageType": "'ad'|'info'",
+      "hours": "0-23",
+      "minutes": "0-55 step 5"
+    },
+    "contactRuleWindow": {
+      "rule": "{ 기준, 메시지유형: 'ad'|'info', 발송시, 발송분 }"
+    }
+  },
+  "cases": [
+    {
+      "name": "isNightForAd: 07:59 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "07:59",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 08:00 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "08:00",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 20:49 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "20:49",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 20:50 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "20:50",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 20:59 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "20:59",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 21:00 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "21:00",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 23:59 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "23:59",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 00:00 KST 광고",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "00:00",
+        "messageType": "광고"
+      },
+      "expected": {
+        "night": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 20:50 KST 알림",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "20:50",
+        "messageType": "알림"
+      },
+      "expected": {
+        "night": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 03:00 KST 알림",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "03:00",
+        "messageType": "알림"
+      },
+      "expected": {
+        "night": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "isNightForAd: 12:00 KST null",
+      "input": {
+        "check": "isNightForAd",
+        "atKst": "12:00",
+        "messageType": null
+      },
+      "expected": {
+        "night": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "manualSendCheck: immediate ad at 20:50 blocked",
+      "input": {
+        "check": "manualSendCheck",
+        "form": {
+          "messageType": "광고"
+        },
+        "nowKst": "20:50"
+      },
+      "expected": {
+        "isInvalid": true,
+        "reason": "야간 시간대에는 즉시 발송이 불가능합니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "manualSendCheck: immediate ad at 20:49 allowed",
+      "input": {
+        "check": "manualSendCheck",
+        "form": {
+          "messageType": "광고"
+        },
+        "nowKst": "20:49"
+      },
+      "expected": {
+        "isInvalid": false,
+        "reason": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "manualSendCheck: reserved ad for 21:00 blocked",
+      "input": {
+        "check": "manualSendCheck",
+        "form": {
+          "messageType": "광고",
+          "reservedAt": "2026-11-03T21:00:00+09:00"
+        },
+        "nowKst": "12:00"
+      },
+      "expected": {
+        "isInvalid": true,
+        "reason": "야간 시간대로 예약 발송할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "manualSendCheck: reserved ad for 10:00 allowed even if now is night",
+      "input": {
+        "check": "manualSendCheck",
+        "form": {
+          "messageType": "광고",
+          "reservedAt": "2026-11-03T10:00:00+09:00"
+        },
+        "nowKst": "22:00"
+      },
+      "expected": {
+        "isInvalid": false,
+        "reason": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "manualSendCheck: immediate 알림 at night allowed",
+      "input": {
+        "check": "manualSendCheck",
+        "form": {
+          "messageType": "알림"
+        },
+        "nowKst": "23:00"
+      },
+      "expected": {
+        "isInvalid": false,
+        "reason": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "manualSendCheck: missing messageType treated as non-ad",
+      "input": {
+        "check": "manualSendCheck",
+        "form": {},
+        "nowKst": "23:00"
+      },
+      "expected": {
+        "isInvalid": false,
+        "reason": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 7:55 ad",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "ad",
+        "hours": 7,
+        "minutes": 55
+      },
+      "expected": {
+        "outOfWindow": true,
+        "window": {
+          "minHours": 8,
+          "maxHours": 20,
+          "maxMinutes": 30
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 8:00 ad",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "ad",
+        "hours": 8,
+        "minutes": 0
+      },
+      "expected": {
+        "outOfWindow": false,
+        "window": {
+          "minHours": 8,
+          "maxHours": 20,
+          "maxMinutes": 30
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 20:30 ad",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "ad",
+        "hours": 20,
+        "minutes": 30
+      },
+      "expected": {
+        "outOfWindow": false,
+        "window": {
+          "minHours": 8,
+          "maxHours": 20,
+          "maxMinutes": 30
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 20:35 ad",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "ad",
+        "hours": 20,
+        "minutes": 35
+      },
+      "expected": {
+        "outOfWindow": true,
+        "window": {
+          "minHours": 8,
+          "maxHours": 20,
+          "maxMinutes": 30
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 21:00 ad",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "ad",
+        "hours": 21,
+        "minutes": 0
+      },
+      "expected": {
+        "outOfWindow": true,
+        "window": {
+          "minHours": 8,
+          "maxHours": 20,
+          "maxMinutes": 30
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 23:55 info",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "info",
+        "hours": 23,
+        "minutes": 55
+      },
+      "expected": {
+        "outOfWindow": false,
+        "window": {
+          "minHours": 0,
+          "maxHours": 23,
+          "maxMinutes": 55
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "scheduledSendWindow: 0:00 info",
+      "input": {
+        "check": "scheduledSendWindow",
+        "messageType": "info",
+        "hours": 0,
+        "minutes": 0
+      },
+      "expected": {
+        "outOfWindow": false,
+        "window": {
+          "minHours": 0,
+          "maxHours": 23,
+          "maxMinutes": 55
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "contactRuleWindow: ad rule 20:30 ok",
+      "input": {
+        "check": "contactRuleWindow",
+        "rule": {
+          "기준": "처방일",
+          "메시지유형": "ad",
+          "발송시": 20,
+          "발송분": 30
+        }
+      },
+      "expected": {
+        "blocked": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "contactRuleWindow: ad rule 20:31 blocked",
+      "input": {
+        "check": "contactRuleWindow",
+        "rule": {
+          "기준": "처방일",
+          "메시지유형": "ad",
+          "발송시": 20,
+          "발송분": 31
+        }
+      },
+      "expected": {
+        "blocked": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "contactRuleWindow: ad rule 7:59 blocked",
+      "input": {
+        "check": "contactRuleWindow",
+        "rule": {
+          "기준": "처방일",
+          "메시지유형": "ad",
+          "발송시": 7,
+          "발송분": 59
+        }
+      },
+      "expected": {
+        "blocked": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "contactRuleWindow: 잔여 횟수 basis exempt",
+      "input": {
+        "check": "contactRuleWindow",
+        "rule": {
+          "기준": "잔여 횟수",
+          "메시지유형": "ad",
+          "발송시": 23,
+          "발송분": 0
+        }
+      },
+      "expected": {
+        "blocked": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "contactRuleWindow: info rule exempt",
+      "input": {
+        "check": "contactRuleWindow",
+        "rule": {
+          "기준": "처방일",
+          "메시지유형": "info",
+          "발송시": 23,
+          "발송분": 0
+        }
+      },
+      "expected": {
+        "blocked": false
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Two different windows coexist: manual send (MessageView / patient side panel) blocks ad at >= 20:50, while scheduled contacts/contact rules block ad after 20:30. Redesign proposes a single server policy.",
+    "All checks use the browser's local time (getHours/getMinutes); fixtures assume Asia/Seoul. Server must evaluate in KST explicitly.",
+    "Manual-send night check covers both SMS and Kakao brand messages (Da is keyed on messageType '광고' only, not channel).",
+    "Contact rules with 기준 '잔여 횟수' skip the window check entirely; unclear whether the send-time is then decided by the server.",
+    "Night check is only a UI block (banner + disabled test send + error); whether the server also rejects is unknown."
+  ]
+}

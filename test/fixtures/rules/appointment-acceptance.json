@@ -1,0 +1,1925 @@
+{
+  "rule": "appointment-acceptance",
+  "description": "Client-side appointment slot checks: per-slot capacity with the 추가예약제한 exclusive rule, closed day, clinic hours, doctor off-day, break, blocked and past-time checks for booking and drag-move.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/index/orderSource.js",
+      "lines": "54, 197-213",
+      "origin": "unminified/index-CBEIvlV0.js:70299-70816"
+    },
+    {
+      "file": "re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue.js",
+      "lines": "81-145",
+      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:5254-5518"
+    },
+    {
+      "file": "re-upstream/restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js",
+      "lines": "80-120",
+      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:6045-6291"
+    },
+    {
+      "file": "re-upstream/restored/components/appointment/AppointmentPlannerDaily.vue.js",
+      "lines": "111-121, 195-209",
+      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:5519-5901"
+    },
+    {
+      "file": "re-upstream/restored/modules/AppointmentPlannerView/part-2.js",
+      "lines": "293-365",
+      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:2298-2652"
+    },
+    {
+      "file": "re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js",
+      "lines": "160-168",
+      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:4726-4895"
+    },
+    {
+      "file": "re-upstream/restored/components/desk/DeskViewPatientAppointment.vue.js",
+      "lines": "425-563, 796-799, 854-857",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:14350-15476"
+    },
+    {
+      "file": "re-upstream/restored/components/desk/DeskViewPatientAppointment.helpers.js",
+      "lines": "86-115",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:12214-12333"
+    },
+    {
+      "file": "re-upstream/restored/components/desk/DeskViewPatientAppointment.helpers-2.js",
+      "lines": "8-30",
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:12334-12472"
+    },
+    {
+      "file": "re-upstream/restored/api/crm/requests-5.js",
+      "lines": "38-53",
+      "origin": "unminified/queries-HFyu0TR7.js:5796-5922"
+    },
+    {
+      "file": "re-upstream/restored/lib/index/part-251.js",
+      "lines": "8-27",
+      "origin": "unminified/index-CBEIvlV0.js:140676-140698"
+    }
+  ],
+  "inputSchema": {
+    "check": "Which client function the case exercises (plannerCellCapacity | isPastDateTime | isDoctorOffDay | isBreakTime | availableTimes | validateDrop | sidePanelSlotInfo | sidePanelCell | isSelectableCell | maxSlotCount | defaultSlotCount | blockedTimes | sidePanelSections | checkOffDay | serverConflict).",
+    "cell": "One planner slot for one doctor: 예약내역[] (bookings starting in this slot: 취소여부, 부도여부, 추가예약제한, 주문출처, 예약변경내역[{to:{예약상태}}]), 점유내역[] (bookings from earlier slots whose 소요시간 spans this slot: 추가예약제한), 예약가능건수 (server value, per-slot capacity).",
+    "now": "Local wall-clock time used where the client calls new Date().",
+    "flags": "Pre-computed slot flags passed to the drop validator: isTimeSlotAvailable, hasHospitalHoliday, isDoctorOffDay, isPastDateTime, isBreakTime, hasBlockingTime.",
+    "treatmentDays": "GET /settings/clinic-hours: weekday name -> {휴진일여부, 시간대별진료시간{오전|오후|야간:{시작시간,종료시간}}}.",
+    "schedule": "GET /settings/doctors/appointments/{date} 의사별예약정보[{진료의Id, 근무시간별예약[{시간대, 시간별예약[{시간, 예약건수, 점유건수, 예약가능건수}]}]}]."
+  },
+  "cases": [
+    {
+      "name": "capacity: under limit (2 of 3)",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 3
+        }
+      },
+      "expected": {
+        "예약가능건수": 3,
+        "예약건수": 2,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: exactly at limit (3 of 3) is not overbooked",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 3
+        }
+      },
+      "expected": {
+        "예약가능건수": 3,
+        "예약건수": 3,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: one over limit (4 of 3) is overbooked",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 3
+        }
+      },
+      "expected": {
+        "예약가능건수": 3,
+        "예약건수": 4,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: occupancy from earlier slot counts toward total",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [
+            {
+              "원본예약Id": "a0",
+              "추가예약제한": false
+            }
+          ],
+          "예약가능건수": 3
+        }
+      },
+      "expected": {
+        "예약가능건수": 3,
+        "예약건수": 3,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: occupancy pushes over limit",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [
+            {
+              "원본예약Id": "a0",
+              "추가예약제한": false
+            }
+          ],
+          "예약가능건수": 3
+        }
+      },
+      "expected": {
+        "예약가능건수": 3,
+        "예약건수": 4,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: canceled and no-show bookings are not counted",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": true,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": true,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 1
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 1,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exclusive: 추가예약제한 booking alone fits limit of 1",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": true,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 5
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 1,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exclusive: 추가예약제한 booking plus one more is overbooked",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": true,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 5
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 2,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exclusive: canceled 추가예약제한 booking does not reduce capacity",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": true,
+              "부도여부": false,
+              "추가예약제한": true,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 5
+        }
+      },
+      "expected": {
+        "예약가능건수": 5,
+        "예약건수": 1,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exclusive: no-show 추가예약제한 booking does not reduce capacity",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": true,
+              "추가예약제한": true,
+              "주문출처": null,
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 5
+        }
+      },
+      "expected": {
+        "예약가능건수": 5,
+        "예약건수": 1,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exclusive: occupancy with 추가예약제한 from earlier slot reduces capacity to 1",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [
+            {
+              "원본예약Id": "a0",
+              "추가예약제한": true
+            }
+          ],
+          "예약가능건수": 5
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 2,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "exclusive: rejected external request with 추가예약제한 still reduces capacity (filter mismatch)",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": true,
+              "주문출처": "naver_doctalk",
+              "예약변경내역": [
+                {
+                  "to": {
+                    "예약상태": "거절"
+                  }
+                }
+              ]
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 5
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 0,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "count: pending external request (no decided history) is not counted",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": "naver_doctalk",
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 1
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 1,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "count: confirmed external request (history has 승인) is counted",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": "kakao_doctalk",
+              "예약변경내역": [
+                {
+                  "to": {
+                    "예약상태": "승인"
+                  }
+                }
+              ]
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 1
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 2,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "count: rejected external request is not counted",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": "kakao_doctalk",
+              "예약변경내역": [
+                {
+                  "to": {
+                    "예약상태": "승인"
+                  }
+                },
+                {
+                  "to": {
+                    "예약상태": "거절"
+                  }
+                }
+              ]
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 1
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 1,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "count: unknown order source (e.g. daangn) is treated as in-clinic and counted",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": "daangn_doctalk",
+              "예약변경내역": []
+            },
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 1
+        }
+      },
+      "expected": {
+        "예약가능건수": 1,
+        "예약건수": 2,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: 예약가능건수 0 with one booking is overbooked",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": {
+          "예약내역": [
+            {
+              "취소여부": false,
+              "부도여부": false,
+              "추가예약제한": false,
+              "주문출처": null,
+              "예약변경내역": []
+            }
+          ],
+          "점유내역": [],
+          "예약가능건수": 0
+        }
+      },
+      "expected": {
+        "예약가능건수": 0,
+        "예약건수": 1,
+        "예약초과여부": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "capacity: no data for slot",
+      "input": {
+        "check": "plannerCellCapacity",
+        "cell": null
+      },
+      "expected": {
+        "예약가능건수": 0,
+        "예약건수": 0,
+        "예약초과여부": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "past: yesterday any time",
+      "input": {
+        "check": "isPastDateTime",
+        "date": "20261031",
+        "time": "18:00",
+        "now": "2026-11-01T14:30 local"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "past: today slot one minute before now",
+      "input": {
+        "check": "isPastDateTime",
+        "date": "20261101",
+        "time": "14:29",
+        "now": "2026-11-01T14:30 local"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "past: today slot equal to now (current minute) counts as past",
+      "input": {
+        "check": "isPastDateTime",
+        "date": "20261101",
+        "time": "14:30",
+        "now": "2026-11-01T14:30 local"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "past: today slot one minute after now",
+      "input": {
+        "check": "isPastDateTime",
+        "date": "20261101",
+        "time": "14:31",
+        "now": "2026-11-01T14:30 local"
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "past: tomorrow",
+      "input": {
+        "check": "isPastDateTime",
+        "date": "20261102",
+        "time": "09:00",
+        "now": "2026-11-01T14:30 local"
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: full day 휴진",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "휴진",
+        "appointmentTime": "10:00",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        }
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: 오전 휴진 slot before lunch start",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "오전 휴진",
+        "appointmentTime": "12:30",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        }
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: 오전 휴진 slot at lunch start is not morning",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "오전 휴진",
+        "appointmentTime": "13:00",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        }
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: 오후 휴진 slot at lunch end is afternoon",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "오후 휴진",
+        "appointmentTime": "14:00",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        }
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: 오후 휴진 slot inside lunch is neither",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "오후 휴진",
+        "appointmentTime": "13:30",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        }
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: 오후 휴진 with no lunch configured never blocks",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "오후 휴진",
+        "appointmentTime": "17:00",
+        "점심휴게시간": null
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: 오전 휴진 with no lunch configured blocks all day",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": "오전 휴진",
+        "appointmentTime": "17:00",
+        "점심휴게시간": null
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor off: no tag",
+      "input": {
+        "check": "isDoctorOffDay",
+        "휴진일태그": null,
+        "appointmentTime": "10:00",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        }
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "break: slot at lunch start",
+      "input": {
+        "check": "isBreakTime",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        },
+        "time": "13:00"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "break: slot one minute before lunch end",
+      "input": {
+        "check": "isBreakTime",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        },
+        "time": "13:59"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "break: slot at lunch end is not break",
+      "input": {
+        "check": "isBreakTime",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        },
+        "time": "14:00"
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "break: slot before lunch",
+      "input": {
+        "check": "isBreakTime",
+        "점심휴게시간": {
+          "시작시간": "13:00",
+          "종료시간": "14:00"
+        },
+        "time": "12:59"
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "clinic hours: Monday slots are [start, end) by unit",
+      "input": {
+        "check": "availableTimes",
+        "apiTimes": [],
+        "treatmentDays": {
+          "일요일": {
+            "휴진일여부": true,
+            "시간대별진료시간": {}
+          },
+          "월요일": {
+            "휴진일여부": false,
+            "시간대별진료시간": {
+              "오전": {
+                "시작시간": "09:00",
+                "종료시간": "10:30"
+              },
+              "오후": {
+                "시작시간": "14:00",
+                "종료시간": "15:00"
+              }
+            }
+          }
+        },
+        "dateString": "20261102",
+        "unitMinutes": 30
+      },
+      "expected": [
+        "09:00",
+        "09:30",
+        "10:00",
+        "14:00",
+        "14:30"
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "clinic hours: unit 15 minutes",
+      "input": {
+        "check": "availableTimes",
+        "apiTimes": [],
+        "treatmentDays": {
+          "일요일": {
+            "휴진일여부": true,
+            "시간대별진료시간": {}
+          },
+          "월요일": {
+            "휴진일여부": false,
+            "시간대별진료시간": {
+              "오전": {
+                "시작시간": "09:00",
+                "종료시간": "10:30"
+              },
+              "오후": {
+                "시작시간": "14:00",
+                "종료시간": "15:00"
+              }
+            }
+          }
+        },
+        "dateString": "20261102",
+        "unitMinutes": 15
+      },
+      "expected": [
+        "09:00",
+        "09:15",
+        "09:30",
+        "09:45",
+        "10:00",
+        "10:15",
+        "14:00",
+        "14:15",
+        "14:30",
+        "14:45"
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "clinic hours: closed weekday yields only server-provided times",
+      "input": {
+        "check": "availableTimes",
+        "apiTimes": [
+          "10:00"
+        ],
+        "treatmentDays": {
+          "일요일": {
+            "휴진일여부": true,
+            "시간대별진료시간": {}
+          },
+          "월요일": {
+            "휴진일여부": false,
+            "시간대별진료시간": {
+              "오전": {
+                "시작시간": "09:00",
+                "종료시간": "10:30"
+              },
+              "오후": {
+                "시작시간": "14:00",
+                "종료시간": "15:00"
+              }
+            }
+          }
+        },
+        "dateString": "20261101",
+        "unitMinutes": 30
+      },
+      "expected": [
+        "10:00"
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "clinic hours: server times outside clinic hours are added",
+      "input": {
+        "check": "availableTimes",
+        "apiTimes": [
+          "19:00"
+        ],
+        "treatmentDays": {
+          "일요일": {
+            "휴진일여부": true,
+            "시간대별진료시간": {}
+          },
+          "월요일": {
+            "휴진일여부": false,
+            "시간대별진료시간": {
+              "오전": {
+                "시작시간": "09:00",
+                "종료시간": "10:30"
+              },
+              "오후": {
+                "시작시간": "14:00",
+                "종료시간": "15:00"
+              }
+            }
+          }
+        },
+        "dateString": "20261102",
+        "unitMinutes": 30
+      },
+      "expected": [
+        "19:00",
+        "09:00",
+        "09:30",
+        "10:00",
+        "14:00",
+        "14:30"
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: all checks pass",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": false,
+          "isBreakTime": false,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": true,
+        "message": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: outside clinic hours",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": false,
+          "hasHospitalHoliday": true,
+          "isDoctorOffDay": false,
+          "isPastDateTime": false,
+          "isBreakTime": false,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": false,
+        "message": "진료시간이 아닌 경우 예약을 이동할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: hospital closed day wins over doctor off-day",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": true,
+          "isDoctorOffDay": true,
+          "isPastDateTime": false,
+          "isBreakTime": false,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": false,
+        "message": "병원 휴진일에는 예약을 이동할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: doctor off-day wins over past time",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": true,
+          "isPastDateTime": true,
+          "isBreakTime": false,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": false,
+        "message": "의사 휴진일에는 예약을 이동할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: past time wins over break",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": true,
+          "isBreakTime": true,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": false,
+        "message": "과거 시간으로 예약을 이동할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: break time",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": false,
+          "isBreakTime": true,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": false,
+        "message": "휴게 시간에는 예약을 이동할 수 없습니다."
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: blocked slot confirmed",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": false,
+          "isBreakTime": false,
+          "hasBlockingTime": true
+        },
+        "confirmBlocked": true
+      },
+      "expected": {
+        "allowed": true,
+        "message": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: blocked slot declined",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": false,
+          "isBreakTime": false,
+          "hasBlockingTime": true
+        },
+        "confirmBlocked": false
+      },
+      "expected": {
+        "allowed": false,
+        "message": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: no 예약수정 permission",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": true,
+          "isBreakTime": false,
+          "hasBlockingTime": false
+        },
+        "canUpdate": false
+      },
+      "expected": {
+        "allowed": false,
+        "message": "<permission denied callback>"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "drop: overbooked slot is not checked",
+      "input": {
+        "check": "validateDrop",
+        "flags": {
+          "isTimeSlotAvailable": true,
+          "hasHospitalHoliday": false,
+          "isDoctorOffDay": false,
+          "isPastDateTime": false,
+          "isBreakTime": false,
+          "hasBlockingTime": false
+        }
+      },
+      "expected": {
+        "allowed": true,
+        "message": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel: 추가예약제한 booking marks slot with treatment name",
+      "input": {
+        "check": "sidePanelSlotInfo",
+        "예약내역": [
+          {
+            "시간": "10:00",
+            "진료의별예약내역": [
+              {
+                "진료의Id": "d1",
+                "예약내역": [
+                  {
+                    "진료항목목록": [
+                      {
+                        "이름": "약침",
+                        "추가예약제한": false
+                      },
+                      {
+                        "이름": "매선",
+                        "추가예약제한": true
+                      }
+                    ]
+                  }
+                ],
+                "점유내역": []
+              }
+            ]
+          }
+        ],
+        "doctorId": "d1"
+      },
+      "expected": {
+        "limitedTreatmentName": {
+          "10:00": "매선"
+        },
+        "displayCount": {
+          "10:00": {
+            "예약건수": 1,
+            "점유건수": 0
+          }
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel: canceled 추가예약제한 booking is ignored and counts exclude it",
+      "input": {
+        "check": "sidePanelSlotInfo",
+        "예약내역": [
+          {
+            "시간": "10:00",
+            "진료의별예약내역": [
+              {
+                "진료의Id": "d1",
+                "예약내역": [
+                  {
+                    "취소여부": true,
+                    "진료항목목록": [
+                      {
+                        "이름": "매선",
+                        "추가예약제한": true
+                      }
+                    ]
+                  },
+                  {
+                    "진료항목목록": [
+                      {
+                        "이름": "침",
+                        "추가예약제한": false
+                      }
+                    ]
+                  }
+                ],
+                "점유내역": []
+              }
+            ]
+          }
+        ],
+        "doctorId": "d1"
+      },
+      "expected": {
+        "limitedTreatmentName": {},
+        "displayCount": {
+          "10:00": {
+            "예약건수": 1,
+            "점유건수": 0
+          }
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel: 추가예약제한 occupancy marks slot",
+      "input": {
+        "check": "sidePanelSlotInfo",
+        "예약내역": [
+          {
+            "시간": "10:30",
+            "진료의별예약내역": [
+              {
+                "진료의Id": "d1",
+                "예약내역": [],
+                "점유내역": [
+                  {
+                    "진료항목명": "매선",
+                    "추가예약제한": true
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "doctorId": "d1"
+      },
+      "expected": {
+        "limitedTreatmentName": {
+          "10:30": "매선"
+        },
+        "displayCount": {
+          "10:30": {
+            "예약건수": 0,
+            "점유건수": 1
+          }
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel: other doctor's bookings are ignored",
+      "input": {
+        "check": "sidePanelSlotInfo",
+        "예약내역": [
+          {
+            "시간": "10:00",
+            "진료의별예약내역": [
+              {
+                "진료의Id": "d2",
+                "예약내역": [
+                  {
+                    "진료항목목록": [
+                      {
+                        "이름": "매선",
+                        "추가예약제한": true
+                      }
+                    ]
+                  }
+                ],
+                "점유내역": []
+              }
+            ]
+          }
+        ],
+        "doctorId": "d1"
+      },
+      "expected": {
+        "limitedTreatmentName": {},
+        "displayCount": {}
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel cell: under capacity",
+      "input": {
+        "check": "sidePanelCell",
+        "slot": {
+          "예약건수": 1,
+          "점유건수": 0,
+          "예약가능건수": 3
+        },
+        "displayCount": {
+          "예약건수": 1,
+          "점유건수": 1
+        }
+      },
+      "expected": {
+        "variant": "inactive",
+        "tone": "default",
+        "content": "2/3"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel cell: exactly at capacity shows danger (>=) but stays selectable",
+      "input": {
+        "check": "sidePanelCell",
+        "slot": {
+          "예약건수": 0,
+          "점유건수": 0,
+          "예약가능건수": 3
+        },
+        "displayCount": {
+          "예약건수": 2,
+          "점유건수": 1
+        }
+      },
+      "expected": {
+        "variant": "inactive",
+        "tone": "danger",
+        "content": "3/3"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel cell: limited treatment shows danger name and stays selectable",
+      "input": {
+        "check": "sidePanelCell",
+        "slot": {
+          "예약건수": 0,
+          "점유건수": 0,
+          "예약가능건수": 3
+        },
+        "limitedTreatmentName": "매선"
+      },
+      "expected": {
+        "variant": "inactive",
+        "tone": "danger",
+        "content": "매선"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "side panel cell: blocked (break/차단) is disabled",
+      "input": {
+        "check": "sidePanelCell",
+        "slot": {
+          "예약건수": 0,
+          "점유건수": 0,
+          "예약가능건수": 3
+        },
+        "blocked": true
+      },
+      "expected": {
+        "variant": "disabled",
+        "content": "휴식",
+        "disabled": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectable: inactive/danger",
+      "input": {
+        "check": "isSelectableCell",
+        "cell": {
+          "variant": "inactive",
+          "tone": "danger"
+        }
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "selectable: disabled",
+      "input": {
+        "check": "isSelectableCell",
+        "cell": {
+          "variant": "disabled",
+          "disabled": true
+        }
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "max selectable slots for unit 10 min",
+      "input": {
+        "check": "maxSlotCount",
+        "unitMinutes": 10
+      },
+      "expected": 12,
+      "derivation": "executed"
+    },
+    {
+      "name": "max selectable slots for unit 15 min",
+      "input": {
+        "check": "maxSlotCount",
+        "unitMinutes": 15
+      },
+      "expected": 8,
+      "derivation": "executed"
+    },
+    {
+      "name": "max selectable slots for unit 30 min",
+      "input": {
+        "check": "maxSlotCount",
+        "unitMinutes": 30
+      },
+      "expected": 4,
+      "derivation": "executed"
+    },
+    {
+      "name": "max selectable slots for unit 0 min",
+      "input": {
+        "check": "maxSlotCount",
+        "unitMinutes": 0
+      },
+      "expected": 1,
+      "derivation": "executed"
+    },
+    {
+      "name": "default slots: 기본소요슬롯수 wins",
+      "input": {
+        "check": "defaultSlotCount",
+        "treatment": {
+          "기본소요슬롯수": 3,
+          "기본소요시간": 30
+        },
+        "unitMinutes": 30
+      },
+      "expected": 3,
+      "derivation": "executed"
+    },
+    {
+      "name": "default slots: 45min at 30 unit rounds to 2",
+      "input": {
+        "check": "defaultSlotCount",
+        "treatment": {
+          "기본소요시간": 45
+        },
+        "unitMinutes": 30
+      },
+      "expected": 2,
+      "derivation": "executed"
+    },
+    {
+      "name": "default slots: 40min at 30 unit rounds to 1",
+      "input": {
+        "check": "defaultSlotCount",
+        "treatment": {
+          "기본소요시간": 40
+        },
+        "unitMinutes": 30
+      },
+      "expected": 1,
+      "derivation": "executed"
+    },
+    {
+      "name": "default slots: no treatment selected",
+      "input": {
+        "check": "defaultSlotCount",
+        "treatment": null,
+        "unitMinutes": 30
+      },
+      "expected": 1,
+      "derivation": "executed"
+    },
+    {
+      "name": "blocked times: lunch, dinner and same-day 차단",
+      "input": {
+        "check": "blockedTimes",
+        "day": {
+          "차단내역": [
+            {
+              "차단일자": "20261102",
+              "차단시간": "10:00"
+            },
+            {
+              "차단일자": "20261103",
+              "차단시간": "11:00"
+            }
+          ],
+          "점심휴게시간": {
+            "시작시간": "13:00",
+            "종료시간": "14:00"
+          },
+          "저녁휴게시간": {
+            "시작시간": "18:00",
+            "종료시간": "18:30"
+          }
+        },
+        "date": "20261102",
+        "unitMinutes": 30
+      },
+      "expected": [
+        "10:00",
+        "13:00",
+        "13:30",
+        "18:00"
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "today cutoff: new booking today hides slots before now",
+      "input": {
+        "check": "sidePanelSections",
+        "isToday": true,
+        "appointmentTime": null,
+        "now": "14:30",
+        "schedule": [
+          {
+            "진료의Id": "d1",
+            "근무시간별예약": [
+              {
+                "시간대": "오후",
+                "시간별예약": [
+                  {
+                    "시간": "14:00"
+                  },
+                  {
+                    "시간": "14:30"
+                  },
+                  {
+                    "시간": "15:00"
+                  }
+                ]
+              },
+              {
+                "시간대": "오전",
+                "시간별예약": [
+                  {
+                    "시간": "09:00"
+                  },
+                  {
+                    "시간": "09:30"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": [
+        {
+          "시간대": "오후",
+          "시간별예약": [
+            {
+              "시간": "14:30"
+            },
+            {
+              "시간": "15:00"
+            }
+          ]
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "today cutoff: editing booking at earlier time keeps its own slot",
+      "input": {
+        "check": "sidePanelSections",
+        "isToday": true,
+        "appointmentTime": "09:30",
+        "now": "14:30",
+        "schedule": [
+          {
+            "진료의Id": "d1",
+            "근무시간별예약": [
+              {
+                "시간대": "오후",
+                "시간별예약": [
+                  {
+                    "시간": "14:00"
+                  },
+                  {
+                    "시간": "14:30"
+                  },
+                  {
+                    "시간": "15:00"
+                  }
+                ]
+              },
+              {
+                "시간대": "오전",
+                "시간별예약": [
+                  {
+                    "시간": "09:00"
+                  },
+                  {
+                    "시간": "09:30"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": [
+        {
+          "시간대": "오전",
+          "시간별예약": [
+            {
+              "시간": "09:30"
+            }
+          ]
+        },
+        {
+          "시간대": "오후",
+          "시간별예약": [
+            {
+              "시간": "14:00"
+            },
+            {
+              "시간": "14:30"
+            },
+            {
+              "시간": "15:00"
+            }
+          ]
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "future date: no cutoff, sections sorted 오전/오후/야간",
+      "input": {
+        "check": "sidePanelSections",
+        "isToday": false,
+        "schedule": [
+          {
+            "진료의Id": "d1",
+            "근무시간별예약": [
+              {
+                "시간대": "오후",
+                "시간별예약": [
+                  {
+                    "시간": "14:00"
+                  },
+                  {
+                    "시간": "14:30"
+                  },
+                  {
+                    "시간": "15:00"
+                  }
+                ]
+              },
+              {
+                "시간대": "오전",
+                "시간별예약": [
+                  {
+                    "시간": "09:00"
+                  },
+                  {
+                    "시간": "09:30"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": [
+        {
+          "시간대": "오전",
+          "시간별예약": [
+            {
+              "시간": "09:00"
+            },
+            {
+              "시간": "09:30"
+            }
+          ]
+        },
+        {
+          "시간대": "오후",
+          "시간별예약": [
+            {
+              "시간": "14:00"
+            },
+            {
+              "시간": "14:30"
+            },
+            {
+              "시간": "15:00"
+            }
+          ]
+        }
+      ],
+      "derivation": "executed"
+    },
+    {
+      "name": "doctor without schedule yields no slots",
+      "input": {
+        "check": "sidePanelSections",
+        "isToday": false,
+        "schedule": [
+          {
+            "진료의Id": "d1",
+            "근무시간별예약": [
+              {
+                "시간대": "오후",
+                "시간별예약": [
+                  {
+                    "시간": "14:00"
+                  },
+                  {
+                    "시간": "14:30"
+                  },
+                  {
+                    "시간": "15:00"
+                  }
+                ]
+              },
+              {
+                "시간대": "오전",
+                "시간별예약": [
+                  {
+                    "시간": "09:00"
+                  },
+                  {
+                    "시간": "09:30"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "doctorId": "d9"
+      },
+      "expected": [],
+      "derivation": "executed"
+    },
+    {
+      "name": "closed day: date in 병원휴진일 list",
+      "input": {
+        "check": "checkOffDay",
+        "closedDays": [
+          "20261225"
+        ],
+        "date": "2026-12-25"
+      },
+      "expected": true,
+      "derivation": "executed"
+    },
+    {
+      "name": "closed day: date not in list",
+      "input": {
+        "check": "checkOffDay",
+        "closedDays": [
+          "20261225"
+        ],
+        "date": "2026-12-24"
+      },
+      "expected": false,
+      "derivation": "executed"
+    },
+    {
+      "name": "create/update: server 409 shows duplicate message",
+      "input": {
+        "check": "serverConflict",
+        "httpStatus": 409,
+        "action": "POST /desk/appointments"
+      },
+      "expected": {
+        "message": "중복된 예약이 있습니다. 다른 예약 일시를 선택해 주세요."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "create: overbooked or 추가예약제한 slot is still submitted (warning only)",
+      "input": {
+        "check": "serverConflict",
+        "slot": {
+          "tone": "danger"
+        },
+        "action": "POST /desk/appointments"
+      },
+      "expected": {
+        "clientBlocks": false,
+        "warning": "선택한 시간에 추가 예약이 제한된 예약이 있습니다."
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "create: closed day selected in side panel hides the time grid",
+      "input": {
+        "check": "checkOffDay",
+        "isClosedDay": true
+      },
+      "expected": {
+        "message": "선택한 날짜는 한의원 휴진일입니다.",
+        "slotsShown": false
+      },
+      "derivation": "traced"
+    },
+    {
+      "name": "create: doctor with 휴진일태그 shows warning but slots stay selectable",
+      "input": {
+        "check": "sidePanelSections",
+        "휴진일태그": "오전 휴진"
+      },
+      "expected": {
+        "message": "선택한 진료의는 [오전] 시간 휴진입니다.",
+        "clientBlocks": false
+      },
+      "derivation": "traced"
+    }
+  ],
+  "openQuestions": [
+    "The client never blocks an over-capacity booking: the planner only paints the cell (예약초과, count > capacity) and the booking side panel only shows a danger tone (count >= capacity). Whether the server rejects over-capacity bookings (other than the 409 duplicate) is unknown.",
+    "Capacity reduction to 1 uses a different filter than the booking count: a rejected/pending external request (naver/kakao) with 추가예약제한 still reduces capacity to 1 but is itself not counted (see case 'rejected external request ... filter mismatch'). Probably unintended.",
+    "The booking side panel counts bookings with only !취소여부 && !부도여부 (it does not drop pending/rejected external requests like the planner's mrn filter does) and treats count >= capacity as full, while the planner treats count > capacity as over. Which boundary should the server enforce?",
+    "isPastDateTime treats the current minute as past (time <= now HH:mm), but the side panel's today cut-off keeps slots >= now (the current-minute slot is still offered). Pick one boundary on the server.",
+    "Doctor half-day off ('오전 휴진'/'오후 휴진') is split by the lunch break of that day; with no lunch configured every slot counts as morning (오전 휴진 blocks the whole day, 오후 휴진 never blocks).",
+    "In the booking side panel a doctor off-day (휴진일태그) only shows a warning; in the planner drag-move it blocks. The server needs one rule.",
+    "In the booking side panel 차단(blocked) slots are not selectable at all, while planner drag-move asks for confirmation ('선택한 시간은 예약 차단된 시간입니다.') and allows it.",
+    "점유건수 weighting: the server schema comment says '추가예약제한 OFF=1, ON=예약가능건수 만큼 가중' for the per-slot 점유건수 in /settings/doctors/appointments, but the planner cell counts 점유내역 by length. The server-side weighting rule is not visible in client code.",
+    "Maximum booking length in the side panel is 120 minutes (floor(120 / 예약시간단위) slots); whether the server enforces this is unknown."
+  ]
+}

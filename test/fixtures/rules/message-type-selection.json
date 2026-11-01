@@ -1,0 +1,379 @@
+{
+  "rule": "message-type-selection",
+  "description": "SMS/LMS/MMS selection by attachment, title and EUC-KR-like byte length (90 bytes), plus the (광고) header and 080 opt-out footer applied to advertising text.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/byteString.js",
+      "lines": "3-17",
+      "origin": "unminified/byteString-W_gkmtJP.js:11-25"
+    },
+    {
+      "file": "re-upstream/restored/modules/CrmMessagePreview/part-1.js",
+      "lines": "8-93",
+      "origin": "unminified/CrmMessagePreview.vue_vue_type_script_setup_true_lang-Mahdgzip.js:19-97"
+    },
+    {
+      "file": "re-upstream/restored/components/crm/CrmCommonMessageForm.helpers.js",
+      "lines": "39-61",
+      "origin": "unminified/templatePermission-BWKgEo8f.js:111-133"
+    }
+  ],
+  "inputSchema": {
+    "check": "selectSendingType | applyAdHeaderFooter | stripAdHeaderFooter | adWrappedBytesDecideType | normalizeMessageType",
+    "selectSendingType": {
+      "message": "{ messageText, messageTitle?, attachments? } | null (messageText is the stored text, already wrapped for ads)"
+    },
+    "applyAdHeaderFooter": {
+      "messageType": "string",
+      "text": "string",
+      "hospitalName": "string?",
+      "hospitalRefusalCode": "string?"
+    },
+    "stripAdHeaderFooter": {
+      "messageType": "'광고'",
+      "text": "string|null"
+    },
+    "adWrappedBytesDecideType": {
+      "body": "string",
+      "hospitalName": "string",
+      "hospitalRefusalCode": "string"
+    },
+    "normalizeMessageType": {
+      "messageType": "any"
+    }
+  },
+  "cases": [
+    {
+      "name": "selectSendingType: null message -> sms",
+      "input": {
+        "check": "selectSendingType",
+        "message": null
+      },
+      "expected": {
+        "bytes": 0,
+        "sendingType": "sms",
+        "maxBytes": 90
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: 45 Hangul chars (90 bytes) -> sms",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"
+        }
+      },
+      "expected": {
+        "bytes": 90,
+        "sendingType": "sms",
+        "maxBytes": 90
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: 46 Hangul chars (92 bytes) -> lms",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"
+        }
+      },
+      "expected": {
+        "bytes": 92,
+        "sendingType": "lms",
+        "maxBytes": 2000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: 90 ASCII -> sms",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expected": {
+        "bytes": 90,
+        "sendingType": "sms",
+        "maxBytes": 90
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: 91 ASCII -> lms",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expected": {
+        "bytes": 91,
+        "sendingType": "lms",
+        "maxBytes": 2000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: title present -> lms even if short",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "hi",
+          "messageTitle": "t"
+        }
+      },
+      "expected": {
+        "bytes": 2,
+        "sendingType": "lms",
+        "maxBytes": 2000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: attachment -> mms regardless",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "messageTitle": "t",
+          "attachments": [
+            {
+              "id": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "bytes": 3000,
+        "sendingType": "mms",
+        "maxBytes": 2000
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: empty title string ignored",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "hi",
+          "messageTitle": ""
+        }
+      },
+      "expected": {
+        "bytes": 2,
+        "sendingType": "sms",
+        "maxBytes": 90
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: emoji counts 4 bytes",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀ab"
+        }
+      },
+      "expected": {
+        "bytes": 90,
+        "sendingType": "sms",
+        "maxBytes": 90
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "selectSendingType: newline counts 1 byte",
+      "input": {
+        "check": "selectSendingType",
+        "message": {
+          "messageText": "가\n나"
+        }
+      },
+      "expected": {
+        "bytes": 5,
+        "sendingType": "sms",
+        "maxBytes": 90
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "applyAdHeaderFooter: ad wraps body",
+      "input": {
+        "check": "applyAdHeaderFooter",
+        "messageType": "광고",
+        "text": "할인 안내",
+        "hospitalName": "업스트림한의원",
+        "hospitalRefusalCode": "1234"
+      },
+      "expected": {
+        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "applyAdHeaderFooter: idempotent on already-wrapped text",
+      "input": {
+        "check": "applyAdHeaderFooter",
+        "messageType": "광고",
+        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234",
+        "hospitalName": "업스트림한의원",
+        "hospitalRefusalCode": "1234"
+      },
+      "expected": {
+        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "applyAdHeaderFooter: missing name/code leave blanks",
+      "input": {
+        "check": "applyAdHeaderFooter",
+        "messageType": "광고",
+        "text": "본문"
+      },
+      "expected": {
+        "text": "(광고) \n본문\n\n무료거부: 080-877-8900\n인증: "
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "applyAdHeaderFooter: 알림 returns text unchanged",
+      "input": {
+        "check": "applyAdHeaderFooter",
+        "messageType": "알림",
+        "text": "예약 안내"
+      },
+      "expected": {
+        "text": "예약 안내"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "stripAdHeaderFooter: strip wrapped",
+      "input": {
+        "check": "stripAdHeaderFooter",
+        "messageType": "광고",
+        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
+      },
+      "expected": {
+        "text": "할인 안내"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "stripAdHeaderFooter: multi-line body preserved",
+      "input": {
+        "check": "stripAdHeaderFooter",
+        "messageType": "광고",
+        "text": "(광고) A\n줄1\n줄2\n\n무료거부: 080-877-8900\n인증: 1"
+      },
+      "expected": {
+        "text": "줄1\n줄2"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "stripAdHeaderFooter: text without header kept until footer",
+      "input": {
+        "check": "stripAdHeaderFooter",
+        "messageType": "광고",
+        "text": "본문만"
+      },
+      "expected": {
+        "text": "본문만"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "stripAdHeaderFooter: undefined text -> empty",
+      "input": {
+        "check": "stripAdHeaderFooter",
+        "messageType": "광고",
+        "text": null
+      },
+      "expected": {
+        "text": ""
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "adWrappedBytesDecideType: wrapper bytes count toward 90-byte limit",
+      "input": {
+        "check": "adWrappedBytesDecideType",
+        "body": "할인",
+        "hospitalName": "업스트림한의원",
+        "hospitalRefusalCode": "1234"
+      },
+      "expected": {
+        "bytes": 61,
+        "sendingType": "sms"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeMessageType: 광고",
+      "input": {
+        "check": "normalizeMessageType",
+        "messageType": "광고"
+      },
+      "expected": {
+        "messageType": "광고"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeMessageType: 알림",
+      "input": {
+        "check": "normalizeMessageType",
+        "messageType": "알림"
+      },
+      "expected": {
+        "messageType": "알림"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeMessageType: 기타",
+      "input": {
+        "check": "normalizeMessageType",
+        "messageType": "기타"
+      },
+      "expected": {
+        "messageType": "광고"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeMessageType: null",
+      "input": {
+        "check": "normalizeMessageType",
+        "messageType": null
+      },
+      "expected": {
+        "messageType": "광고"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeMessageType: ",
+      "input": {
+        "check": "normalizeMessageType",
+        "messageType": ""
+      },
+      "expected": {
+        "messageType": "광고"
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "The 080 opt-out number '080-877-8900' is hard-coded in the client; only the 인증 code comes from the hospital.",
+    "Byte counting treats every non-ASCII BMP char as 2 bytes and surrogate pairs as 4; carriers' actual EUC-KR/KS X 1001 counting may differ for characters outside KS X 1001.",
+    "Per-recipient variable substitution can push an SMS over 90 bytes; smsOverflowPolicy ('upgrade_lms' default | 'exclude') is applied by the server (estimate), not by ht().",
+    "The client's ht() result is only for display/limit (maxBytes 90 vs 2000); the server is assumed to make the final type decision.",
+    "F() strips the header only when the first line starts with '(광고)'; text typed by the user that contains '\\n\\n무료거부:' will be truncated there."
+  ]
+}

@@ -1,0 +1,787 @@
+{
+  "rule": "procedure-timer",
+  "description": "Treatment-room procedure timer: client-side elapsed detection, auto-completion of elapsed procedures when the next one starts, duration adjustment limits, and timer defaults.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "lines": "96-131",
+      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1089-1123"
+    },
+    {
+      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "lines": "338-402",
+      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1331-1395"
+    },
+    {
+      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "lines": "880-898",
+      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1873-1891"
+    },
+    {
+      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "lines": "979-1016",
+      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1972-2009"
+    },
+    {
+      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "lines": "1027-1062",
+      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:2020-2055"
+    },
+    {
+      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "lines": "23-25, 552-563, 610",
+      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/useTreatmentsSnapshotQuery.js",
+      "lines": "50",
+      "origin": "unminified/index-CBEIvlV0.js:141837-141872"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/part-256.js",
+      "lines": "10-56",
+      "origin": "unminified/index-CBEIvlV0.js:141873-141917"
+    }
+  ],
+  "inputSchema": {
+    "check": "mapServerProcedure | tick | startTreatment | setDuration | adjustTimer | defaults | groupDuration | timerEndNotification",
+    "mapServerProcedure": {
+      "procedure": "server row { 치료실시술Id, 상태: 'pending'|'running'|'done', 담당구분, duration_sec, 타이머종료여부, 시작일시 ISO|null }",
+      "nowMs": "epoch ms, already corrected by serverNow offset"
+    },
+    "tick": {
+      "procedures": "local rows { id, 상태, duration_sec, 시작일시, remaining_sec }",
+      "nowMs": "epoch ms"
+    },
+    "startTreatment": {
+      "procedures": "local rows of one visit",
+      "targetId": "string",
+      "nowIso": "ISO"
+    },
+    "setDuration": {
+      "procedure": "local row",
+      "newSec": "number",
+      "nowMs": "epoch ms"
+    },
+    "adjustTimer": {
+      "procedure": "local row",
+      "delta": "seconds (+/-)",
+      "nowMs": "epoch ms"
+    },
+    "groupDuration": {
+      "items": "[{ duration_sec }]"
+    },
+    "timerEndNotification": {
+      "베드번호": "number",
+      "환자명": "string",
+      "items": "[{ 시술Id, 카테고리, 시작일시, duration_sec }]"
+    }
+  },
+  "cases": [
+    {
+      "name": "mapServerProcedure: 1s before end",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "running",
+          "담당구분": "직원",
+          "duration_sec": 600,
+          "타이머종료여부": false,
+          "시작일시": "2026-11-01T01:00:00.000Z"
+        },
+        "nowMs": 1793495399000
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "running",
+        "담당": "staff",
+        "duration_sec": 600,
+        "remaining_sec": 1,
+        "타이머종료": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "mapServerProcedure: exactly at end (remaining 0)",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "running",
+          "담당구분": "직원",
+          "duration_sec": 600,
+          "타이머종료여부": false,
+          "시작일시": "2026-11-01T01:00:00.000Z"
+        },
+        "nowMs": 1793495400000
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "pending",
+        "담당": "staff",
+        "duration_sec": 600,
+        "remaining_sec": null,
+        "타이머종료": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "mapServerProcedure: after end",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "running",
+          "담당구분": "직원",
+          "duration_sec": 600,
+          "타이머종료여부": false,
+          "시작일시": "2026-11-01T01:00:00.000Z"
+        },
+        "nowMs": 1793495700000
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "pending",
+        "담당": "staff",
+        "duration_sec": 600,
+        "remaining_sec": null,
+        "타이머종료": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "mapServerProcedure: sub-second before end floors",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "running",
+          "담당구분": "직원",
+          "duration_sec": 600,
+          "타이머종료여부": false,
+          "시작일시": "2026-11-01T01:00:00.000Z"
+        },
+        "nowMs": 1793495399999
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "running",
+        "담당": "staff",
+        "duration_sec": 600,
+        "remaining_sec": 1,
+        "타이머종료": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "mapServerProcedure: clock skew: now before start",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "running",
+          "담당구분": "직원",
+          "duration_sec": 600,
+          "타이머종료여부": false,
+          "시작일시": "2026-11-01T01:00:00.000Z"
+        },
+        "nowMs": 1793494770000
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "running",
+        "담당": "staff",
+        "duration_sec": 600,
+        "remaining_sec": 600,
+        "타이머종료": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "mapServerProcedure: running without 시작일시 keeps running with null remaining",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "running",
+          "담당구분": "직원",
+          "duration_sec": 600,
+          "타이머종료여부": false,
+          "시작일시": null
+        },
+        "nowMs": 1793504799000
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "running",
+        "담당": "staff",
+        "duration_sec": 600,
+        "remaining_sec": null,
+        "타이머종료": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "mapServerProcedure: pending row passes through 타이머종료여부; 원장 -> doctor",
+      "input": {
+        "check": "mapServerProcedure",
+        "procedure": {
+          "치료실시술Id": "p1",
+          "상태": "pending",
+          "담당구분": "원장",
+          "duration_sec": 600,
+          "타이머종료여부": true,
+          "시작일시": "2026-11-01T01:00:00.000Z"
+        },
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "id": "p1",
+        "상태": "pending",
+        "담당": "doctor",
+        "duration_sec": 600,
+        "remaining_sec": null,
+        "타이머종료": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "tick: simultaneous expiries share one batch; no-start row counts down remaining",
+      "input": {
+        "check": "tick",
+        "procedures": [
+          {
+            "id": "a",
+            "상태": "running",
+            "duration_sec": 300,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "remaining_sec": 1
+          },
+          {
+            "id": "b",
+            "상태": "running",
+            "duration_sec": 300,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "remaining_sec": 1
+          },
+          {
+            "id": "c",
+            "상태": "running",
+            "duration_sec": 600,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "remaining_sec": 301
+          },
+          {
+            "id": "d",
+            "상태": "running",
+            "duration_sec": 600,
+            "시작일시": null,
+            "remaining_sec": 1
+          },
+          {
+            "id": "e",
+            "상태": "done",
+            "duration_sec": 600,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "remaining_sec": null
+          }
+        ],
+        "nowMs": 1793495100000
+      },
+      "expected": {
+        "procedures": [
+          {
+            "id": "a",
+            "상태": "pending",
+            "remaining_sec": null,
+            "타이머종료": true
+          },
+          {
+            "id": "b",
+            "상태": "pending",
+            "remaining_sec": null,
+            "타이머종료": true
+          },
+          {
+            "id": "c",
+            "상태": "running",
+            "remaining_sec": 300
+          },
+          {
+            "id": "d",
+            "상태": "pending",
+            "remaining_sec": null,
+            "타이머종료": true
+          },
+          {
+            "id": "e",
+            "상태": "done",
+            "remaining_sec": null
+          }
+        ],
+        "notifyEnded": [
+          {
+            "시술Id": "a",
+            "종료시각Ms": 1793495100000
+          },
+          {
+            "시술Id": "b",
+            "종료시각Ms": 1793495100000
+          },
+          {
+            "시술Id": "d",
+            "종료시각Ms": null
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "startTreatment: starting next procedure auto-completes elapsed one",
+      "input": {
+        "check": "startTreatment",
+        "procedures": [
+          {
+            "id": "x",
+            "상태": "pending",
+            "타이머종료": true,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 300,
+            "remaining_sec": null
+          },
+          {
+            "id": "y",
+            "상태": "pending",
+            "타이머종료": false,
+            "시작일시": null,
+            "duration_sec": 600,
+            "remaining_sec": null
+          }
+        ],
+        "targetId": "y",
+        "nowIso": "2026-11-01T01:10:00.000Z"
+      },
+      "expected": {
+        "procedures": [
+          {
+            "id": "x",
+            "상태": "done",
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "완료일시": "2026-11-01T01:10:00.000Z",
+            "remaining_sec": null,
+            "타이머종료": false
+          },
+          {
+            "id": "y",
+            "상태": "running",
+            "시작일시": "2026-11-01T01:10:00.000Z",
+            "완료일시": null,
+            "remaining_sec": 600,
+            "타이머종료": false
+          }
+        ],
+        "calls": [
+          "POST /treatments/procedures/x/complete",
+          "POST /treatments/procedures/y/start"
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "startTreatment: restarting an elapsed procedure uses /restart",
+      "input": {
+        "check": "startTreatment",
+        "procedures": [
+          {
+            "id": "x",
+            "상태": "pending",
+            "타이머종료": true,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 300,
+            "remaining_sec": null
+          },
+          {
+            "id": "y",
+            "상태": "pending",
+            "타이머종료": false,
+            "시작일시": null,
+            "duration_sec": 600,
+            "remaining_sec": null
+          }
+        ],
+        "targetId": "x",
+        "nowIso": "2026-11-01T01:10:00.000Z"
+      },
+      "expected": {
+        "procedures": [
+          {
+            "id": "x",
+            "상태": "running",
+            "시작일시": "2026-11-01T01:10:00.000Z",
+            "완료일시": null,
+            "remaining_sec": 300,
+            "타이머종료": false
+          },
+          {
+            "id": "y",
+            "상태": "pending",
+            "시작일시": null,
+            "완료일시": null,
+            "remaining_sec": null,
+            "타이머종료": false
+          }
+        ],
+        "calls": [
+          "POST /treatments/procedures/x/restart",
+          "(onError) POST /treatments/procedures/x/start"
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "startTreatment: starting a done procedure uncompletes then starts",
+      "input": {
+        "check": "startTreatment",
+        "procedures": [
+          {
+            "id": "z",
+            "상태": "done",
+            "타이머종료": false,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 300,
+            "remaining_sec": null
+          }
+        ],
+        "targetId": "z",
+        "nowIso": "2026-11-01T01:10:00.000Z"
+      },
+      "expected": {
+        "procedures": [
+          {
+            "id": "z",
+            "상태": "running",
+            "시작일시": "2026-11-01T01:10:00.000Z",
+            "완료일시": null,
+            "remaining_sec": 300,
+            "타이머종료": false
+          }
+        ],
+        "calls": [
+          "POST /treatments/procedures/z/uncomplete",
+          "POST /treatments/procedures/z/start (onSuccess)"
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "startTreatment: already running is a no-op",
+      "input": {
+        "check": "startTreatment",
+        "procedures": [
+          {
+            "id": "r",
+            "상태": "running",
+            "타이머종료": false,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 300,
+            "remaining_sec": 100
+          }
+        ],
+        "targetId": "r",
+        "nowIso": "2026-11-01T01:10:00.000Z"
+      },
+      "expected": {
+        "procedures": [
+          {
+            "id": "r",
+            "상태": "running",
+            "타이머종료": false,
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 300,
+            "remaining_sec": 100
+          }
+        ],
+        "calls": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: running: new duration minus elapsed",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "running",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 900,
+        "nowMs": 1793495100000
+      },
+      "expected": {
+        "applied": true,
+        "duration_sec": 900,
+        "remaining_sec": 600,
+        "request": {
+          "duration_sec": 900
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: running: shorter than elapsed+1 rejected",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "running",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 300,
+        "nowMs": 1793495100000
+      },
+      "expected": {
+        "applied": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: running: leaves exactly 1s",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "running",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 301,
+        "nowMs": 1793495100000
+      },
+      "expected": {
+        "applied": true,
+        "duration_sec": 301,
+        "remaining_sec": 1,
+        "request": {
+          "duration_sec": 301
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: zero rejected",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "running",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 0,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: non-integer rejected",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "running",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 90.5,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: same value no-op",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "running",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 600,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: done procedure rejected",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "done",
+          "시작일시": "2026-11-01T01:00:00.000Z",
+          "duration_sec": 600,
+          "remaining_sec": 300
+        },
+        "newSec": 60,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "setDuration: pending: just updates duration",
+      "input": {
+        "check": "setDuration",
+        "procedure": {
+          "상태": "pending",
+          "시작일시": null,
+          "duration_sec": 600,
+          "remaining_sec": null
+        },
+        "newSec": 60,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": true,
+        "duration_sec": 60,
+        "remaining_sec": null,
+        "request": {
+          "duration_sec": 60
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "adjustTimer: +60s",
+      "input": {
+        "check": "adjustTimer",
+        "procedure": {
+          "상태": "pending",
+          "시작일시": null,
+          "duration_sec": 600,
+          "remaining_sec": null
+        },
+        "delta": 60,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": true,
+        "duration_sec": 660,
+        "remaining_sec": null,
+        "request": {
+          "duration_sec": 660
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "adjustTimer: -600s hits 0 and is rejected",
+      "input": {
+        "check": "adjustTimer",
+        "procedure": {
+          "상태": "pending",
+          "시작일시": null,
+          "duration_sec": 600,
+          "remaining_sec": null
+        },
+        "delta": -600,
+        "nowMs": 1793494800000
+      },
+      "expected": {
+        "applied": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "defaults: new custom timer item default",
+      "input": {
+        "check": "defaults"
+      },
+      "expected": {
+        "duration_sec": 300
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "groupDuration: set duration is max of items",
+      "input": {
+        "check": "groupDuration",
+        "items": [
+          {
+            "duration_sec": 300
+          },
+          {
+            "duration_sec": 1200
+          }
+        ]
+      },
+      "expected": {
+        "duration_sec": 1200
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "groupDuration: empty/zero set falls back to 900",
+      "input": {
+        "check": "groupDuration",
+        "items": []
+      },
+      "expected": {
+        "duration_sec": 900
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "timerEndNotification: key and title",
+      "input": {
+        "check": "timerEndNotification",
+        "베드번호": 3,
+        "환자명": "홍길동",
+        "items": [
+          {
+            "시술Id": "p1",
+            "카테고리": "침",
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 600
+          },
+          {
+            "시술Id": "p2",
+            "카테고리": "부항",
+            "시작일시": "2026-11-01T01:00:00.000Z",
+            "duration_sec": 600
+          }
+        ]
+      },
+      "expected": {
+        "endAtMs": 1793495400000,
+        "keys": [
+          "timer-end:p1:1793495400000",
+          "timer-end:p2:1793495400000"
+        ],
+        "title": "03베드 홍길동님 침, 부항 타이머가 종료되었습니다."
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "Elapsed state ('pending' + 타이머종료=true) is computed only on the client; the server has no TIMER_ELAPSED transition. Whether the server persists 타이머종료여부 itself (it is read from snapshot rows) is not visible in the client.",
+    "Auto-completion of elapsed procedures happens only when another procedure in the same visit is started individually (startTreatment / startSetInBed); group complete, restart and reorder do not trigger it.",
+    "A running row without 시작일시 counts down remaining_sec by 1 per 1s tick (client-local only) and expires at 0; its 종료시각Ms is null, so the notification is never deduplicated by key.",
+    "Clock: remaining time uses Date.now() + (serverNow - Date.now()) offset captured on each snapshot; snapshots are ignored for 2s after a local mutation. Server-side expiry should use server time only.",
+    "Timer-config defaults (new custom item 300s, set fallback 900s) are client constants; the server's default for timer-config items is unknown."
+  ]
+}

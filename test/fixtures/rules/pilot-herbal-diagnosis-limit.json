@@ -1,0 +1,922 @@
+{
+  "rule": "pilot-herbal-diagnosis-limit",
+  "description": "HIRA cumulative dosing history decides whether a pilot herbal (첩건) disease may be prescribed and which copay code (G/U/blank) applies: 2+ other diseases or other-clinic history blocks, 20+ days at this clinic switches to U.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "57-99",
+      "origin": "unminified/index-CBEIvlV0.js:121709-121750"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "683-697",
+      "origin": "unminified/index-CBEIvlV0.js:122313-122326"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "705-743",
+      "origin": "unminified/index-CBEIvlV0.js:122332-122370"
+    },
+    {
+      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "lines": "765-818",
+      "origin": "unminified/index-CBEIvlV0.js:122389-122442"
+    },
+    {
+      "file": "re-upstream/restored/modules/DeskPatientRegister/part-4.js",
+      "lines": "13-153",
+      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1439-1575"
+    }
+  ],
+  "inputSchema": {
+    "function": "prescriptionEligibility (Cdn), resolveCopayCode ($dn), hasTwoOtherDiagnoses (R0e), mergeCurrentDiagnosisHistory (N0e).",
+    "code": "Selected 첩약상병구분코드: '00' 공통처방, '01' 월경통, '02' 안면신경마비, '03' 뇌혈관질환 후유증, '04' 알레르기성비염, '05' 요추추간판탈출증, '06' 기능성소화불량.",
+    "history": "Array of HIRA 목록조회내역 rows {진료년월, 첩약상병구분코드, 해당요양기관등록여부 ('Y' this clinic / 'N' other clinic / '' unknown), 첩약상병명, 누적투약일수 (numeric string)}. Desktop app: HIRA selectPatPcmdList for 진료년도=current year, 첩약상병구분코드='00', 본인부담률구분코드='Z' (all diseases). Web: a single row from GET /chart/pcmd/patients/{pId}?year&self_code=Z&sick_code={code}.",
+    "counts": "resolveCopayCode only: doctor counts {일, 월, 년}; kept within limits here (see pilot-herbal-doctor-limit).",
+    "expectedConvention": "expected.returned holds the return value; the string 'undefined' means the function returned undefined. expected.throws holds an exception."
+  },
+  "cases": [
+    {
+      "name": "eligibility: history not loaded",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01"
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: no code selected",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: empty history",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": []
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: two other diseases at this clinic blocks",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": true,
+          "오류메시지": "환자가 이미 다른 2개 질환으로 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: two other diseases blocks even with current-disease history",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": true,
+          "오류메시지": "환자가 이미 다른 2개 질환으로 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: lowercase y counts as this clinic",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": true,
+          "오류메시지": "환자가 이미 다른 2개 질환으로 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: one other disease only does not block",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: same other disease twice counts once",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "7"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: 공통처방 '00' rows are ignored for the 2-disease rule",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "00",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "10"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: other-clinic rows are ignored for the 2-disease rule",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: zero-day rows are ignored for the 2-disease rule",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "0"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: this clinic 19 days is fine",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "19"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "오류메시지": ""
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: this clinic exactly 20 days warns (not blocked)",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "20"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": false,
+          "오류메시지": "환자가 월경통으로 20일 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: this clinic 21 days warns",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "04",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "21"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": false,
+          "오류메시지": "환자가 알레르기성비염으로 21일 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: particle 으로 is appended regardless of final consonant",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "02",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "20"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": false,
+          "오류메시지": "환자가 안면신경마비으로 20일 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: other clinic 0 days is fine",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "0"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "오류메시지": ""
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: other clinic 1 day blocks",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": true,
+          "오류메시지": "환자가 타원에서 월경통으로 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: empty registration flag is normalized to N and blocks as other clinic",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "",
+            "첩약상병명": "",
+            "누적투약일수": "30"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": true,
+          "오류메시지": "환자가 타원에서 월경통으로 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: rows merged, any Y wins and max days used",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "25"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": false,
+          "오류메시지": "환자가 월경통으로 25일 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: non-numeric days treated as 0",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "abc"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "오류메시지": ""
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: code '00' with history uses 질환명 공통처방",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "00",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "00",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "20"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "처방불가": false,
+          "오류메시지": "환자가 공통처방으로 20일 처방받았습니다."
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "eligibility: code outside M0e with matching row throws",
+      "input": {
+        "function": "prescriptionEligibility",
+        "code": "07",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "07",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "20"
+          }
+        ]
+      },
+      "expected": {
+        "throws": "TypeError: Cannot read properties of undefined (reading '질환명')"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "merge: no rows for code",
+      "input": {
+        "function": "mergeCurrentDiagnosisHistory",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          }
+        ]
+      },
+      "expected": {
+        "returned": "undefined"
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "merge: N rows only stay N with max days",
+      "input": {
+        "function": "mergeCurrentDiagnosisHistory",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "202601",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "202602",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "9"
+          }
+        ]
+      },
+      "expected": {
+        "returned": {
+          "진료년월": "202601",
+          "첩약상병구분코드": "01",
+          "해당요양기관등록여부": "N",
+          "첩약상병명": "",
+          "누적투약일수": "9"
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "two-other: current code rows excluded",
+      "input": {
+        "function": "hasTwoOtherDiagnoses",
+        "code": "02",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ]
+      },
+      "expected": {
+        "returned": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "two-other: three other diseases",
+      "input": {
+        "function": "hasTwoOtherDiagnoses",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "06",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "2"
+          }
+        ]
+      },
+      "expected": {
+        "returned": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: empty history gives G with full-pay option",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "G",
+          "본인일부부담이지만전액부담선택가능함": true
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: no current-disease rows and two other diseases gives blank",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "",
+          "본인일부부담이지만전액부담선택가능함": false
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: this clinic 19 days gives G",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "19"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "G",
+          "본인일부부담이지만전액부담선택가능함": true
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: this clinic exactly 20 days gives U",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "20"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "U",
+          "본인일부부담이지만전액부담선택가능함": false
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: other clinic 0 days gives G",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "0"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "G",
+          "본인일부부담이지만전액부담선택가능함": true
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: other clinic 1 day gives blank without full-pay flag",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "N",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": ""
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: empty registration flag is normalized to N and gives blank",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": ""
+        }
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "copay: current-disease history skips the 2-disease check (differs from eligibility)",
+      "input": {
+        "function": "resolveCopayCode",
+        "code": "01",
+        "history": [
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "01",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "5"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "02",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "3"
+          },
+          {
+            "진료년월": "",
+            "첩약상병구분코드": "04",
+            "해당요양기관등록여부": "Y",
+            "첩약상병명": "",
+            "누적투약일수": "1"
+          }
+        ],
+        "counts": {
+          "일": 0,
+          "월": 0,
+          "년": 0
+        }
+      },
+      "expected": {
+        "returned": {
+          "첩건본인부담률구분코드": "G",
+          "본인일부부담이지만전액부담선택가능함": true
+        }
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "resolveCopayCode ($dn) applies the 2-other-disease block only when the patient has no rows for the selected disease, while prescriptionEligibility (Cdn) applies it first unconditionally. With history [01 Y 5, 02 Y 3, 04 Y 1] the copay code is G but the UI says 처방불가. Which is intended? Looks like a bug in $dn.",
+    "The 20-day threshold is hard-coded in both Cdn and $dn ('>= 20' -> U / warning). Is 20 the regulatory per-disease benefit cap (and should it be a regulatory-limits reference value)?",
+    "When rows for the same disease mix 'Y' and 'N', N0e marks the merged record 'Y' and uses the max days, so other-clinic history is hidden as soon as this clinic has any row. Intended?",
+    "On the web build only one row (the selected disease) is fetched, so the 2-other-disease rule can never fire on web; only the desktop app (HIRA selectPatPcmdList with code '00') returns all diseases.",
+    "Timing: $dn runs in a watch on the disease code using whatever history is cached at that moment; on web the history is fetched after $dn runs, so the first selection uses stale/empty history. The server should evaluate against fresh HIRA data.",
+    "N0e normalizes any registration flag that is not 'Y' (including '' from the web fallback when the API omits it) to 'N', so a row with an unknown flag and days > 0 is treated as other-clinic history and blocks prescribing. Intended, or should unknown be treated as no data?",
+    "Message text appends '으로' regardless of the final consonant (e.g. '안면신경마비으로'). Cosmetic, but server messages may differ.",
+    "History is queried for new Date().getFullYear() (current calendar year), not the encounter year; editing a prior-year chart early in January uses this year's history.",
+    "A disease code not present in M0e (anything other than 00-06) with a matching history row throws TypeError in Cdn."
+  ]
+}

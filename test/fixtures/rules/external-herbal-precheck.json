@@ -1,0 +1,676 @@
+{
+  "rule": "external-herbal-precheck",
+  "description": "External decoction (ocsv2) pre-payment flow: precheck gate whose catch swallows all failures, herb/pack quantity derivation, payment-method allocation to the server quote, and duplicate-payment risk detection.",
+  "sources": [
+    {
+      "file": "re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js",
+      "lines": "546-618",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:9758-9830"
+    },
+    {
+      "file": "re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js",
+      "lines": "478-545",
+      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:9690-9757"
+    },
+    {
+      "file": "re-upstream/restored/views/OcsV2OrderCreateView.vue.js",
+      "lines": "1145-1219",
+      "origin": "unminified/OcsV2OrderCreateView-Bf492rpY.js:4120-4194"
+    },
+    {
+      "file": "re-upstream/restored/modules/useOcsV2배송상태/part-7.js",
+      "lines": "8-37, 99-144",
+      "origin": "unminified/useOcsV2배송상태-DHC-CIRk.js:2190-2332"
+    },
+    {
+      "file": "re-upstream/restored/modules/useOcsV2배송상태/탕전실설정.js",
+      "lines": "1324-1331",
+      "origin": "unminified/useOcsV2배송상태-DHC-CIRk.js:3940-3947"
+    },
+    {
+      "file": "re-upstream/restored/api/ocs-v2/query-keys.js",
+      "lines": "68, 91-99",
+      "origin": "unminified/OcsV2MedicationGuidePagedSheets-vEnmJYhw.js:13-101"
+    },
+    {
+      "file": "re-upstream/restored/api/ocsv2/queries.js",
+      "lines": "201-219",
+      "origin": "unminified/OcsV2MedicationGuidePagedSheets-vEnmJYhw.js:102-306"
+    }
+  ],
+  "inputSchema": {
+    "check": "precheckGate | herbLineQuantity | packBasedQuantity | allocatePaymentMethods | normalizeQuote | duplicatePaymentRisk",
+    "precheckGate": {
+      "precheckResult": "{ kind: 'resolve'|'reject'|'none', value: value returned by postOcsv2Precheck (= response.data.result) or error message }"
+    },
+    "herbLineQuantity": {
+      "첩당용량g": "number|string",
+      "첩수": "number|string"
+    },
+    "packBasedQuantity": {
+      "팩수": "number",
+      "과금팩수": "number|null"
+    },
+    "allocatePaymentMethods": {
+      "methods": "[{ 결제수단유형: '예치금카드'|'일반카드', 입력금액 }]",
+      "serverPaymentAmount": "number|null (quote paymentAmount)"
+    },
+    "normalizeQuote": {
+      "금액항목": "object|null"
+    },
+    "duplicatePaymentRisk": {
+      "error": "{ isAxiosError, response.data.message }"
+    }
+  },
+  "cases": [
+    {
+      "name": "precheckGate: precheck ok",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": {
+            "data": {
+              "ok": true,
+              "lines": []
+            }
+          }
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: out of stock + quantity mismatch lines",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": {
+            "data": {
+              "ok": false,
+              "lines": [
+                {
+                  "ok": false,
+                  "code": "OUT_OF_STOCK"
+                },
+                {
+                  "ok": true
+                },
+                {
+                  "ok": false,
+                  "code": "QTY_MISMATCH"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": false,
+        "toastError": "주문 확인 실패: 재고 부족, 수량 불일치",
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: server errors listed before line issues",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": {
+            "data": {
+              "ok": false,
+              "errors": [
+                "약재 단종"
+              ],
+              "lines": [
+                {
+                  "ok": false,
+                  "code": "OUT_OF_STOCK"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": false,
+        "toastError": "주문 확인 실패: 약재 단종, 재고 부족",
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: ok false without details -> generic message",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": {
+            "data": {
+              "ok": false
+            }
+          }
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": false,
+        "toastError": "주문 확인 실패: 수량·재고를 확인해주세요.",
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: network error / 5xx swallowed -> proceeds",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "reject",
+          "value": "Network Error"
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": [
+          "[ocsv2] precheck 생략(EP 미가용)"
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: 404 endpoint missing swallowed -> proceeds",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "reject",
+          "value": "Request failed with status code 404"
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": [
+          "[ocsv2] precheck 생략(EP 미가용)"
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: result without .data wrapper (ok:false at top level) -> proceeds",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": {
+            "ok": false,
+            "lines": [
+              {
+                "ok": false,
+                "code": "OUT_OF_STOCK"
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: ok missing (undefined) -> proceeds",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": {
+            "data": {}
+          }
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: null result -> TypeError swallowed -> proceeds",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "resolve",
+          "value": null
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": [
+          "[ocsv2] precheck 생략(EP 미가용)"
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "precheckGate: mock mode (no client) skips precheck",
+      "input": {
+        "check": "precheckGate",
+        "precheckResult": {
+          "kind": "none"
+        }
+      },
+      "expected": {
+        "proceedToPaymentConfirm": true,
+        "toastError": null,
+        "log": []
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "herbLineQuantity: 3.25g x 20첩",
+      "input": {
+        "check": "herbLineQuantity",
+        "첩당용량g": 3.25,
+        "첩수": 20
+      },
+      "expected": {
+        "quantity": 66
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "herbLineQuantity: 3.24g x 20첩",
+      "input": {
+        "check": "herbLineQuantity",
+        "첩당용량g": 3.24,
+        "첩수": 20
+      },
+      "expected": {
+        "quantity": 64
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "herbLineQuantity: 0g x 20첩",
+      "input": {
+        "check": "herbLineQuantity",
+        "첩당용량g": 0,
+        "첩수": 20
+      },
+      "expected": {
+        "quantity": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "herbLineQuantity: 4g x 0첩",
+      "input": {
+        "check": "herbLineQuantity",
+        "첩당용량g": 4,
+        "첩수": 0
+      },
+      "expected": {
+        "quantity": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "herbLineQuantity: 2.5g x 10첩",
+      "input": {
+        "check": "herbLineQuantity",
+        "첩당용량g": "2.5",
+        "첩수": "10"
+      },
+      "expected": {
+        "quantity": 25
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "herbLineQuantity: 1.15g x 3첩",
+      "input": {
+        "check": "herbLineQuantity",
+        "첩당용량g": 1.15,
+        "첩수": 3
+      },
+      "expected": {
+        "quantity": 3.6
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packBasedQuantity: 팩수 45 / 과금팩수 20",
+      "input": {
+        "check": "packBasedQuantity",
+        "팩수": 45,
+        "과금팩수": 20
+      },
+      "expected": {
+        "quantity": 3
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packBasedQuantity: 팩수 40 / 과금팩수 20",
+      "input": {
+        "check": "packBasedQuantity",
+        "팩수": 40,
+        "과금팩수": 20
+      },
+      "expected": {
+        "quantity": 2
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packBasedQuantity: 팩수 45 / 과금팩수 0",
+      "input": {
+        "check": "packBasedQuantity",
+        "팩수": 45,
+        "과금팩수": 0
+      },
+      "expected": {
+        "quantity": 1
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packBasedQuantity: 팩수 45 / 과금팩수 undefined",
+      "input": {
+        "check": "packBasedQuantity",
+        "팩수": 45,
+        "과금팩수": null
+      },
+      "expected": {
+        "quantity": 1
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "packBasedQuantity: 팩수 0 / 과금팩수 20",
+      "input": {
+        "check": "packBasedQuantity",
+        "팩수": 0,
+        "과금팩수": 20
+      },
+      "expected": {
+        "quantity": 0
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "allocatePaymentMethods: general card absorbs remainder",
+      "input": {
+        "check": "allocatePaymentMethods",
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 30000
+          },
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 0
+          }
+        ],
+        "serverPaymentAmount": 50000
+      },
+      "expected": {
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 30000
+          },
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 20000
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "allocatePaymentMethods: deposit cards trimmed from last when over total",
+      "input": {
+        "check": "allocatePaymentMethods",
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 30000
+          },
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 30000
+          },
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 10000
+          }
+        ],
+        "serverPaymentAmount": 40000
+      },
+      "expected": {
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 30000
+          },
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 10000
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "allocatePaymentMethods: no general card: last deposit card topped up",
+      "input": {
+        "check": "allocatePaymentMethods",
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 10000
+          },
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 10000
+          }
+        ],
+        "serverPaymentAmount": 25000
+      },
+      "expected": {
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 10000
+          },
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 15000
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "allocatePaymentMethods: zero-amount methods dropped",
+      "input": {
+        "check": "allocatePaymentMethods",
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 50000
+          },
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 5000
+          }
+        ],
+        "serverPaymentAmount": 50000
+      },
+      "expected": {
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 50000
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "allocatePaymentMethods: server total null leaves input unchanged",
+      "input": {
+        "check": "allocatePaymentMethods",
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 1
+          },
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 0
+          }
+        ],
+        "serverPaymentAmount": null
+      },
+      "expected": {
+        "methods": [
+          {
+            "결제수단유형": "예치금카드",
+            "입력금액": 1
+          },
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 0
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "allocatePaymentMethods: server total 0 leaves input unchanged",
+      "input": {
+        "check": "allocatePaymentMethods",
+        "methods": [
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 100
+          }
+        ],
+        "serverPaymentAmount": 0
+      },
+      "expected": {
+        "methods": [
+          {
+            "결제수단유형": "일반카드",
+            "입력금액": 100
+          }
+        ]
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeQuote: non-positive amounts become null",
+      "input": {
+        "check": "normalizeQuote",
+        "금액항목": {
+          "paymentAmount": 0,
+          "shippingAmount": "3000",
+          "items": null,
+          "cashDiscountAmount": -1
+        }
+      },
+      "expected": {
+        "paymentAmount": null,
+        "shippingAmount": 0,
+        "priceBreakdown": null,
+        "items": [],
+        "cashDiscountAmount": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "normalizeQuote: missing quote",
+      "input": {
+        "check": "normalizeQuote",
+        "금액항목": null
+      },
+      "expected": {
+        "value": null
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "duplicatePaymentRisk: external paid but EMR failed -> duplicate-payment risk",
+      "input": {
+        "check": "duplicatePaymentRisk",
+        "error": {
+          "isAxiosError": true,
+          "response": {
+            "data": {
+              "message": "외부 결제는 완료되었으나 주문 저장에 실패했습니다."
+            }
+          }
+        }
+      },
+      "expected": {
+        "중복결제위험": true,
+        "retryAllowed": false
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "duplicatePaymentRisk: other axios error",
+      "input": {
+        "check": "duplicatePaymentRisk",
+        "error": {
+          "isAxiosError": true,
+          "response": {
+            "data": {
+              "message": "잔액 부족"
+            }
+          }
+        }
+      },
+      "expected": {
+        "중복결제위험": false,
+        "retryAllowed": true
+      },
+      "derivation": "executed"
+    },
+    {
+      "name": "duplicatePaymentRisk: non-axios error",
+      "input": {
+        "check": "duplicatePaymentRisk",
+        "error": {
+          "message": "외부 결제는 완료되었으나"
+        }
+      },
+      "expected": {
+        "중복결제위험": false,
+        "retryAllowed": true
+      },
+      "derivation": "executed"
+    }
+  ],
+  "openQuestions": [
+    "The precheck catch {} swallows every failure (network, 4xx, 5xx, malformed result) and proceeds to payment; the log text says the endpoint may not be deployed yet ('EP 미가용 — 머지 후 활성').",
+    "postOcsv2Precheck already returns response.data.result, yet the gate reads D.data?.ok. Unless the server nests the payload as result.data = { ok, lines, errors }, ok:false is never seen and the gate never blocks. Actual server response shape is unknown.",
+    "Line failure codes other than 'OUT_OF_STOCK' are all shown as '수량 불일치'; the full code list is unknown.",
+    "submitOrderAndPay continues to quote/pay even when saving the draft fails (if a draft id exists) and when the pre-quote hook (medication guide upload) fails.",
+    "Payment allocation (Fi) trims deposit cards from the last one and gives the remainder to the general card; behavior with multiple general cards (only the first is used) is untested on the server.",
+    "Herb quantity rounds per-첩 dose to 0.1g before multiplying (3.25g x 20 = 66, not 65)."
+  ]
+}

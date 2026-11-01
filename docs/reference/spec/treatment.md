@@ -16,7 +16,7 @@
 
 - `*Suspense` 래퍼는 `l0e()`로 매칭된 라우트의 `permissionCode`를 `canAccess$`로 검사합니다. 권한 정보를 불러오는 중이면 `RouteViewLoadingFallback`, 권한이 없으면 `RouteAccessDenied`, 있으면 화면을 비동기로 로드합니다 (timeout 30초).
 - `treatment-rooms`, `tablet-treatment-rooms`는 EMR 전용 라우트라서, 홈이 `desk`가 아닌 계정은 홈으로 보냅니다 ([access-control.md](../access-control.md) §3).
-- 근거: [routes.js](../../restored/router/routes.js), [TreatmentSuspense.vue](../../restored/components/treatment/TreatmentSuspense.vue), [TreatmentRoomsSuspense.vue](../../restored/components/treatment/TreatmentRoomsSuspense.vue), [part-196.js](../../restored/lib/index/part-196.js)
+- 근거: `re-upstream/restored/router/routes.js`, `re-upstream/restored/components/treatment/TreatmentSuspense.vue`, `re-upstream/restored/components/treatment/TreatmentRoomsSuspense.vue`, `re-upstream/restored/lib/index/part-196.js`
 
 ---
 
@@ -49,12 +49,12 @@
   - `useTreatmentStore`: 비활성화(deactivate) 때 `인덱스쿼리구독중지`, unmount 때 `$reset`·`$dispose`
   - query key: `sooKeys.all`, `treatmentRecordKeys.treatmentRecord(id)`, `treatmentRecordKeys.treatmentRecordList({ pid })`
   - 재활성화 시 환자 메모를 무효화합니다 (`invalidatePatientMemoQuery`)
-- **근거:** [TreatmentView.vue](../../restored/views/TreatmentView.vue), [TreatmentView.helpers.js](../../restored/views/TreatmentView.helpers.js)
+- **근거:** `re-upstream/restored/views/TreatmentView.vue`, `re-upstream/restored/views/TreatmentView.helpers.js`
 
 ## 진료 보드 — `TreatmentViewBoard`
 
 - **목적:** 한 환자의 한 진료(`진료Id`)를 편집하는 메인 작업 공간입니다.
-- **접근 조건** (`s6`, [part-32.js](../../restored/modules/TreatmentViewBoard/part-32.js)):
+- **접근 조건** (`s6`, `re-upstream/restored/modules/TreatmentViewBoard/part-32.js`):
 
   | 값 | 조건 |
   |---|---|
@@ -97,13 +97,13 @@
   | `PATCH /ocs/{ocsId}` | 원내 탕전 OCS |
 
 - **상태 저장:**
-  - `useTreatmentStore` ([treatment.js](../../restored/stores/treatment.js)):
+  - `useTreatmentStore` (`re-upstream/restored/stores/treatment.js`):
     - `selectRecord({ 진료Id, 환자Id })`로 대상을 고르고 `진료내용`(편집 중 사본), `진료데이터`(서버 원본), `초기스냅샷`, `최근진료기록`, `같은날자보진료기록`, `희귀상병데이터`, `병합된상병Ids/처방Ids`를 가집니다.
     - `진료내용수정됨`은 `진료기록·상병·처방·보험구분·기준일시·진료타입·진료의Id·진료항목Ids·한방첩약시범사업·명세서특정내역·_100여부·할인금액·처방경로·보험조회` 중 하나라도 스냅샷과 다르거나 `ocsDirty`이면 참입니다.
     - `진료데이터` 조회에 실패하면 `/treatment`로 이동합니다.
-  - 인덱스 쿼리(`인덱스쿼리구독시작`): KCD 2026, 수가코드(`reimbursement-codes`), 자보 수가 JSON, 희귀질환 JSON을 기준일시에 맞춰 구독합니다. 출처는 [local.js](../../restored/modules/index/local.js)의 `qFt`입니다.
+  - 인덱스 쿼리(`인덱스쿼리구독시작`): KCD 2026, 수가코드(`reimbursement-codes`), 자보 수가 JSON, 희귀질환 JSON을 기준일시에 맞춰 구독합니다. 출처는 `re-upstream/restored/modules/index/local.js`의 `qFt`입니다.
   - 기타 store: `useHiraSubmissionStore`, `useMedicalAidsStore`, `useClaimWarningStore`(청구 경고)
-- **근거:** [TreatmentViewBoard.vue](../../restored/components/treatment/TreatmentViewBoard.vue), [TreatmentViewBoardPatientInfo.vue](../../restored/components/treatment/TreatmentViewBoardPatientInfo.vue), [TreatmentViewBoardEditHeader.vue](../../restored/components/treatment/TreatmentViewBoardEditHeader.vue)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoard.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoardPatientInfo.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoardEditHeader.vue`
 
 ### 진료기록 에디터 — `TreatmentViewBoardEdit`
 
@@ -117,7 +117,7 @@
     - `/settings/record`의 `병원상용구` 중 `전체사용여부`인 것 (`상용구명`, `내용`)
   - **리핏 반영:** 경과기록·약속처방에서 문단을 리핏하면 `appendContent`로 덧붙입니다. 같은 출처(`data-repeat-source`)는 먼저 지우고 다시 넣습니다.
   - **Crash-safe draft:** IndexedDB `crashSafeDraftDB`의 `drafts` 스토어에 `{ treatmentId, patientId, html, savedAt }`를 저장합니다 (500ms 디바운스, 3일 경과 시 폐기). 다시 열면 복구 배너가 뜹니다.
-- **근거:** [TreatmentViewBoardEdit.vue](../../restored/components/treatment/TreatmentViewBoardEdit.vue), [BaseTreatmentEditor.vue.js](../../restored/components/base/BaseTreatmentEditor.vue.js), [clearAllDrafts.js](../../restored/modules/index/clearAllDrafts.js), [dbName.js](../../restored/lib/index/dbName.js)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoardEdit.vue`, `re-upstream/restored/components/base/BaseTreatmentEditor.vue.js`, `re-upstream/restored/modules/index/clearAllDrafts.js`, `re-upstream/restored/lib/index/dbName.js`
 
 ### 상병 — `TreatmentDisease`
 
@@ -133,7 +133,7 @@
 - **데이터:**
   - static JSON `KCD_20250722`, `KCD_20260101`, `KOICD_20240829`, `KOICD_20260101` (staticClient)
   - `GET chart/kcd/recent`(최근 상병)
-- **근거:** [TreatmentDisease.vue](../../restored/components/treatment/TreatmentDisease.vue), [DiseaseSearchModal.vue](../../restored/components/disease/DiseaseSearchModal.vue)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentDisease.vue`, `re-upstream/restored/components/disease/DiseaseSearchModal.vue`
 
 ### 처방 — `TreatmentViewBoardPrescriptionV2`
 
@@ -163,7 +163,7 @@
   | `...RowInsuranceMedicine` | 보험 한약제제 |
   | `...RowCommon` | 그 밖 (진찰료, 검사, 치료재료 등) |
 
-- **처방 종류와 카테고리 코드** (`카테고리숫자코드`, [part-103.js](../../restored/modules/index/part-103.js)의 `me`):
+- **처방 종류와 카테고리 코드** (`카테고리숫자코드`, `re-upstream/restored/modules/index/part-103.js`의 `me`):
 
   | 종류 | 코드 예 |
   |---|---|
@@ -181,7 +181,7 @@
   - 첩약류를 추가하면 aside 해당 탭이 자동으로 열립니다 (`selectAsideTab`).
   - 추나를 추가하면 승인 가드(`get추나승인가드결과`)가 돕니다. 이미 승인 요청한 내역이 있으면 "기존 요청을 취소하고 처방을 변경하시겠습니까?"를 묻습니다. 승인된 추나는 "업스트림 앱에서만 삭제할 수 있습니다."
   - 시술진료의를 지정합니다 (`PATCH /record/prescriptions/{id}`).
-- **근거:** [TreatmentViewBoardPrescriptionV2.vue](../../restored/components/treatment/TreatmentViewBoardPrescriptionV2.vue), [TreatmentViewBoardPrescriptionTableRow.vue](../../restored/components/treatment/TreatmentViewBoardPrescriptionTableRow.vue), [part-16.js](../../restored/modules/TreatmentViewBoard/part-16.js), [part-30.js](../../restored/modules/TreatmentViewBoard/part-30.js)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRow.vue`, `re-upstream/restored/modules/TreatmentViewBoard/part-16.js`, `re-upstream/restored/modules/TreatmentViewBoard/part-30.js`
 
 ### 경과기록 목록 — `TreatmentViewBoardRecordsList`
 
@@ -203,7 +203,7 @@
     - 오늘 일자에 이미 작성된 내용이 있으면 "오늘 작성된 진료 내용을 대체하시겠습니까?"를 확인합니다.
 - **데이터:** `GET /record/patient/{pid}` (`days_ago`, `limit`, `next`, `type`), `GET /record/patient/{pid}/record/date`, `GET /chart/medical-treatments`
 - **상태 저장:** `useRepeatedTreatmentStore`(`persist: true`, `repeatedRecords` 최대 100건, type `리핏됨`/`수납필요`/`수납완료`), `treatmentRecordKeys.treatmentRecordList/Infinite({ pid })`, `deskKeys.waiting/appointment(날짜)`
-- **근거:** [TreatmentViewBoardRecordsList.vue](../../restored/components/treatment/TreatmentViewBoardRecordsList.vue), [TreatmentViewBoardRecordsListMultiRepeatModal.vue](../../restored/components/treatment/TreatmentViewBoardRecordsListMultiRepeatModal.vue), [TreatmentViewBoardRecordListDeleteModal.vue](../../restored/components/treatment/TreatmentViewBoardRecordListDeleteModal.vue), [repeatedTreatment.js](../../restored/stores/repeatedTreatment.js)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsList.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsListMultiRepeatModal.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoardRecordListDeleteModal.vue`, `re-upstream/restored/stores/repeatedTreatment.js`
 
 ### 하단 바 — `TreatmentViewBoardFooter`
 
@@ -215,7 +215,7 @@
   - `약속처방 등록`: `처방수가설정` 권한이 있어야 하고, 진찰료 말고 다른 처방이나 상병이 있을 때만 켜집니다. `TreatmentViewBoardRegisterReservedPrescriptionModal` → `POST /settings/appointed-prescriptions` (그룹, 사용 범위 `내 계정만`/`모든 진료의`, 진찰료 제외)
   - 목표 본부금 프리셋: `PUT /settings/budget-target-presets/doctors/{진료의Id}`
   - 권한이 없으면 "현재 권한으로는 조회만 가능합니다."
-- **근거:** [TreatmentViewBoardFooter.vue](../../restored/components/treatment/TreatmentViewBoardFooter.vue), [getRoot.js](../../restored/modules/TreatmentViewBoard/getRoot.js)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoardFooter.vue`, `re-upstream/restored/modules/TreatmentViewBoard/getRoot.js`
 
 ### 저장·완료 로직
 
@@ -236,7 +236,7 @@
      - `차팅 완료`는 이동하지 않습니다
   4. 토스트 "○○님이 수납으로 이동했습니다." 등을 띄웁니다. 오늘 진료이면 다음 대기 환자(같은 진료의)를 미니 데스크에서 포커스합니다.
   - 비대면 SOO는 수령일정이 필요하면(`QS && !YS`) 수령일시 모달을 먼저 요청합니다. 완료 뒤에는 `PATCH /desk/telemedicine-consultations/{예약Id}/status` `complete` → "진료가 완료되었습니다. 이제 약을 배송해주세요."
-- **근거:** [TreatmentViewBoard.helpers-12.js](../../restored/components/treatment/TreatmentViewBoard.helpers-12.js), [TreatmentViewBoard.helpers-12.helpers.js](../../restored/components/treatment/TreatmentViewBoard.helpers-12.helpers.js), [TreatmentViewBoard.helpers-11.js](../../restored/components/treatment/TreatmentViewBoard.helpers-11.js), [TreatmentViewBoard.helpers-11.helpers.js](../../restored/components/treatment/TreatmentViewBoard.helpers-11.helpers.js), [part-42.js](../../restored/modules/TreatmentViewBoard/part-42.js), [part-2.js](../../restored/modules/SidePanelDeskActions/part-2.js)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-12.js`, `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-12.helpers.js`, `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-11.js`, `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-11.helpers.js`, `re-upstream/restored/modules/TreatmentViewBoard/part-42.js`, `re-upstream/restored/modules/SidePanelDeskActions/part-2.js`
 
 ## 진료 보드 사이드 패널 — `TreatmentViewBoardAside`
 
@@ -275,7 +275,7 @@
 
   - 첩약 4종 패널(`자보`/`산재`/`건보`/`비급여`)은 `Teleport`로 펼친 패널이나 팝오버 안에 렌더합니다. 첩약 삭제는 `TreatmentViewBoardAsideChubyakDeleteModal`로 확인합니다.
 - **상태 저장:** `asideTab`(ref), `aside수동접힘`, `useIntakeLinkPromptStore`
-- **근거:** [TreatmentViewBoardAside.vue](../../restored/components/treatment/TreatmentViewBoardAside.vue), [TreatmentViewBoard.helpers.js](../../restored/components/treatment/TreatmentViewBoard.helpers.js)
+- **근거:** `re-upstream/restored/components/treatment/TreatmentViewBoardAside.vue`, `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers.js`
 
 ## 반복 처방(리핏) 결과 — `/treatment/repeat-results`
 
@@ -290,7 +290,7 @@
   - 수납을 끝내면 `finishReceiptRecord(ids)`를 호출하고, 각 `내원Id`에 `PATCH /desk/waiting/{내원Id}` `상태: "수납완료"`를 보냅니다.
   - "진료차트로 돌아가기"는 store를 `$reset`한 뒤 `리핏됨` 진료(없으면 원래 진료)로 `switchPatient`합니다.
 - **상태 저장:** `useRepeatedTreatmentStore` (persist)
-- **근거:** [TreatmentRepeatResultsView.vue](../../restored/views/TreatmentRepeatResultsView.vue)
+- **근거:** `re-upstream/restored/views/TreatmentRepeatResultsView.vue`
 
 ## 치료실 보드 — `/treatment-rooms`
 
@@ -317,7 +317,7 @@
     - 베드 위치, 진료의, 전달사항 (`PUT /noti/instructions` `내원Id`·`내용`, `DELETE /noti/instructions/{id}`), "현재 사용 가능한 베드만 표시"
     - 내원 정보 갱신 `PATCH /desk/waiting/{id}`
   - **치료 완료:** `PATCH /treatments/patients/{내원Id}/status` (`치료완료`). 메모는 `POST /patients/{pid}/memos`로 남깁니다.
-  - **시술 타이머** (`Rp`, [duration_sec.js](../../restored/modules/TreatmentRoomsView/duration_sec.js)):
+  - **시술 타이머** (`Rp`, `re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js`):
 
     | 동작 | API |
     |---|---|
@@ -347,7 +347,7 @@
   - query key: `treatmentRoomsKeys.treatmentPatients()` (staleTime 5분), `treatmentRoomsV2Keys.snapshot()` (이 화면에서 5초 polling), `timerConfig()`, `groups()`
   - localStorage: `treatmentRooms:isWaitingListOpen`, `treatmentRooms:showMyPatientsOnly`
 - **전역 타이머 알림:** 앱 셸(`ZWt`)은 `치료실` 접근 권한이 있으면 어느 화면에서든 snapshot을 1분마다 polling하고, 시술 종료 시각에 맞춰 setTimeout을 겁니다. 종료되면 알림음과 기기 알림("NN베드 ○○님 … 타이머가 종료되었습니다.")을 냅니다. 태블릿 WebView면 대신 `postMessage({ type: "TREATMENT_TIMER_END" })`를 보냅니다.
-- **근거:** [TreatmentRoomsView.vue](../../restored/views/TreatmentRoomsView.vue), [TreatmentRoomBedAssignModal.vue](../../restored/components/treatment/TreatmentRoomBedAssignModal.vue), [TreatmentRoomsTimerSettingsModal.vue](../../restored/components/treatment/TreatmentRoomsTimerSettingsModal.vue), [useTreatmentsPatientsQuery.js](../../restored/modules/constants/useTreatmentsPatientsQuery.js), [useTreatmentsSnapshotQuery.js](../../restored/modules/index/useTreatmentsSnapshotQuery.js), [App.helpers-2.js](../../restored/components/app/App.helpers-2.js), [part-256.js](../../restored/modules/index/part-256.js)
+- **근거:** `re-upstream/restored/views/TreatmentRoomsView.vue`, `re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue`, `re-upstream/restored/components/treatment/TreatmentRoomsTimerSettingsModal.vue`, `re-upstream/restored/modules/constants/useTreatmentsPatientsQuery.js`, `re-upstream/restored/modules/index/useTreatmentsSnapshotQuery.js`, `re-upstream/restored/components/app/App.helpers-2.js`, `re-upstream/restored/modules/index/part-256.js`
 
 ## 태블릿 연동 — `/tablet/auth-link`, `/tablet/treatment-rooms`
 
@@ -360,7 +360,7 @@
   - `/tablet/treatment-rooms`: `TreatmentRoomsSuspense`를 `tablet-embed` 전체 화면으로 렌더하고, 마운트되면 `postMessage({ type: "EMBED_READY" })`를 보냅니다.
   - 브리지: `window.ReactNativeWebView.postMessage(JSON.stringify(msg))`를 씁니다 (`PUt`, 감지는 `J0e`).
 - **관련 설정** (다른 문서): 태블릿 계정·세션(`/tablet/accounts`, `/tablet/sessions`), 사진 요청(`/tablet/photo-requests`), 치료 항목(`/tablet/settings/treatment-items`)
-- **근거:** [TabletAuthLinkView.vue](../../restored/views/TabletAuthLinkView.vue), [TabletTreatmentRoomsView.vue](../../restored/views/TabletTreatmentRoomsView.vue), [patient.js](../../restored/stores/patient.js)
+- **근거:** `re-upstream/restored/views/TabletAuthLinkView.vue`, `re-upstream/restored/views/TabletTreatmentRoomsView.vue`, `re-upstream/restored/stores/patient.js`
 
 ## 차트 그림(캔버스) — `/canvas`
 
@@ -383,7 +383,7 @@
   | `GET`/`POST`/`PATCH`/`DELETE /record/canvas/templates`, `GET /record/canvas/templates/category/{category}/id/{id}` | 템플릿 |
 
 - **상태 저장:** `canvasKeys.canvasImageCount(patientId)` (창이 닫히면 무효화)
-- **근거:** [CanvasView.vue](../../restored/views/CanvasView.vue), [CanvasTrigger.vue.js](../../restored/components/canvas/CanvasTrigger.vue.js), [part-1.js](../../restored/modules/CanvasView/part-1.js)
+- **근거:** `re-upstream/restored/views/CanvasView.vue`, `re-upstream/restored/components/canvas/CanvasTrigger.vue.js`, `re-upstream/restored/modules/CanvasView/part-1.js`
 
 ## 흐름
 

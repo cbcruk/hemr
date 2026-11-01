@@ -8,10 +8,10 @@
 - **목적:** 청구 하위 화면의 권한 게이트이자 레이아웃입니다.
 - **접근 조건:** `meta { requiresAuth, usesGlobalLayout, permissionCode: 청구(chunggu), permissionRequired }`
   - `l0e()`는 **현재 경로와 정확히 일치하는** 라우트의 `meta.permissionCode`를 `canAccess$`로 확인합니다. 그래서 `/claim/hira`는 `chunggu`가 아니라 `spw_chunggu`로 판단됩니다
-  - EMR이 아닌 구성의 계정(홈이 `desk`가 아님)은 `claim-hira`, `claim-hira-submit-items`, `claim-medical-aids` 진입 시 홈으로 돌려보내집니다 ([part-261.js](../../restored/lib/index/part-261.js) `WQt`)
+  - EMR이 아닌 구성의 계정(홈이 `desk`가 아님)은 `claim-hira`, `claim-hira-submit-items`, `claim-medical-aids` 진입 시 홈으로 돌려보내집니다 (`re-upstream/restored/lib/index/part-261.js` `WQt`)
 - **화면 구성:** 권한 확인 중이면 `LoadingBoxWithSpinner`, 통과하면 `SooProV2FeatureRestrictionBanner` + `RouterView`, 실패하면 `AccessDeniedNotice`("접근 권한이 없습니다. 대표원장에게 권한을 요청해 주세요.")
   - `KeepAlive :max="3"`로 하위 화면을 캐시합니다. `HiraSubmitItemsView`는 캐시에서 뺍니다
-- **근거:** [ClaimView.vue](../../restored/views/ClaimView.vue), [routes.js](../../restored/router/routes.js), [access-control.md](../access-control.md)
+- **근거:** `re-upstream/restored/views/ClaimView.vue`, `re-upstream/restored/router/routes.js`, [access-control.md](../access-control.md)
 
 | 경로 | route name | permissionCode (표시명 → 코드) |
 |---|---|---|
@@ -28,7 +28,7 @@
 - **화면 구성:** `BaseTabBar` 탭 `청구필요` / `청구결과` (쿼리 `?tab=`, `replace`). 오른쪽 위에 `ClaimJejuEntryButton`이 있습니다
   - `청구필요` → `ClaimV2InboxView`
   - `청구결과` → `ClaimResultView`
-- **근거:** [ClaimHiraView.vue](../../restored/views/ClaimHiraView.vue)
+- **근거:** `re-upstream/restored/views/ClaimHiraView.vue`
 
 ### 청구필요 탭 (`ClaimV2InboxView`)
 - **화면 구성:**
@@ -47,7 +47,7 @@
     - 상세 응답의 `에러코드 === "N0002"`는 클라이언트가 빈 문자열로 바꿉니다
   - `?selectedClaimId=`로 카드를 미리 선택합니다
   - **삭감위험 목록:** `청구진료`를 `에러코드`별로 묶습니다. 무시한 코드(`useClaimWarningOffStore`)와 `미루기여부=true`는 뺍니다
-    - 에러코드 카탈로그 `os(code)`([_hoisted_1.js](../../restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js))에는 `경고문구`, `안내문구`, `위험도`(`높음`/`중간`), `자동수정가능`이 들어 있습니다. 88개 코드 중 21개가 자동수정 가능합니다
+    - 에러코드 카탈로그 `os(code)`(`re-upstream/restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js`)에는 `경고문구`, `안내문구`, `위험도`(`높음`/`중간`), `자동수정가능`이 들어 있습니다. 88개 코드 중 21개가 자동수정 가능합니다
     - 자동수정 가능 → `ClaimV2InboxViewDangerAutoFix`: 진료 기록과 환자 정보를 가져와 `jf()`로 수정안을 만들고 `POST /record/{rid}/save`로 저장한 뒤 청구 쿼리를 무효화합니다. `N0028`은 별도 경로를 탑니다
     - 자동수정 불가 → `ClaimV2InboxViewDangerManualFix`: `진료일자수정`(`ClaimJarakHistoryEditor`) 또는 `차트직접수정`(`ClaimV2CommonEditPanelPrototype` 사이드패널)
     - `ClaimCutBackWarningTable`의 버튼은 `수정` / `수정 안함`(이 청구서에서 코드 무시) / `청구 미루기`입니다
@@ -75,7 +75,7 @@
   - query keys `chungguKeys`: `["chunggu","document-list"]`(목록), `["chunggu","document", id]`(상세)
   - Pinia `claimWarningOff`(`errorCodesToIgnore: Map<청구Id, Set<에러코드>>`, 메모리에만 있음), `claimWarning`
   - localStorage `claim:unsentGuard`: 점검했지만 아직 전송하지 않은 청구서 메모입니다 (`gh`/`Ur`/`_a`)
-- **근거:** [ClaimV2InboxView.vue](../../restored/views/ClaimV2InboxView.vue), [ClaimV2InboxViewFooter.vue.js](../../restored/components/claim/ClaimV2InboxViewFooter.vue.js), [api/chunggu/queries.js](../../restored/api/chunggu/queries.js), [query-keys.js](../../restored/api/chunggu/query-keys.js), [ClaimV2InboxViewDangerAutoFix.vue](../../restored/components/claim/ClaimV2InboxViewDangerAutoFix.vue), [ClaimV2CommonEditPanelPrototype.vue](../../restored/components/claim/ClaimV2CommonEditPanelPrototype.vue), [part-2.js](../../restored/modules/ClaimHiraView/part-2.js)
+- **근거:** `re-upstream/restored/views/ClaimV2InboxView.vue`, `re-upstream/restored/components/claim/ClaimV2InboxViewFooter.vue.js`, `re-upstream/restored/api/chunggu/queries.js`, `re-upstream/restored/api/chunggu/query-keys.js`, `re-upstream/restored/components/claim/ClaimV2InboxViewDangerAutoFix.vue`, `re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototype.vue`, `re-upstream/restored/modules/ClaimHiraView/part-2.js`
 
 ### 청구결과 탭 (`ClaimResultView`)
 - **화면 구성:**
@@ -110,7 +110,7 @@
   - `GET /chunggu/after/{id}?limit&offset` (infinite) → `patients`, `청구`
   - `POST /chunggu/examresult` (일괄) → 404면 `POST /chunggu/examresult/{청구Id}`로 다시 보냅니다
 - **상태 저장:** `chungguKeys_2`: `["chunggu","after","list",params]`, `[…,"examresult",청구Id]`, `[…,"examresult-patients",{from,to}]`, `[…,"supplementary-targets",원청구Id]`. 월 범위는 `wC()`(모듈 단위 공유 ref (추정))에 둡니다
-- **근거:** [ClaimResultView.vue](../../restored/views/ClaimResultView.vue), [ClaimResultMain.vue.js](../../restored/components/claim/ClaimResultMain.vue.js), [ClaimResultMain.helpers.js](../../restored/components/claim/ClaimResultMain.helpers.js), [progressText.js](../../restored/modules/ClaimHiraView/progressText.js), [ClaimSummaryCard.vue](../../restored/components/claim/ClaimSummaryCard.vue)
+- **근거:** `re-upstream/restored/views/ClaimResultView.vue`, `re-upstream/restored/components/claim/ClaimResultMain.vue.js`, `re-upstream/restored/components/claim/ClaimResultMain.helpers.js`, `re-upstream/restored/modules/ClaimHiraView/progressText.js`, `re-upstream/restored/components/claim/ClaimSummaryCard.vue`
 
 ### 청구 상태 값
 
@@ -121,7 +121,7 @@
 | `전송대기` | 청구필요 | 회색 배지 |
 | `전송완료` | 청구결과 | 다시 청구·심사결과 불러오기가 가능합니다. 산재는 체크박스로 직접 설정합니다 |
 | `보완청구` | 청구결과 | 심사결과 불러오기가 가능합니다 |
-| `심사중` | 카드 목록 판정에 사용 | `["심사중","심사완료"]` 검사 ([ClaimV2InboxViewCardList.vue.js](../../restored/components/claim/ClaimV2InboxViewCardList.vue.js)) |
+| `심사중` | 카드 목록 판정에 사용 | `["심사중","심사완료"]` 검사 (`re-upstream/restored/components/claim/ClaimV2InboxViewCardList.vue.js`) |
 | `심사완료` | 청구결과 | 파란 배지. 다시 청구는 불가하고 보완청구로 처리합니다 |
 
 - `청구유형`: `원청구`(기본값), `보완청구`. 재청구는 `재청구원본청구번호`가 있는 카드입니다
@@ -143,7 +143,7 @@
   - 문서 생성 `POST /chunggu/jeju/documents`, 제출 표시 `PUT /chunggu/jeju/submitted`
   - 이미 제출한 달이면 "정정본이 필요한 경우에만 다시 생성하세요."라고 경고합니다. 지급 계좌가 비면 경고만 하고 생성은 됩니다
 - **상태 저장:** `jejuKeys.claimSetting()`, `chungguBadge()`, `chungguSummary(월, 사업)`
-- **근거:** [ClaimJejuEntryButton.vue](../../restored/components/claim/ClaimJejuEntryButton.vue), [ClaimJejuModal.vue](../../restored/components/claim/ClaimJejuModal.vue), [requests-4.js](../../restored/api/patients/requests-4.js), [useJejuSupport/part-1.js](../../restored/modules/useJejuSupport/part-1.js)
+- **근거:** `re-upstream/restored/components/claim/ClaimJejuEntryButton.vue`, `re-upstream/restored/components/claim/ClaimJejuModal.vue`, `re-upstream/restored/api/patients/requests-4.js`, `re-upstream/restored/modules/useJejuSupport/part-1.js`
 
 ## 추나·첩약 제출 현황 — `/claim/hira-submit-items` (`claim-hira-submit-items`)
 - **목적:** 추나요법, 자보 첩약, 첩약 건보(시범사업) 건을 심평원 측 등록 데이터와 차트 데이터로 맞춰 보고, 승인 요청·제출·삭제를 합니다.
@@ -180,7 +180,7 @@
 | 첩약 건보 | 전체, `승인필요`(표시 "제출필요"), `체크리스트 작성 필요`, `차트내역 없음`, `차트내역 불일치` |
 
 - **상태 저장:** `recordKeys.pcmdRecordsAll()` 등, 라우트 쿼리 `selectedTab`, `startDate`, `endDate`
-- **근거:** [HiraSubmitItemsView.vue](../../restored/views/HiraSubmitItemsView.vue), [HiraSubmitItemsView.helpers.js](../../restored/views/HiraSubmitItemsView.helpers.js), [HiraSubmitItemsView.helpers-2.js](../../restored/views/HiraSubmitItemsView.helpers-2.js), [api/hira/query-keys.js](../../restored/api/hira/query-keys.js) (`p0e`)
+- **근거:** `re-upstream/restored/views/HiraSubmitItemsView.vue`, `re-upstream/restored/views/HiraSubmitItemsView.helpers.js`, `re-upstream/restored/views/HiraSubmitItemsView.helpers-2.js`, `re-upstream/restored/api/hira/query-keys.js` (`p0e`)
 
 ## 의료급여 진료 승인 현황 — `/claim/medical-aids` (`claim-medical-aids`)
 - **목적:** 의료급여 수급자 진료건을 공단(NHIC) 온라인 자격·진료 승인(M3/M4/M5 전문)으로 승인 요청하거나 취소합니다.
@@ -203,7 +203,7 @@
   - 일괄 "모두 승인 요청"
   - 각 작업 뒤에는 `medicalReceipts`, `m3`, `m4`, `treatmentRecord`, `chungguKeys.all`을 무효화합니다
 - **상태 저장:** `medicalAidsStore`(행별 승인/취소 로딩), `deskKeys_2.m3/m4(진료Id)`
-- **근거:** [MedicalAidsView.vue](../../restored/views/MedicalAidsView.vue), [useMedicalAidsU001ToB005/part-2.js](../../restored/modules/useMedicalAidsU001ToB005/part-2.js), [part-4.js](../../restored/modules/useMedicalAidsU001ToB005/part-4.js), [MedicalAidsM3M4Form.vue](../../restored/components/medical/MedicalAidsM3M4Form.vue)
+- **근거:** `re-upstream/restored/views/MedicalAidsView.vue`, `re-upstream/restored/modules/useMedicalAidsU001ToB005/part-2.js`, `re-upstream/restored/modules/useMedicalAidsU001ToB005/part-4.js`, `re-upstream/restored/components/medical/MedicalAidsM3M4Form.vue`
 
 ## 일차의료 방문 현황 — `/claim/home-visit` (`claim-home-visit`)
 - **목적:** 일차의료 방문진료 건마다 심평원 점검서식을 작성했는지 관리합니다. 작성완료로 표시해야 청구에 포함됩니다.
@@ -218,7 +218,7 @@
   - "작성"/"점검서식 보기"는 외부 심평원 사이트(`hdn`)를 새 창으로 엽니다
   - "작성 완료" → `PATCH /record/home-visit/{rid}/form-status` `{ 점검서식상태: "작성완료" }`
 - **상태 값(`mdn`):** `작성필요`, `제출필요`, `작성완료`
-- **근거:** [ClaimHomeVisitView.vue](../../restored/views/ClaimHomeVisitView.vue), [ClaimHomeVisitView.helpers.js](../../restored/views/ClaimHomeVisitView.helpers.js)
+- **근거:** `re-upstream/restored/views/ClaimHomeVisitView.vue`, `re-upstream/restored/views/ClaimHomeVisitView.helpers.js`
 
 ## 비대면진료 현황 — `/claim/telemedicine-pilot` (`claim-telemedicine-pilot`)
 - **목적:** 비대면진료 시범사업에서 기관의 비대면 비율 상한과 환자별 월 산정 한도를 점검합니다.
@@ -232,7 +232,7 @@
   - `GET /record/telemedicine-pilot/ratio?yearMonth` → `{ 전체건수, 비대면건수, 비율, 상한 }`. 상한 기본값은 0.3입니다
     - `비율 > 상한`이면 "이번 달 비대면진료 비율이 N%를 넘었습니다."를 표시합니다
   - `GET /record/telemedicine-pilot/records?startDate&endDate` → `{ 목록, 환자월한도 }`
-- **근거:** [ClaimTelemedicinePilotView.vue](../../restored/views/ClaimTelemedicinePilotView.vue), [ClaimTelemedicinePilotView.helpers.js](../../restored/views/ClaimTelemedicinePilotView.helpers.js)
+- **근거:** `re-upstream/restored/views/ClaimTelemedicinePilotView.vue`, `re-upstream/restored/views/ClaimTelemedicinePilotView.helpers.js`
 
 ## 연말정산 — `/claim/year-settlement` (`year-settlement`)
 - **목적:** 국세청 연말정산 의료비 간소화 자료를 만듭니다. 수납 내역별로 공제 포함·제외를 정하고 제출 파일을 내려받습니다.
@@ -247,7 +247,7 @@
   - `GET /documents/year-end-tax-settlement`, `…/details`, `…/details/count`(→ `herbalCount`, `taxableCount`), 모두 `start_date`, `end_date`
   - 포함/제외: `PATCH /documents/receipt-details/deduction-exclusion` `{ 제외할수납상세Ids, 포함할수납상세Ids }`
   - 다운로드: `POST /documents/year-end-tax-settlement/download?start_date&end_date` body `{ 병원정보 }` → `{ downloadUrl, fileName }`
-- **근거:** [YearSettlement.vue](../../restored/components/year/YearSettlement.vue), [YearSettlementHeader.vue](../../restored/components/year/YearSettlementHeader.vue), [YearSettlementTable.vue](../../restored/components/year/YearSettlementTable.vue)
+- **근거:** `re-upstream/restored/components/year/YearSettlement.vue`, `re-upstream/restored/components/year/YearSettlementHeader.vue`, `re-upstream/restored/components/year/YearSettlementTable.vue`
 
 ## 실손보험 조회 — `/insurance-inquiry` (`insurance-inquiry`)
 - **목적:** 환자의 실손보험 가입·보장 내역을 조회하는 별도 서비스(`insuranceClient`, 업스트림 실손)의 작업 화면입니다.
@@ -267,7 +267,7 @@
     - 메디스트림 실손 계정으로 로그인하면 최근 1년간 완료된 조회 결과를 가져옵니다
     - `POST {HOSPITAL_CLAIM_MIGRATION_PATH}/jobs` `{ claimAccessToken }` → `GET …/jobs/current`(진행·미리보기) → `POST …/jobs/{id}/confirm` 또는 `/cancel`
     - 결과는 기존 환자와 연결 / 신규 등록 / 보류 / 제외로 분류됩니다
-- **근거:** [InsuranceInquiryView.vue](../../restored/views/InsuranceInquiryView.vue), [InsuranceInquiryWorkbench.vue](../../restored/components/insurance/InsuranceInquiryWorkbench.vue), [part-1.js](../../restored/lib/InsuranceInquiryView/part-1.js), [part-2.js](../../restored/lib/InsuranceInquiryView/part-2.js), [requests-2.js](../../restored/api/patients/requests-2.js), [ClaimMigrationModal.vue](../../restored/components/claim/ClaimMigrationModal.vue)
+- **근거:** `re-upstream/restored/views/InsuranceInquiryView.vue`, `re-upstream/restored/components/insurance/InsuranceInquiryWorkbench.vue`, `re-upstream/restored/lib/InsuranceInquiryView/part-1.js`, `re-upstream/restored/lib/InsuranceInquiryView/part-2.js`, `re-upstream/restored/api/patients/requests-2.js`, `re-upstream/restored/components/claim/ClaimMigrationModal.vue`
 
 ## 전자서명 — `/electronic-signature` (`electronic-signature`)
 - **목적:** 진료기록부와 본인부담금 수납대장에 의사가 네이버 인증서로 전자서명합니다.
@@ -291,7 +291,7 @@
     - 응답은 `{ 서명Id, txExpiresAt }`입니다
   - `GET /signing/{id}/status`를 5초마다 폴링합니다. `SUCCESS`면 `POST /signing/{id}/finish` → `txStatus`에 따라 성공 / "인증이 완료되지 않았습니다." / "인증 기한이 만료되었습니다."
   - 모달에서 내 정보(이름·생년월일·휴대폰)를 확인하고 수정할 수 있습니다: `PATCH accountClient /users/{userId}`, OTP
-- **근거:** [ElectronicSignatureView.vue](../../restored/views/ElectronicSignatureView.vue), [RequiredView.vue](../../restored/views/RequiredView.vue), [NaverSignModal.vue.js](../../restored/components/naver/NaverSignModal.vue.js), [api/signing/requests.js](../../restored/api/signing/requests.js)
+- **근거:** `re-upstream/restored/views/ElectronicSignatureView.vue`, `re-upstream/restored/views/RequiredView.vue`, `re-upstream/restored/components/naver/NaverSignModal.vue.js`, `re-upstream/restored/api/signing/requests.js`
 
 ## 진료 화면의 청구 경고 — `useClaimWarningStore`
 - **목적:** 진료 작성 중 삭감위험 경고를 실시간으로 보여줍니다. 청구 수정 패널과 같은 스토어를 씁니다.
@@ -300,7 +300,7 @@
   - `TreatmentViewBoardPrescriptionV2`는 지표 경고를 `setIndicatorWarnings`로 넣습니다
   - `warnings = [...treatment, ...indicator]`입니다. `currentWarning`은 `defaultErrorCode`와 일치하는 경고를 우선하고, 없으면 `warningIdx` 위치의 경고입니다
   - 표시는 `TreatmentViewBoardFooter` → `ClaimWarningCardsPopover`, `…ClaimWarning` 컴포넌트들이 맡습니다
-- **근거:** [claimWarning.js](../../restored/stores/claimWarning.js), [claimWarningOff.js](../../restored/stores/claimWarningOff.js), [local.js](../../restored/modules/index/local.js)
+- **근거:** `re-upstream/restored/stores/claimWarning.js`, `re-upstream/restored/stores/claimWarningOff.js`, `re-upstream/restored/modules/index/local.js`
 - 참고: `components/car/`(자보 이력·자보 첩약 편집), `components/jabo/`(내원일 달력), `components/eligibility/`(건보 자격 표)는 데스크 접수와 진료 화면에서 쓰입니다(`DeskPatientAcceptCarHistory`, `PatientHealthInsuranceEligibilityTable` 등). 그래서 이 문서에서는 다루지 않습니다.
 
 ## 흐름

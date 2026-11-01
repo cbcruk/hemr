@@ -3,7 +3,7 @@
 Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코드(`restored/`)를 읽고 정리한 기능 스펙입니다. 한의원용 EMR로, 원무·진료·예약·탕전·청구·CRM·설정을 하나의 Vue 앱이 제공하고, 경영지표·재무·포털은 원격 앱으로 붙습니다.
 
 - **근거:** 모든 내용은 정적 분석 결과입니다. API를 실제로 호출해 확인하지 않았습니다. 각 문서의 **근거** 링크가 복원 코드를 가리킵니다
-- **확실성:** 코드에서 직접 확인한 동작만 적었고, 추정은 "(추정)"으로 표시했습니다. 이름 끝의 `$`는 복원 과정에서 추정한 식별자입니다 ([restored/README.md](../../restored/README.md))
+- **확실성:** 코드에서 직접 확인한 동작만 적었고, 추정은 "(추정)"으로 표시했습니다. 이름 끝의 `$`는 복원 과정에서 추정한 식별자입니다 (restored/README.md (`re-upstream/restored/README.md`))
 - **기준 번들:** 메인 엔트리 `index-CBEIvlV0.js` (Vue 3.5.35)
 
 ## 문서
@@ -46,7 +46,7 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 
 ## 백엔드
 
-모든 HTTP 호출은 axios 인스턴스 14개로 나갑니다 ([api/clients/index.js](../../restored/api/clients/index.js) 외).
+모든 HTTP 호출은 axios 인스턴스 14개로 나갑니다 (`re-upstream/restored/api/clients/index.js` 외).
 
 | 클라이언트 | 서버 | 용도 |
 |---|---|---|
@@ -64,12 +64,12 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 | `webClient` | 동일 출처 | 웹 자체 경로 |
 
 - **인증:** 로그인 정보와 토큰은 localStorage `사용자로그인정보`에 저장됩니다. 일부 클라이언트의 인터셉터가 만료 시 `POST /token/refresh`를 호출합니다
-- **서버 상태:** TanStack Vue Query가 관리합니다. 기본 옵션은 `retry: false`, `gcTime: 300000`, `refetchOnWindowFocus: false` ([main.js](../../restored/main.js))
+- **서버 상태:** TanStack Vue Query가 관리합니다. 기본 옵션은 `retry: false`, `gcTime: 300000`, `refetchOnWindowFocus: false` (`re-upstream/restored/main.js`)
 - **기준 데이터:** 상병·수가·약재 JSON은 날짜 기준 버전(예: KCD 2025-07-22 / 2026-01-01)을 골라 `staticClient`로 받고, 오래 캐시합니다
 
 ## 실시간 동기화
 
-`useSocketClientStore`([stores/socketClient.js](../../restored/stores/socketClient.js))가 `https://socket.upstream.co.kr`에 연결합니다. 메시지의 `type`으로 구독자를 나눕니다.
+`useSocketClientStore`(`re-upstream/restored/stores/socketClient.js`)가 `https://socket.upstream.co.kr`에 연결합니다. 메시지의 `type`으로 구독자를 나눕니다.
 
 | type | 반응 |
 |---|---|
@@ -80,11 +80,11 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 | `RECORD_LLM_COMPLETED`, `RECORD_LLM_FAILED` | AI 에이전트 대화(`AiAgentMessages`)에서 진료기록 생성 완료·실패 반영 |
 | `SOO_MIGRATION_COMPLETE` | `App`에서 수 마이그레이션 오버레이 종료 처리 (추정) |
 
-`ACTION_*` 처리는 [modules/index/part-239.js](../../restored/modules/index/part-239.js)에 모여 있습니다. 다른 PC·탭에서 바뀐 내용은 이 이벤트로 쿼리를 다시 불러와 반영합니다. 같은 PC에서 여러 탭이 동시에 알림음을 울리지 않도록, 로컬 알림 중재 서버(`127.0.0.1:4782x`)로 조정합니다 ([non-axios-channels.md](../non-axios-channels.md)).
+`ACTION_*` 처리는 `re-upstream/restored/modules/index/part-239.js`에 모여 있습니다. 다른 PC·탭에서 바뀐 내용은 이 이벤트로 쿼리를 다시 불러와 반영합니다. 같은 PC에서 여러 탭이 동시에 알림음을 울리지 않도록, 로컬 알림 중재 서버(`127.0.0.1:4782x`)로 조정합니다 ([non-axios-channels.md](../non-axios-channels.md)).
 
 ## 앱 셸
 
-[App.vue](../../restored/components/app/App.vue)가 모든 화면을 감쌉니다.
+`re-upstream/restored/components/app/App.vue`가 모든 화면을 감쌉니다.
 
 - **레이아웃:** 라우트 `meta.usesGlobalLayout`이 있으면 `LayoutView`(헤더 `HeaderLayout` + 사이드바 `SidebarLayout`)로 감쌉니다
   - 화면은 `KeepAlive :max="3"`으로 최근 3개까지 유지합니다. `CanvasView`, `ElectronicSignatureView`, `OndangGateView`는 제외합니다

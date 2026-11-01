@@ -2,7 +2,7 @@
 
 `PermissionCode` enum의 각 코드가 어떤 라우트에 걸리고, 어떤 행위(`access`/`create`/`update`/`delete`/`write`) 검사로 어디에서 쓰이는지 `restored/`에서 정적으로 모은 문서입니다. 권한 체계 설명은 [access-control.md](access-control.md). 재생성: `pnpm permissions`
 
-- enum: [PermissionCode$](../restored/modules/index/requiredRoleType.js#L1) · 코드 65개
+- enum: PermissionCode$ (`re-upstream/restored/modules/index/requiredRoleType.js:1`) · 코드 65개
 - 행위 검사 함수: `canAccess$` (access), `canCreate$` (create), `canUpdate$` (update), `canDelete$` (delete), `canWrite$` (write)
 - 코드를 직접 넘기는 검사 106곳 (문자열 리터럴 2곳 포함), 변수로 넘겨받은 값을 검사하는 곳 9곳
 - 코드별 숫자는 정적으로 찾은 호출 수입니다. 0이어도 변수로 넘겨받는 검사나 다른 경로로 쓰일 수 있습니다
@@ -84,7 +84,7 @@
 ### 치료실 · `treatment_rooms`
 
 - 라우트: `/treatment-rooms`, `/tablet/treatment-rooms`
-- `access`: [App.helpers-2](../restored/components/app/App.helpers-2.js#L13)
+- `access`: App.helpers-2 (`re-upstream/restored/components/app/App.helpers-2.js:13`)
 
 <a id="appointment_planner"></a>
 
@@ -103,80 +103,80 @@
 ### 메디원탕 · `medi_ocs`
 
 - 라우트: `/ocs-v2-herb-order-create`, `/ocs-v2-herb-order-list`
-- 값으로 참조: [Group](../restored/modules/index/Group.js#L109) (`permissionCode`)
+- 값으로 참조: Group (`re-upstream/restored/modules/index/Group.js:109`) (`permissionCode`)
 
 <a id="bi"></a>
 
 ### 경영지표 · `bi`
 
 - 라우트: `/analytics`, `/analytics/revenue`, `/analytics/appointment`, `/analytics/patient`, `/analytics/incoming-path`, `/analytics/doctor`
-- 값으로 참조: [part-255](../restored/modules/index/part-255.js#L43)
+- 값으로 참조: part-255 (`re-upstream/restored/modules/index/part-255.js:43`)
 
 <a id="patient_info"></a>
 
 ### 환자상세 · `patient_info`
 
-- `access`: [ClaimV2CommonEditPanelPrototypePatientInfo.vue](../restored/components/claim/ClaimV2CommonEditPanelPrototypePatientInfo.vue.js#L320), [PatientCardActions.vue](../restored/components/patient/PatientCardActions.vue.js#L50), [TangjeonCreateTreatmentRecordCard.vue](../restored/components/tangjeon/TangjeonCreateTreatmentRecordCard.vue.js#L77), [TreatmentViewBoardPatientInfo.vue](../restored/components/treatment/TreatmentViewBoardPatientInfo.vue.js#L350), [part-86](../restored/modules/index/part-86.js#L49), [DeskVisitView.vue](../restored/views/DeskVisitView.vue.js#L216)
+- `access`: ClaimV2CommonEditPanelPrototypePatientInfo.vue (`re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypePatientInfo.vue.js:320`), PatientCardActions.vue (`re-upstream/restored/components/patient/PatientCardActions.vue.js:50`), TangjeonCreateTreatmentRecordCard.vue (`re-upstream/restored/components/tangjeon/TangjeonCreateTreatmentRecordCard.vue.js:77`), TreatmentViewBoardPatientInfo.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardPatientInfo.vue.js:350`), part-86 (`re-upstream/restored/modules/index/part-86.js:49`), DeskVisitView.vue (`re-upstream/restored/views/DeskVisitView.vue.js:216`)
 
 <a id="appointment_create"></a>
 
 ### 예약생성 · `appointment_create`
 
-- `create`: [AppointmentCardContextMenuWrapper.vue](../restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js#L126), [AppointmentPlannerDailyCell.vue](../restored/components/appointment/AppointmentPlannerDailyCell.vue.js#L158), [AppointmentPlannerWeeklyCell.vue](../restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js#L132), [EmrPatientsViewTableActions.vue](../restored/components/emr/EmrPatientsViewTableActions.vue.js#L44), [HeaderLayout.vue](../restored/components/header/HeaderLayout.vue.js#L157), [PatientAutoCompleteResultItems.vue](../restored/components/patient/PatientAutoCompleteResultItems.vue.js#L344), [PatientCard.vue](../restored/components/patient/PatientCard.vue.js#L262), [PatientCardAppointment.vue](../restored/components/patient/PatientCardAppointment.vue.js#L338), [PatientCardFolded.vue](../restored/components/patient/PatientCardFolded.vue.js#L301), [PatientCardFoldedAppointment.vue](../restored/components/patient/PatientCardFoldedAppointment.vue.js#L236), [part-86](../restored/modules/index/part-86.js#L65)
+- `create`: AppointmentCardContextMenuWrapper.vue (`re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js:126`), AppointmentPlannerDailyCell.vue (`re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue.js:158`), AppointmentPlannerWeeklyCell.vue (`re-upstream/restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js:132`), EmrPatientsViewTableActions.vue (`re-upstream/restored/components/emr/EmrPatientsViewTableActions.vue.js:44`), HeaderLayout.vue (`re-upstream/restored/components/header/HeaderLayout.vue.js:157`), PatientAutoCompleteResultItems.vue (`re-upstream/restored/components/patient/PatientAutoCompleteResultItems.vue.js:344`), PatientCard.vue (`re-upstream/restored/components/patient/PatientCard.vue.js:262`), PatientCardAppointment.vue (`re-upstream/restored/components/patient/PatientCardAppointment.vue.js:338`), PatientCardFolded.vue (`re-upstream/restored/components/patient/PatientCardFolded.vue.js:301`), PatientCardFoldedAppointment.vue (`re-upstream/restored/components/patient/PatientCardFoldedAppointment.vue.js:236`), part-86 (`re-upstream/restored/modules/index/part-86.js:65`)
 
 <a id="appointment_update"></a>
 
 ### 예약수정 · `appointment_update`
 
-- `update`: [AppointmentCardContextMenuWrapper.vue](../restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js#L126), [AppointmentCardDroppableAreaWrapper.vue](../restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js#L160), [PatientCardAppointment.vue](../restored/components/patient/PatientCardAppointment.vue.js#L338), [PatientCardFoldedAppointment.vue](../restored/components/patient/PatientCardFoldedAppointment.vue.js#L236), [PatientInfoAppointmentHistory.vue](../restored/components/patient/PatientInfoAppointmentHistory.vue.js#L360), [PatientInfoAppointmentHistoryCard.vue](../restored/components/patient/PatientInfoAppointmentHistoryCard.vue.js#L109), [part-86](../restored/modules/index/part-86.js#L73)
+- `update`: AppointmentCardContextMenuWrapper.vue (`re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js:126`), AppointmentCardDroppableAreaWrapper.vue (`re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js:160`), PatientCardAppointment.vue (`re-upstream/restored/components/patient/PatientCardAppointment.vue.js:338`), PatientCardFoldedAppointment.vue (`re-upstream/restored/components/patient/PatientCardFoldedAppointment.vue.js:236`), PatientInfoAppointmentHistory.vue (`re-upstream/restored/components/patient/PatientInfoAppointmentHistory.vue.js:360`), PatientInfoAppointmentHistoryCard.vue (`re-upstream/restored/components/patient/PatientInfoAppointmentHistoryCard.vue.js:109`), part-86 (`re-upstream/restored/modules/index/part-86.js:73`)
 
 <a id="appointment_delete"></a>
 
 ### 예약삭제 · `appointment_delete`
 
-- `delete`: [AppointmentCardContextMenuWrapper.vue](../restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js#L126), [PatientCardAppointment.vue](../restored/components/patient/PatientCardAppointment.vue.js#L338), [PatientCardFoldedAppointment.vue](../restored/components/patient/PatientCardFoldedAppointment.vue.js#L236), [PatientInfoAppointmentHistory.vue](../restored/components/patient/PatientInfoAppointmentHistory.vue.js#L421), [PatientInfoAppointmentHistoryCard.vue](../restored/components/patient/PatientInfoAppointmentHistoryCard.vue.js#L114)
+- `delete`: AppointmentCardContextMenuWrapper.vue (`re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js:126`), PatientCardAppointment.vue (`re-upstream/restored/components/patient/PatientCardAppointment.vue.js:338`), PatientCardFoldedAppointment.vue (`re-upstream/restored/components/patient/PatientCardFoldedAppointment.vue.js:236`), PatientInfoAppointmentHistory.vue (`re-upstream/restored/components/patient/PatientInfoAppointmentHistory.vue.js:421`), PatientInfoAppointmentHistoryCard.vue (`re-upstream/restored/components/patient/PatientInfoAppointmentHistoryCard.vue.js:114`)
 
 <a id="chart_create"></a>
 
 ### 환자생성 · `chart_create`
 
-- `create`: [HeaderLayout.vue](../restored/components/header/HeaderLayout.vue.js#L176), [TreatmentColumn.vue](../restored/components/treatment/TreatmentColumn.vue.js#L176), [WaitingColumn.vue](../restored/components/waiting/WaitingColumn.vue.js#L215), [part-86](../restored/modules/index/part-86.js#L17)
+- `create`: HeaderLayout.vue (`re-upstream/restored/components/header/HeaderLayout.vue.js:176`), TreatmentColumn.vue (`re-upstream/restored/components/treatment/TreatmentColumn.vue.js:176`), WaitingColumn.vue (`re-upstream/restored/components/waiting/WaitingColumn.vue.js:215`), part-86 (`re-upstream/restored/modules/index/part-86.js:17`)
 
 <a id="chart_update"></a>
 
 ### 환자수정 · `chart_update`
 
-- `update`: [EmrPatientsViewTableActions.vue](../restored/components/emr/EmrPatientsViewTableActions.vue.js#L54), [part-86](../restored/modules/index/part-86.js#L25)
+- `update`: EmrPatientsViewTableActions.vue (`re-upstream/restored/components/emr/EmrPatientsViewTableActions.vue.js:54`), part-86 (`re-upstream/restored/modules/index/part-86.js:25`)
 
 <a id="chart_delete"></a>
 
 ### 환자삭제 · `chart_delete`
 
-- `delete`: [EmrPatientsViewTableActions.vue](../restored/components/emr/EmrPatientsViewTableActions.vue.js#L59)
+- `delete`: EmrPatientsViewTableActions.vue (`re-upstream/restored/components/emr/EmrPatientsViewTableActions.vue.js:59`)
 
 <a id="waiting_create"></a>
 
 ### 접수생성 · `waiting_create`
 
-- `create`: [AppointmentCardContextMenuWrapper.vue](../restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js#L126), [EmrPatientsViewTableActions.vue](../restored/components/emr/EmrPatientsViewTableActions.vue.js#L49), [HeaderLayout.vue](../restored/components/header/HeaderLayout.vue.js#L181), [PatientCard.vue](../restored/components/patient/PatientCard.vue.js#L262), [PatientCardAppointment.vue](../restored/components/patient/PatientCardAppointment.vue.js#L338), [PatientCardFolded.vue](../restored/components/patient/PatientCardFolded.vue.js#L301), [PatientCardFoldedAppointment.vue](../restored/components/patient/PatientCardFoldedAppointment.vue.js#L236), [PatientInfoAppointmentHistory.vue](../restored/components/patient/PatientInfoAppointmentHistory.vue.js#L376), [TreatmentColumn.vue](../restored/components/treatment/TreatmentColumn.vue.js#L159), [WaitingColumn.vue](../restored/components/waiting/WaitingColumn.vue.js#L198), [part-86](../restored/modules/index/part-86.js#L136)
+- `create`: AppointmentCardContextMenuWrapper.vue (`re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue.js:126`), EmrPatientsViewTableActions.vue (`re-upstream/restored/components/emr/EmrPatientsViewTableActions.vue.js:49`), HeaderLayout.vue (`re-upstream/restored/components/header/HeaderLayout.vue.js:181`), PatientCard.vue (`re-upstream/restored/components/patient/PatientCard.vue.js:262`), PatientCardAppointment.vue (`re-upstream/restored/components/patient/PatientCardAppointment.vue.js:338`), PatientCardFolded.vue (`re-upstream/restored/components/patient/PatientCardFolded.vue.js:301`), PatientCardFoldedAppointment.vue (`re-upstream/restored/components/patient/PatientCardFoldedAppointment.vue.js:236`), PatientInfoAppointmentHistory.vue (`re-upstream/restored/components/patient/PatientInfoAppointmentHistory.vue.js:376`), TreatmentColumn.vue (`re-upstream/restored/components/treatment/TreatmentColumn.vue.js:159`), WaitingColumn.vue (`re-upstream/restored/components/waiting/WaitingColumn.vue.js:198`), part-86 (`re-upstream/restored/modules/index/part-86.js:136`)
 
 <a id="waiting_update"></a>
 
 ### 접수수정 · `waiting_update`
 
-- `update`: [PatientCard.vue](../restored/components/patient/PatientCard.vue.js#L262), [PatientCardFolded.vue](../restored/components/patient/PatientCardFolded.vue.js#L301), [PaymentColumn.vue](../restored/components/payment/PaymentColumn.vue.js#L131), [PaymentCompleteColumn.vue](../restored/components/payment/PaymentCompleteColumn.vue.js#L128), [TreatmentColumn.vue](../restored/components/treatment/TreatmentColumn.vue.js#L243), [TreatmentRoomBedAssignModal.vue](../restored/components/treatment/TreatmentRoomBedAssignModal.vue.js#L311), [TreatmentViewBoardJejuSupportPanel.vue](../restored/components/treatment/TreatmentViewBoardJejuSupportPanel.vue.js#L103), [WaitingColumn.vue](../restored/components/waiting/WaitingColumn.vue.js#L293), [part-86](../restored/modules/index/part-86.js#L41)
+- `update`: PatientCard.vue (`re-upstream/restored/components/patient/PatientCard.vue.js:262`), PatientCardFolded.vue (`re-upstream/restored/components/patient/PatientCardFolded.vue.js:301`), PaymentColumn.vue (`re-upstream/restored/components/payment/PaymentColumn.vue.js:131`), PaymentCompleteColumn.vue (`re-upstream/restored/components/payment/PaymentCompleteColumn.vue.js:128`), TreatmentColumn.vue (`re-upstream/restored/components/treatment/TreatmentColumn.vue.js:243`), TreatmentRoomBedAssignModal.vue (`re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue.js:311`), TreatmentViewBoardJejuSupportPanel.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardJejuSupportPanel.vue.js:103`), WaitingColumn.vue (`re-upstream/restored/components/waiting/WaitingColumn.vue.js:293`), part-86 (`re-upstream/restored/modules/index/part-86.js:41`)
 
 <a id="waiting_delete"></a>
 
 ### 접수삭제 · `waiting_delete`
 
-- `delete`: [PatientCard.vue](../restored/components/patient/PatientCard.vue.js#L262), [PatientCardFolded.vue](../restored/components/patient/PatientCardFolded.vue.js#L301)
+- `delete`: PatientCard.vue (`re-upstream/restored/components/patient/PatientCard.vue.js:262`), PatientCardFolded.vue (`re-upstream/restored/components/patient/PatientCardFolded.vue.js:301`)
 
 <a id="receipt_create"></a>
 
 ### 수납생성 · `receipt_create`
 
-- `create`: [PatientCard.vue](../restored/components/patient/PatientCard.vue.js#L262), [PaymentColumn.vue](../restored/components/payment/PaymentColumn.vue.js#L225), [PaymentCompleteColumn.vue](../restored/components/payment/PaymentCompleteColumn.vue.js#L141)
+- `create`: PatientCard.vue (`re-upstream/restored/components/patient/PatientCard.vue.js:262`), PaymentColumn.vue (`re-upstream/restored/components/payment/PaymentColumn.vue.js:225`), PaymentCompleteColumn.vue (`re-upstream/restored/components/payment/PaymentCompleteColumn.vue.js:141`)
 
 <a id="receipt_update"></a>
 
@@ -194,33 +194,33 @@
 
 ### 문서발급 · `document_create`
 
-- `create`: [ClaimV2CommonEditPanelPrototypePatientInfo.vue](../restored/components/claim/ClaimV2CommonEditPanelPrototypePatientInfo.vue.js#L327), [EmrPatientsViewTableActions.vue](../restored/components/emr/EmrPatientsViewTableActions.vue.js#L59), [HerbalPrescriptionUnassignedIssuePanel.vue](../restored/components/herbal/HerbalPrescriptionUnassignedIssuePanel.vue.js#L88), [PatientCard.vue](../restored/components/patient/PatientCard.vue.js#L262), [PatientCardAppointment.vue](../restored/components/patient/PatientCardAppointment.vue.js#L338), [PatientCardFolded.vue](../restored/components/patient/PatientCardFolded.vue.js#L301), [PatientCardFoldedAppointment.vue](../restored/components/patient/PatientCardFoldedAppointment.vue.js#L236), [TreatmentViewBoardPatientInfo.vue](../restored/components/treatment/TreatmentViewBoardPatientInfo.vue.js#L381), [part-86](../restored/modules/index/part-86.js#L57)
+- `create`: ClaimV2CommonEditPanelPrototypePatientInfo.vue (`re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypePatientInfo.vue.js:327`), EmrPatientsViewTableActions.vue (`re-upstream/restored/components/emr/EmrPatientsViewTableActions.vue.js:59`), HerbalPrescriptionUnassignedIssuePanel.vue (`re-upstream/restored/components/herbal/HerbalPrescriptionUnassignedIssuePanel.vue.js:88`), PatientCard.vue (`re-upstream/restored/components/patient/PatientCard.vue.js:262`), PatientCardAppointment.vue (`re-upstream/restored/components/patient/PatientCardAppointment.vue.js:338`), PatientCardFolded.vue (`re-upstream/restored/components/patient/PatientCardFolded.vue.js:301`), PatientCardFoldedAppointment.vue (`re-upstream/restored/components/patient/PatientCardFoldedAppointment.vue.js:236`), TreatmentViewBoardPatientInfo.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardPatientInfo.vue.js:381`), part-86 (`re-upstream/restored/modules/index/part-86.js:57`)
 
 <a id="treatment"></a>
 
 ### 진료 · `treatment`
 
 - 라우트: `/treatment`
-- `access`: [JaboVisitDaysModal.vue](../restored/components/jabo/JaboVisitDaysModal.vue.js#L59), [PatientCardActions.vue](../restored/components/patient/PatientCardActions.vue.js#L50), [PaymentColumn.vue](../restored/components/payment/PaymentColumn.vue.js#L216), [PaymentCompleteColumn.vue](../restored/components/payment/PaymentCompleteColumn.vue.js#L221), [TangjeonCreateTreatmentRecordCard.vue](../restored/components/tangjeon/TangjeonCreateTreatmentRecordCard.vue.js#L77), [TreatmentColumn.vue](../restored/components/treatment/TreatmentColumn.vue.js#L263), [WaitingColumn.vue](../restored/components/waiting/WaitingColumn.vue.js#L324), [part-174](../restored/modules/index/part-174.js#L20)
+- `access`: JaboVisitDaysModal.vue (`re-upstream/restored/components/jabo/JaboVisitDaysModal.vue.js:59`), PatientCardActions.vue (`re-upstream/restored/components/patient/PatientCardActions.vue.js:50`), PaymentColumn.vue (`re-upstream/restored/components/payment/PaymentColumn.vue.js:216`), PaymentCompleteColumn.vue (`re-upstream/restored/components/payment/PaymentCompleteColumn.vue.js:221`), TangjeonCreateTreatmentRecordCard.vue (`re-upstream/restored/components/tangjeon/TangjeonCreateTreatmentRecordCard.vue.js:77`), TreatmentColumn.vue (`re-upstream/restored/components/treatment/TreatmentColumn.vue.js:263`), WaitingColumn.vue (`re-upstream/restored/components/waiting/WaitingColumn.vue.js:324`), part-174 (`re-upstream/restored/modules/index/part-174.js:20`)
 
 <a id="prescription_write"></a>
 
 ### 처방생성수정삭제 · `prescription_write`
 
-- `write`: [JaboVisitDaysModal.vue](../restored/components/jabo/JaboVisitDaysModal.vue.js#L58)
-- 다른 함수에 전달: [ClaimV2CommonEditPanelPrototypeMain.vue](../restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js#L589) (`bc`), [TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue](../restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js#L115) (`h`), [part-32](../restored/modules/TreatmentViewBoard/part-32.js#L37) (`o`)
+- `write`: JaboVisitDaysModal.vue (`re-upstream/restored/components/jabo/JaboVisitDaysModal.vue.js:58`)
+- 다른 함수에 전달: ClaimV2CommonEditPanelPrototypeMain.vue (`re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js:589`) (`bc`), TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js:115`) (`h`), part-32 (`re-upstream/restored/modules/TreatmentViewBoard/part-32.js:37`) (`o`)
 
 <a id="treatment_write"></a>
 
 ### 진료기록생성수정삭제 · `treatment_write`
 
-- 다른 함수에 전달: [ClaimV2CommonEditPanelPrototypeMain.vue](../restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js#L588) (`bc`), [TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue](../restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js#L119) (`h`), [part-32](../restored/modules/TreatmentViewBoard/part-32.js#L35) (`o`)
+- 다른 함수에 전달: ClaimV2CommonEditPanelPrototypeMain.vue (`re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js:588`) (`bc`), TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js:119`) (`h`), part-32 (`re-upstream/restored/modules/TreatmentViewBoard/part-32.js:35`) (`o`)
 
 <a id="prescription_prn_write"></a>
 
 ### PRN처방생성수정삭제 · `prescription_prn_write`
 
-- 다른 함수에 전달: [DeskVisitPaymentCheckOutTreatmentCardDetail.vue](../restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue.js#L380) (`Drn`)
+- 다른 함수에 전달: DeskVisitPaymentCheckOutTreatmentCardDetail.vue (`re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue.js:380`) (`Drn`)
 
 <a id="all"></a>
 
@@ -232,7 +232,7 @@
 
 ### 담당환자 · `owner_only`
 
-- 값으로 참조: [ClaimV2CommonEditPanelPrototypeMain.vue](../restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js#L990), [DeskVisitPaymentCheckOutTreatmentCardDetail.vue](../restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue.js#L387), [TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue](../restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js#L104), [part-32](../restored/modules/TreatmentViewBoard/part-32.js#L32)
+- 값으로 참조: ClaimV2CommonEditPanelPrototypeMain.vue (`re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js:990`), DeskVisitPaymentCheckOutTreatmentCardDetail.vue (`re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue.js:387`), TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js:104`), part-32 (`re-upstream/restored/modules/TreatmentViewBoard/part-32.js:32`)
 
 <a id="crm"></a>
 
@@ -245,7 +245,7 @@
 ### 연락목록 · `call_list`
 
 - 라우트: `/crm/consult-script`, `/crm/contacts`, `/crm/contacts-v2`, `/crm/soo-scheduler`, `/setting/consult-templates`
-- 값으로 참조: [Group](../restored/modules/index/Group.js#L367) (`permissionCode`)
+- 값으로 참조: Group (`re-upstream/restored/modules/index/Group.js:367`) (`permissionCode`)
 
 <a id="patient_list"></a>
 
@@ -258,8 +258,8 @@
 ### 일반문자 · `sms`
 
 - 라우트: `/crm/message`, `/crm/contents/view/:token`, `/crm/message/send-completed`, `/setting/contents`
-- `access`: [part-86](../restored/modules/index/part-86.js#L81)
-- 값으로 참조: [Group](../restored/modules/index/Group.js#L377) (`permissionCode`)
+- `access`: part-86 (`re-upstream/restored/modules/index/part-86.js:81`)
+- 값으로 참조: Group (`re-upstream/restored/modules/index/Group.js:377`) (`permissionCode`)
 
 <a id="send_history"></a>
 
@@ -278,8 +278,8 @@
 ### 메시지템플릿관리 · `message_template_setting`
 
 - 라우트: `/setting/message-templates`
-- `access`: [useAppointmentNotificationsSettingsQuery](../restored/modules/templatePermission/useAppointmentNotificationsSettingsQuery.js#L18)
-- 값으로 참조: [Group](../restored/modules/index/Group.js#L372) (`permissionCode`)
+- `access`: useAppointmentNotificationsSettingsQuery (`re-upstream/restored/modules/templatePermission/useAppointmentNotificationsSettingsQuery.js:18`)
+- 값으로 참조: Group (`re-upstream/restored/modules/index/Group.js:372`) (`permissionCode`)
 
 <a id="chunggu"></a>
 
@@ -316,8 +316,8 @@
 ### 결제메뉴접근 · `billing`
 
 - 라우트: `/setting/billing`
-- `access`: [requests-4](../restored/api/crm/requests-4.js#L27), [queries-3](../restored/api/messages/queries-3.js#L44)
-- 값으로 참조: [Group](../restored/modules/index/Group.js#L401) (`permissionCode`)
+- `access`: requests-4 (`re-upstream/restored/api/crm/requests-4.js:27`), queries-3 (`re-upstream/restored/api/messages/queries-3.js:44`)
+- 값으로 참조: Group (`re-upstream/restored/modules/index/Group.js:401`) (`permissionCode`)
 
 <a id="setting"></a>
 
@@ -330,7 +330,7 @@
 ### 기본설정 · `normal_setting`
 
 - 라우트: `/setting/common`, `/setting/telemedicine`, `/setting/service-integration`
-- `access`: [HolidayPrepBanner.helpers](../restored/components/holiday/HolidayPrepBanner.helpers.js#L40), [OndangContractRequiredModal.vue](../restored/components/ondang/OndangContractRequiredModal.vue.js#L43)
+- `access`: HolidayPrepBanner.helpers (`re-upstream/restored/components/holiday/HolidayPrepBanner.helpers.js:40`), OndangContractRequiredModal.vue (`re-upstream/restored/components/ondang/OndangContractRequiredModal.vue.js:43`)
 
 <a id="info_setting"></a>
 
@@ -349,7 +349,7 @@
 ### 처방수가설정 · `prescription_setting`
 
 - 라우트: `/setting/prescription`
-- `access`: [TreatmentViewBoardFooter.vue](../restored/components/treatment/TreatmentViewBoardFooter.vue.js#L393)
+- `access`: TreatmentViewBoardFooter.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardFooter.vue.js:393`)
 
 <a id="template_setting"></a>
 
@@ -397,20 +397,20 @@
 
 ### 재무 · `finance`
 
-- `access`: [part-74](../restored/modules/index/part-74.js#L75)
-- 값으로 참조: [Group](../restored/modules/index/Group.js#L244) (`permissionCode`), [part-74](../restored/modules/index/part-74.js#L75)
+- `access`: part-74 (`re-upstream/restored/modules/index/part-74.js:75`)
+- 값으로 참조: Group (`re-upstream/restored/modules/index/Group.js:244`) (`permissionCode`), part-74 (`re-upstream/restored/modules/index/part-74.js:75`)
 
 <a id="finance_sales"></a>
 
 ### 재무매출조회 · `finance_sales`
 
-- 값으로 참조: [part-60](../restored/modules/index/part-60.js#L7)
+- 값으로 참조: part-60 (`re-upstream/restored/modules/index/part-60.js:7`)
 
 <a id="finance_expense"></a>
 
 ### 재무지출조회 · `finance_expense`
 
-- 값으로 참조: [part-60](../restored/modules/index/part-60.js#L11)
+- 값으로 참조: part-60 (`re-upstream/restored/modules/index/part-60.js:11`)
 
 <a id="finance_expense_write"></a>
 
@@ -452,13 +452,13 @@
 
 ### 재무손익조회 · `finance_pnl`
 
-- 값으로 참조: [part-60](../restored/modules/index/part-60.js#L15)
+- 값으로 참조: part-60 (`re-upstream/restored/modules/index/part-60.js:15`)
 
 <a id="finance_budget"></a>
 
 ### 재무예산조회 · `finance_budget`
 
-- 값으로 참조: [part-60](../restored/modules/index/part-60.js#L19)
+- 값으로 참조: part-60 (`re-upstream/restored/modules/index/part-60.js:19`)
 
 <a id="finance_budget_write"></a>
 
@@ -476,13 +476,13 @@
 
 ### 재무현금흐름조회 · `finance_cashflow`
 
-- 값으로 참조: [part-60](../restored/modules/index/part-60.js#L23)
+- 값으로 참조: part-60 (`re-upstream/restored/modules/index/part-60.js:23`)
 
 <a id="finance_expense_collect"></a>
 
 ### 재무지출수집 · `finance_expense_collect`
 
-- 값으로 참조: [part-60](../restored/modules/index/part-60.js#L27)
+- 값으로 참조: part-60 (`re-upstream/restored/modules/index/part-60.js:27`)
 
 ## enum에 없는 코드
 
@@ -490,9 +490,9 @@
 
 | 코드 | 행위 | 위치 |
 |---|---|---|
-| `copayment_digital_signature` | `create` | [CopaymentCollectionLedger-2.vue](../restored/components/copayment/CopaymentCollectionLedger-2.vue.js#L123), [RequiredView.vue](../restored/views/RequiredView.vue.js#L92) |
-| `record_digital_signature` | `create` | [MedicalRecord-2.vue](../restored/components/medical/MedicalRecord-2.vue.js#L153) |
-| `digital_signature` | `access` | [ElectronicSignatureView.vue](../restored/views/ElectronicSignatureView.vue.js#L69) |
+| `copayment_digital_signature` | `create` | CopaymentCollectionLedger-2.vue (`re-upstream/restored/components/copayment/CopaymentCollectionLedger-2.vue.js:123`), RequiredView.vue (`re-upstream/restored/views/RequiredView.vue.js:92`) |
+| `record_digital_signature` | `create` | MedicalRecord-2.vue (`re-upstream/restored/components/medical/MedicalRecord-2.vue.js:153`) |
+| `digital_signature` | `access` | ElectronicSignatureView.vue (`re-upstream/restored/views/ElectronicSignatureView.vue.js:69`) |
 
 ## 넘겨받은 값을 검사하는 곳
 
@@ -500,15 +500,15 @@
 
 | 행위 | 위치 | 인자 |
 |---|---|---|
-| `write` | [ClaimV2CommonEditPanelPrototypeMain.vue](../restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js#L990) | `B?.권한코드 \|\| ""` |
-| `write` | [DeskVisitPaymentCheckOutTreatmentCardDetail.vue](../restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue.js#L381) | `a?.권한코드 \|\| ""` |
-| `access` | [OnboardingGuidePanel.helpers-4](../restored/components/onboarding/OnboardingGuidePanel.helpers-4.js#L21) | `meta.permissionCode` |
-| `write` | [TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue](../restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js#L101) | `r.권한코드 \|\| ""` |
-| `access` | [part-196](../restored/lib/index/part-196.js#L28) | `n.value.permissionCode` |
-| `write` | [part-32](../restored/modules/TreatmentViewBoard/part-32.js#L32) | `_.권한코드 \|\| ""` |
-| `access` | [part-74](../restored/modules/index/part-74.js#L82) | `p.permissionCode` |
-| `access` | [AnalyticsView.vue](../restored/views/AnalyticsView.vue.js#L35) | `t` |
-| `access` | [SettingView.vue](../restored/views/SettingView.vue.js#L58) | `t` |
+| `write` | ClaimV2CommonEditPanelPrototypeMain.vue (`re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue.js:990`) | `B?.권한코드 \|\| ""` |
+| `write` | DeskVisitPaymentCheckOutTreatmentCardDetail.vue (`re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue.js:381`) | `a?.권한코드 \|\| ""` |
+| `access` | OnboardingGuidePanel.helpers-4 (`re-upstream/restored/components/onboarding/OnboardingGuidePanel.helpers-4.js:21`) | `meta.permissionCode` |
+| `write` | TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue (`re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue.js:101`) | `r.권한코드 \|\| ""` |
+| `access` | part-196 (`re-upstream/restored/lib/index/part-196.js:28`) | `n.value.permissionCode` |
+| `write` | part-32 (`re-upstream/restored/modules/TreatmentViewBoard/part-32.js:32`) | `_.권한코드 \|\| ""` |
+| `access` | part-74 (`re-upstream/restored/modules/index/part-74.js:82`) | `p.permissionCode` |
+| `access` | AnalyticsView.vue (`re-upstream/restored/views/AnalyticsView.vue.js:35`) | `t` |
+| `access` | SettingView.vue (`re-upstream/restored/views/SettingView.vue.js:58`) | `t` |
 
 ## 라우트별 접근 조건
 
