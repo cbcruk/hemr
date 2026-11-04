@@ -1,5 +1,5 @@
-import { ulid } from "ulid";
-import type { Id, IdKind } from "./ids.types.ts";
+import { ulid } from 'ulid'
+import type { Id, IdKind } from './ids.types.ts'
 
 /**
  * Identifier prefixes for every entity kind exposed by the API.
@@ -7,24 +7,24 @@ import type { Id, IdKind } from "./ids.types.ts";
  * See `docs/design/conventions.md` for the rules that govern identifiers.
  */
 export const ID_PREFIXES = {
-  tenant: "ten",
-  user: "usr",
-  device: "dev",
-  patient: "pat",
-  appointment: "apt",
-  visit: "vis",
-  encounter: "enc",
-  receipt: "rcp",
-  payment: "pay",
-  quote: "qt",
-  eligibilityLookup: "elg",
-  externalHerbalOrder: "xho",
-  job: "job",
-  event: "evt",
-  offlineCommand: "cmd",
-} as const;
+  tenant: 'ten',
+  user: 'usr',
+  device: 'dev',
+  patient: 'pat',
+  appointment: 'apt',
+  visit: 'vis',
+  encounter: 'enc',
+  receipt: 'rcp',
+  payment: 'pay',
+  quote: 'qt',
+  eligibilityLookup: 'elg',
+  externalHerbalOrder: 'xho',
+  job: 'job',
+  event: 'evt',
+  offlineCommand: 'cmd',
+} as const
 
-const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
 
 /**
  * Creates a new identifier for the given entity kind.
@@ -37,7 +37,7 @@ const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/;
  * ```
  */
 export function newId<K extends IdKind>(kind: K, time?: number): Id<K> {
-  return `${ID_PREFIXES[kind]}_${ulid(time)}` as Id<K>;
+  return `${ID_PREFIXES[kind]}_${ulid(time)}` as Id<K>
 }
 
 /**
@@ -47,7 +47,7 @@ export function newId<K extends IdKind>(kind: K, time?: number): Id<K> {
  * the shape of client-supplied ids instead of trusting them.
  */
 export function isId<K extends IdKind>(kind: K, value: unknown): value is Id<K> {
-  if (typeof value !== "string") return false;
-  const prefix = `${ID_PREFIXES[kind]}_`;
-  return value.startsWith(prefix) && ULID_PATTERN.test(value.slice(prefix.length));
+  if (typeof value !== 'string') return false
+  const prefix = `${ID_PREFIXES[kind]}_`
+  return value.startsWith(prefix) && ULID_PATTERN.test(value.slice(prefix.length))
 }

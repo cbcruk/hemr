@@ -22,6 +22,7 @@ pnpm install
 pnpm dev        # http://localhost:3000/v1/health
 pnpm typecheck
 pnpm test
+pnpm format     # or format:check
 pnpm build
 ```
 
