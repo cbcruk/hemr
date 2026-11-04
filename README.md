@@ -1,4 +1,4 @@
-# emr-backend
+# hemr
 
 Backend API server for a Korean medicine clinic EMR, redesigned from a static analysis of an existing web client.
 

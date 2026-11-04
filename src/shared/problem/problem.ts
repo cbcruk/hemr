@@ -40,7 +40,7 @@ export class ProblemError extends Error {
   }
 }
 
-/** Builds the `type` URI for an error code, such as `urn:emr:problem:slot-full`. */
+/** Builds the `type` URI for an error code, such as `urn:hemr:problem:slot-full`. */
 export function problemType(code: string): string {
-  return `urn:emr:problem:${code.toLowerCase().replaceAll("_", "-")}`;
+  return `urn:hemr:problem:${code.toLowerCase().replaceAll("_", "-")}`;
 }

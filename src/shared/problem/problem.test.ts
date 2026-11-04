@@ -6,7 +6,7 @@ describe("ProblemError", () => {
     const error = new ProblemError({ status: 409, code: "APPOINTMENT_SLOT_FULL", title: "Appointment slot is full" });
 
     expect(error.toJSON()).toEqual({
-      type: "urn:emr:problem:appointment-slot-full",
+      type: "urn:hemr:problem:appointment-slot-full",
       title: "Appointment slot is full",
       status: 409,
       code: "APPOINTMENT_SLOT_FULL",
