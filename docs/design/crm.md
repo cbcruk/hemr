@@ -62,7 +62,7 @@ flowchart LR
 ContactProgram
 ├─ id, name, source: HOSPITAL | CENTRAL, centralProgramId?
 ├─ trigger: { kind: PRESCRIPTION | ENCOUNTER | APPOINTMENT | PACKAGE | MANUAL, filter{ feeCodes?, visitTypeIds?, ... } }
-├─ rules[]: { id, offsetDays, sendTime, channel: CALL | SMS | KAKAO_ALIMTALK | KAKAO_BRAND, smsFallback: boolean, templateId?, delivery: AUTO | SEMI_AUTO | MANUAL, active }
+├─ rules[]: { id, offsetDays, sendTime, channel: CALL | SMS | KAKAO_ALIMTALK | KAKAO_BRAND, purpose: ADVERTISING | INFORMATIONAL, smsFallback: boolean, templateId?, delivery: AUTO | SEMI_AUTO | MANUAL, active }
 ├─ variables{}            # 병원 변수 (현행 hospital-variables 두 곳을 하나로)
 ├─ overrides{}            # CENTRAL 프로그램의 병원별 조정 (offsetDays, sendTime)
 └─ status: ACTIVE | PAUSED | ARCHIVED
@@ -70,7 +70,7 @@ ContactProgram
 ContactTask
 ├─ id, programId?, ruleId?, groupId (한 트리거에서 생긴 묶음)
 ├─ patientId, reason (사람이 읽는 연락 사유), source{ kind, refId, label }
-├─ scheduledAt, channel, smsFallback, templateId?, content? (템플릿 대신 직접 쓴 본문, AI 제안 포함), delivery
+├─ scheduledAt, channel, purpose, smsFallback, templateId?, content? (템플릿 대신 직접 쓴 본문, AI 제안 포함), delivery
 ├─ status: SCHEDULED | DONE | FAILED | SKIPPED | CANCELED | PROPOSED
 ├─ enabled (자동 발송 on/off)
 ├─ outcome?: { completedAt, by, memo, messageId? }
@@ -180,7 +180,7 @@ GET  /patients/{id}/message-variables                템플릿 변수 미리보�
 - **채널은 필드입니다.** 현행 채널·유형별 경로 6가지를 하나로 합칩니다
 - **SMS/LMS/MMS 판정(90/2000 byte, 제목·첨부 유무)은 서버가 합니다.** 클라이언트는 `estimate` 결과를 보여 줍니다
 - **법정 표기는 서버가 붙입니다.** 광고면 `(광고)`·병원명 머리말과 무료거부 번호·인증코드 꼬리말을 `resolvedBody`에 넣습니다. 클라이언트 편집기는 미리보기만 받습니다
-- **야간 광고 제한은 서버 정책 하나입니다.** 21:00–08:00(법정 야간 시간대)에는 야간 별도 동의(`MARKETING_NIGHT`)가 있는 수신자에게만 광고성 메시지를 보냅니다. 병원은 정책으로 이 시간대를 더 넓게(예: 20:30부터) 잡거나 야간 광고를 아예 막을 수 있습니다. 현행 20:30/20:50 불일치를 없앱니다 ([compliance.md](compliance.md#광고성-정보-전송))
+- **야간 광고 제한은 서버 정책 하나입니다.** 21:00–08:00(법정 야간 시간대)에는 야간 별도 동의(`MARKETING_NIGHT`)가 있는 수신자에게만 광고성 메시지를 보냅니다. 병원은 정책으로 이 시간대를 더 넓게(예: 20:30부터) 잡거나 야간 광고를 아예 막을 수 있습니다. 현행 20:30/20:50 불일치를 없앱니다 ([compliance.md](compliance.md#광고성-정보-전송)). 판정은 [night-advertising.ts](../../src/modules/crm/messaging/night-advertising.ts), 결정은 [crm-send-window](rule-decisions.md#crm-send-window)
 - **동의·수신거부 제외는 발송 시점에 서버가 다시 합니다.** 환자 동의([patients.md](patients.md#동의))와 번호 단위 `Suppression`(아래)을 모두 검사합니다. `estimate` 이후 동의가 바뀌어도 발송 시 최신 상태로 거릅니다. 마케팅 동의 `UNDECIDED`인 환자는 광고성 발송에서 제외합니다. 현행은 배너만 띄우고 막지 않았습니다
 - 수신자 추가가 오래 걸리면 Job입니다. 현행 `receivers/count` 10회 폴링을 대체합니다
 
