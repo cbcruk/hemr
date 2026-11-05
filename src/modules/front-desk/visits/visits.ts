@@ -1,4 +1,5 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
+import { domainEvent } from '../../../shared/events/domain-event.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
@@ -35,7 +36,12 @@ export class Visits extends Context.Service<
   Visits,
   {
     /**
-     * 내원에 상태 커맨드를 적용하고 새 상태를 저장합니다. 저장할 때마다 `version`이 1 오릅니다.
+     * 내원에 상태 커맨드를 적용하고 새 상태를 저장합니다. 저장할 때마다 `version`이 1 오릅니다. 같은 트랜잭션에서
+     * `visit.status_changed` 이벤트를 outbox에 씁니다. `:reopen {then}`은 두 전이를 이벤트 하나(처음 → 마지막
+     * 상태)로 냅니다. 중간 상태는 저장되지 않기 때문입니다.
+     *
+     * `expectedVersion`을 받으면 읽은 뒤 다른 요청이 먼저 저장했을 때 412 `VERSION_MISMATCH`입니다. 받지 않았으면
+     * 클라이언트가 잠금을 요청하지 않은 것이라, 새 상태로 다시 읽어 판정하고 저장하기를 3번까지 되풀이합니다.
      *
      * 권한 확인과, 연쇄 취소 때 함께 무효로 할 기록 처리는 아직 없습니다.
      */
@@ -47,7 +53,7 @@ export class Visits extends Context.Service<
     Effect.gen(function* () {
       const repository = yield* VisitRepository
 
-      const apply = Effect.fn('Visits.apply')(function* (
+      const attempt = Effect.fn('Visits.apply')(function* (
         id: Id<'visit'>,
         command: VisitCommand,
         input: VisitCommandInput = {},
@@ -89,9 +95,23 @@ export class Visits extends Context.Service<
           version: visit.version + 1,
           ...(input.reason === undefined ? {} : { statusReason: input.reason }),
         }
-        yield* repository.save(next)
+        const event = domainEvent('visit.status_changed', visit.id, next.statusChangedAt, {
+          visitId: visit.id,
+          patientId: visit.patientId,
+          from: visit.status,
+          to: status,
+        })
+        // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
+        yield* repository.save(next, { expectedVersion: visit.version, events: [event] })
         return next
       })
+
+      const apply = (id: Id<'visit'>, command: VisitCommand, input: VisitCommandInput = {}) =>
+        input.expectedVersion === undefined
+          ? attempt(id, command, input).pipe(
+              Effect.retry({ while: (error) => error._tag === 'VersionMismatch', times: 3 }),
+            )
+          : attempt(id, command, input)
 
       return Visits.of({ apply })
     }),

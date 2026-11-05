@@ -2,12 +2,12 @@ import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { afterAll, describe, expect, it } from 'vitest'
 import { AppLive } from './app.ts'
-import { VisitRepository } from './modules/front-desk/visits/visit-repository.ts'
+import { PersistenceMemory } from './persistence.ts'
 
 const Defect = HttpRouter.add('GET', '/v1/defect', Effect.die(new Error('boom')))
 
 const app = HttpRouter.toWebHandler(
-  Layer.merge(AppLive, Defect).pipe(Layer.provide([VisitRepository.layerMemory(), HttpServer.layerServices])),
+  Layer.merge(AppLive, Defect).pipe(Layer.provide([PersistenceMemory(), HttpServer.layerServices])),
   {
     disableLogger: true,
   },

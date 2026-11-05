@@ -26,6 +26,8 @@ pnpm format     # or format:check
 pnpm build
 ```
 
+`pnpm dev` stores data in SQLite at `data/hemr.sqlite` (override with `DATABASE_FILE`, or use `:memory:`), applies migrations on startup and seeds two sample visits. Repository and relay tests use in-memory SQLite (`:memory:`); service and HTTP tests use in-memory layers, with one HTTP test on SQLite. No database server is needed.
+
 ## Status
 
-Only the first piece of domain logic exists: the visit state machine in `src/modules/front-desk/visits/`. The server is built on Effect (`effect/http-api`), with the HTTP contract in `src/api.ts`; persistence (SQLite + outbox, decision D9) is not wired yet. Open decisions are listed in `docs/design/review.md`.
+Only the first piece of domain logic exists: the visit state machine in `src/modules/front-desk/visits/`. The server is built on Effect (`effect/http-api`), with the HTTP contract in `src/api.ts`; visits are stored in SQLite (decision D9), and state changes write `visit.status_changed` to an outbox that an in-process relay publishes. Open decisions are listed in `docs/design/review.md`.

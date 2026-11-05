@@ -1,10 +1,11 @@
-import { Layer } from 'effect'
+import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { describe, expect, it } from 'vitest'
 import { AppLive } from '../../../app.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
+import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
 
 const VISIT_ID = 'vis_01JBQ000000000000000000001'
 const PAST_DATE = '2000-01-01'
@@ -25,12 +26,28 @@ function visit(status: Visit['status'], overrides: Partial<Visit> = {}): Visit {
 interface SendOptions {
   body?: unknown
   ifMatch?: string
+  /** 저장소 구현입니다. 기본은 메모리입니다. */
+  store?: 'memory' | 'sqlite'
 }
+
+/** 빈 인메모리 SQLite에 `seed`를 넣은 저장소입니다. */
+const sqliteWith = (seed: Visit[]) =>
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const repository = yield* VisitRepository
+      yield* Effect.forEach(seed, (each) => repository.save(each, { expectedVersion: null }))
+    }),
+  ).pipe(Layer.provideMerge(PersistenceSqlite(':memory:')))
 
 /** 저장소에 `seed`만 있는 새 앱에 커맨드 하나를 보냅니다. */
 async function send(seed: Visit[], path: string, options: SendOptions = {}): Promise<Response> {
   const app = HttpRouter.toWebHandler(
-    AppLive.pipe(Layer.provide([VisitRepository.layerMemory(seed), HttpServer.layerServices])),
+    AppLive.pipe(
+      Layer.provide([
+        options.store === 'sqlite' ? sqliteWith(seed) : PersistenceMemory(seed),
+        HttpServer.layerServices,
+      ]),
+    ),
     { disableLogger: true },
   )
   try {
@@ -228,5 +245,20 @@ describe('POST /v1/visits/{id}:{command}', () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toMatchObject({ violations: [{ field: 'id', code: 'INVALID_VALUE' }] })
+  })
+
+  describe('on SQLite', () => {
+    it('stores the transition and answers 412 for a stale If-Match', async () => {
+      const ok = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { store: 'sqlite' })
+      expect(ok.status).toBe(200)
+      expect(await ok.json()).toMatchObject({ status: 'IN_TREATMENT', version: 2 })
+
+      const stale = await send([visit('WAITING', { version: 3 })], `${VISIT_ID}:start-treatment`, {
+        store: 'sqlite',
+        ifMatch: '"2"',
+      })
+      expect(stale.status).toBe(412)
+      expect(await stale.json()).toMatchObject({ code: 'VERSION_MISMATCH', currentVersion: 3 })
+    })
   })
 })
