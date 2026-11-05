@@ -90,3 +90,4 @@ flowchart LR
 | [offline.md](offline.md) | 오프라인 접수·수납, 엣지 캐시, 동기화와 충돌 해결 |
 | [compliance.md](compliance.md) | 의료·개인정보 법적 요구가 설계에 주는 제약 |
 | [review.md](review.md) | 설계 검토: 현행 대비 매핑, 위험, 결정 필요 사항 |
+| [rule-decisions.md](rule-decisions.md) | 현행 클라이언트 규칙 25개의 열린 질문 163개에 대한 서버 결정 (초안) |
