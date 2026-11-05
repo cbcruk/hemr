@@ -316,6 +316,7 @@
 | [appointment-acceptance](#appointment-acceptance) | [appointment-acceptance.ts](../../src/modules/front-desk/appointments/appointment-acceptance.ts) (예약 엔드포인트 전, 순수 함수) | [appointment-acceptance.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-acceptance.fixtures.test.ts) | 화면 셀 상태·기본 선택값, 권한, 진료의 근무 일정, 중복 예약 409, 생기지 않는 입력(빈 셀, 0분 단위) 12건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [appointment-no-show](#appointment-no-show) | [appointment-no-show.ts](../../src/modules/front-desk/appointments/appointment-no-show.ts) (부도 스케줄러·설정 API 전, 순수 함수) | [appointment-no-show.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-no-show.fixtures.test.ts) | 이력 문구 2건. 예약 이력과 `displayStatus`를 만들 때 옮깁니다. 부도 판정식은 클라이언트에 없어 단위 테스트가 질문 1–3으로 검사합니다 |
 | [checkout-settlement](#checkout-settlement) | [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts) (수납 견적·수납 커맨드 전, 순수 함수) | [checkout-settlement.fixtures.test.ts](../../src/modules/front-desk/receipts/checkout-settlement.fixtures.test.ts) | 보류한 음수 과수금액(질문 5), 스키마가 막는 숫자 아닌 금액, 현행 요청 본문, 전액 미수 토글 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [cash-drawer-expected-closing](#cash-drawer-expected-closing) | [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts) (시재 엔드포인트 전, 순수 함수) | [cash-drawer.fixtures.test.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.fixtures.test.ts) | 없음. 현행의 서버 값 경로와 fallback 경로를 모두 같은 원장 계산으로 옮겼습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -370,6 +371,14 @@ checkout-settlement에서 함께 반영한 결정입니다.
 - **`settlement.received`는 제주 지원금·과수납금 결제를 포함합니다.** 그래야 저장된 `due − received`가 남은 금액과 같습니다. 화면 입력 합은 견적의 `entered`로 따로 줍니다. 손비 금액은 `writtenOff`에 남깁니다
 - **`PACKAGE` 결제도 서버가 만듭니다.** 패키지 차감은 수납 트랜잭션의 청구 금액 계산에서 서버가 하므로 요청에 넣으면 422입니다
 - **환자 등급 할인은 한 번만 반올림합니다.** 일투여량이 소수(예: 0.5)면 `분자 / 10^k`로 나눠 두고 정수로 계산해, 질문 7의 식을 그대로 한 번 반올림합니다(1,001원 × 0.5 × 90% = 450.45 → 450). 원금액도 따로 같은 방식으로 반올림하고 할인금액은 그 차이입니다. 할인율은 0–100 정수, 일투여량은 소수점 아래 6자리까지 받습니다
+
+cash-drawer-expected-closing에서 함께 반영한 결정입니다.
+
+- **시재는 결제·충전·환불·지출 원장에서 계산합니다.** 수단이 `CASH`인 수납 결제와 선수금 충전이 들어오는 현금이고, 수단이 `CASH`인 환불 기록이 나가는 현금입니다. 계좌이체·카드·선수금 결제는 시재에 들어오지 않습니다. 취소된 결제는 원장에 넣지 않습니다
+- **지출은 모두 시재에서 나가는 현금으로 봅니다.** 현행 지출에는 수단이 없고, 설계도 지출을 시재가 `OPEN`일 때만 받습니다. 되돌릴 조건: 카드로 쓴 지출을 기록해야 하면 지출에 수단을 더하고 `CASH`만 뺍니다
+- **마감 뒤 그날 현금 원장이 바뀌면 서버가 시재를 다시 엽니다.** 상태는 `REOPENED`이고 사유는 `CHANGED_AFTER_CLOSE`입니다. 질문 4의 "차이가 생기면"을 "바뀌면"으로 넓힌 것은 차이가 0으로 돌아와도 다시 세어 보게 하려는 것입니다. 마감 뒤 현금 수납을 막지 않는 것은 현행(`마감후수정여부`)과 같습니다. 직원이 직접 여는 `:reopen {reason}`도 같은 상태입니다
+- **다시 열린 시재는 다시 `:close`해야 `CLOSED`입니다.** `closing.difference`는 마감할 때의 예상 마감 금액으로 계산해 남기고, 다시 마감하면 새로 계산합니다. 지출 등록은 `OPEN`과 `REOPENED`에서 받습니다
+- **현금 기록은 현금이 오간 날의 시재에 넣습니다.** 지난 날짜 수납을 오늘 취소하고 현금을 돌려주면 오늘의 현금 환불입니다. 그래야 마감한 지난 시재가 바뀌지 않고, 오늘 서랍에서 나간 현금이 오늘 예상 금액에 잡힙니다. 같은 날 취소된 결제와 취소된 선수금 충전(`CHARGE_CANCEL`)·환불(`REFUND_CANCEL`)은 원장에 넣지 않습니다
 
 ## 원무
 
@@ -503,14 +512,14 @@ checkout-settlement에서 함께 반영한 결정입니다.
 | 1 | fallback 현금수납에서 선수금 현금 충전이 빠지는 것을 따를까요 | **바꿈:** fallback을 없애고, 서버가 언제나 `시작 + 현금 수납 + 선수금 현금 충전 − 지출 − 현금 환불`로 계산합니다 | [시재와 지출](../design/front-desk.md#시재와-지출)이 공식과 fallback 제거를 정했습니다 |
 | 2 | 결제수단이 섞인 수납 행의 환불을 현금 환불로 세지 않는 것을 고칠까요 | **바꿈:** 현금 환불은 수납 행이 아니라 `Refund.method === CASH`인 환불 기록의 합입니다. 수납 행의 결제수단 구성과 상관없습니다 | 설계 모델이 환불마다 수단을 기록합니다 ([모델](../design/front-desk.md#모델)). 현행은 섞인 행의 현금 환불을 빠뜨려 예상액이 실제보다 커집니다 |
 | 3 | 서버 `예상마감금액`이 자기 구성값과 맞지 않아도 그대로 쓰는 것을 따를까요 | **바꿈:** 서버는 구성값(현금 수납, 충전, 환불, 지출)과 `expectedClosing`을 같은 원장에서 함께 계산해, 둘이 어긋날 수 없게 합니다 | 저장된 합계 대신 계산 값을 주므로 클라이언트가 검증할 필요가 없습니다 ([시재와 지출](../design/front-desk.md#시재와-지출)) |
-| 4 | `마감금액 ≠ 예상` 엄격 비교로 재정산 필요를 정하는 것을 따를까요 | **따름:** `closing.difference = countedAmount − expectedClosing`이고, 0이 아니면 차이로 보여 줍니다. 마감 뒤 수납·지출이 바뀌어 차이가 생기면 상태가 `REOPENED`가 됩니다 | 설계의 `closing.difference`와 `REOPENED`(현행 `마감후수정여부`)에 대응합니다 |
+| 4 | `마감금액 ≠ 예상` 엄격 비교로 재정산 필요를 정하는 것을 따를까요 | **따름:** `closing.difference = countedAmount − expectedClosing`이고, 0이 아니면 차이로 보여 줍니다. 마감 뒤 수납·지출이 바뀌면 상태가 `REOPENED`가 됩니다(차이가 생기는지와 상관없이, [구현 상태](#구현-상태)의 메모 참고) | 설계의 `closing.difference`와 `REOPENED`(현행 `마감후수정여부`)에 대응합니다 |
 | 5 | `시작금액` 0을 등록으로 보고 `null`만 미등록으로 보는 것을 따를까요 | **따름:** `:open {openingAmount: 0}`은 `OPEN`이고, `:open`을 하지 않은 일자만 `NOT_OPENED`입니다 | 설계 상태 `NOT_OPENED | OPEN | CLOSED | REOPENED`로 옮깁니다. 열지 않고 마감하는 경로가 없으므로 "미등록이 정산 표시보다 우선" 조합은 서버에서 생기지 않습니다 |
 
 **바뀌는 케이스:**
-- `server cash flow present but inconsistent -> still server value`: `예상마감금액` 1 → 구성값으로 계산한 50,000
+- `server cash flow present but inconsistent -> still server value`: `예상마감금액` 1 → 구성값으로 계산한 150,000(시작 100,000 + 현금 수납 50,000)
 - `fallback: refund on mixed cash+card receipt is not counted as cash refund`: 그 환불 2,000이 현금 환불이면 `현금환불` 0 → 2,000, `예상마감금액` 10,000 → 8,000
 - `fallback: start + cash receipts - (expenses + cash-only refunds)`: 섞인 행의 환불 2,000이 현금 환불이면 `현금환불` 4,000 → 6,000, `예상마감금액` 128,500 → 126,500
-- fallback 케이스 전체는 서버가 fallback을 두지 않으므로 이관 전 화면 값을 비교하는 용도로만 남습니다
+- fallback 케이스는 서버에 fallback이 없으므로, 같은 수납·지출 목록을 원장 기록으로 바꿔 서버 계산으로 옮깁니다
 
 ## 진찰료·수가
 

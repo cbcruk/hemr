@@ -404,13 +404,17 @@ POST /cash-drawers/{date}:open             { openingAmount, carryOver }
 POST /cash-drawers/{date}:close            { countedAmount }
 POST /cash-drawers/{date}:reopen           { reason }
 GET  /expenses?from=&to=
-POST /expenses                             { date, amount, categoryId, memo }    # 시재가 OPEN일 때만
+POST /expenses                             { date, amount, categoryId, memo }    # 시재가 OPEN·REOPENED일 때만
 DELETE /expenses/{id}
 GET/POST/DELETE /settings/expense-categories
 ```
 
 - 현행 예상마감금액 fallback 계산(서버 값이 없으면 클라이언트가 계산)을 없애고 항상 서버 값을 줍니다
 - 마감 후 수정은 `REOPENED` 상태와 사유로 남습니다 (현행 `마감후수정여부`)
+- 현금은 수단이 `CASH`인 수납 결제·선수금 충전·환불 기록으로 셉니다. 섞인 수납의 환불도 환불 기록의 수단으로 판단합니다. 지출은 모두 현금입니다
+- `closing.difference = countedAmount − expectedClosing`이고 마감할 때 계산해 남깁니다. 마감 뒤 그날 현금 원장이 바뀌면 서버가 사유 `CHANGED_AFTER_CLOSE`로 `REOPENED`로 바꾸고, 다시 `:close`해야 `CLOSED`입니다. 지출은 `OPEN`·`REOPENED`일 때 받습니다
+- 현금 기록은 현금이 오간 날의 시재에 넣습니다. 지난 날짜 수납을 오늘 취소해 돌려준 현금은 오늘의 현금 환불입니다
+- 계산은 [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts)의 순수 함수입니다
 
 ### 일자 현황
 
