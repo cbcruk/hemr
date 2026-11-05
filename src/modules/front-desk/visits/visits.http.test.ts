@@ -1,6 +1,7 @@
 import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { describe, expect, it } from 'vitest'
+import { TestAuthConfig } from '../../identity/auth/auth-config.ts'
 import { AppLive } from '../../../app.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import type { Visit } from './visit.ts'
@@ -46,6 +47,7 @@ async function send(seed: Visit[], path: string, options: SendOptions = {}): Pro
       Layer.provide([
         options.store === 'sqlite' ? sqliteWith(seed) : PersistenceMemory(seed),
         HttpServer.layerServices,
+        TestAuthConfig,
       ]),
     ),
     { disableLogger: true },

@@ -2,6 +2,9 @@ import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServerError, HttpServerRespondable } from 'effect/http'
 import { HttpApiBuilder } from 'effect/http-api'
 import { Api } from './api.ts'
+import { Auth } from './modules/identity/auth/auth.ts'
+import { AuthHttpLive, MeHttpLive } from './modules/identity/auth/auth.http.ts'
+import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
 import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
 import { Visits } from './modules/front-desk/visits/visits.ts'
 import { Internal, NotFound } from './shared/problem/problem.ts'
@@ -32,10 +35,13 @@ function isRouteNotFound(error: unknown): boolean {
 /**
  * HTTP 서버에 올릴 수 있는 API 전체 경로입니다.
  *
- * 저장소는 호출하는 쪽이 `VisitRepository` Layer로 넣습니다.
+ * 저장소(`persistence.ts`)와 인증 설정(`AuthConfig`)은 호출하는 쪽이 넣습니다.
  */
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
+  Layer.provide(
+    Layer.mergeAll(AuthHttpLive, MeHttpLive).pipe(Layer.provideMerge(AuthenticationLive), Layer.provide(Auth.layer)),
+  ),
   Layer.provide(VisitsHttpLive.pipe(Layer.provide(Visits.layer))),
   Layer.provide(RequestValidationLive),
   Layer.merge(ProblemFallback),

@@ -97,6 +97,50 @@ export const migrations = {
       ) STRICT
     `
   }),
+  '0003_auth': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    yield* sql`
+      CREATE TABLE credentials (
+        user_id TEXT PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+        password_hash TEXT NOT NULL,
+        failed_attempts INTEGER NOT NULL CHECK (failed_attempts >= 0),
+        locked_at TEXT
+      ) STRICT
+    `
+    yield* sql`
+      CREATE TABLE sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        tenant_id TEXT REFERENCES tenants (id),
+        created_at TEXT NOT NULL,
+        revoked_at TEXT
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX sessions_user ON sessions (user_id)`
+    // 토큰 원문은 두지 않고 SHA-256 값만 둡니다. 쓴 토큰도 재사용 감지를 위해 남깁니다
+    yield* sql`
+      CREATE TABLE refresh_tokens (
+        token_hash TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        expires_at TEXT NOT NULL,
+        used_at TEXT
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX refresh_tokens_session ON refresh_tokens (session_id)`
+    // 감사 로그는 사용자·세션을 지워도 남아야 하므로 외래 키를 두지 않습니다
+    yield* sql`
+      CREATE TABLE security_events (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        time TEXT NOT NULL,
+        login_id TEXT,
+        user_id TEXT,
+        tenant_id TEXT,
+        session_id TEXT,
+        detail TEXT
+      ) STRICT
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/http-api'
+import { AuthApi, MeApi } from './modules/identity/auth/auth.api.ts'
 import { VisitsApi } from './modules/front-desk/visits/visits.api.ts'
 import { RequestValidation } from './shared/problem/request-validation.ts'
 
@@ -18,6 +19,8 @@ export class SystemApi extends HttpApiGroup.make('system').add(
  */
 export class Api extends HttpApi.make('hemr')
   .add(SystemApi)
+  .add(AuthApi)
+  .add(MeApi)
   .add(VisitsApi)
   .prefix('/v1')
   .middleware(RequestValidation)
