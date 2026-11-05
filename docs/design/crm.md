@@ -138,11 +138,12 @@ MessageCampaign
 ├─ purpose: ADVERTISING | INFORMATIONAL
 ├─ content: { title?, body, attachments[], kakao?{ templateId, variables, buttons, carousel } }
 ├─ senderNumberId | kakaoChannelId
+├─ overflow: UPGRADE_TO_LMS | EXCLUDE   # SMS 채널에서 변수 치환 뒤 90byte 초과 처리, 기본 UPGRADE_TO_LMS
 ├─ fallback?: { channel: SMS, overflow: UPGRADE_TO_LMS | EXCLUDE }
 ├─ audience: { patientIds?, contactGroupIds?, filter?, includeAll? }
 ├─ dedupe: SEND_ONCE_PER_PHONE | SEND_EACH
 ├─ scheduledAt?
-├─ estimate?: { recipients, excluded{ consent, refusal, nightTime, missingVariables, duplicates }, cost }
+├─ estimate?: { recipients, excluded{ consent, refusal, nightTime, missingVariables, duplicates, smsOverflow, bodyTooLong }, cost }
 ├─ status: DRAFT | SCHEDULED | SENDING | COMPLETED | PARTIALLY_FAILED | FAILED | CANCELED
 └─ stats: { total, delivered, failed, fallbackDelivered, clicked }
 
@@ -178,8 +179,8 @@ GET  /patients/{id}/message-variables                템플릿 변수 미리보�
 ```
 
 - **채널은 필드입니다.** 현행 채널·유형별 경로 6가지를 하나로 합칩니다
-- **SMS/LMS/MMS 판정(90/2000 byte, 제목·첨부 유무)은 서버가 합니다.** 클라이언트는 `estimate` 결과를 보여 줍니다
-- **법정 표기는 서버가 붙입니다.** 광고면 `(광고)`·병원명 머리말과 무료거부 번호·인증코드 꼬리말을 `resolvedBody`에 넣습니다. 클라이언트 편집기는 미리보기만 받습니다
+- **SMS/LMS/MMS 판정(90/2000 byte, 제목·첨부 유무)은 서버가 합니다.** 클라이언트는 `estimate` 결과를 보여 줍니다. 수신자마다 변수 치환 뒤 다시 판정해, SMS가 90byte를 넘으면 `overflow`에 따라 LMS로 올리거나 `smsOverflow`로 빼고, 2,000byte를 넘으면 `bodyTooLong`으로 뺍니다. 판정은 [message-body.ts](../../src/modules/crm/messaging/message-body.ts), 결정은 [message-type-selection](rule-decisions.md#message-type-selection)
+- **법정 표기는 서버가 붙입니다.** 광고면 `(광고)`·병원명 머리말과 무료거부 번호·인증코드 꼬리말을 `resolvedBody`에 넣습니다. 080 번호는 플랫폼 기본값(현행 `080-877-8900`)을 병원 설정으로 바꿀 수 있습니다. 병원명·080 번호·인증 코드 중 하나라도 비면 광고를 보내지 않고 422 `ADVERTISING_DISCLOSURE_INCOMPLETE`입니다. 클라이언트 편집기는 미리보기만 받습니다
 - **야간 광고 제한은 서버 정책 하나입니다.** 21:00–08:00(법정 야간 시간대)에는 야간 별도 동의(`MARKETING_NIGHT`)가 있는 수신자에게만 광고성 메시지를 보냅니다. 병원은 정책으로 이 시간대를 더 넓게(예: 20:30부터) 잡거나 야간 광고를 아예 막을 수 있습니다. 현행 20:30/20:50 불일치를 없앱니다 ([compliance.md](compliance.md#광고성-정보-전송)). 판정은 [night-advertising.ts](../../src/modules/crm/messaging/night-advertising.ts), 결정은 [crm-send-window](rule-decisions.md#crm-send-window)
 - **동의·수신거부 제외는 발송 시점에 서버가 다시 합니다.** 환자 동의([patients.md](patients.md#동의))와 번호 단위 `Suppression`(아래)을 모두 검사합니다. `estimate` 이후 동의가 바뀌어도 발송 시 최신 상태로 거릅니다. 마케팅 동의 `UNDECIDED`인 환자는 광고성 발송에서 제외합니다. 현행은 배너만 띄우고 막지 않았습니다
 - 수신자 추가가 오래 걸리면 Job입니다. 현행 `receivers/count` 10회 폴링을 대체합니다
