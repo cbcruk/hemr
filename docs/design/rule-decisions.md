@@ -270,7 +270,7 @@
 
 #### crm-send-window 1: 야간 광고 기본 시간 · 채택
 
-- **결정:** 기본 야간 시간대는 법정 21:00–08:00이고, 수동·예약 발송이 같은 정책을 씁니다. 병원은 시작 시각을 앞당길 수 있습니다. 이관 병원도 21:00으로 옮기고 변경을 알립니다
+- **결정:** 기본 야간 시간대는 법정 21:00–08:00이고, 수동·예약 발송이 같은 정책을 씁니다. 병원은 시작 시각을 앞당기거나 끝 시각을 늦출 수 있습니다. 이관 병원도 21:00으로 옮기고 변경을 알립니다
 - **검토한 대안:** 이관 병원은 현행 화면 값(20:30/20:50)을 기본으로
 - **선택 이유:** 현행 두 값은 법정 기준이 아니라 화면마다 따로 정한 여유값입니다. 기준을 하나로 합치는 것이 목적이라(기준 2) 법정 값을 기본으로 하고, 보수적으로 운영하려는 병원은 설정으로 앞당깁니다(기준 3)
 - **가정과 되돌릴 조건:** 21:00 직전 발송이 수신 불만을 늘린다면 기본값만 20:50으로 바꿉니다
@@ -328,6 +328,9 @@
 | `NONBENEFIT_NAME_RESERVED` | 422 위반 코드 | [settings-validation](#settings-validation) 수 서비스 전용 처방 이름 |
 | `TREATMENT_ROOM_INVALID` | 422 오류 | [settings-validation](#settings-validation) 치료실 이름이 20자 초과(`NAME_TOO_LONG`)이거나 베드 수가 1–20 정수가 아님(`BED_COUNT_OUT_OF_RANGE`) (질문 1·6) |
 | `TREATMENT_ROOM_LIMIT_EXCEEDED` | 422 오류 | [settings-validation](#settings-validation) 치료실이 이미 10개 (질문 1) |
+| `NIGHT_TIME` | 수신자 제외 사유 | [crm-send-window](#crm-send-window) 광고를 야간 시간대에 보내는데 야간 동의가 없거나 병원이 야간 광고를 막음. 견적 `excluded.nightTime`, 연락 작업 `SKIPPED` 사유 (질문 4·5) |
+| `CONTACT_TASK_NIGHT_SEND_TIME` | 경고 코드 | [crm-send-window](#crm-send-window) 광고 연락 작업의 예정 시각이 야간 시간대. `POST /contact-tasks`·`:reschedule`·`:approve`에서 주고 저장은 막지 않음 (질문 4·5) |
+| `CONTACT_RULE_NIGHT_SEND_TIME` | 경고 코드 | [crm-send-window](#crm-send-window) 광고 연락 규칙의 발송 시각이 야간 시간대. 저장은 막지 않음 (질문 4) |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -360,6 +363,7 @@
 | [external-herbal-precheck](#external-herbal-precheck) | [external-herbal-precheck.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.ts) (원외탕전 `:quote`·`:place` 전, 순수 함수) | [external-herbal-precheck.fixtures.test.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.fixtures.test.ts) | 서버에 없는 모의 모드 1건, 결제액 없는 견적 1건, 연동 어댑터에서 옮길 견적 정규화 2건, 오류 문구로 판별하던 중복 결제 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [procedure-timer](#procedure-timer) | [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts) (시술 `:start`·`PATCH`·만료 작업 전, 순수 함수) | [procedure-timer.fixtures.test.ts](../../src/modules/clinical/treatment-room/procedure-timer.fixtures.test.ts) | 없음. 현행 API 호출 순서는 서버 커맨드 하나로 합쳐 비교하지 않습니다 |
 | [settings-validation](#settings-validation) | [settings-validation.ts](../../src/modules/catalog/settings/settings-validation.ts) (설정 저장 전, 순수 함수) | [settings-validation.fixtures.test.ts](../../src/modules/catalog/settings/settings-validation.fixtures.test.ts) | 없음. 입력 자르기·blur 되돌리기·라벨·배너처럼 화면에만 있는 값은 비교하지 않습니다 |
+| [crm-send-window](#crm-send-window) | [night-advertising.ts](../../src/modules/crm/messaging/night-advertising.ts) (캠페인 견적·발송 실행·연락 규칙 저장 전, 순수 함수) | [night-advertising.fixtures.test.ts](../../src/modules/crm/messaging/night-advertising.fixtures.test.ts) | 없음. 현행 시간 선택기 범위(`window`)는 화면 값이라 비교하지 않습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -631,6 +635,15 @@ settings-validation에서 함께 반영한 결정입니다.
   - 되돌릴 조건: 원본 목록을 확보하면 초기값을 채웁니다
 - **치료실 이름 20자 한도는 앞뒤 공백을 뺀 길이입니다.** 현행은 공백까지 셌습니다
 - **패키지 과세 혼합은 현행처럼 첫 항목이 정합니다.** 과세 판정은 `taxType`만 보고, 현행 `null`·빈 값은 이관할 때 `TAX_EXEMPT`로 옮깁니다
+
+crm-send-window에서 함께 반영한 결정입니다.
+
+- **야간 시간대는 병원 시간대 자정부터 센 초 `startSecond`(포함)–`endSecond`(미포함)로 둡니다(질문 1·2).** 기본은 21:00:00–08:00:00입니다. 병원 정책은 법정 시간대보다 넓게만 잡을 수 있어, 시작은 21:00 이전·끝은 08:00 이후이고 자정을 넘겨야 합니다. 어기면 `INVALID_VALUE`입니다. 09:00–08:00처럼 아주 넓은 시간대도 법정 시간을 지키므로 받습니다. `blockAll`을 켜면 야간 동의가 있어도 야간 광고를 보내지 않습니다
+  - 대안: 시간대를 좁히는 것도 허용하기. 법정 시간을 어기는 설정이 가능해져 버렸습니다
+- **야간 제외는 메시지마다 실제 발송 시점에 판정합니다(질문 5).** 20:59에 시작한 대량 발송이 21:00을 넘기면 그 뒤 수신자는 `NIGHT_TIME`으로 빠집니다. 요청 시각이나 예약 시각만 보면 법정 시간대에 광고가 나갈 수 있기 때문입니다
+- **연락 규칙의 야간 발송 시각은 저장 경고 `CONTACT_RULE_NIGHT_SEND_TIME`이고 저장을 막지 않습니다(질문 4).** 판정을 위해 연락 규칙과 연락 작업에 `purpose`(`ADVERTISING`/`INFORMATIONAL`)를 둡니다([crm.md](crm.md#모델)). 템플릿에서 채우되 직접 쓴 본문이나 전화 연락도 판정할 수 있게 작업에 직접 저장합니다. CENTRAL 프로그램은 병원별 `overrides.sendTime`이 있으면 그 값으로 검사합니다. `sendTime`(`HH:mm`) 형식이 틀리면 요청 검증 단계에서 400입니다
+- **연락 작업의 수동 등록·변경·승인도 막지 않고 경고합니다(질문 4·5).** 현행 연락 일정 팝오버는 야간 광고 작업 저장을 막았습니다. 서버는 `POST /contact-tasks`·`:reschedule`·`:approve`에서 `CONTACT_TASK_NIGHT_SEND_TIME` 경고를 주고 저장하며, 발송 시점에 야간 동의 없는 수신자면 `SKIPPED`(`NIGHT_TIME`)로 둡니다. 경고에는 엔드포인트가 `message`를 붙입니다
+  - 대안: 야간 광고 작업 저장을 422로 막기. 야간 동의가 있는 환자에게 보내는 작업까지 막게 되어 버렸습니다
 
 ## 원무
 
@@ -1220,10 +1233,12 @@ settings-validation에서 함께 반영한 결정입니다.
 - `isNightForAd: 20:50 KST 광고`: 기본 정책(21:00 시작)에서는 야간이 아닙니다 (`night: false`)
 - `isNightForAd: 20:59 KST 광고`: `night: false`입니다
 - `manualSendCheck: immediate ad at 20:50 blocked`: 20:50은 야간이 아니므로 발송할 수 있습니다
-- `manualSendCheck: reserved ad for 21:00 blocked`: 요청을 거절하지 않고 예약을 받습니다. 발송 시점에 야간 동의 없는 수신자만 제외합니다
-- `scheduledSendWindow: 20:35 ad`: 기본 정책에서는 시간대 안입니다 (`outOfWindow: false`)
-- `contactRuleWindow: ad rule 20:31 blocked`: 기본 정책에서는 막지 않습니다 (`blocked: false`)
-- `contactRuleWindow: 잔여 횟수 basis exempt`: 23:00 광고 규칙도 검사 대상입니다. 야간 동의 없는 수신자는 발송 시점에 제외됩니다
+- `manualSendCheck: reserved ad for 21:00 blocked`: 요청을 거절하지 않고 예약을 받습니다. 발송 시점에 야간 동의 없는 수신자만 제외합니다 (`rejected: false`, 야간 제한은 걸림)
+- `scheduledSendWindow: 20:35 ad`: 기본 정책에서는 시간대 안이라 저장되고 경고도 없습니다
+- `scheduledSendWindow: 7:55 ad`, `scheduledSendWindow: 21:00 ad`: 저장을 막지 않고 `CONTACT_TASK_NIGHT_SEND_TIME` 경고를 줍니다
+- `contactRuleWindow: ad rule 7:59 blocked`: 저장을 막지 않고 `CONTACT_RULE_NIGHT_SEND_TIME` 경고를 줍니다
+- `contactRuleWindow: ad rule 20:31 blocked`: 기본 정책에서는 야간이 아니라 경고도 없습니다. 야간인 규칙도 저장은 막지 않고 경고만 줍니다
+- `contactRuleWindow: 잔여 횟수 basis exempt`: 23:00 광고 규칙도 검사 대상이라 `CONTACT_RULE_NIGHT_SEND_TIME` 경고를 줍니다. 야간 동의 없는 수신자는 발송 시점에 제외됩니다
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
