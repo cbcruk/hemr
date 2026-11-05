@@ -321,6 +321,13 @@
 | `PROCEDURE_DURATION_INVALID` | 422 오류 | [procedure-timer](#procedure-timer) 시술 시간이 1 이상의 정수가 아니거나 증감값이 0·소수 |
 | `PROCEDURE_DURATION_TOO_SHORT` | 422 오류 | [procedure-timer](#procedure-timer) 진행 중 시술의 새 시간이 서버 시계 기준 경과 + 1초보다 짧음 (질문 4) |
 | `PROCEDURE_ALREADY_DONE` | 409 오류 | [procedure-timer](#procedure-timer) 완료된 시술의 시간을 바꿈 |
+| `SETTING_NAME_DUPLICATE` | 409 오류·위반 코드 | [settings-validation](#settings-validation) 앞뒤 공백을 뺀 이름(비급여는 코드도)이 병원 안의 다른 설정 항목과 겹침 (질문 4) |
+| `ARBITRARY_FORMULA_INVALID` | 422 오류 | [settings-validation](#settings-validation) 임의처방 위반. `violations[].code`는 `TOTAL_USAGE_EXCEEDED`·`TOTAL_AMOUNT_EXCEEDED`·`HERB_COUNT_EXCEEDED`·`ZERO_AMOUNT` 등 (질문 5) |
+| `PACKAGE_TAX_MIXED` | 422 오류 | [settings-validation](#settings-validation) 한 패키지에 과세·면세 항목을 섞음 |
+| `NONBENEFIT_PRICE_EXCEEDED` | 422 위반 코드 | [settings-validation](#settings-validation) 입력 금액이 10,000,000원 초과 (질문 2) |
+| `NONBENEFIT_NAME_RESERVED` | 422 위반 코드 | [settings-validation](#settings-validation) 수 서비스 전용 처방 이름 |
+| `TREATMENT_ROOM_INVALID` | 422 오류 | [settings-validation](#settings-validation) 치료실 이름이 20자 초과(`NAME_TOO_LONG`)이거나 베드 수가 1–20 정수가 아님(`BED_COUNT_OUT_OF_RANGE`) (질문 1·6) |
+| `TREATMENT_ROOM_LIMIT_EXCEEDED` | 422 오류 | [settings-validation](#settings-validation) 치료실이 이미 10개 (질문 1) |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -352,6 +359,7 @@
 | [pilot-herbal-approval-required](#pilot-herbal-approval-required) | [pilot-herbal-approval.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.ts) (처방 줄 생성·진료 완료 전, 순수 함수). C0005는 [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) | [pilot-herbal-approval.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.fixtures.test.ts) | 없음. 추적 케이스 4건은 서버 판정 함수로 바뀐 결과를 검사합니다 |
 | [external-herbal-precheck](#external-herbal-precheck) | [external-herbal-precheck.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.ts) (원외탕전 `:quote`·`:place` 전, 순수 함수) | [external-herbal-precheck.fixtures.test.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.fixtures.test.ts) | 서버에 없는 모의 모드 1건, 결제액 없는 견적 1건, 연동 어댑터에서 옮길 견적 정규화 2건, 오류 문구로 판별하던 중복 결제 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [procedure-timer](#procedure-timer) | [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts) (시술 `:start`·`PATCH`·만료 작업 전, 순수 함수) | [procedure-timer.fixtures.test.ts](../../src/modules/clinical/treatment-room/procedure-timer.fixtures.test.ts) | 없음. 현행 API 호출 순서는 서버 커맨드 하나로 합쳐 비교하지 않습니다 |
+| [settings-validation](#settings-validation) | [settings-validation.ts](../../src/modules/catalog/settings/settings-validation.ts) (설정 저장 전, 순수 함수) | [settings-validation.fixtures.test.ts](../../src/modules/catalog/settings/settings-validation.fixtures.test.ts) | 없음. 입력 자르기·blur 되돌리기·라벨·배너처럼 화면에만 있는 값은 비교하지 않습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -608,6 +616,21 @@ procedure-timer에서 함께 반영한 결정입니다.
 - **만료 시술의 시간을 바꿔도 만료 상태를 둡니다.** 현행 `pending`과 같이 시간만 바꾸고, 실제로 끝난 시각인 `timerEndsAt`도 그대로 둡니다. 다시 돌리려면 `:restart-timer`나 `:start`를 씁니다
 - **이관할 때 시작 시각이 있어도 타이머가 끝나지 않은 `pending` 행은 시작·종료 시각을 비운 `PENDING`입니다(질문 3).** `PENDING`에는 시작 시각이 없다는 불변식을 지키기 위해서입니다
 - **종료 알림 키는 `timer-end:{procedureId}:{timerEndsAt 밀리초}`이고, 제목은 현행 문구를 씁니다(질문 3).** 키 모양은 현행과 같아 태블릿 앱의 중복 제거가 그대로 동작합니다
+
+settings-validation에서 함께 반영한 결정입니다.
+
+- **검증 함수는 위반 목록(`field`, `code`)을 돌려주고, 비어 있으면 저장합니다.** Problem Details의 `violations[]`에 그대로 담습니다. 응답은 `settingProblem`이 정합니다. 형식 위반(`REQUIRED`·`INVALID_VALUE`)이 하나라도 있으면 400 `VALIDATION_FAILED`, 업무 규칙 위반이 있으면 422와 리소스의 대표 코드(`ARBITRARY_FORMULA_INVALID`·`PACKAGE_TAX_MIXED`·`NONBENEFIT_PRICE_EXCEEDED`·`TREATMENT_ROOM_INVALID` 등), 이름 중복만 남으면 409 `SETTING_NAME_DUPLICATE`입니다. 어느 경우든 위반을 모두 담습니다
+  - 대안: 위반마다 따로 응답하기. 한 번 저장에 여러 위반을 고쳐야 하는 화면에 맞지 않아 버렸습니다
+- **치료실 이름 길이·베드 수는 형식 위반이 아니라 422 업무 규칙입니다(질문 1·6).** 위반 코드는 `NAME_TOO_LONG`·`BED_COUNT_OUT_OF_RANGE`, 대표 코드는 `TREATMENT_ROOM_INVALID`입니다
+- **임의처방 약재 금액은 현행처럼 약재별로 반올림하되, 십진 분수로 정확히 계산합니다(질문 5).** `사용량 × 상한금액 ÷ 기준용량`을 BigInt 분수로 계산해 0.5는 올립니다. 현행 `Math.round`는 1.005 × 1000 같은 값에서 부동소수 오차로 1원 낮게 나올 수 있었습니다. 총 투약량은 백만분의 1g 정수로 더합니다. 질문 5 권장의 "0.01g 정수 단위"는 예시였고, 실제 정밀도는 소수점 아래 6자리입니다
+  - 사용량·상한금액·기준용량이 음수·무한대·소수점 7자리 이상이거나, 사용량·기준용량이 0이면 그 약재 필드에 `INVALID_VALUE`를 붙이고 합계에서 뺍니다. 예외를 던지지 않습니다
+- **비급여 금액 입력 방식은 `VAT_EXCLUSIVE`·`VAT_INCLUSIVE`·`TAX_EXEMPT` 셋이고, 저장은 공급가 `unitPrice`와 `taxType` 둘입니다(질문 3).** `포함` 진료비의 공급가는 `round(진료비 ÷ 1.1)`, 부가세는 차액입니다. 현행 화면의 부가세 표시(`xy`)와 같은 값이고, 질문 3의 식과 결과가 같습니다. 10,000,000원 한도는 입력한 금액(포함이면 진료비)에 겁니다
+- **비급여 코드는 현행처럼 입력 코드 앞에 늘 `비`를 붙여 저장하고, 이름과 코드 모두 유니크입니다(질문 4).** 빈 코드는 `REQUIRED`입니다. 수정할 때는 자기 자신을 빼고 비교하고, 위반을 모두 모아 돌려줍니다
+- **설정 이름 키는 앞뒤 공백을 빼고 유니코드 NFC로 맞춘 값입니다(질문 4).** macOS에서 입력한 분해형 한글도 같은 이름으로 봅니다
+- **수 서비스 전용 이름은 카탈로그 참조데이터로 옮길 목록입니다.** 현행 상수 27개 중 문서에 남은 `경옥고`·`수이벤트:경옥고`만 `KNOWN_SOO_RESERVED_NAMES`로 두고, 검증 함수는 목록을 필수 인자로 받습니다. 기본값을 두면 불완전한 목록이 조용히 쓰이기 때문입니다
+  - 되돌릴 조건: 원본 목록을 확보하면 초기값을 채웁니다
+- **치료실 이름 20자 한도는 앞뒤 공백을 뺀 길이입니다.** 현행은 공백까지 셌습니다
+- **패키지 과세 혼합은 현행처럼 첫 항목이 정합니다.** 과세 판정은 `taxType`만 보고, 현행 `null`·빈 값은 이관할 때 `TAX_EXEMPT`로 옮깁니다
 
 ## 원무
 
@@ -1176,6 +1199,8 @@ procedure-timer에서 함께 반영한 결정입니다.
 - `personalFormulaName: only first 100 loaded names checked`: 101번째 이후에 있는 `X101`도 서버 유니크 제약에 걸리므로 중복(409)입니다
 - `arbitraryFormula: float sum 0.1+0.2 weight`: `총사용량`이 0.30000000000000004가 아니라 0.3입니다
 - `treatmentRoom: fractional bed count passes client check`: 베드 수 2.5는 저장할 수 없습니다(422, `canSave: false`)
+- `nonBenefitAmount: 10,000,001 clamped to 10,000,000 on input`: 현행은 10,000,000으로 잘라 저장하고, 새 서버는 자르지 않고 422 `NONBENEFIT_PRICE_EXCEEDED`입니다 (Q2)
+- `nonBenefitAmount: 포함 label is 진료비, VAT split`: 현행 `단가` 11,000(진료비)이 아니라 공급가 10,000을 저장하고, 부가세 1,000은 같습니다 (Q3)
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
