@@ -291,6 +291,8 @@
 | `IDENTITY_VERIFICATION_REQUIRED` | 오류 | [check-in-validation](#check-in-validation) 본인확인 |
 | `NHIS_NOT_ELIGIBLE` | 오류 | [check-in-validation](#check-in-validation) 건보·의료급여 접수인데 자격 조회 결과가 없거나 `자격여부`를 알 수 없음. 현행 "건강보험 자격이 없는 환자입니다" 다이얼로그. 급여제한(`NHIS_BENEFIT_RESTRICTED`)과 원인이 달라 따로 둡니다 |
 | `CAPACITY_EXCEEDED` | acknowledge 코드 | [appointment-acceptance](#appointment-acceptance) 예약 한도 초과 |
+| `BREAK_TIME` | 오류 | [appointment-acceptance](#appointment-acceptance) 점심·저녁 휴게 슬롯. 현행 "휴게 시간에는 예약을 이동할 수 없습니다". 확인으로 넘길 수 없어 `SLOT_BLOCKED`와 따로 둡니다 |
+| `APPOINTMENT_DURATION_INVALID` | 오류 | [appointment-acceptance](#appointment-acceptance) 예약 길이가 예약시간단위의 배수가 아니거나 120분 초과 (질문 9) |
 | `FEE_CODE_NOT_IN_MASTER` | 경고 | [consultation-fee-code](#consultation-fee-code), [procedure-fee-modifiers](#procedure-fee-modifiers) |
 | `conflictingEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
@@ -306,6 +308,7 @@
 |---|---|---|---|
 | [visit-status-transitions](#visit-status-transitions) | [visit-status.ts](../../src/modules/front-desk/visits/visit-status.ts), [visits.ts](../../src/modules/front-desk/visits/visits.ts) | [visit-status.fixtures.test.ts](../../src/modules/front-desk/visits/visit-status.fixtures.test.ts) | 권한·접수·베드 배정·수납이 필요한 13건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [check-in-validation](#check-in-validation) | [check-in-validation.ts](../../src/modules/front-desk/visits/check-in-validation.ts) (접수 엔드포인트 전, 순수 함수) | [check-in-validation.fixtures.test.ts](../../src/modules/front-desk/visits/check-in-validation.fixtures.test.ts) | 화면 문구와 버튼 표시, 권한, 보험구분 변경, 자보 한도 다이얼로그, 본인확인 중복 케이스, 진료 완료로 옮긴 산정특례 7건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [appointment-acceptance](#appointment-acceptance) | [appointment-acceptance.ts](../../src/modules/front-desk/appointments/appointment-acceptance.ts) (예약 엔드포인트 전, 순수 함수) | [appointment-acceptance.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-acceptance.fixtures.test.ts) | 화면 셀 상태·기본 선택값, 권한, 진료의 근무 일정, 중복 예약 409, 생기지 않는 입력(빈 셀, 0분 단위) 12건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -322,6 +325,22 @@ check-in-validation에서 함께 반영한 결정입니다.
 - **날짜 입력은 `YYYY-MM-DD`만 받습니다.** 날짜를 문자열로 비교하므로 현행 `yyyyMMdd`가 그대로 들어오면 만료·나이 판정이 조용히 틀립니다. 형식이 다르면 호출하는 쪽의 버그로 보고 예외를 던집니다
 - **급여제한 코드는 앞뒤 공백을 지우고 두 자리로 맞춥니다.** 이관 데이터의 `1`은 `01`로 판정합니다
 - **의료급여에서 `해당없음`을 고르고 기관을 적으면 그 기관을 남깁니다.** 현행 동작을 따릅니다. 의뢰 코드가 아닌 다른 코드면 남은 기관 값을 지웁니다
+
+appointment-acceptance에서 함께 반영한 결정입니다.
+
+- **예약이 덮는 슬롯을 모두 검사합니다.** 60분 예약이 11:30에 시작하면 12:00 슬롯도 진료시간·휴게·차단·한도를 봅니다. 현행 드래그는 시작 슬롯만 봤고, 사이드 패널은 막힌 슬롯을 연속 선택에서 뺐습니다. 서버는 두 화면 중 엄격한 쪽(사이드 패널)을 따릅니다. 과거 판정만 시작 시각으로 합니다
+- **막는 오류는 모두 모아 순서대로 돌려줍니다.** 순서는 현행 드래그 검사 순서(진료시간 밖 → 병원 휴진 → 의사 휴진 → 과거 → 휴게)이고 길이 검사를 맨 앞에 둡니다. 화면은 첫 오류를 보여 주면 현행과 같습니다. 접수 검사(`errors[]`)와 같은 모양입니다
+- **휴게는 `BREAK_TIME`으로 막고, `acknowledge`로 넘길 수 없습니다.** 질문 7의 "휴게 시간은 확인 없이 막습니다"를 오류 코드로 옮긴 것입니다
+- **반나절 휴진에서 야간은 오후로 봅니다.** 현행 휴진 태그는 `오전 휴진`/`오후 휴진` 둘뿐이라, 야간 진료를 따로 쉬는 방법이 없습니다. 되돌릴 조건: 야간 휴진 태그가 생기면 `EVENING`을 따로 판정합니다
+- **시간 미정 예약은 날짜 단위 검사만 합니다.** 진료하지 않는 요일(`OUTSIDE_HOURS`), 병원 휴진, 종일 휴진, 지난 날짜입니다. 시각이 없으니 반나절 휴진·휴게·차단·한도는 판정할 수 없습니다
+- **새 예약의 `exclusive`도 한도에 넣습니다.** 셀에 보통 예약이 있는데 `exclusiveBooking` 진료항목 예약을 더하면 한도 1을 넘으므로 `CAPACITY_EXCEEDED`입니다. 반대 순서와 결과가 같아야 질문 8의 "셀에 하나라도 있으면 1"이 됩니다
+- **길이가 잘못됐으면 시작 슬롯만 검사합니다.** 잘못된 길이로 덮는 슬롯을 펼치지 않습니다
+- **구간 끝으로 `24:00`을 받습니다.** 자정까지 진료하는 일정을 적을 수 있게 하려는 것입니다
+- **근무 구간 밖 시각의 반나절 휴진은 점심·12:00 규칙으로 나눕니다.** 이미 예약이 있어 보이는 진료시간 밖 시각이 근무 일정의 시간대 구분 어디에도 속하지 않을 때입니다
+- **근무하지 않는 진료의 예약을 막는 검사는 아직 없습니다.** 현행 사이드 패널은 진료의 근무 일정의 슬롯만 보여 줍니다. 서버는 진료의별 근무 일정이 아직 없어 병원 진료시간만 봅니다. 근무 일정을 만들 때 진료의 근무 구간 밖이면 `OUTSIDE_HOURS`로 막습니다
+- **일정을 옮길 때 옮기는 예약 자신은 셀에서 빼고 셉니다.** 빼지 않으면 같은 자리로 길이만 바꿔도 자기 자신 때문에 한도 초과 경고가 납니다
+- **날짜는 `YYYY-MM-DD`, 시각은 `HH:mm`만 받습니다.** check-in-validation과 같은 이유로, 형식이 다르면 예외를 던집니다
+- **중복 예약(409)의 기준은 아직 정하지 않았습니다.** 현행은 서버가 409를 돌려주지만 기준(같은 환자·같은 시각인지)을 클라이언트에서 볼 수 없습니다. 예약 저장소를 만들 때 정합니다
 
 ## 원무
 
@@ -400,6 +419,7 @@ check-in-validation에서 함께 반영한 결정입니다.
 - `doctor off: 오후 휴진 with no lunch configured never blocks`: 17:00이 오후 시간대이면 `false` → `true`
 - `doctor off: 오전 휴진 with no lunch configured blocks all day`: 17:00이 오후 시간대이면 `true` → `false`
 - `create: doctor with 휴진일태그 shows warning but slots stay selectable`: 휴진 구간 슬롯으로 저장하면 422 `DOCTOR_OFF`
+- `today cutoff: editing booking at earlier time keeps its own slot`: 현행은 수정 중인 예약의 시각까지 기준을 낮춰 지난 슬롯을 보여 줬습니다. 서버는 그 시각도 지났으면 `APPOINTMENT_IN_PAST`입니다 (질문 4)
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 

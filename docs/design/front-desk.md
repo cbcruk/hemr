@@ -79,8 +79,11 @@ GET  /appointments/availability?date=&doctorId=&visitTypeId=   → 슬롯별 { c
 ```
 
 - **서버 검증:** 생성·변경 시 과거 시간, 휴게, 병원 휴진, 의사 휴진(종일·오전·오후), 차단 시간, 진료시간 외, 수용 한도를 검사합니다
-  - 막는 것은 422(`APPOINTMENT_IN_PAST`, `CLINIC_CLOSED`, `DOCTOR_OFF`, `SLOT_BLOCKED`, `OUTSIDE_HOURS`)
-  - 현행처럼 "확인 받으면 허용"인 것(차단 시간, 수용 한도 초과)은 `warnings`로 주고, 요청에 `acknowledge: ["SLOT_BLOCKED"]`가 있으면 저장합니다. 경고를 무시했다는 사실이 이력에 남습니다
+  - 막는 것은 422(`APPOINTMENT_DURATION_INVALID`, `OUTSIDE_HOURS`, `CLINIC_CLOSED`, `DOCTOR_OFF`, `APPOINTMENT_IN_PAST`, `BREAK_TIME`). 이 순서로 정렬해 모두 돌려줍니다
+  - 현행처럼 "확인 받으면 허용"인 것(차단 시간 `SLOT_BLOCKED`, 수용 한도 초과 `CAPACITY_EXCEEDED`)은 `warnings`로 주고, 요청의 `acknowledge`에 그 코드가 있으면 저장합니다. 확인을 받지 않은 경고가 남으면 저장하지 않고 422로 응답하며, 문제 응답의 `warnings`에 그 코드를 담습니다. 경고를 무시했다는 사실이 이력에 남습니다. 막는 오류는 `acknowledge`로 넘길 수 없습니다
+  - 예약이 덮는 슬롯(시작 시각부터 길이만큼)을 모두 검사합니다. 시간 미정 예약은 진료 요일, 병원 휴진, 종일 휴진, 지난 날짜만 검사합니다
+  - 새 예약에 `exclusiveBooking` 진료항목이 있으면 그 예약이 들어갈 셀의 한도도 1입니다
+  - 판정은 [appointment-acceptance.ts](../../src/modules/front-desk/appointments/appointment-acceptance.ts)의 순수 함수입니다
 - **수용 한도:** `exclusiveBooking` 진료항목이 하나라도 있으면 1건, 아니면 `capacityPerSlot`. 현행과 같은 규칙을 서버로 옮깁니다
 - **취소 알림:** 현행 "취소 안내 문자 보내기" 체크박스는 dev 환경에서만 보이고 값이 요청에 실리지 않습니다 (미완성 기능으로 보임). 재설계는 `notifyPatient`를 명시적 필드로 둡니다
 - **플래너 뷰:** 현행 `/desk/appointments/planner`는 같은 목록의 다른 정렬입니다. `GET /appointments?view=planner` 대신 클라이언트가 같은 목록을 그립니다
