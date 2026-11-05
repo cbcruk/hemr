@@ -337,6 +337,7 @@
 | [chuna-annual-limit](#chuna-annual-limit) | [chuna-annual-limit.ts](../../src/modules/clinical/chuna/chuna-annual-limit.ts) (진료 저장·완료·사용량 조회 전, 순수 함수) | [chuna-annual-limit.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-annual-limit.fixtures.test.ts) | 서버에 없는 로딩 중 상태 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다. 현재 진료 제출분 빼기·진료일 기준 당일(질문 1·5)은 단위 테스트에서 새 케이스로 검사합니다 |
 | [chuna-auto-approval](#chuna-auto-approval) | [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) (진료 완료 큐 판정·에이전트 결과 반영 전, 순수 함수) | [chuna-auto-submission.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-auto-submission.fixtures.test.ts) | 없음. 로딩·조회 오류는 사용량 없음으로, 화면 잠금은 같은 날 진행 중인 제출로 옮겼습니다 |
 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) | [pilot-herbal-diagnosis-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-diagnosis-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.fixtures.test.ts) | 요청 스키마가 막는 질환 코드 없음 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [pilot-herbal-claim-checks](#pilot-herbal-claim-checks) | [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) (진료 저장·청구 명세서 검사 전, 순수 함수) | [pilot-herbal-claim-checks.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.fixtures.test.ts) | 서버 입력으로 성립하지 않는 기준일시 없음 1건, 서버에 없는 화면 필터 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -531,6 +532,22 @@ pilot-herbal-diagnosis-limit에서 함께 반영한 결정입니다.
 - **처방 불가·확인 필요·이력 없음이면 본인부담률 코드를 `null`로 두어 자동으로 정하지 않습니다.** 현행 빈 코드(`""`)는 "선택 불가"였고, 서버에서는 판정 결과(`accepted`)로 막고 코드는 사람이 고릅니다
 - **문구는 `pilotHerbalDiagnosisMessage`가 만들고 판정과 분리합니다(질문 7).** 받침이 없거나 `ㄹ`이면 `로`, 그 밖은 `으로`입니다
 - **이력의 연도는 호출하는 쪽이 진료 `serviceAt`의 병원 시간대 연도로 조회합니다(질문 8).** 판정 함수는 받은 이력만 봅니다
+
+pilot-herbal-claim-checks에서 함께 반영한 결정입니다.
+
+- **C0002·C0003·C0004·C0006·C0010도 첫 줄이 아니라 해당 줄 전부를 원인 줄로 줍니다.** 질문 10이 C0005를 모든 첩약 줄로 바꾼 것과 같은 기준입니다. C0004는 현재 진료의 심층변증방제기술료 줄 전부, C0010은 현재 진료의 첩약 줄 전부입니다. 해당 줄이 하나면 결과는 현행과 같습니다
+- **진료 전체에 걸린 검사(C0008·C0009·C0012)는 `lineIds`가 비어 있습니다.** 현행은 원인 ID에 진료 ID를 넣었습니다. 서버 경고는 진료에 붙으므로 진료 ID를 따로 담지 않습니다
+- **C0011은 마황정천탕·보폐원탕 줄을 원인 줄로 줍니다.** 현행은 진료 ID였지만 자동 수정이 바로 그 두 처방을 지우므로, C0007과 같이 고칠 줄을 가리킵니다
+  - 대안: 진료 전체 검사로 두고 `lineIds`를 비움. 정정 제안을 만들 때 줄을 다시 찾아야 해서 택하지 않았습니다
+- **C0007은 가산이 붙은 줄(6자리 이상 코드)을 원인 줄로 줍니다.** 현행은 빈 목록이었습니다
+- **C0003 경고에 정정 제안이 지울 줄(`fixRemovesLineIds`)을 담습니다(질문 9).** 한방보험약과 같은 진료의 한방조제료 전부입니다. 다른 검사의 자동 수정은 정정 제안 기능을 만들 때 옮깁니다
+- **C0004·C0010의 다른 진료는 호출하는 쪽이 진료일 ±10일로 조회해 넘깁니다(질문 3).** 판정 함수는 받은 진료 중 같은 진료 ID를 빼고 날짜 차이 절댓값만 봅니다
+- **C0012의 의사 주민번호는 진료 담당 의사의 직원 정보에서 읽습니다(질문 6).** 둘 중 하나라도 모르거나 앞·뒷자리 중 하나가 비면 검사하지 않습니다. 생년월일만 같은 다른 사람을 본인으로 보지 않기 위해서입니다
+- **질환별 인정 상병(`wU`)은 `herbal-applicable-diseases` 참조데이터로 옮길 초기값 상수로 둡니다.** 함수는 표를 인자로 받습니다. 표에 질환이 없으면 C0008·C0009 모두 건너뛰고, 빈 접두어는 현행 `.filter(Boolean)`처럼 버립니다
+- **상병코드는 점을 빼고 대문자로 맞춰 비교합니다.** 서버 상병은 `U23.4`처럼 점이 있고, 현행 표는 `U234`처럼 점이 없습니다. 맞추지 않으면 C0008·C0009가 모든 시범사업 진료에서 발동합니다
+  - 되돌릴 조건: 상병 저장 형식을 점 없는 코드로 통일하면 정규화를 지웁니다
+- **C0006은 체크리스트 제출 여부가 참이 아니면 미제출로 봅니다.** 규칙 문서는 "거짓"이라고만 적었고 현행 원본에서 `=== false`인지 falsy인지 확인하지 못했습니다. 경고만 하는 검사라 값이 빠진 경우 알리는 쪽을 택했습니다
+  - 되돌릴 조건: 현행이 `=== false`였고 값이 빠진 특정내역이 흔해 경고가 소음이 되면 `false`일 때만 경고합니다
 
 ## 원무
 
@@ -979,7 +996,8 @@ pilot-herbal-diagnosis-limit에서 함께 반영한 결정입니다.
 - `C0008: disease 00 has no wU entry: throws`: `TypeError` → 경고 없음 (Q7)
 - `C0009: disease 03 with 부상병 U234 (any position)`: 경고 없음 → C0009 경고(제1부상병이 `R51`) (Q8)
 - `tBt: all checks firing: only C0001, C0003, C0005 are returned`: C0001·C0003·C0005 → C0001·C0002·C0003·C0005·C0006·C0008·C0011 (C0004는 14일 전이라 Q2로 빠짐) (Q1·Q2)
-- `HFt: treatment-screen warnings keep C0001 and C0003, drop C0005`: C0001·C0003 → C0001·C0003·C0005 (Q1)
+- `C0011: 기능성소화불량 with 마황정천탕`, `C0011: 기능성소화불량 with 보폐원탕`: 원인 진료 ID → 처방 줄 `h1` (함께 반영한 결정)
+- 옮기지 않음: `HFt: treatment-screen warnings keep C0001 and C0003, drop C0005`는 서버에 화면 허용 목록 필터가 없어 뺍니다. 모든 경고가 남는 것은 tBt 케이스가 검사합니다 (Q1)
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
