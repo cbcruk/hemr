@@ -317,7 +317,8 @@
 | [appointment-no-show](#appointment-no-show) | [appointment-no-show.ts](../../src/modules/front-desk/appointments/appointment-no-show.ts) (부도 스케줄러·설정 API 전, 순수 함수) | [appointment-no-show.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-no-show.fixtures.test.ts) | 이력 문구 2건. 예약 이력과 `displayStatus`를 만들 때 옮깁니다. 부도 판정식은 클라이언트에 없어 단위 테스트가 질문 1–3으로 검사합니다 |
 | [checkout-settlement](#checkout-settlement) | [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts) (수납 견적·수납 커맨드 전, 순수 함수) | [checkout-settlement.fixtures.test.ts](../../src/modules/front-desk/receipts/checkout-settlement.fixtures.test.ts) | 보류한 음수 과수금액(질문 5), 스키마가 막는 숫자 아닌 금액, 현행 요청 본문, 전액 미수 토글 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [cash-drawer-expected-closing](#cash-drawer-expected-closing) | [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts) (시재 엔드포인트 전, 순수 함수) | [cash-drawer.fixtures.test.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.fixtures.test.ts) | 없음. 현행의 서버 값 경로와 fallback 경로를 모두 같은 원장 계산으로 옮겼습니다 |
-| [consultation-fee-code](#consultation-fee-code) | [consultation-fee-code.ts](../../src/modules/clinical/fees/consultation-fee-code.ts) (진료 저장 전, 순수 함수) | [consultation-fee-code.fixtures.test.ts](../../src/modules/clinical/fees/consultation-fee-code.fixtures.test.ts) | 서버가 이전 진료를 직접 조회해 생기지 않는 "목록 없음" 1건. 시술 가산(`JLt`) 10건은 procedure-fee-modifiers 단계에서 옮깁니다 |
+| [consultation-fee-code](#consultation-fee-code) | [consultation-fee-code.ts](../../src/modules/clinical/fees/consultation-fee-code.ts) (진료 저장 전, 순수 함수) | [consultation-fee-code.fixtures.test.ts](../../src/modules/clinical/fees/consultation-fee-code.fixtures.test.ts) | 서버가 이전 진료를 직접 조회해 생기지 않는 "목록 없음" 1건. 시술 가산(`JLt`) 10건은 [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts)로 검사합니다 |
+| [procedure-fee-modifiers](#procedure-fee-modifiers) | [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts) (처방 줄 upsert·완료 전, 순수 함수) | [procedure-fee-modifiers.fixtures.test.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.fixtures.test.ts) | 서버에서 생기지 않는 설정·진료 시각·환자 없음 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -391,6 +392,18 @@ consultation-fee-code에서 함께 반영한 결정입니다.
 - **야간 특정내역(`JS010`)의 내용은 현행처럼 `yyyyMMddHHmm` 진료 시각입니다.** 청구 명세서 형식이라 바꾸지 않습니다
 - **공휴일은 호출하는 쪽이 참조데이터에서 조회해 넘깁니다.** 판정 함수는 조회하지 않으므로 질문 7의 "조회 실패는 오류"는 진료 저장 서비스가 맡습니다
 - **변증기술료를 붙이는 시술 카테고리는 `33001001`–`33001005`, `73001001`, `73002001`, `34002001`입니다.** 규칙 문서의 목록을 그대로 옮겼고, 온냉경락은 이 범위 밖입니다
+
+procedure-fee-modifiers에서 함께 반영한 결정입니다.
+
+- **서버가 계산한 8자리 코드인지를 줄에 남깁니다(`feeCodeComputed`).** 질문 7의 "사용자가 지정한 8자리는 다시 계산하지 않음"을 지키면서, 서버가 붙인 코드는 진료 시각·환자가 바뀔 때 앞 5자리에서 다시 계산합니다. 현행 `산정코드재설정`과 같은 역할입니다
+  - 대안: 기본코드를 따로 저장하는 방식입니다. 앞 5자리가 늘 기본코드라 중복이 되어 고르지 않았습니다
+  - 바뀌는 점: 다시 계산해 가산이 모두 없어지면 현행은 `undefined`(이전 8자리 유지)였지만 서버는 5자리 기본코드로 돌아갑니다. 생년월일을 고친 환자의 가산이 남지 않게 하려는 것입니다
+  - 되돌릴 조건: 이관 데이터에서 서버 계산 여부를 알 수 없으면 이관한 8자리는 모두 사용자 지정으로 봅니다
+- **시간대 가산과 침법은 줄 속성(`timeSurcharge`, `acupunctureMethod`)으로 받습니다.** 현행 플래그는 여러 개가 함께 참일 수 있었지만 서버는 하나만 받으므로 "마지막 플래그가 이긴다"는 순서가 필요 없습니다. 픽스처 이전에서는 현행 순서대로 마지막 참 플래그를 골라 넘깁니다
+- **이 규칙은 투약·조제(`30`)와 시술(`40`) 코드만 바꿉니다.** 진찰료(`10`)의 가산은 consultation-fee-code가 계산하므로, 질문 3의 표에 진찰료가 있어도 여기서는 진찰료 코드를 건드리지 않습니다. 서버가 붙인 진찰료 8자리를 시술 규칙이 다시 계산해 가산을 지우는 일을 막습니다
+- **비대면 진료는 산정코드를 다시 계산하지 않습니다.** 현행과 같습니다. 진찰료(consultation-fee-code)도 비대면이면 가산을 붙이지 않습니다
+- **금액은 `단가 × 1일 투여량 × 일수`를 한 번만 반올림(0.5는 올림)합니다.** 1일 투여량이 소수여도 정수 연산으로 계산하도록 수납 등급 할인과 같은 도우미(`shared/money/decimal.ts`)를 씁니다
+- **마스터에 없는 코드는 진료마다 한 번만 경고에 담습니다.** 같은 코드의 줄이 여러 개여도 경고의 `feeCodes`에는 한 번만 들어갑니다
 
 ## 원무
 
@@ -581,6 +594,7 @@ consultation-fee-code에서 함께 반영한 결정입니다.
 - `flag 야간임 on 조제료 -> 010 (no code-type check)` → `null`(코드를 바꾸지 않음)
 - `age 3: 부항 600 code missing from fee list -> line unchanged` → 줄은 그대로이고 `FEE_CODE_NOT_IN_MASTER` warning이 추가됩니다
 - `age 3: 침술 and 조제료 lines get 600 codes, names and prices from fee list` → 값은 같고 필드 이름만 바뀝니다(조제료 `unitPrice` 650, `amount` 3900)
+- `8-digit input with 산정코드재설정, adult -> null (all zero, caller keeps old 8-digit)` → `40011`(서버가 계산한 코드는 기본코드로 돌아갑니다, 질문 7)
 
 ### duplicate-consultation-fee
 

@@ -7,7 +7,9 @@ import {
   decodeFeeCode,
   migrateInitialVisitWindow,
 } from './consultation-fee-code.ts'
-import type { ConsultationContext, ConsultationSettings, FeeLine, ServiceAt } from './consultation-fee-code.ts'
+import type { ConsultationContext, ConsultationSettings, FeeLine } from './consultation-fee-code.ts'
+import { birthDateFromRrn, isoDate, procedureFromLegacy, serviceAt } from './legacy-fixture.ts'
+import { procedureFeeCode } from './procedure-fee-modifiers.ts'
 
 /**
  * 현행 클라이언트 픽스처(`test/fixtures/rules/consultation-fee-code.json`)를 서버 규칙으로 옮긴 테스트입니다.
@@ -27,29 +29,8 @@ const fixture = JSON.parse(
   readFileSync(join(import.meta.dirname, '../../../../test/fixtures/rules/consultation-fee-code.json'), 'utf8'),
 ) as { cases: FixtureCase[] }
 
-function isoDate(yyyymmdd: string): string {
-  return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
-}
-
-function serviceAt(yyyymmddhhmm: string): ServiceAt {
-  return { date: isoDate(yyyymmddhhmm), time: `${yyyymmddhhmm.slice(8, 10)}:${yyyymmddhhmm.slice(10, 12)}` }
-}
-
 function clock(hhmm: string): string {
   return `${hhmm.slice(0, 2)}:${hhmm.slice(2, 4)}`
-}
-
-/**
- * 주민번호 앞자리와 뒷자리 첫 글자로 생년월일을 만듭니다. 서버는 환자의 생년월일을 갖고 있으므로 이 변환은
- * 픽스처 이전에만 씁니다. 없는 날짜(13월 등)나 빈 값은 `null`입니다.
- */
-function birthDateFromRrn(front: string, back: string): string | null {
-  if (!/^\d{6}$/.test(front) || !/^\d/.test(back)) return null
-  const century = { '1': 1900, '2': 1900, '5': 1900, '6': 1900, '3': 2000, '4': 2000, '7': 2000, '8': 2000 }[back[0]!]
-  const year = (century ?? 1800) + Number(front.slice(0, 2))
-  const date = `${year}-${front.slice(2, 4)}-${front.slice(4, 6)}`
-  const parsed = new Date(`${date}T00:00:00Z`)
-  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date ? null : date
 }
 
 function toSettings(legacy: Record<string, any>): ConsultationSettings {
@@ -99,6 +80,9 @@ const CHANGED: Record<string, unknown> = {
   // 결정 1: 생후 한 달 안의 영아도 만 나이 0으로 계산합니다
   'infant born 2026-02-05, visit 2026-03-04 -> age calc returns null (month off-by-one, suspected bug) -> no infant digit':
     { codes: ['10100100'] },
+  // procedure-fee-modifiers 결정 1: 생후 28일 이하 침술은 신생아 `1`입니다
+  'JLt neonate (born 2026-02-10, 22 days) 침술 -> null: age calc returns null for births within the last month (suspected bug), so no 100':
+    { code: '40011100' },
   // 결정 4: 날짜 차이가 N일 이하면 재진입니다
   'prior visit exactly N(30) days earlier same minute -> not counted -> 초진': { lines: [FOLLOW_UP_LINE] },
   'prior visit N days earlier - 1 minute -> 초진': { lines: [FOLLOW_UP_LINE] },
@@ -118,11 +102,6 @@ const CHANGED: Record<string, unknown> = {
 const NOT_PORTED: Record<string, string> = {
   '최근진료기록목록 missing (null) -> undefined':
     '서버가 이전 진료를 직접 조회하므로 목록이 없는 상태가 없습니다 (결정 4)',
-}
-
-/** 다른 규칙에서 옮기는 함수입니다. 이 함수의 케이스는 여기서 검사하지 않습니다. */
-const DEFERRED_FN: Record<string, string> = {
-  JLt: '시술 가산은 procedure-fee-modifiers 규칙에서 옮깁니다. 이 픽스처의 JLt 케이스도 그 단계에서 함께 옮기고, 신생아 침술 케이스는 결정 1로 40011100이 됩니다',
 }
 
 describe('consultation-fee-code fixture', () => {
@@ -155,6 +134,14 @@ describe('consultation-fee-code fixture', () => {
     })
   })
 
+  describe('procedure modifiers (JLt, procedure-fee-modifiers 결정 1·2)', () => {
+    it.each(cases('JLt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
+      const { line, context } = procedureFromLegacy(input)
+      const want = (CHANGED[name] ?? expected) as { code: string | null }
+      expect(procedureFeeCode(line, context)).toEqual(want.code)
+    })
+  })
+
   describe('decode', () => {
     it.each(cases('_t.New').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const decoded = decodeFeeCode(input['수가코드'])
@@ -174,10 +161,9 @@ describe('consultation-fee-code fixture', () => {
   })
 
   it('accounts for every fixture case', () => {
-    const ported = new Set(['lee', 'Vdn', '_t.New'])
+    const ported = new Set(['lee', 'Vdn', 'JLt', '_t.New'])
     const unaccounted = fixture.cases.filter(
-      (testCase) =>
-        !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['fn']) && !(testCase.input['fn'] in DEFERRED_FN),
+      (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['fn']),
     )
     expect(unaccounted.map((testCase) => testCase.name)).toEqual([])
     expect(Object.keys(NOT_PORTED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
