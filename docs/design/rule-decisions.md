@@ -323,6 +323,7 @@
 | [procedure-fee-modifiers](#procedure-fee-modifiers) | [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts) (처방 줄 upsert·완료 전, 순수 함수) | [procedure-fee-modifiers.fixtures.test.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.fixtures.test.ts) | 서버에서 생기지 않는 설정·진료 시각·환자 없음 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [duplicate-consultation-fee](#duplicate-consultation-fee) | [duplicate-consultation-fee.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.ts) (진료 저장·완료 전, 순수 함수) | [duplicate-consultation-fee.fixtures.test.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.fixtures.test.ts) | 서버에서 생기지 않는 진료 시각 없음 1건. 확인창 문구는 `paidEncounterIds`로 검사합니다 |
 | [auto-insurance-same-day-consultation](#auto-insurance-same-day-consultation) | [auto-insurance-same-day-consultation.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.ts) (진료 저장·청구 집계 전, 순수 함수) | [auto-insurance-same-day-consultation.fixtures.test.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.fixtures.test.ts) | 결과가 버려지는 `IBt` 2건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [coverage-category-band](#coverage-category-band) | [coverage-category-band.ts](../../src/modules/clinical/fees/coverage-category-band.ts) (보험구분 변경·진료 저장·완료 전, 순수 함수) | [coverage-category-band.fixtures.test.ts](../../src/modules/clinical/fees/coverage-category-band.fixtures.test.ts) | 요청 스키마가 막는 빈 보험구분 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -430,6 +431,13 @@ auto-insurance-same-day-consultation에서 함께 반영한 결정입니다.
 - **생성 시각이 없는 진료는 있는 진료보다 앞으로 봅니다(질문 3).** 이관 데이터라 더 오래된 것으로 봅니다. 한쪽에 없을 때 건너뛰면 세 진료 사이 순서가 돌고 돌아, 현재 진료가 무엇이냐에 따라 1차가 달라집니다
 - **1차 후보는 그날 모든 자보 진료입니다.** 질문 2의 "다른 사고 자보 진료"에는 같은 사고 진료와 사고접수번호가 없는 진료도 들어갑니다. 현행 `후보` 판정과 같습니다
 - **자동 지정 warning 상세는 저장 서비스가 `designations`로 만듭니다.** 판정 함수는 지정할 진료와 지울 진찰료 줄만 돌려줍니다
+
+coverage-category-band에서 함께 반영한 결정입니다.
+
+- **차단 표는 "이 처방을 쓸 수 있는 진료" 조건으로 적습니다.** 현행은 "보험구분이 X가 아니면 차단"을 줄마다 나열했습니다. 서버는 카테고리·수가코드·코드 접두사와 허용 조건을 한 행으로 둡니다. 참조데이터로 옮길 때 행 단위로 고칠 수 있습니다
+- **첩약 시범사업 카테고리에 한약재 `35001002`를 넣습니다.** 규칙 문서 표의 `35001001`–`35004001`은 범위 표기이고, 현행 상수에는 한약재가 들어 있어 현행과 같습니다
+- **판정 함수는 쓸 수 없는 줄 ID만 돌려줍니다.** 보험구분 변경은 그 줄을 `invalid: COVERAGE_MISMATCH`로 표시하고, 진료 저장은 `COVERAGE_CATEGORY_MISMATCH` warning, 완료는 같은 코드의 422 위반으로 만듭니다(질문 4·5). 세 경로가 같은 함수를 씁니다
+- **현행의 빈 `Set`(확장 자리)은 옮기지 않습니다.** 아무 영향이 없던 자리라 차단 표에 행을 더하는 것으로 대신합니다
 
 ## 원무
 
