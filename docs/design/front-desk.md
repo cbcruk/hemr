@@ -298,7 +298,7 @@ Receipt
 ├─ encounters[]: encounterId
 ├─ charges: { insuredCopay, nonbenefit{taxable, taxExempt}, packageSales, discounts, total }   # 서버 계산
 ├─ payments[]: Payment
-├─ settlement: { received, due, result: PAID|OUTSTANDING|OVERPAID|WRITTEN_OFF, outstanding, overpaid }
+├─ settlement: { received, due, result: PAID|OUTSTANDING|OVERPAID|WRITTEN_OFF, outstanding, overpaid, writtenOff }
 ├─ flags: { excludeFromTaxDeduction, writeOff }
 └─ status: ACTIVE | VOIDED
 
@@ -330,8 +330,9 @@ Idempotency-Key: ...
   "payments": [                          // 서버 안에서 끝나는 결제 (선수금, 현금 등)
     { "method": "PREPAID", "prepaidKind": "CASH_LIKE", "amount": { "taxable": 0, "taxExempt": 10000 } }
   ],
-  "useOverpaidCredit": true,
+  "useOverpaidCredit": "TAX_EXEMPT",   // TAX_EXEMPT | TAXABLE | null. 과수납금은 한쪽에만 씁니다
   "writeOffRemainder": false,
+  "acknowledge": ["OUTSTANDING"],       // 결제 없이 미수로 남길 때
   "excludeFromTaxDeduction": false,
   "memo": ""
 }
@@ -341,7 +342,7 @@ Idempotency-Key: ...
 한 트랜잭션에서 하는 일:
 
 1. 진료의 처방이 미확정이면 확정(진료 완료와는 별개로 금액만 잠금). 현행은 클라이언트가 진료마다 `record/save`를 먼저 보냈습니다
-2. 청구 금액 계산: 본인부담금, 비급여, 할인(환자 등급), 패키지 차감, 제주 지원금 자동 행(`min(지원금 합, 받을 금액)`)
+2. 청구 금액 계산: 본인부담금, 비급여, 할인(환자 등급), 패키지 차감, 제주 지원금 자동 행(`min(지원금 합, 급여 본인부담)`)
 3. 결제 기록, 선수금·과수납금 차감
 4. `settlement.result` 계산
 5. 내원 `COMPLETED`, 패키지 판매분이 있으면 `PackageContract` 생성
@@ -351,8 +352,12 @@ Idempotency-Key: ...
 - **동시성:** 수납은 내원 `version`(`If-Match`)이 아니라 `quoteId`로 검증합니다. 다른 단말이 베드나 메모를 바꿔도 수납은 통과하고, 청구 금액에 영향을 주는 변경(처방 수정)이 있을 때만 409로 다시 견적을 받게 합니다
 - 409가 나도 미리 기록한 결제는 `UNAPPLIED`로 남아 있으므로 새 견적으로 다시 수납하면 됩니다
 - **남은 금액 판정**은 서버가 합니다. 현행 코드도 `due − received`(과세+비과세 합산)로 판정해 아래 정의와 방향이 같습니다 ([checkout-settlement](../reference/rules/checkout-settlement.md)). 정의: `due - received > 0`이면 `OUTSTANDING`(미수), `< 0`이면 `OVERPAID`(과수납), `writeOffRemainder`이면 `WRITTEN_OFF`(손비)
-- 과수납이면 손비 처리를 할 수 없습니다 (422)
-- 입력 금액이 0인데 받을 금액이 있으면 미수 확인이 필요합니다: `acknowledge: ["OUTSTANDING"]`
+- 과수납이면 손비 처리를 할 수 없습니다 (422 `WRITE_OFF_OVERPAID`). 남은 금액이 0이면 `writeOffRemainder`를 무시하고 `PAID`입니다
+- 제주 지원금을 비과세에서, 과수납금을 고른 부분에서 뺀 뒤 남은 금액을 판정합니다. 둘 다 그 부분의 받을 금액까지만 씁니다. `settlement.received`는 입력 결제에 제주 지원금·과수납금 결제를 더한 값이라 `due − received`가 남은 금액입니다. 손비면 `writtenOff`에 손비 금액을 남깁니다
+- 입력 결제(0원 결제 제외)가 없는데 남은 금액이 있고 손비도 아니면 미수 확인이 필요합니다: `acknowledge: ["OUTSTANDING"]`. 확인을 받지 않으면 422로 응답하고 `warnings`에 담습니다
+- 결제 금액이 0 이상 정수가 아니면 요청 스키마가 400 `VALIDATION_FAILED`로 막습니다
+- 결제 검사(422): 서버가 만드는 수단(`JEJU_SUBSIDY`, `OVERPAID_CREDIT`, `PACKAGE`)을 보내면 `PAYMENT_METHOD_NOT_ALLOWED`, 선수금에 `prepaidKind`가 없으면 `PREPAID_KIND_REQUIRED`, 계열별 잔액을 넘으면 `PREPAID_BALANCE_INSUFFICIENT`
+- 판정은 [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts)의 순수 함수이고, 견적과 수납이 같은 계산을 씁니다
 
 ### 내원 없는 수납
 

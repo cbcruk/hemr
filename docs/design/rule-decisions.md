@@ -294,6 +294,10 @@
 | `BREAK_TIME` | 오류 | [appointment-acceptance](#appointment-acceptance) 점심·저녁 휴게 슬롯. 현행 "휴게 시간에는 예약을 이동할 수 없습니다". 확인으로 넘길 수 없어 `SLOT_BLOCKED`와 따로 둡니다 |
 | `APPOINTMENT_DURATION_INVALID` | 오류 | [appointment-acceptance](#appointment-acceptance) 예약 길이가 예약시간단위의 배수가 아니거나 120분 초과 (질문 9) |
 | `NO_SHOW_MINUTES_INVALID` | 422 오류 | [appointment-no-show](#appointment-no-show) 부도 처리 시점이 10/30/60분이 아님 (질문 4) |
+| `WRITE_OFF_OVERPAID` | 422 오류 | [checkout-settlement](#checkout-settlement) 과수납인데 손비 요청 (질문 2) |
+| `PREPAID_KIND_REQUIRED` | 422 오류 | [checkout-settlement](#checkout-settlement) 선수금 결제에 계열이 없음 (질문 6) |
+| `PREPAID_BALANCE_INSUFFICIENT` | 422 오류 | [checkout-settlement](#checkout-settlement) 계열별 선수금 잔액 초과 (질문 6) |
+| `PAYMENT_METHOD_NOT_ALLOWED` | 422 오류 | [checkout-settlement](#checkout-settlement) 서버가 만드는 결제 수단(`JEJU_SUBSIDY`, `OVERPAID_CREDIT`, `PACKAGE`)을 요청에 넣음 |
 | `FEE_CODE_NOT_IN_MASTER` | 경고 | [consultation-fee-code](#consultation-fee-code), [procedure-fee-modifiers](#procedure-fee-modifiers) |
 | `conflictingEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
@@ -311,6 +315,7 @@
 | [check-in-validation](#check-in-validation) | [check-in-validation.ts](../../src/modules/front-desk/visits/check-in-validation.ts) (접수 엔드포인트 전, 순수 함수) | [check-in-validation.fixtures.test.ts](../../src/modules/front-desk/visits/check-in-validation.fixtures.test.ts) | 화면 문구와 버튼 표시, 권한, 보험구분 변경, 자보 한도 다이얼로그, 본인확인 중복 케이스, 진료 완료로 옮긴 산정특례 7건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [appointment-acceptance](#appointment-acceptance) | [appointment-acceptance.ts](../../src/modules/front-desk/appointments/appointment-acceptance.ts) (예약 엔드포인트 전, 순수 함수) | [appointment-acceptance.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-acceptance.fixtures.test.ts) | 화면 셀 상태·기본 선택값, 권한, 진료의 근무 일정, 중복 예약 409, 생기지 않는 입력(빈 셀, 0분 단위) 12건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [appointment-no-show](#appointment-no-show) | [appointment-no-show.ts](../../src/modules/front-desk/appointments/appointment-no-show.ts) (부도 스케줄러·설정 API 전, 순수 함수) | [appointment-no-show.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-no-show.fixtures.test.ts) | 이력 문구 2건. 예약 이력과 `displayStatus`를 만들 때 옮깁니다. 부도 판정식은 클라이언트에 없어 단위 테스트가 질문 1–3으로 검사합니다 |
+| [checkout-settlement](#checkout-settlement) | [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts) (수납 견적·수납 커맨드 전, 순수 함수) | [checkout-settlement.fixtures.test.ts](../../src/modules/front-desk/receipts/checkout-settlement.fixtures.test.ts) | 보류한 음수 과수금액(질문 5), 스키마가 막는 숫자 아닌 금액, 현행 요청 본문, 전액 미수 토글 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -353,6 +358,18 @@ appointment-no-show에서 함께 반영한 결정입니다.
 - **휴진이 아닌데 구간이 없는 일정은 건너뜁니다.** 덜 채운 날짜별 일정 때문에 진료 마감이 자정으로 밀리지 않게 하려는 것입니다
 - **진료의 반나절 휴진은 호출하는 쪽이 진료의 날짜별 일정에 반영합니다.** 오후 휴진이면 그날 진료 마감은 오전 구간의 끝입니다
 - **휴진일·일정 없음의 진료 마감은 `24:00`입니다.** 질문 2의 "휴진일 예약은 그날 자정에 처리"를 시각으로 적은 것입니다
+
+checkout-settlement에서 함께 반영한 결정입니다.
+
+- **과수납금은 비과세와 과세 중 한쪽에만 씁니다.** `useOverpaidCredit: "TAX_EXEMPT" | "TAXABLE" | null`입니다. 설계 초안의 `true`는 어느 부분에 쓸지 정하지 못해, 현행 화면의 선택을 그대로 받습니다. 과세·비과세는 현금영수증과 연말정산 금액에 영향을 주므로 서버가 임의로 나누지 않습니다. 되돌릴 조건: 두 부분에 나눠 쓰는 요구가 생기면 `{ taxable, taxExempt }` 금액으로 받습니다
+- **제주 지원금 상한은 선택한 진료 전체의 급여 본인부담 합입니다.** 질문 4를 진료 입력으로 옮기면서, 진료마다 비과세 중 급여 본인부담(`insuredCopay`)을 따로 받습니다. 상한은 현행과 질문 4처럼 합계로 잡으므로, 한 진료의 지원금이 그 진료의 본인부담을 넘으면 다른 진료의 본인부담에 씁니다. 지원금도 합한 뒤 0 이하면 0으로 봅니다. 현행 데이터는 비과세를 나누지 않아 픽스처 이전은 비과세 전부를 급여 본인부담으로 봅니다. 되돌릴 조건: 지원 기관이 진료별 정산을 요구하면 진료마다 `min(지원금, 본인부담)`을 더합니다
+- **차감 순서는 제주 지원금 → 과수납금입니다.** 현행 화면은 과수납금으로 줄인 금액에서 제주를 뺐지만, 쓴 과수납금을 따로 계산하지 않았습니다. 서버는 쓴 금액을 기록해야 하므로 순서를 정합니다. 실효 받을 금액은 어느 순서든 같고, 제주를 먼저 빼면 환자 돈인 과수납 잔액을 덜 씁니다
+- **미수 확인은 0원 결제를 빼고 셉니다.** 과수납금만 고르고 결제가 없어도 남은 금액이 있으면 확인합니다(질문 8). 현행은 과수납금을 고르면 묻지 않았습니다
+- **결제 금액은 0 이상 정수만 받고, 0원 결제는 버립니다.** 형식 오류라 [conventions.md](conventions.md)대로 요청 스키마가 400 `VALIDATION_FAILED`로 막습니다. 현행 화면도 0원 행을 보내지 않았습니다
+- **처방 수정으로 한 부분이 음수여도 0으로 자르지 않습니다.** 질문 3의 합산 판정을 따르려면 과세·비과세 중 어느 쪽이 음수가 됐는지와 상관없이 같은 결과가 나와야 합니다. 제주 지원금과 과수납금은 그 부분의 받을 금액까지만 씁니다
+- **`settlement.received`는 제주 지원금·과수납금 결제를 포함합니다.** 그래야 저장된 `due − received`가 남은 금액과 같습니다. 화면 입력 합은 견적의 `entered`로 따로 줍니다. 손비 금액은 `writtenOff`에 남깁니다
+- **`PACKAGE` 결제도 서버가 만듭니다.** 패키지 차감은 수납 트랜잭션의 청구 금액 계산에서 서버가 하므로 요청에 넣으면 422입니다
+- **환자 등급 할인은 한 번만 반올림합니다.** 일투여량이 소수(예: 0.5)면 `분자 / 10^k`로 나눠 두고 정수로 계산해, 질문 7의 식을 그대로 한 번 반올림합니다(1,001원 × 0.5 × 90% = 450.45 → 450). 원금액도 따로 같은 방식으로 반올림하고 할인금액은 그 차이입니다. 할인율은 0–100 정수, 일투여량은 소수점 아래 6자리까지 받습니다
 
 ## 원무
 
@@ -473,6 +490,7 @@ appointment-no-show에서 함께 반영한 결정입니다.
 - `jeju: subsidy equals due`, `jeju: due includes taxable part when capping`: 과세 2,000을 상한에 넣지 않으므로 제주 행 3,000 → 1,000(비과세 1,000)
 - `jeju: subsidy below due -> full subsidy`: 결과는 같음(3,000 ≤ 비과세 8,000). 상한 기준만 바뀜
 - `prepaid: negative cash balance treated as 0`: 카드 계열 잔액 0인데 3,000을 씀 → 422 잔액 부족
+- `confirm: overpaid credit chosen -> no ask`: 과수납금을 골라도 남은 금액이 있고 입력 결제가 없으면 미수 확인을 묻습니다 (질문 8)
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
