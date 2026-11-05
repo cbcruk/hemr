@@ -307,6 +307,9 @@
 | `CHUNA_USAGE_UNKNOWN` | 경고 | [chuna-annual-limit](#chuna-annual-limit) 저장된 심평원 사용량이 없거나 잘림 (질문 7) |
 | `blocksCompletion` | 위반 상세 필드 | [chuna-annual-limit](#chuna-annual-limit) `CHUNA_ANNUAL_LIMIT`가 완료를 막는지. 자보는 거짓 (질문 4) |
 | `DIAGNOSIS_MISMATCH` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) |
+| `POLICY_OFF`·`COVERAGE_NOT_SUBMITTABLE`·`ANNUAL_LIMIT`·`SAME_DAY`·`NO_UNAPPROVED_LINE` | 자동 제출을 건너뛴 사유 | [chuna-auto-approval](#chuna-auto-approval) 완료 트랜잭션의 큐 판정 결과 |
+| `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
+| `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
 ## 구현 상태
 
@@ -329,6 +332,7 @@
 | [special-case-code-match](#special-case-code-match) | [special-case-code.ts](../../src/modules/clinical/special-case/special-case-code.ts) (진료 저장·완료 전, 순수 함수) | [special-case-code.fixtures.test.ts](../../src/modules/clinical/special-case/special-case-code.fixtures.test.ts) | 없음. 상병 일치(질문 1)는 현행 케이스에 상병이 없어 단위 테스트에서 새 케이스로 검사합니다 |
 | [telemedicine-fee-lines](#telemedicine-fee-lines) | [telemedicine-fee-lines.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.ts) (진료 저장 전, 순수 함수) | [telemedicine-fee-lines.fixtures.test.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.fixtures.test.ts) | 스키마가 막는 기준일시 형식 1건, 서버에 없는 설정 없음·화면 보류 2건, 화면 최적화 `qh` 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [chuna-annual-limit](#chuna-annual-limit) | [chuna-annual-limit.ts](../../src/modules/clinical/chuna/chuna-annual-limit.ts) (진료 저장·완료·사용량 조회 전, 순수 함수) | [chuna-annual-limit.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-annual-limit.fixtures.test.ts) | 서버에 없는 로딩 중 상태 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다. 현재 진료 제출분 빼기·진료일 기준 당일(질문 1·5)은 단위 테스트에서 새 케이스로 검사합니다 |
+| [chuna-auto-approval](#chuna-auto-approval) | [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) (진료 완료 큐 판정·에이전트 결과 반영 전, 순수 함수) | [chuna-auto-submission.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-auto-submission.fixtures.test.ts) | 없음. 로딩·조회 오류는 사용량 없음으로, 화면 잠금은 같은 날 진행 중인 제출로 옮겼습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -491,6 +495,22 @@ chuna-annual-limit에서 함께 반영한 결정입니다.
 - **판정은 새로 추가한 줄만이 아니라 현재 진료의 추나 줄 전부를 봅니다(질문 8).** 서버는 저장할 때마다 진료 전체를 판정하므로 "새로 추가"의 구분이 없습니다
 - **한도는 `regulatory-limits`의 보험구분별 값이고 표에 없는 보험구분(일반)은 검사하지 않습니다.** 초기값은 건보·의료급여·자보·산재 모두 20입니다
 - **심평원 응답 파싱(`z7t`)·목록 병합(`q7t`)·조회 기간(`Z8`)도 서버 함수로 둡니다.** 에이전트가 받은 원본을 서버가 같은 방식으로 사용량으로 만들게 하려는 것입니다. 페이지 크기·요청 필드 같은 전문 형식은 에이전트가 맡습니다
+
+chuna-auto-approval에서 함께 반영한 결정입니다.
+
+- **세 단계로 나눕니다.** 완료 트랜잭션의 큐 판정(`chunaAutoSubmission`), 에이전트 처리 전의 페이로드 검증(`chunaSubmissionPayload`), 에이전트 결과 반영(`existingSubmissionOutcome`·`submissionResultOutcome`)입니다. 페이로드는 큐에 넣은 뒤 만들어 검증 실패가 완료를 막지 않게 합니다(질문 3)
+- **에이전트 연결과 상관없이 작업을 만듭니다.** 연결이 없으면 `QUEUED`로 남아 있다가 연결되면 처리합니다. 현행 데스크톱 앱 조건은 없앱니다
+  - 대안: 연결된 에이전트가 있을 때만 만들기. 연결이 잠깐 끊긴 사이 완료한 진료가 영영 제출되지 않으므로 고르지 않았습니다
+- **같은 날 이력은 심평원 사용량의 삭제되지 않은 행과 서버의 `CANCELED` 아닌 제출을 함께 봅니다(질문 1).** `FAILED`·`REJECTED`도 자동 제출을 막고, 다시 내는 일은 현황 화면에서 사람이 합니다. 같은 실패를 완료할 때마다 되풀이하지 않기 위해서입니다
+- **사용량이 없거나(조회 전) 잘렸으면 한도·당일 이력을 모르는 것으로 보고 진행합니다.** 현행 소진 `undefined`와 같습니다. 한도 판정 자체는 chuna-annual-limit가 `CHUNA_USAGE_UNKNOWN`으로 알립니다
+- **기제출 조회가 실패하면 `FAILED`(`PRECHECK_UNAVAILABLE`)입니다.** 조회 없이 제출하면 중복 제출이 될 수 있고, 조용히 넘기면 아무도 모르므로 현황에 남깁니다
+- **제출에 응답을 받지 못하면(통신 오류·시간 초과) `OUTCOME_UNKNOWN`입니다.** 심평원이 받았을 수 있어 `REJECTED`로 두면 재제출이 중복될 수 있습니다. 대조(`RECONCILE`)로 상태를 정합니다. `REJECTED`는 심평원이 거부한 경우만입니다
+- **산재·일반은 큐 단계에서 건너뜁니다(`COVERAGE_NOT_SUBMITTABLE`).** 현행은 페이로드 단계에서 "보험 종류가 올바르지 않음" 오류를 냈고, 서버에서 그대로 두면 산재 추나 진료를 완료할 때마다 `FAILED` 작업이 쌓입니다. 일반 진료는 자격여부가 `1`–`6`이어도 건보로 내지 않습니다
+- **기제출 건의 상병이 비어 있으면 `DIAGNOSIS_MISMATCH`입니다.** 현행은 빈 목록을 부분집합으로 보아 승인 상태로 맞췄습니다. 같은 진료인지 확인할 수 없으므로 사람이 보게 합니다
+- **빈 값은 없는 값으로 봅니다.** 수가코드·시술 의사·자격여부가 빈 문자열이면 현행(`!`, `||`)처럼 없는 것으로 판정합니다
+- **공상구분코드의 유효기간은 시작일 ≤ 진료일 ≤ 종료일이고 종료일이 비어 있으면 끝이 없습니다.** 현행 원본(`query-keys.js` `w`)을 이 저장소에서 확인할 수 없어 규칙 문서 요약과 픽스처(종료일 공백인 차상위 `C`)로 정했습니다
+  - 되돌릴 조건: 원본이 다른 경계(종료일 미포함 등)를 쓰면 `benefitCategory`만 고칩니다
+- **페이로드는 서버 도메인 형식(`YYYY-MM-DD`, 영문 필드)이고 심평원 전문 형식은 에이전트가 맞춥니다.** 픽스처 테스트의 `legacyPayload`가 그 변환입니다
 
 ## 원무
 
@@ -870,7 +890,11 @@ chuna-annual-limit에서 함께 반영한 결정입니다.
 - `자보 without accident number -> error toast`: 제출 작업 `FAILED`(사유: 사고접수번호 없음) (#3)
 - `건보 without 보험조회 -> error toast`: 제출 작업 `FAILED`(사유: 자격조회 없음) (#3)
 - `already submitted at HIRA but diagnoses differ -> nothing`: 제출 작업 `FAILED`(사유 `DIAGNOSIS_MISMATCH`) (#4)
-- 질문과 별개로 설계에서 이미 바뀌는 케이스: `not Electron (web) -> no-op`은 에이전트가 연결돼 있으면 웹에서 완료해도 `QUEUED`를 만듭니다 ([claims.md](../design/claims.md#심평원-사전-제출))
+- `pre-check lookup throws -> skip`: 조용히 넘기지 않고 제출 작업 `FAILED`(사유 `PRECHECK_UNAVAILABLE`)로 남겨 현황에서 다시 냅니다 (#3)
+- 질문과 별개로 설계에서 이미 바뀌는 케이스: `not Electron (web) -> no-op`은 웹에서 완료해도 `QUEUED`를 만들고 에이전트가 연결되면 처리합니다 ([claims.md](../design/claims.md#심평원-사전-제출))
+- `chuna history still loading -> no-op`, `chuna history lookup error -> no-op`: 저장된 사용량이 없으면(조회 전·조회 실패) 한도·당일 이력을 모르는 것으로 보고 진행해 `QUEUED`를 만듭니다. 현행 소진 `undefined`와 같은 처리입니다
+- `processing lock held -> silent skip`: 결과는 같습니다. 화면 잠금 대신 같은 날 진행 중인 제출(`SUBMITTED` 등)이 있어 건너뜁니다 (#1)
+- `annual limit exhausted -> warning, no submission`: 자동 제출을 건너뛰는 것은 같지만, 건보·의료급여는 chuna-annual-limit의 `CHUNA_ANNUAL_LIMIT`가 완료 자체를 막습니다(그 규칙 #8). 현행은 완료한 뒤 경고 토스트만 띄웠습니다
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
