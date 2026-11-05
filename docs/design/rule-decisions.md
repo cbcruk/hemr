@@ -303,7 +303,7 @@
 | `AUTO_INSURANCE_SECOND_VISIT_ASSIGNED` | 경고 | [auto-insurance-same-day-consultation](#auto-insurance-same-day-consultation) 저장할 때 자보 1일 2차로 자동 지정하고 진찰료 줄을 지움 (질문 4·6) |
 | `paidEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) 현재·충돌 진료 중 수납을 마친 진료. 현행 "과수납금" 문구 두 갈래를 대신합니다 |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
-| `SPECIAL_CASE_CODE_MISMATCH` | 오류 | [special-case-code-match](#special-case-code-match) |
+| `SPECIAL_CASE_CODE_MISMATCH` | 오류 | [special-case-code-match](#special-case-code-match). 사유 `reason`은 `SPECIFIC_CODE_MISSING`·`SPECIFIC_CODE_INVALID`·`NOT_IN_REFERENCE`·`LINKED_DIAGNOSIS_MISMATCH` |
 | `CHUNA_USAGE_UNKNOWN` | 경고 | [chuna-annual-limit](#chuna-annual-limit) |
 | `DIAGNOSIS_MISMATCH` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) |
 
@@ -325,6 +325,7 @@
 | [auto-insurance-same-day-consultation](#auto-insurance-same-day-consultation) | [auto-insurance-same-day-consultation.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.ts) (진료 저장·청구 집계 전, 순수 함수) | [auto-insurance-same-day-consultation.fixtures.test.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.fixtures.test.ts) | 결과가 버려지는 `IBt` 2건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [coverage-category-band](#coverage-category-band) | [coverage-category-band.ts](../../src/modules/clinical/fees/coverage-category-band.ts) (보험구분 변경·진료 저장·완료 전, 순수 함수) | [coverage-category-band.fixtures.test.ts](../../src/modules/clinical/fees/coverage-category-band.fixtures.test.ts) | 요청 스키마가 막는 빈 보험구분 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [reference-version-selection](#reference-version-selection) | [reference-version.ts](../../src/modules/catalog/reference/reference-version.ts) (참조데이터 조회·진료 저장 전, 순수 함수) | [reference-version.fixtures.test.ts](../../src/modules/catalog/reference/reference-version.fixtures.test.ts) | 없음. 정적 JSON 컷오프는 버전 표로, 수가 적용일자는 이관한 날짜로 만든 버전 표로 옮겼습니다 |
+| [special-case-code-match](#special-case-code-match) | [special-case-code.ts](../../src/modules/clinical/special-case/special-case-code.ts) (진료 저장·완료 전, 순수 함수) | [special-case-code.fixtures.test.ts](../../src/modules/clinical/special-case/special-case-code.fixtures.test.ts) | 없음. 상병 일치(질문 1)는 현행 케이스에 상병이 없어 단위 테스트에서 새 케이스로 검사합니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -448,6 +449,17 @@ reference-version-selection에서 함께 반영한 결정입니다.
 - **구버전 정적 JSON의 시작일은 이관할 때 정합니다.** 픽스처 이전에서는 `2000-01-01`로 두었습니다. 그보다 이른 진료일은 `REFERENCE_DATA_UNAVAILABLE`입니다
 - **버전 선택은 카탈로그 모듈(`modules/catalog/reference`)에 둡니다.** 진료·청구가 같은 함수를 부릅니다. 날짜·시각 형식 검사는 다른 모듈도 쓰므로 `shared/time/date-format.ts`에 둡니다
 - **LA 시간대 케이스는 기준일시가 병원 벽시계 시각(KST)이라는 가정으로 옮깁니다.** 진료 기록에 저장된 값이라 브라우저 시간대로 만든 값이 아니라고 봅니다
+
+special-case-code-match에서 함께 반영한 결정입니다.
+
+- **상병 일치는 "진료 상병 중 하나라도 특정기호의 연계상병에 맞으면 통과"입니다(질문 1).** 같은 특정기호의 행이 여럿이면 어느 행이든 맞으면 됩니다. 산정특례 상병 외에 다른 상병을 함께 적는 진료가 흔하기 때문입니다
+- **특정기호 형식 `V`+3자는 숫자·영문 대문자 3자로 봅니다(질문 3).** 정규화(trim·대문자) 뒤에 검사합니다
+- **위반에는 사유(`reason`)를 담습니다.** 특정기호 없음·형식 오류·기준자료에 없음·상병 불일치를 구분해 화면이 고칠 곳을 안내할 수 있게 합니다. 형식 오류가 있으면 상병 일치는 보지 않습니다
+- **양 끝이 둘이 아닌 범위(`-B`, `A-`, `A-B-C`)는 아무 상병에도 맞지 않습니다.** 잘못 적재된 기준자료가 모든 상병을 통과시키지 않게 합니다
+- **범위의 양 끝도 앞 3자로 자릅니다(질문 5).** `E70.1-E72.3`처럼 소수점 아래가 있는 범위도 `E70`–`E72`로 비교합니다
+  - 되돌릴 조건: 기준자료에 소수점 아래까지 의미가 있는 범위가 있으면 끝자리까지 비교하도록 고칩니다
+- **후보 계산은 자격조회 결과를 파싱한 등록 목록을 받습니다.** 자격조회 XML 파싱(`convertInsuranceXMLToEntity`, `iin`)은 자격조회 모듈을 옮길 때 서버로 가져옵니다. 결핵 `V000`·잠복결핵 `V010` 고정값도 그때 옮깁니다
+- **의료급여는 현행처럼 검사하지 않습니다.** 결정표가 바꾸지 않은 범위입니다
 
 ## 원무
 
@@ -731,7 +743,7 @@ reference-version-selection에서 함께 반영한 결정입니다.
 
 | # | 질문 | 권장 | 근거 |
 |---|---|---|---|
-| 1 | 저장·완료 때 선택한 특정기호가 실제 상병과 맞는지 검사하지 않는 현행을 서버가 강제할지 | **바꿈:** 완료 검증에서 4자 필수 검사에 더해, 특정기호의 `연계상병`(진료일 기준 `rare-diseases` 참조데이터)에 진료 상병이 하나 이상 맞지 않으면 `SPECIAL_CASE_CODE_MISMATCH`로 막습니다. 저장은 `warnings`로만 알립니다 | 설계가 일치 검사를 신규 규칙으로 이미 정했습니다 ([clinical.md](../design/clinical.md#완료-검증-규칙)) |
+| 1 | 저장·완료 때 선택한 특정기호가 실제 상병과 맞는지 검사하지 않는 현행을 서버가 강제할지 | **바꿈:** 완료 검증에서 4자 필수 검사에 더해, 특정기호의 `연계상병`(진료일 기준 `rare-diseases` 참조데이터)에 진료 상병이 하나도 맞지 않으면 `SPECIAL_CASE_CODE_MISMATCH`로 막습니다. 저장은 `warnings`로만 알립니다 | 설계가 일치 검사를 신규 규칙으로 이미 정했습니다 ([clinical.md](../design/clinical.md#완료-검증-규칙)) |
 | 2 | 극희귀(11)·상세불명희귀(13) 등록번호가 `din`에 없어 특정기호 검사를 건너뛰는 것이 의도인지 | **보류:** 두 등록 구분에 특정기호(V코드) 기재가 필수인지 고시 확인이 필요합니다. 확인 전까지는 현행(검사 안 함)을 따릅니다 | 매뉴얼 요약에는 희귀·중증난치에 V 특정기호를 쓴다는 설명만 있고 11·13 구분은 없습니다 ([treatment.md](../reference/spec/treatment.md)) |
 | 3 | `MT002` 앞 공백이나 V가 아닌 값이면 산정특례 진료로 보지 않고 검사를 통째로 건너뛰는 문제 | **바꿈:** 특정기호는 trim·대문자로 정규화하고, 검사 대상 여부는 등록번호 구분(05·14·21·23)만으로 정합니다. 대상이면 특정기호가 없거나 `V`+3자가 아닐 때 `SPECIAL_CASE_CODE_MISMATCH`입니다 | 같은 함수 안에서 존재 판정은 trim 없이, 길이 검사는 trim 후에 해서 결과가 엇갈립니다. 하나의 정규화 규칙으로 맞춥니다 |
 | 4 | 등록된 특정기호가 기준자료에 없고 등록번호가 05·14·21·23이면 모든 희귀질환 행을 후보로 내는 동작 | **바꿈:** 후보는 등록된 특정기호의 행만 냅니다. 기준자료에 없는 특정기호면 후보는 비우고, 완료 검증은 일치 판정을 할 수 없으므로 `SPECIAL_CASE_CODE_MISMATCH`(사유: 기준자료에 없음)로 막습니다 | 전체 대체는 등록되지 않은 특정기호를 제안합니다. 기준자료 누락은 참조데이터 적재로 고칠 문제입니다 ([catalog.md](../design/catalog.md#참조데이터-전국-공통-읽기-전용)) |
@@ -740,8 +752,8 @@ reference-version-selection에서 함께 반영한 결정입니다.
 
 **바뀌는 케이스:**
 - `건보, 희귀질환(21), MT002 ' V101 ' (leading space: not seen as V-prefixed by lin) -> check skipped -> valid`: `requiresSpecificCode`가 `true`로 바뀝니다. `valid`는 그대로 `true` (#3)
-- `건보, 희귀질환(21), MT002 'H101' (not V-prefixed) -> lin false -> check skipped -> valid`: `valid: false` (#3)
-- `건보, 희귀질환(21), MT002 entry missing -> lin false -> check skipped -> valid`: `valid: false` (#3)
+- `건보, 희귀질환(21), MT002 'H101' (not V-prefixed) -> lin false -> check skipped -> valid`: `valid: false`, `requiresSpecificCode: true` (#3)
+- `건보, 희귀질환(21), MT002 entry missing -> lin false -> check skipped -> valid`: `valid: false`, `requiresSpecificCode: true` (#3)
 - `registered V999 (not in rare-disease data), 등록번호 prefix 21 -> falls back to all rows -> dx E71 -> [V102,V103]`: 후보 `[]` (#4)
 - `연계상병 'Q00-R99' matches 'Q55'`: `matches: true` (#5)
 - `연계상병 'Q00-R99' matches 'R50'`: `matches: true` (#5)
