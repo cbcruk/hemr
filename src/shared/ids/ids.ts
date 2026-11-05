@@ -22,6 +22,7 @@ export const ID_PREFIXES = {
   job: 'job',
   event: 'evt',
   offlineCommand: 'cmd',
+  session: 'ses',
 } as const
 
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
