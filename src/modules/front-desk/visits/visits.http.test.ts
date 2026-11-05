@@ -2,32 +2,43 @@ import { Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { describe, expect, it } from 'vitest'
 import { AppLive } from '../../../app.ts'
+import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
 
 const VISIT_ID = 'vis_01JBQ000000000000000000001'
+const PAST_DATE = '2000-01-01'
 
-function visit(status: Visit['status']): Visit {
+function visit(status: Visit['status'], overrides: Partial<Visit> = {}): Visit {
   return {
     id: VISIT_ID as Visit['id'],
     patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
-    date: '2026-11-05',
+    date: clinicDate(Date.now()),
     status,
     statusChangedAt: '2026-11-05T00:00:00.000Z',
+    hasClinicalData: false,
+    version: 1,
+    ...overrides,
   }
 }
 
+interface SendOptions {
+  body?: unknown
+  ifMatch?: string
+}
+
 /** 저장소에 `seed`만 있는 새 앱에 커맨드 하나를 보냅니다. */
-async function send(seed: Visit[], path: string, body?: unknown): Promise<Response> {
+async function send(seed: Visit[], path: string, options: SendOptions = {}): Promise<Response> {
   const app = HttpRouter.toWebHandler(
     AppLive.pipe(Layer.provide([VisitRepository.layerMemory(seed), HttpServer.layerServices])),
     { disableLogger: true },
   )
   try {
-    const init: RequestInit =
-      body === undefined
-        ? { method: 'POST' }
-        : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+    const headers: Record<string, string> = {}
+    if (options.body !== undefined) headers['content-type'] = 'application/json'
+    if (options.ifMatch !== undefined) headers['if-match'] = options.ifMatch
+    const init: RequestInit = { method: 'POST', headers }
+    if (options.body !== undefined) init.body = JSON.stringify(options.body)
     return await app.handler(new Request(`http://localhost/v1/visits/${path}`, init))
   } finally {
     await app.dispose()
@@ -35,11 +46,12 @@ async function send(seed: Visit[], path: string, body?: unknown): Promise<Respon
 }
 
 describe('POST /v1/visits/{id}:{command}', () => {
-  it('starts treatment for a waiting visit', async () => {
+  it('starts treatment for a waiting visit and bumps the version', async () => {
     const response = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`)
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ id: VISIT_ID, status: 'IN_TREATMENT' })
+    expect(response.headers.get('etag')).toBe('"2"')
+    expect(await response.json()).toMatchObject({ id: VISIT_ID, status: 'IN_TREATMENT', version: 2 })
   })
 
   it.each([
@@ -53,10 +65,19 @@ describe('POST /v1/visits/{id}:{command}', () => {
   })
 
   it('reopens a completed visit and keeps the reason', async () => {
-    const response = await send([visit('COMPLETED')], `${VISIT_ID}:reopen`, { reason: '금액 정정' })
+    const response = await send([visit('COMPLETED')], `${VISIT_ID}:reopen`, { body: { reason: '금액 정정' } })
 
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ status: 'AWAITING_PAYMENT', statusReason: '금액 정정' })
+  })
+
+  it('reopens and moves on in one call with then', async () => {
+    const response = await send([visit('COMPLETED')], `${VISIT_ID}:reopen`, {
+      body: { reason: '추가 치료', then: 'IN_TREATMENT' },
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ status: 'IN_TREATMENT', version: 2 })
   })
 
   it('refuses a command the current status does not allow', async () => {
@@ -74,24 +95,96 @@ describe('POST /v1/visits/{id}:{command}', () => {
     })
   })
 
-  it('refuses to cancel a visit in treatment without cascade', async () => {
-    const response = await send([visit('IN_TREATMENT')], `${VISIT_ID}:cancel`, { reason: '환자 요청' })
+  describe('cancel', () => {
+    it('cancels a visit in treatment that has no clinical data', async () => {
+      const response = await send([visit('IN_TREATMENT')], `${VISIT_ID}:cancel`, { body: { reason: '환자 요청' } })
 
-    expect(response.status).toBe(409)
-    expect(await response.json()).toEqual({
-      type: 'urn:hemr:problem:visit-has-clinical-data',
-      title: 'Visit has clinical data',
-      status: 409,
-      code: 'VISIT_HAS_CLINICAL_DATA',
-      currentStatus: 'IN_TREATMENT',
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ status: 'CANCELED', statusReason: '환자 요청' })
+    })
+
+    it('refuses to cancel a visit with clinical data without cascade, whatever the status', async () => {
+      const response = await send([visit('AWAITING_PAYMENT', { hasClinicalData: true })], `${VISIT_ID}:cancel`, {
+        body: { reason: '환자 요청' },
+      })
+
+      expect(response.status).toBe(409)
+      expect(await response.json()).toEqual({
+        type: 'urn:hemr:problem:visit-has-clinical-data',
+        title: 'Visit has clinical data',
+        status: 409,
+        code: 'VISIT_HAS_CLINICAL_DATA',
+        currentStatus: 'AWAITING_PAYMENT',
+      })
+    })
+
+    it('cancels a visit with clinical data when cascade is set', async () => {
+      const response = await send([visit('IN_TREATMENT', { hasClinicalData: true })], `${VISIT_ID}:cancel`, {
+        body: { reason: '환자 요청', cascade: true },
+      })
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ status: 'CANCELED' })
     })
   })
 
-  it('cancels a visit in treatment with cascade', async () => {
-    const response = await send([visit('IN_TREATMENT')], `${VISIT_ID}:cancel`, { reason: '환자 요청', cascade: true })
+  describe('past date', () => {
+    it('refuses a flow command on a past visit', async () => {
+      const response = await send([visit('AWAITING_PAYMENT', { date: PAST_DATE })], `${VISIT_ID}:start-treatment`)
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ status: 'CANCELED', statusReason: '환자 요청' })
+      expect(response.status).toBe(422)
+      expect(await response.json()).toEqual({
+        type: 'urn:hemr:problem:visit-date-past',
+        title: 'Visit date has passed',
+        status: 422,
+        code: 'VISIT_DATE_PAST',
+        date: PAST_DATE,
+      })
+    })
+
+    it('still cancels a past visit', async () => {
+      const response = await send([visit('AWAITING_PAYMENT', { date: PAST_DATE })], `${VISIT_ID}:cancel`, {
+        body: { reason: '전날 미정리' },
+      })
+
+      expect(response.status).toBe(200)
+    })
+
+    it('refuses reopen with then on a past visit', async () => {
+      const response = await send([visit('COMPLETED', { date: PAST_DATE })], `${VISIT_ID}:reopen`, {
+        body: { reason: '추가 치료', then: 'WAITING' },
+      })
+
+      expect(response.status).toBe(422)
+    })
+  })
+
+  describe('If-Match', () => {
+    it('accepts the current version', async () => {
+      const response = await send([visit('WAITING', { version: 7 })], `${VISIT_ID}:start-treatment`, { ifMatch: '"7"' })
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('etag')).toBe('"8"')
+    })
+
+    it('answers 412 when someone changed the visit first', async () => {
+      const response = await send([visit('WAITING', { version: 7 })], `${VISIT_ID}:start-treatment`, { ifMatch: '"6"' })
+
+      expect(response.status).toBe(412)
+      expect(await response.json()).toEqual({
+        type: 'urn:hemr:problem:version-mismatch',
+        title: 'Resource was changed by someone else',
+        status: 412,
+        code: 'VERSION_MISMATCH',
+        currentVersion: 7,
+      })
+    })
+
+    it('treats a malformed version as a mismatch', async () => {
+      const response = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { ifMatch: 'abc' })
+
+      expect(response.status).toBe(412)
+    })
   })
 
   it('answers 404 for an unknown visit', async () => {
@@ -107,7 +200,7 @@ describe('POST /v1/visits/{id}:{command}', () => {
   })
 
   it('reports every invalid field of a cancel at once', async () => {
-    const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, { reason: '', cascade: 'yes' })
+    const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, { body: { reason: '', cascade: 'yes' } })
 
     expect(response.status).toBe(400)
     expect(response.headers.get('content-type')).toBe('application/problem+json')
@@ -124,7 +217,7 @@ describe('POST /v1/visits/{id}:{command}', () => {
   })
 
   it('rejects a cancel without a reason', async () => {
-    const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, {})
+    const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, { body: {} })
 
     expect(response.status).toBe(400)
     expect(await response.json()).toMatchObject({ violations: [{ field: 'reason', code: 'REQUIRED' }] })

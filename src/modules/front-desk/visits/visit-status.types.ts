@@ -9,10 +9,14 @@ export type VisitCommand =
 export interface VisitTransitionOptions {
   /** 취소할 때 그 내원의 진료·수납과 관련 기록도 함께 무효로 할지 여부입니다. */
   cascade?: boolean
+  /** 내원에 진료 내용이나 수납 기록이 있는지 여부입니다. 있으면 `cascade` 없이 취소할 수 없습니다. */
+  hasClinicalData?: boolean
+  /** 진료일이 병원 시간대 오늘보다 이전인지 여부입니다. 지난 내원은 정리용 커맨드만 받습니다. */
+  isPastDate?: boolean
 }
 
 /** 내원 상태 전이를 거부할 때 돌려주는 오류 코드입니다. */
-export type VisitTransitionErrorCode = 'VISIT_TRANSITION_INVALID' | 'VISIT_HAS_CLINICAL_DATA'
+export type VisitTransitionErrorCode = 'VISIT_TRANSITION_INVALID' | 'VISIT_HAS_CLINICAL_DATA' | 'VISIT_DATE_PAST'
 
 /** 현재 상태에 내원 커맨드를 적용해 본 결과입니다. */
 export type VisitTransitionResult = { ok: true; to: VisitStatus } | { ok: false; code: VisitTransitionErrorCode }

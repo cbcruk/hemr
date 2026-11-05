@@ -29,3 +29,10 @@ export class ValidationFailed extends HttpApiError.Problem<ValidationFailed>()(
     violations: Schema.Array(Schema.Struct({ field: Schema.String, code: Schema.String })),
   },
 ) {}
+
+/** `If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. */
+export class VersionMismatch extends HttpApiError.Problem<VersionMismatch>()(
+  'VersionMismatch',
+  { type: problemType('VERSION_MISMATCH'), status: 412, title: 'Resource was changed by someone else' },
+  { code: Schema.tag('VERSION_MISMATCH'), currentVersion: Schema.Int },
+) {}

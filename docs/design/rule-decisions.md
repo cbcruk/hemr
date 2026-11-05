@@ -297,14 +297,20 @@
 | `CHUNA_USAGE_UNKNOWN` | 경고 | [chuna-annual-limit](#chuna-annual-limit) |
 | `DIAGNOSIS_MISMATCH` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) |
 
-## 구현과 다른 점
+## 구현 상태
 
-이미 구현한 [내원 상태 전이](../../src/modules/front-desk/visits/visit-status.ts)와 권장안이 다른 점입니다 ([visit-status-transitions](#visit-status-transitions)).
+결정을 서버 코드와 테스트로 옮긴 규칙입니다. 나머지 규칙은 해당 모듈을 만들 때 옮깁니다.
 
-- **연쇄 취소 판정:** 구현은 상태(`IN_TREATMENT`·`COMPLETED`)로 `cascade`를 요구합니다. 설계는 진료·수납 데이터 유무로 판정하므로, 진료 기록이 있는 `AWAITING_PAYMENT`도 409가 되어야 합니다
-- **`:reopen {reason, then}`:** 설계의 한 번 호출 형태를 구현 payload가 아직 받지 않습니다
-- **동시성:** `If-Match`/`version` 검사가 없습니다
-- **과거 날짜:** 과거 날짜 내원의 흐름 전이를 막지 않습니다 ([결정 기록](#visit-status-transitions-5-과거-날짜-내원의-전이--채택))
+| 규칙 | 코드 | 픽스처 테스트 | 옮기지 않은 케이스 |
+|---|---|---|---|
+| [visit-status-transitions](#visit-status-transitions) | [visit-status.ts](../../src/modules/front-desk/visits/visit-status.ts), [visits.ts](../../src/modules/front-desk/visits/visits.ts) | [visit-status.fixtures.test.ts](../../src/modules/front-desk/visits/visit-status.fixtures.test.ts) | 권한·접수·베드 배정·수납이 필요한 13건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+
+visit-status-transitions에서 함께 반영한 결정입니다.
+
+- **연쇄 취소는 데이터로 판정합니다.** 상태와 상관없이 진료 내용이나 수납이 있으면(`hasClinicalData`) `cascade`가 필요합니다. 진료·수납 모듈이 생기기 전까지 `hasClinicalData`는 내원에 저장한 값입니다
+- **`:reopen {reason, then}`** 으로 다시 열고 `WAITING`·`IN_TREATMENT`로 옮기는 일을 한 번에 저장합니다
+- **동시성:** 응답에 `ETag: "<version>"`을 주고, `If-Match`가 다르면 412 `VERSION_MISMATCH`입니다. `If-Match`가 없으면 검사하지 않습니다
+- **지난 날짜:** 진료일이 병원 시간대(`Asia/Seoul`) 오늘보다 이전이면 진료 흐름 커맨드는 422 `VISIT_DATE_PAST`입니다
 
 ## 원무
 

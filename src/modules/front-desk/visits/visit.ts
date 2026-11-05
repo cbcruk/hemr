@@ -38,6 +38,14 @@ export const Visit = Schema.Struct({
   statusChangedAt: Schema.String,
   /** 마지막 `:reopen` 또는 `:cancel`에서 받은 사유입니다. */
   statusReason: Schema.optionalKey(Schema.String),
+  /**
+   * 진료 내용이나 수납 기록이 있는지 여부입니다. 있으면 `cascade` 없이 취소할 수 없습니다.
+   *
+   * 진료·수납 모듈이 생기기 전까지 저장된 값으로 둡니다. 그 뒤에는 두 모듈에서 파생합니다.
+   */
+  hasClinicalData: Schema.Boolean,
+  /** 낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. */
+  version: Schema.Int,
 })
 
 export type Visit = typeof Visit.Type
@@ -61,4 +69,11 @@ export class VisitHasClinicalData extends HttpApiError.Problem<VisitHasClinicalD
   'VisitHasClinicalData',
   { type: problemType('VISIT_HAS_CLINICAL_DATA'), status: 409, title: 'Visit has clinical data' },
   { code: Schema.tag('VISIT_HAS_CLINICAL_DATA'), currentStatus: VisitStatus },
+) {}
+
+/** 지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다. */
+export class VisitDatePast extends HttpApiError.Problem<VisitDatePast>()(
+  'VisitDatePast',
+  { type: problemType('VISIT_DATE_PAST'), status: 422, title: 'Visit date has passed' },
+  { code: Schema.tag('VISIT_DATE_PAST'), date: Schema.String },
 ) {}

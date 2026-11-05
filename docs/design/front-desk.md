@@ -151,7 +151,8 @@ stateDiagram-v2
 
 - **차팅 완료는 상태가 아닙니다.** 현행처럼 별도 값이지만, 내원의 `encounterStatus`로 Clinical에서 파생해 줍니다
 - **현행 "수납완료 → 대기/치료" 이동**은 `:reopen`을 거쳐야 합니다. 이미 받은 돈과 상태가 어긋나지 않게 합니다. 클라이언트는 카드를 끌어 놓을 때 `:reopen` 다음 `:return-to-waiting`/`:start-treatment`를 이어 부르거나, `:reopen {reason, then: "WAITING"}`으로 한 번에 보냅니다
-- **취소:** 현행 접수 삭제는 진료기록과 수납까지 지웠습니다. 재설계는 지우지 않고 `CANCELED`로 남깁니다. 진료 내용이나 수납이 있으면 기본으로 409 `VISIT_HAS_CLINICAL_DATA`이고, 권한이 있는 사용자는 [연쇄 취소](#연쇄-취소)로 한 번에 정리할 수 있습니다 ([결정 D3](review.md#결정-필요))
+- **취소:** 현행 접수 삭제는 진료기록과 수납까지 지웠습니다. 재설계는 지우지 않고 `CANCELED`로 남깁니다. 진료 내용이나 수납이 있으면 상태와 상관없이 기본으로 409 `VISIT_HAS_CLINICAL_DATA`이고, 권한이 있는 사용자는 [연쇄 취소](#연쇄-취소)로 한 번에 정리할 수 있습니다 ([결정 D3](review.md#결정-필요))
+- **지난 날짜:** 진료일이 병원 시간대 오늘보다 이전인 내원은 `:checkout`, `:reopen`, `:cancel`만 받습니다. 진료 흐름 커맨드는 422 `VISIT_DATE_PAST`입니다 ([결정](rule-decisions.md#visit-status-transitions-5-과거-날짜-내원의-전이--채택))
 
 ### 리소스
 
