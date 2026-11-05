@@ -172,10 +172,11 @@ D1에서 오프라인 접수·수납을 지원하기로 했습니다. 설계는 
 | D8 | 정정 제안을 의사가 반영해야 하는 구조가 청구 마감 일정에 맞는가 | 제안 + 의사 반영 / 청구 담당 위임 허용 | 제안 + 일괄 반영 화면. 실무 부담이 크면 의사가 미리 위임한 이슈 코드만 자동 반영 |
 | D6 | 실손보험 조회를 같은 서버에 둘 것인가 | 분리 유지 / 통합 | 분리 유지. 별도 제품이고 환자 모델도 다름 |
 | D7 | 첫 구현 범위 | | Identity → Patients → Front Desk → Clinical 순. 이 넷이 있어야 하루 진료가 돌아감. Claims·Herbal·CRM은 그 다음 |
+| D9 | 저장소를 무엇으로 하는가 | SQLite / PostgreSQL | **결정: SQLite** (`@effect/sql-sqlite-node`). 학습용이고 앱 프로세스 하나, outbox 릴레이 워커 하나로 충분합니다. 상태 전이와 outbox 행을 한 트랜잭션에 쓰는 것, 유니크 제약, 폴링 릴레이는 SQLite로도 됩니다. 테스트는 인메모리 DB로 돌려 docker가 필요 없습니다. PostgreSQL 전용 기능(`SKIP LOCKED`, RLS, `jsonb`, exclusion constraint)은 쓰지 않고 공통 SQL로 써서 전환 비용을 낮게 둡니다. 금액은 정수(원), 시각은 UTC ISO 문자열로 저장합니다. **되돌릴 조건:** 앱 인스턴스를 여럿 띄우거나, 쓰기 잠금 대기가 실제로 문제가 되거나, outbox 워커를 여럿 돌려야 하거나, DB 단의 테넌트 격리(RLS)가 필요해지면 PostgreSQL로 옮깁니다. 저장소는 Layer로 감싸 서비스 코드는 바뀌지 않습니다 |
 
 ## 다음 단계
 
 1. **D2 결정.** 오프라인 엣지 구현의 선행 조건입니다. 온라인 모듈(D7 순서)은 D2 없이 시작할 수 있습니다
 2. **Front Desk·Clinical OpenAPI 명세 작성.** 이 문서의 리소스·커맨드를 `openapi.yaml`로 옮기고, 오류 코드 목록을 확정합니다
 3. **규칙 결정.** [규칙 이전 시 동작 차이](#규칙-이전-시-동작-차이)의 `openQuestions`를 정하고, 픽스처 중 따를 케이스를 서버 테스트로 옮깁니다
-4. **기술 스택 선택.** HTTP 서버는 Effect(`effect/http-api`)로 정했습니다(학습용 선택). 저장소는 PostgreSQL + outbox 릴레이를 후보로 둡니다
+4. **기술 스택 선택.** HTTP 서버는 Effect(`effect/http-api`)로 정했습니다(학습용 선택). 저장소는 SQLite + outbox 릴레이로 정했습니다 (D9)
