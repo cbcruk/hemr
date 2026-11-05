@@ -326,6 +326,7 @@
 | [coverage-category-band](#coverage-category-band) | [coverage-category-band.ts](../../src/modules/clinical/fees/coverage-category-band.ts) (보험구분 변경·진료 저장·완료 전, 순수 함수) | [coverage-category-band.fixtures.test.ts](../../src/modules/clinical/fees/coverage-category-band.fixtures.test.ts) | 요청 스키마가 막는 빈 보험구분 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [reference-version-selection](#reference-version-selection) | [reference-version.ts](../../src/modules/catalog/reference/reference-version.ts) (참조데이터 조회·진료 저장 전, 순수 함수) | [reference-version.fixtures.test.ts](../../src/modules/catalog/reference/reference-version.fixtures.test.ts) | 없음. 정적 JSON 컷오프는 버전 표로, 수가 적용일자는 이관한 날짜로 만든 버전 표로 옮겼습니다 |
 | [special-case-code-match](#special-case-code-match) | [special-case-code.ts](../../src/modules/clinical/special-case/special-case-code.ts) (진료 저장·완료 전, 순수 함수) | [special-case-code.fixtures.test.ts](../../src/modules/clinical/special-case/special-case-code.fixtures.test.ts) | 없음. 상병 일치(질문 1)는 현행 케이스에 상병이 없어 단위 테스트에서 새 케이스로 검사합니다 |
+| [telemedicine-fee-lines](#telemedicine-fee-lines) | [telemedicine-fee-lines.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.ts) (진료 저장 전, 순수 함수) | [telemedicine-fee-lines.fixtures.test.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.fixtures.test.ts) | 스키마가 막는 기준일시 형식 1건, 서버에 없는 설정 없음·화면 보류 2건, 화면 최적화 `qh` 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -460,6 +461,18 @@ special-case-code-match에서 함께 반영한 결정입니다.
   - 되돌릴 조건: 기준자료에 소수점 아래까지 의미가 있는 범위가 있으면 끝자리까지 비교하도록 고칩니다
 - **후보 계산은 자격조회 결과를 파싱한 등록 목록을 받습니다.** 자격조회 XML 파싱(`convertInsuranceXMLToEntity`, `iin`)은 자격조회 모듈을 옮길 때 서버로 가져옵니다. 결핵 `V000`·잠복결핵 `V010` 고정값도 그때 옮깁니다
 - **의료급여는 현행처럼 검사하지 않습니다.** 결정표가 바꾸지 않은 범위입니다
+
+telemedicine-fee-lines에서 함께 반영한 결정입니다.
+
+- **진찰료·관리료를 다시 계산할 때 단가는 늘 진료일 마스터 값입니다.** 같은 자리의 진찰료 줄이 같은 코드면 ID를 유지하고 이름·단가만 맞춥니다. 코드가 바뀌면 새 줄입니다
+- **대면 진찰료 코드가 마스터에 없으면 422가 아니라 `FEE_CODE_NOT_IN_MASTER` 경고입니다.** 질문 5의 422는 비대면 진료에만 적용합니다. 대면 진찰료는 consultation-fee-code와 같이 줄을 그대로 두고 저장은 통과, 완료는 막습니다. 비대면을 끄는 요청(질문 8)이 마스터 누락으로 막히지 않게 하려는 것입니다
+  - 대안: 대면에도 422. 끄는 요청이 거부되어 질문 8과 어긋나므로 고르지 않았습니다
+- **재사용하는 진찰료 줄의 특정내역은 `JS010`만 다시 정하고 나머지는 남깁니다.** 다른 규칙이 붙인 특정내역을 지우지 않기 위해서입니다
+- **관리료 줄은 첫 기존 줄을 고쳐 씁니다.** 코드·단가·금액만 바꾸고 이름은 그대로 둡니다. 현행 watcher와 같습니다
+- **줄 순서는 진찰료, 나머지 처방, 관리료입니다.** 현행 `Wh`와 같습니다
+- **비대면 토글 조건은 두 함수로 나눕니다.** 화면 표시용(`telemedicineToggleAvailable`)은 현행 `jh`와 같고, 서버 검증(`telemedicineChangeAllowed`)은 끄는 요청을 늘 받습니다(질문 8). 산재·자보에서 이미 켜진 비대면은 화면에 보이지 않지만 서버는 끄는 요청을 받습니다
+- **`qh`(갱신 필요 여부)는 옮기지 않습니다.** 화면이 불필요한 갱신을 줄이려던 최적화이고, 서버는 저장 때 늘 다시 계산합니다
+- **관리료 시간대 경계는 초기값 상수로 두고 참조데이터 `regulatory-limits`로 옮깁니다(질문 2).** 함수는 경계를 인자로 받습니다
 
 ## 원무
 
@@ -781,7 +794,9 @@ special-case-code-match에서 함께 반영한 결정입니다.
 - `turn 비대면 on, fee list empty: consultation kept as-is + 91001 added`: 422 `REFERENCE_DATA_UNAVAILABLE` (#5)
 - `turn 비대면 on, computed base code missing from list: original consultation lines kept`: 422 `REFERENCE_DATA_UNAVAILABLE` (#5)
 - `toggle while inactive (활성=false) is deferred and applied once activated`: 보류 없이 저장 요청에서 바로 같은 결과(10100 + 91001)가 됩니다 (#7)
+- watcher 케이스 3건(시각 이동 2건, 진찰료 줄 감소 1건)은 진찰료 줄의 이름·단가가 진료일 마스터 값으로 바뀝니다. 현행 watcher는 진찰료 줄을 건드리지 않았습니다 (#1·#7)
 - `switch to another 진료Id resets pending flags; no emit`: 서버에는 해당 개념이 없어 서버 테스트에서 뺍니다 (#7)
+- `turn 비대면 on, settings missing: consultation kept + 91001`: 진료설정은 서버에 기본값으로 늘 있어 "설정 없음" 경로가 없으므로 서버 테스트에서 뺍니다 (#5)
 
 ## 추나
 

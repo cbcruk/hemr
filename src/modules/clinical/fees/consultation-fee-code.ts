@@ -271,7 +271,7 @@ function compareServiceAt(left: ServiceAt, right: ServiceAt): number {
 }
 
 /** 청구 특정내역에 쓰는 `yyyyMMddHHmm`입니다. */
-function claimTimestamp(serviceAt: ServiceAt): string {
+export function claimTimestamp(serviceAt: ServiceAt): string {
   return serviceAt.date.replaceAll('-', '') + serviceAt.time.replace(':', '')
 }
 
