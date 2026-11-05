@@ -300,6 +300,7 @@
 | `PAYMENT_METHOD_NOT_ALLOWED` | 422 오류 | [checkout-settlement](#checkout-settlement) 서버가 만드는 결제 수단(`JEJU_SUBSIDY`, `OVERPAID_CREDIT`, `PACKAGE`)을 요청에 넣음 |
 | `FEE_CODE_NOT_IN_MASTER` | 경고 | [consultation-fee-code](#consultation-fee-code), [procedure-fee-modifiers](#procedure-fee-modifiers) |
 | `conflictingEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) |
+| `AUTO_INSURANCE_SECOND_VISIT_ASSIGNED` | 경고 | [auto-insurance-same-day-consultation](#auto-insurance-same-day-consultation) 저장할 때 자보 1일 2차로 자동 지정하고 진찰료 줄을 지움 (질문 4·6) |
 | `paidEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) 현재·충돌 진료 중 수납을 마친 진료. 현행 "과수납금" 문구 두 갈래를 대신합니다 |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
 | `SPECIAL_CASE_CODE_MISMATCH` | 오류 | [special-case-code-match](#special-case-code-match) |
@@ -321,6 +322,7 @@
 | [consultation-fee-code](#consultation-fee-code) | [consultation-fee-code.ts](../../src/modules/clinical/fees/consultation-fee-code.ts) (진료 저장 전, 순수 함수) | [consultation-fee-code.fixtures.test.ts](../../src/modules/clinical/fees/consultation-fee-code.fixtures.test.ts) | 서버가 이전 진료를 직접 조회해 생기지 않는 "목록 없음" 1건. 시술 가산(`JLt`) 10건은 [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts)로 검사합니다 |
 | [procedure-fee-modifiers](#procedure-fee-modifiers) | [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts) (처방 줄 upsert·완료 전, 순수 함수) | [procedure-fee-modifiers.fixtures.test.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.fixtures.test.ts) | 서버에서 생기지 않는 설정·진료 시각·환자 없음 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [duplicate-consultation-fee](#duplicate-consultation-fee) | [duplicate-consultation-fee.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.ts) (진료 저장·완료 전, 순수 함수) | [duplicate-consultation-fee.fixtures.test.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.fixtures.test.ts) | 서버에서 생기지 않는 진료 시각 없음 1건. 확인창 문구는 `paidEncounterIds`로 검사합니다 |
+| [auto-insurance-same-day-consultation](#auto-insurance-same-day-consultation) | [auto-insurance-same-day-consultation.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.ts) (진료 저장·청구 집계 전, 순수 함수) | [auto-insurance-same-day-consultation.fixtures.test.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.fixtures.test.ts) | 결과가 버려지는 `IBt` 2건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -416,6 +418,18 @@ duplicate-consultation-fee에서 함께 반영한 결정입니다.
 - **`T0004`는 비대면 진료에만 붙입니다.** 비대면 청구 코드라 대면끼리 중복에는 쓰지 않습니다. 같은 방식 중복은 `DUPLICATE_CONSULTATION_FEE`의 acknowledge 이력으로 남습니다. 완료된 진료에 중복이 있으면 확인을 받은 것이므로 이슈 함수는 acknowledge 여부를 다시 보지 않습니다
 - **`T0004`의 같은 날 판정은 위반과 같은 함수를 씁니다.** 호출하는 쪽이 따로 계산한 참·거짓을 받으면 위반과 이슈가 어긋날 수 있어, 같은 환자의 다른 진료 목록을 받습니다. 취소·철회한 진료는 호출하는 쪽이 뺍니다
 - **자보·산재는 이 규칙에서 검사하지 않습니다.** 자보의 같은 날 진찰료는 auto-insurance-same-day-consultation이 같은 코드로 판정합니다
+
+auto-insurance-same-day-consultation에서 함께 반영한 결정입니다.
+
+- **판정은 네 함수로 나눕니다.** 2차 판정·자동 지정(`autoInsuranceSecondVisits`), 청구 경고 `J0014`(`autoInsuranceClaimIssues`), 같은 사고 중복(`judgeSameAccidentDuplicate`), 명세서 특정내역 `MT001=U`(`autoInsuranceClaimSpecifics`)입니다. 저장 서비스가 자동 지정을 먼저 반영하고, 청구 집계는 저장된 상태로 `J0014`를 계산합니다
+- **자동 지정은 그날 1차가 아닌 모든 진료가 대상입니다(질문 4).** 현재 진료를 저장할 때 같은 날 다른 진료도 지정이 `null`이면 함께 2차로 지정하고 진찰료 줄을 지웁니다. 지운 줄은 warning 상세에 담아 되돌릴 수 있게 합니다
+  - 대안: 현재 진료만 지정합니다. 나머지 진료가 다시 열릴 때까지 `J0014`로만 드러나므로 고르지 않았습니다
+  - 되돌릴 조건: 다른 진료를 바꾸는 것이 문제가 되면(예: 이미 수납한 진료) 수납을 마친 진료는 대상에서 빼고 warning만 줍니다
+- **모두 2차로 지정된 날은 1차가 없습니다.** 사용자가 직접 정한 값이라 서버가 1차를 고르지 않고, 모든 진료의 진찰료에 `J0014`가 붙습니다
+- **같은 사고 중복은 사고접수번호가 있는 진료만 봅니다.** 번호가 없으면 같은 사고인지 알 수 없습니다. 위반 형태는 duplicate-consultation-fee와 같습니다(`conflictingEncounterIds`, `paidEncounterIds`)
+- **생성 시각이 없는 진료는 있는 진료보다 앞으로 봅니다(질문 3).** 이관 데이터라 더 오래된 것으로 봅니다. 한쪽에 없을 때 건너뛰면 세 진료 사이 순서가 돌고 돌아, 현재 진료가 무엇이냐에 따라 1차가 달라집니다
+- **1차 후보는 그날 모든 자보 진료입니다.** 질문 2의 "다른 사고 자보 진료"에는 같은 사고 진료와 사고접수번호가 없는 진료도 들어갑니다. 현행 `후보` 판정과 같습니다
+- **자동 지정 warning 상세는 저장 서비스가 `designations`로 만듭니다.** 판정 함수는 지정할 진료와 지울 진찰료 줄만 돌려줍니다
 
 ## 원무
 
