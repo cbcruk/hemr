@@ -289,6 +289,7 @@
 | 이름 | 종류 | 쓰는 곳 |
 |---|---|---|
 | `IDENTITY_VERIFICATION_REQUIRED` | 오류 | [check-in-validation](#check-in-validation) 본인확인 |
+| `NHIS_NOT_ELIGIBLE` | 오류 | [check-in-validation](#check-in-validation) 건보·의료급여 접수인데 자격 조회 결과가 없거나 `자격여부`를 알 수 없음. 현행 "건강보험 자격이 없는 환자입니다" 다이얼로그. 급여제한(`NHIS_BENEFIT_RESTRICTED`)과 원인이 달라 따로 둡니다 |
 | `CAPACITY_EXCEEDED` | acknowledge 코드 | [appointment-acceptance](#appointment-acceptance) 예약 한도 초과 |
 | `FEE_CODE_NOT_IN_MASTER` | 경고 | [consultation-fee-code](#consultation-fee-code), [procedure-fee-modifiers](#procedure-fee-modifiers) |
 | `conflictingEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) |
@@ -304,6 +305,7 @@
 | 규칙 | 코드 | 픽스처 테스트 | 옮기지 않은 케이스 |
 |---|---|---|---|
 | [visit-status-transitions](#visit-status-transitions) | [visit-status.ts](../../src/modules/front-desk/visits/visit-status.ts), [visits.ts](../../src/modules/front-desk/visits/visits.ts) | [visit-status.fixtures.test.ts](../../src/modules/front-desk/visits/visit-status.fixtures.test.ts) | 권한·접수·베드 배정·수납이 필요한 13건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [check-in-validation](#check-in-validation) | [check-in-validation.ts](../../src/modules/front-desk/visits/check-in-validation.ts) (접수 엔드포인트 전, 순수 함수) | [check-in-validation.fixtures.test.ts](../../src/modules/front-desk/visits/check-in-validation.fixtures.test.ts) | 화면 문구와 버튼 표시, 권한, 보험구분 변경, 자보 한도 다이얼로그, 본인확인 중복 케이스, 진료 완료로 옮긴 산정특례 7건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -311,6 +313,15 @@ visit-status-transitions에서 함께 반영한 결정입니다.
 - **`:reopen {reason, then}`** 으로 다시 열고 `WAITING`·`IN_TREATMENT`로 옮기는 일을 한 번에 저장합니다
 - **동시성:** 응답에 `ETag: "<version>"`을 주고, `If-Match`가 다르면 412 `VERSION_MISMATCH`입니다. `If-Match`가 없으면 검사하지 않습니다
 - **지난 날짜:** 진료일이 병원 시간대(`Asia/Seoul`) 오늘보다 이전이면 진료 흐름 커맨드는 422 `VISIT_DATE_PAST`입니다
+
+check-in-validation에서 함께 반영한 결정입니다.
+
+- **환자 정보가 없으면 본인확인이 필요하다고 봅니다.** 신규 환자처럼 첫 내원·확인 이력을 모르면 확인 대상입니다. 이때 나이·임산부 예외는 판정할 수 없어 공단 예외 `Y`와 본인부담 100%만 면제합니다. 되돌릴 조건: 신규 환자 등록과 접수를 한 요청으로 묶으면 등록 정보로 판정합니다
+- **보험구분과 자격 코드가 어긋나는지는 검사하지 않습니다.** 예를 들어 `NHIS`로 접수했는데 자격이 의료급여(`7`)여도 막지 않고 자격 코드로 판정합니다. 현행 클라이언트는 자격 조회 결과로 보험구분을 자동으로 고르므로 어긋날 일이 드뭅니다. 되돌릴 조건: 이관 데이터나 수동 변경에서 어긋난 접수가 보이면 `COVERAGE_ELIGIBILITY_MISMATCH`를 추가합니다
+- **산정특례 미선택은 접수에서 막지 않습니다.** [special-case-code-match](#special-case-code-match) 질문 6에 따라 진료 완료 때 막고, 저장은 `warnings`로 알립니다. 접수 시점에는 상병이 없어 판정 근거가 부족합니다
+- **날짜 입력은 `YYYY-MM-DD`만 받습니다.** 날짜를 문자열로 비교하므로 현행 `yyyyMMdd`가 그대로 들어오면 만료·나이 판정이 조용히 틀립니다. 형식이 다르면 호출하는 쪽의 버그로 보고 예외를 던집니다
+- **급여제한 코드는 앞뒤 공백을 지우고 두 자리로 맞춥니다.** 이관 데이터의 `1`은 `01`로 판정합니다
+- **의료급여에서 `해당없음`을 고르고 기관을 적으면 그 기관을 남깁니다.** 현행 동작을 따릅니다. 의뢰 코드가 아닌 다른 코드면 남은 기관 값을 지웁니다
 
 ## 원무
 

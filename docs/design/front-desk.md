@@ -218,11 +218,13 @@ Idempotency-Key: ...
 
 | 규칙 | 오류 | 현행 동작 ([check-in-validation](../reference/rules/check-in-validation.md)) |
 |---|---|---|
-| 건보 급여제한 대상이면 `SELF_PAY`만 가능 | 422 `NHIS_BENEFIT_RESTRICTED` | 급여제한 코드 `01`(무자격)만 일반으로 자동 전환하고 경고. `02`–`05`는 그대로 |
-| 의료급여(자격 7·8) + 본인부담 M001/M002/B001/B002 환자가 선택기관 1–4에 우리 기관이 없으면 선택 사유(B005 등) 필수 | 422 `SELECTED_INSTITUTION_REQUIRED` | 같음 |
+| 건보·의료급여 접수인데 자격 조회 결과가 없거나 자격 코드를 알 수 없음 | 422 `NHIS_NOT_ELIGIBLE` | 다이얼로그로 막음 |
+| 급여제한 `01` 무자격·`04` 사망·`05` 국외이민이면 `SELF_PAY`만 가능. `02`·`03` 체납은 접수하고 급여제한 표시 | 422 `NHIS_BENEFIT_RESTRICTED` | 급여제한 코드 `01`(무자격)만 일반으로 자동 전환하고 경고. `02`–`05`는 그대로 ([결정](rule-decisions.md#check-in-validation-1-급여제한-코드별-처리--채택)) |
+| 의료급여(자격 7·8) + 본인부담 M001/M002/B001/B002 환자가 선택기관 1–4에 우리 기관이 없으면 선택 사유(B005 등) 필수. 의뢰 코드 `B005`·`B006`·`B008`을 골랐는데 의뢰 기관이 없어도 같은 오류 | 422 `SELECTED_INSTITUTION_REQUIRED` | 같음 |
 | 자보 누적 진료비가 지급보증 한도 초과 (`fullSelfPay` 아니면) | 422 `AUTO_INSURANCE_LIMIT_EXCEEDED` | 다이얼로그 경고 |
 | 자보 지급보증 기간 만료 | 422 `AUTO_INSURANCE_CASE_EXPIRED` | **신규 규칙.** 현행은 검사하지 않음 |
 | 예약일이 오늘이 아님 | 422 `APPOINTMENT_NOT_TODAY` | 버튼 비활성으로만 막음 |
+| 본인확인이 필요한데 하지 않음 (첫 내원, 확인 이력 없음, 마지막 확인이 6개월보다 오래됨. 공단 예외 `Y`·만 19세 미만·임산부·본인부담 100%는 예외) | 422 `IDENTITY_VERIFICATION_REQUIRED` | 필드 오류로 막음 ([결정](rule-decisions.md#check-in-validation-9-본인확인--채택)) |
 
 **보험구분 변경**(`:change-coverage`)은 이미 승인된 처방(추나·첩약 심평원 승인)이 있으면 409입니다. 새 보험구분에서 쓸 수 없는 처방 라인은 서버가 지우지 않고 `invalid: COVERAGE_MISMATCH`로 표시해 응답의 `invalidatedPrescriptionLines[]`로 알립니다. 진료가 `DRAFT`면 의사가 고치기 전까지 진료 완료가 막히고, 이미 `COMPLETED`면 [정정 제안](clinical.md#진료-encounter)이 만들어집니다. 처방은 면허 행위라 데스크 동작이 진료기록을 직접 바꾸지 않게 합니다. 현행은 클라이언트가 판단해 `record/save`로 지웠습니다.
 
