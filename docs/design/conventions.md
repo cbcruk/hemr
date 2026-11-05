@@ -81,6 +81,10 @@ envelope 없이 리소스 자체를 돌려줍니다. 현행 `data.results` / `da
 
 - `code`는 영문 상수이고 도메인 문서마다 목록을 둡니다. 현행 `AE_AUTH_ACCOUNT_LOCKED`, `ME_변수미충족수신자전원제외`, `근무형태_미지정` 같은 형식 혼재를 정리합니다
 - 사용자에게 보일 문장은 클라이언트가 `code`로 고릅니다. `detail`은 개발자용입니다
+- **요청 형식 오류는 400 `VALIDATION_FAILED`입니다.** 경로·쿼리·헤더·본문이 스키마를 통과하지 못하면 첫 오류에서 멈추지 않고 모든 위반을 `violations`에 담습니다
+  - `field`는 JSON 경로(`payments[1].amount`)입니다. 값 전체가 잘못됐으면 요청 부분 이름(`path`, `query`, `headers`, `body`)을 씁니다
+  - `code`는 `REQUIRED`(빠짐), `INVALID_TYPE`(타입이 다름), `INVALID_VALUE`(형식·범위·허용값이 아님), `UNKNOWN_FIELD`(정의되지 않은 필드) 중 하나입니다. 지금은 정의되지 않은 필드를 무시하므로 `UNKNOWN_FIELD`는 나오지 않습니다
+  - 형식은 맞지만 업무 규칙에 어긋나는 요청은 409/422와 도메인 `code`로 구분합니다
 - **검증 전용 엔드포인트를 두지 않습니다.** 현행 `/auth/check-username`, `/settings/nonbenefits/validate`, `/desk/chart-numbers/{no}/validations`는 생성 요청의 409/422로 대체합니다
   - 입력 중 즉시 피드백이 필요한 곳(아이디 중복)은 `?dryRun=true`로 같은 생성 엔드포인트를 부릅니다. 검증 로직이 한 곳에만 있게 됩니다
 

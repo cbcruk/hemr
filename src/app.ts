@@ -1,10 +1,11 @@
 import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServerError, HttpServerRespondable } from 'effect/http'
-import { HttpApiBuilder, HttpApiMiddleware } from 'effect/http-api'
+import { HttpApiBuilder } from 'effect/http-api'
 import { Api } from './api.ts'
 import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
 import { Visits } from './modules/front-desk/visits/visits.ts'
 import { Internal, NotFound } from './shared/problem/problem.ts'
+import { RequestValidationLive } from './shared/problem/request-validation.ts'
 
 const SystemLive = HttpApiBuilder.group(Api, 'system', (handlers) =>
   handlers.handle('health', () => Effect.succeed({ status: 'ok' as const })),
@@ -36,6 +37,6 @@ function isRouteNotFound(error: unknown): boolean {
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
   Layer.provide(VisitsHttpLive.pipe(Layer.provide(Visits.layer))),
-  Layer.provide(HttpApiMiddleware.layerProblemDetails()),
+  Layer.provide(RequestValidationLive),
   Layer.merge(ProblemFallback),
 )

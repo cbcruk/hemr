@@ -106,15 +106,34 @@ describe('POST /v1/visits/{id}:{command}', () => {
     })
   })
 
+  it('reports every invalid field of a cancel at once', async () => {
+    const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, { reason: '', cascade: 'yes' })
+
+    expect(response.status).toBe(400)
+    expect(response.headers.get('content-type')).toBe('application/problem+json')
+    expect(await response.json()).toEqual({
+      type: 'urn:hemr:problem:validation-failed',
+      title: 'Request validation failed',
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      violations: [
+        { field: 'reason', code: 'INVALID_VALUE' },
+        { field: 'cascade', code: 'INVALID_TYPE' },
+      ],
+    })
+  })
+
   it('rejects a cancel without a reason', async () => {
     const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, {})
 
     expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ violations: [{ field: 'reason', code: 'REQUIRED' }] })
   })
 
   it('rejects an id that is not a visit id', async () => {
     const response = await send([visit('WAITING')], 'pat_01JBQ000000000000000000001:start-treatment')
 
     expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ violations: [{ field: 'id', code: 'INVALID_VALUE' }] })
   })
 })

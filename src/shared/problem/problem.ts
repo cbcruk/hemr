@@ -19,3 +19,13 @@ export class Internal extends HttpApiError.Problem<Internal>()(
   { type: problemType('INTERNAL'), status: 500, title: 'Internal server error' },
   { code: Schema.tag('INTERNAL') },
 ) {}
+
+/** 요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. */
+export class ValidationFailed extends HttpApiError.Problem<ValidationFailed>()(
+  'ValidationFailed',
+  { type: problemType('VALIDATION_FAILED'), status: 400, title: 'Request validation failed' },
+  {
+    code: Schema.tag('VALIDATION_FAILED'),
+    violations: Schema.Array(Schema.Struct({ field: Schema.String, code: Schema.String })),
+  },
+) {}
