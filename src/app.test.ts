@@ -2,12 +2,16 @@ import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { afterAll, describe, expect, it } from 'vitest'
 import { AppLive } from './app.ts'
+import { VisitRepository } from './modules/front-desk/visits/visit-repository.ts'
 
 const Defect = HttpRouter.add('GET', '/v1/defect', Effect.die(new Error('boom')))
 
-const app = HttpRouter.toWebHandler(Layer.merge(AppLive, Defect).pipe(Layer.provide(HttpServer.layerServices)), {
-  disableLogger: true,
-})
+const app = HttpRouter.toWebHandler(
+  Layer.merge(AppLive, Defect).pipe(Layer.provide([VisitRepository.layerMemory(), HttpServer.layerServices])),
+  {
+    disableLogger: true,
+  },
+)
 
 afterAll(() => app.dispose())
 

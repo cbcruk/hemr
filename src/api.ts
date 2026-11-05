@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware } from 'effect/http-api'
+import { VisitsApi } from './modules/front-desk/visits/visits.api.ts'
 
 /** Liveness check for load balancers and local development. */
 export class SystemApi extends HttpApiGroup.make('system').add(
@@ -15,5 +16,6 @@ export class SystemApi extends HttpApiGroup.make('system').add(
  */
 export class Api extends HttpApi.make('hemr')
   .add(SystemApi)
+  .add(VisitsApi)
   .prefix('/v1')
   .middleware(HttpApiMiddleware.ProblemDetails) {}
