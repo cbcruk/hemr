@@ -1,15 +1,20 @@
+import { Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
-import { ProblemError } from './problem.ts'
+import { NotFound, problemType } from './problem.ts'
 
-describe('ProblemError', () => {
-  it('serializes to RFC 9457 fields and omits empty optionals', () => {
-    const error = new ProblemError({ status: 409, code: 'APPOINTMENT_SLOT_FULL', title: 'Appointment slot is full' })
+describe('problemType', () => {
+  it('turns an error code into a hemr problem URN', () => {
+    expect(problemType('APPOINTMENT_SLOT_FULL')).toBe('urn:hemr:problem:appointment-slot-full')
+  })
+})
 
-    expect(error.toJSON()).toEqual({
-      type: 'urn:hemr:problem:appointment-slot-full',
-      title: 'Appointment slot is full',
-      status: 409,
-      code: 'APPOINTMENT_SLOT_FULL',
+describe('NotFound', () => {
+  it('encodes to RFC 9457 fields and omits empty optionals', () => {
+    expect(Schema.encodeSync(NotFound)(new NotFound({}))).toEqual({
+      type: 'urn:hemr:problem:not-found',
+      title: 'Resource not found',
+      status: 404,
+      code: 'NOT_FOUND',
     })
   })
 })

@@ -19,8 +19,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.5",
-    "hono": "^4.13.16",
+    "@effect/platform-node": "4.1.2",
+    "effect": "4.1.2",
     "ulid": "^3.0.2"
   },
   "devDependencies": {

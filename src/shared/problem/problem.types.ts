@@ -19,12 +19,3 @@ export interface ProblemDetails {
   detail?: string
   violations?: Violation[]
 }
-
-/** Options for constructing a {@linkcode ProblemError}. */
-export interface ProblemInit {
-  status: number
-  code: string
-  title: string
-  detail?: string
-  violations?: Violation[]
-}

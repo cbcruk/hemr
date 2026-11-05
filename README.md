@@ -28,4 +28,4 @@ pnpm build
 
 ## Status
 
-Only the first piece of domain logic exists: the visit state machine in `src/modules/front-desk/visits/`. The HTTP framework (Hono) is a provisional choice; persistence (PostgreSQL + outbox) is not wired yet. Open decisions are listed in `docs/design/review.md`.
+Only the first piece of domain logic exists: the visit state machine in `src/modules/front-desk/visits/`. The server is built on Effect (`effect/http-api`), with the HTTP contract in `src/api.ts`; persistence (PostgreSQL + outbox) is not wired yet. Open decisions are listed in `docs/design/review.md`.

@@ -178,4 +178,4 @@ D1에서 오프라인 접수·수납을 지원하기로 했습니다. 설계는 
 1. **D2 결정.** 오프라인 엣지 구현의 선행 조건입니다. 온라인 모듈(D7 순서)은 D2 없이 시작할 수 있습니다
 2. **Front Desk·Clinical OpenAPI 명세 작성.** 이 문서의 리소스·커맨드를 `openapi.yaml`로 옮기고, 오류 코드 목록을 확정합니다
 3. **규칙 결정.** [규칙 이전 시 동작 차이](#규칙-이전-시-동작-차이)의 `openQuestions`를 정하고, 픽스처 중 따를 케이스를 서버 테스트로 옮깁니다
-4. **기술 스택 선택.** TypeScript(strict) 기준이면 Hono 또는 Fastify + PostgreSQL + outbox 릴레이를 후보로 둡니다
+4. **기술 스택 선택.** HTTP 서버는 Effect(`effect/http-api`)로 정했습니다(학습용 선택). 저장소는 PostgreSQL + outbox 릴레이를 후보로 둡니다

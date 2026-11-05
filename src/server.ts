@@ -1,8 +1,13 @@
-import { serve } from '@hono/node-server'
-import { createApp } from './app.ts'
+import { createServer } from 'node:http'
+import { NodeHttpServer, NodeRuntime } from '@effect/platform-node'
+import { Layer } from 'effect'
+import { HttpRouter } from 'effect/http'
+import { AppLive } from './app.ts'
 
 const port = Number(process.env['PORT'] ?? 3000)
 
-serve({ fetch: createApp().fetch, port }, (info) => {
-  console.log(`Listening on http://localhost:${info.port}/v1`)
-})
+HttpRouter.serve(AppLive).pipe(
+  Layer.provide(NodeHttpServer.layer(createServer, { port })),
+  Layer.launch,
+  NodeRuntime.runMain,
+)

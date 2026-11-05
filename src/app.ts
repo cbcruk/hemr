@@ -1,32 +1,34 @@
-import { Hono } from 'hono'
-import { PROBLEM_CONTENT_TYPE, ProblemError } from './shared/problem/problem.ts'
+import { Effect, Layer } from 'effect'
+import { HttpRouter, HttpServerError, HttpServerRespondable } from 'effect/http'
+import { HttpApiBuilder, HttpApiMiddleware } from 'effect/http-api'
+import { Api } from './api.ts'
+import { Internal, NotFound } from './shared/problem/problem.ts'
+
+const SystemLive = HttpApiBuilder.group(Api, 'system', (handlers) =>
+  handlers.handle('health', () => Effect.succeed({ status: 'ok' as const })),
+)
 
 /**
- * Creates the HTTP application with all routes mounted under `/v1`.
+ * Renders unmatched routes and defects as Problem Details.
  *
- * Errors are always rendered as RFC 9457 Problem Details.
+ * Declared endpoint errors never reach here; they are encoded by their route.
  */
-export function createApp(): Hono {
-  const app = new Hono().basePath('/v1')
-
-  app.get('/health', (c) => c.json({ status: 'ok' }))
-
-  app.notFound(() => problemResponse(new ProblemError({ status: 404, code: 'NOT_FOUND', title: 'Resource not found' })))
-
-  app.onError((error) =>
-    problemResponse(
-      error instanceof ProblemError
-        ? error
-        : new ProblemError({ status: 500, code: 'INTERNAL', title: 'Internal server error' }),
+const ProblemFallback = HttpRouter.middleware(
+  (httpEffect) =>
+    httpEffect.pipe(
+      Effect.catchIf(isRouteNotFound, () => HttpServerRespondable.toResponse(new NotFound({}))),
+      Effect.catchDefect(() => HttpServerRespondable.toResponse(new Internal({}))),
     ),
-  )
+  { global: true },
+)
 
-  return app
+function isRouteNotFound(error: unknown): boolean {
+  return error instanceof HttpServerError.HttpServerError && error.reason._tag === 'RouteNotFound'
 }
 
-function problemResponse(error: ProblemError): Response {
-  return new Response(JSON.stringify(error), {
-    status: error.status,
-    headers: { 'content-type': PROBLEM_CONTENT_TYPE },
-  })
-}
+/** All routes of the API, ready to be served by an HTTP server. */
+export const AppLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(SystemLive),
+  Layer.provide(HttpApiMiddleware.layerProblemDetails()),
+  Layer.merge(ProblemFallback),
+)
