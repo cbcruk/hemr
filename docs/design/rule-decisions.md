@@ -304,7 +304,8 @@
 | `paidEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) 현재·충돌 진료 중 수납을 마친 진료. 현행 "과수납금" 문구 두 갈래를 대신합니다 |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
 | `SPECIAL_CASE_CODE_MISMATCH` | 오류 | [special-case-code-match](#special-case-code-match). 사유 `reason`은 `SPECIFIC_CODE_MISSING`·`SPECIFIC_CODE_INVALID`·`NOT_IN_REFERENCE`·`LINKED_DIAGNOSIS_MISMATCH` |
-| `CHUNA_USAGE_UNKNOWN` | 경고 | [chuna-annual-limit](#chuna-annual-limit) |
+| `CHUNA_USAGE_UNKNOWN` | 경고 | [chuna-annual-limit](#chuna-annual-limit) 저장된 심평원 사용량이 없거나 잘림 (질문 7) |
+| `blocksCompletion` | 위반 상세 필드 | [chuna-annual-limit](#chuna-annual-limit) `CHUNA_ANNUAL_LIMIT`가 완료를 막는지. 자보는 거짓 (질문 4) |
 | `DIAGNOSIS_MISMATCH` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) |
 
 ## 구현 상태
@@ -327,6 +328,7 @@
 | [reference-version-selection](#reference-version-selection) | [reference-version.ts](../../src/modules/catalog/reference/reference-version.ts) (참조데이터 조회·진료 저장 전, 순수 함수) | [reference-version.fixtures.test.ts](../../src/modules/catalog/reference/reference-version.fixtures.test.ts) | 없음. 정적 JSON 컷오프는 버전 표로, 수가 적용일자는 이관한 날짜로 만든 버전 표로 옮겼습니다 |
 | [special-case-code-match](#special-case-code-match) | [special-case-code.ts](../../src/modules/clinical/special-case/special-case-code.ts) (진료 저장·완료 전, 순수 함수) | [special-case-code.fixtures.test.ts](../../src/modules/clinical/special-case/special-case-code.fixtures.test.ts) | 없음. 상병 일치(질문 1)는 현행 케이스에 상병이 없어 단위 테스트에서 새 케이스로 검사합니다 |
 | [telemedicine-fee-lines](#telemedicine-fee-lines) | [telemedicine-fee-lines.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.ts) (진료 저장 전, 순수 함수) | [telemedicine-fee-lines.fixtures.test.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.fixtures.test.ts) | 스키마가 막는 기준일시 형식 1건, 서버에 없는 설정 없음·화면 보류 2건, 화면 최적화 `qh` 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [chuna-annual-limit](#chuna-annual-limit) | [chuna-annual-limit.ts](../../src/modules/clinical/chuna/chuna-annual-limit.ts) (진료 저장·완료·사용량 조회 전, 순수 함수) | [chuna-annual-limit.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-annual-limit.fixtures.test.ts) | 서버에 없는 로딩 중 상태 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다. 현재 진료 제출분 빼기·진료일 기준 당일(질문 1·5)은 단위 테스트에서 새 케이스로 검사합니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -473,6 +475,22 @@ telemedicine-fee-lines에서 함께 반영한 결정입니다.
 - **비대면 토글 조건은 두 함수로 나눕니다.** 화면 표시용(`telemedicineToggleAvailable`)은 현행 `jh`와 같고, 서버 검증(`telemedicineChangeAllowed`)은 끄는 요청을 늘 받습니다(질문 8). 산재·자보에서 이미 켜진 비대면은 화면에 보이지 않지만 서버는 끄는 요청을 받습니다
 - **`qh`(갱신 필요 여부)는 옮기지 않습니다.** 화면이 불필요한 갱신을 줄이려던 최적화이고, 서버는 저장 때 늘 다시 계산합니다
 - **관리료 시간대 경계는 초기값 상수로 두고 참조데이터 `regulatory-limits`로 옮깁니다(질문 2).** 함수는 경계를 인자로 받습니다
+
+chuna-annual-limit에서 함께 반영한 결정입니다.
+
+- **이전 시행 수는 진료일보다 앞선 날만 셉니다(질문 1).** 누적(심평원 누적 횟수, 없으면 행 수)에서 진료일과 그 뒤 날짜의 행을 뺍니다. 현재 진료의 제출분이 누적에 들어갔는지, 과거 진료를 나중에 다시 열었는지와 상관없이 같은 답이 나옵니다. 심평원 행에는 진료 ID가 없어 제출 상태가 아니라 날짜로 가립니다
+  - 대안: 현재 진료의 제출 상태(`SUBMITTED`·`APPROVED` 등)를 받아 한 건만 빼기. 과거 진료를 열면 그 뒤 시행이 세져 완료가 막히고, 조회가 제출보다 앞서면 덜 세므로 고르지 않았습니다
+  - 가정: 심평원 누적 횟수는 조회 기간(진료 연도 1월 1일 ~ 오늘) 전체의 값이고 목록 행과 같은 시행을 셉니다. 둘이 다르면 뺀 값이 어긋날 수 있습니다
+  - 같은 날 다른 기관의 시행도 이전 시행에서 빠집니다. 1일 1회 산정은 이 규칙이 아니라 당일 이력(`sameDay`)으로 알립니다
+- **`sameDay`는 현재 진료의 제출분도 포함합니다.** 이미 제출한 진료를 열면 "오늘 시행함"으로 보입니다
+- **산재는 우리 진료기록에서 진료일보다 앞선 진료일 수로 셉니다(질문 2·3).** 같은 날 다른 산재 진료에 추나가 있어도 그날은 판정 대상인 날이라 이전 시행에 넣지 않습니다. 취소·철회한 진료는 호출하는 쪽이 뺍니다
+  - 되돌릴 조건: 산재도 심평원·근로복지공단 사용량을 받게 되면 건보와 같은 저장 사용량 경로로 바꿉니다
+- **산재도 완료를 막습니다.** 질문 2가 건보와 같은 경계식을 쓰기로 했고 질문 8이 서버 판정을 완료 차단으로 정했습니다. 현행 산재 I0009는 표시만 했으므로 산재 사용자에게는 새 차단입니다
+  - 되돌릴 조건: 산재 한도가 사례별 인정이면 자보처럼 `blocksCompletion: false`로 바꿉니다
+- **추나 줄은 카테고리 `33001005`이거나 기본코드(앞 5자리)가 `40710`·`40720`·`40721`·`40730`입니다.** 현행 건보 경로는 카테고리, 산재 경로는 수가코드 전체로 찾았던 것을 하나로 합칩니다. 가산 자리가 붙은 8자리 코드도 추나로 봅니다(다른 수가 규칙과 같음)
+- **판정은 새로 추가한 줄만이 아니라 현재 진료의 추나 줄 전부를 봅니다(질문 8).** 서버는 저장할 때마다 진료 전체를 판정하므로 "새로 추가"의 구분이 없습니다
+- **한도는 `regulatory-limits`의 보험구분별 값이고 표에 없는 보험구분(일반)은 검사하지 않습니다.** 초기값은 건보·의료급여·자보·산재 모두 20입니다
+- **심평원 응답 파싱(`z7t`)·목록 병합(`q7t`)·조회 기간(`Z8`)도 서버 함수로 둡니다.** 에이전트가 받은 원본을 서버가 같은 방식으로 사용량으로 만들게 하려는 것입니다. 페이지 크기·요청 필드 같은 전문 형식은 에이전트가 맡습니다
 
 ## 원무
 
@@ -823,7 +841,12 @@ telemedicine-fee-lines에서 함께 반영한 결정입니다.
 - `건보 exhausted + not live -> warning only, chuna kept`: 라인 유지 + 저장 warning, 완료 차단 (#8)
 - `건보 exhausted + live + newly added chuna -> dialog, chuna dropped`: 라인을 지우지 않고 저장 warning, 완료 차단 (#8)
 - `급여 exhausted + live -> chuna dropped`: 라인을 지우지 않고 저장 warning, 완료 차단 (#8)
-- #1·#5는 기존 케이스 입력(누적값, 같은 날의 `now`와 기준일시)으로는 결과가 같습니다. 현재 진료 제출분 포함·과거 진료 열기 케이스를 새로 추가합니다
+- `non-산재 -> none`: 건보 진료는 저장된 심평원 사용량으로 판정하므로 사용량이 없으면 `CHUNA_USAGE_UNKNOWN` warning (#7)
+- `saved: today row present -> same-day true, not available`, `live HIRA: today row in live list`: 진료일의 행은 이전 시행 수에서 빠져 누적이 하나 적습니다(6 → 5, 3 → 2). 당일 이력은 그대로 참입니다 (#1)
+- `existing chuna (same id) not treated as new -> unchanged`: 소진 상태면 기존 추나 줄도 저장 warning, 완료 차단 (#8)
+- `자보 exhausted -> unchanged`: `CHUNA_ANNUAL_LIMIT` warning, 완료는 막지 않음 (#4)
+- `exhausted undefined (loading) -> unchanged`: 서버에는 로딩 중 상태가 없어 서버 테스트에서 뺍니다
+- #5는 기존 케이스 입력(같은 날의 `now`와 기준일시)으로는 결과가 같습니다. 현재 진료 제출분 포함·과거 진료 열기 케이스를 단위 테스트에 새로 추가합니다
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
