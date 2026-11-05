@@ -207,7 +207,7 @@ GET  /hira-pre-submissions?kind=&status=&from=     현황 (현행 /record/hira/{
 
 - 처방 라인의 `hiraApproval.status`는 이 리소스 결과로만 바뀝니다
 - **추나 자동 승인:** 진료 완료 시 정책(`encounter-policy.autoSubmitChuna`)이 켜져 있고, 건보·의료급여·자보이며, 연간 한도 내이고(자보는 한도와 상관없이), 같은 날 삭제되지 않은 심평원 이력과 `CANCELED`가 아닌 제출이 없으면 서버가 `QUEUED`로 만듭니다. 에이전트 연결과 상관없이 만들고, 연결되면 에이전트가 처리합니다. 판정은 [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) ([결정](rule-decisions.md#chuna-auto-approval))
-- 첩약 처방 한도(하루 8 / 월 60 / 연 600)용 의사별 집계는 `GET /doctors/{id}/pilot-herbal-counts?date=`로 줍니다 (현행 한글 경로 `/record/list/pcmd-count/{date}/doctor/{doctorId}`)
+- 첩약 처방 한도(하루 8 / 월 60 / 연 600)용 의사별 집계는 `GET /doctors/{id}/pilot-herbal-counts?date=`로 줍니다 (현행 한글 경로 `/record/list/pcmd-count/{date}/doctor/{doctorId}`). 값은 그 날짜의 하루·월·연에 이미 쓴 일부부담 건수이고, 저장 전 미리보기는 1을 더해 한도와 비교합니다([결정](rule-decisions.md#pilot-herbal-doctor-limit))
 
 ## 자격조회 (NHIC)
 

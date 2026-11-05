@@ -311,6 +311,7 @@
 | `PILOT_HERBAL_HISTORY_UNKNOWN` | 경고 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 심평원 첩약 이력을 아직 받지 못해 판정하지 않음 (질문 5) |
 | `PILOT_HERBAL_HISTORY_UNVERIFIED` | 경고 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 등록 여부를 알 수 없는 이력이 있어 본인부담률 코드를 정하지 않음 (질문 6) |
 | `HERBAL_DISEASE_NOT_APPLICABLE` | 422 오류 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 질환 코드가 진료일 기준 `herbal-applicable-diseases`에 없음 (질문 9) |
+| `period`·`count`·`limit` | 위반 상세 필드 | [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) `PILOT_HERBAL_DOCTOR_LIMIT`가 넘은 구간(`DAY`·`MONTH`·`YEAR`, 일 → 월 → 연 순으로 하나), 현재 진료 순번, 한도 |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -338,6 +339,7 @@
 | [chuna-auto-approval](#chuna-auto-approval) | [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) (진료 완료 큐 판정·에이전트 결과 반영 전, 순수 함수) | [chuna-auto-submission.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-auto-submission.fixtures.test.ts) | 없음. 로딩·조회 오류는 사용량 없음으로, 화면 잠금은 같은 날 진행 중인 제출로 옮겼습니다 |
 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) | [pilot-herbal-diagnosis-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-diagnosis-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.fixtures.test.ts) | 요청 스키마가 막는 질환 코드 없음 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [pilot-herbal-claim-checks](#pilot-herbal-claim-checks) | [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) (진료 저장·청구 명세서 검사 전, 순수 함수) | [pilot-herbal-claim-checks.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.fixtures.test.ts) | 서버 입력으로 성립하지 않는 기준일시 없음 1건, 서버에 없는 화면 필터 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) | [pilot-herbal-doctor-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-doctor-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.fixtures.test.ts) | 서버에 없는 문자열·빠진 필드 횟수 2건, 횟수를 불러오는 중 상태 2건, 빈 질환 코드 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -548,6 +550,20 @@ pilot-herbal-claim-checks에서 함께 반영한 결정입니다.
   - 되돌릴 조건: 상병 저장 형식을 점 없는 코드로 통일하면 정규화를 지웁니다
 - **C0006은 체크리스트 제출 여부가 참이 아니면 미제출로 봅니다.** 규칙 문서는 "거짓"이라고만 적었고 현행 원본에서 `=== false`인지 falsy인지 확인하지 못했습니다. 경고만 하는 검사라 값이 빠진 경우 알리는 쪽을 택했습니다
   - 되돌릴 조건: 현행이 `=== false`였고 값이 빠진 특정내역이 흔해 경고가 소음이 되면 `false`일 때만 경고합니다
+
+pilot-herbal-doctor-limit에서 함께 반영한 결정입니다.
+
+- **순번은 `pilotHerbalDoctorCounts`가 셉니다(질문 1·2·4).** 호출하는 쪽은 같은 의사의 진료 연도(병원 시간대) 첩약 시범 진료 중 취소되지 않은 진료를 본인부담률 코드와 함께 넘깁니다. 완료 전 진료와 승인 전 줄이 있는 진료도 넣습니다. 30% 처방으로 정해진 건은 승인 전이어도 한도를 차지하기 때문입니다. 현재 진료 자신과 `G`가 아닌 진료는 빼고, 현재 진료보다 앞선 건에 1을 더합니다. 구간은 `serviceAt` 날짜의 같은 날·같은 달·같은 해입니다
+  - `serviceAt`이 같으면 진료 ID 순으로 앞뒤를 정합니다. 같은 시각 두 진료의 순번이 겹치지 않게 하려는 것이고, 매뉴얼은 같은 시각의 순서를 정하지 않습니다
+  - 되돌릴 조건: 질문 4 확인 결과 월·연이 롤링 구간이면 구간 비교를 날짜 차이로 바꿉니다
+- **이미 쓴 건수와 순번을 나눕니다.** 집계 엔드포인트와 남은 건수는 현재 진료 없이 이미 쓴 `G` 건수(`pilotHerbalDoctorUsage`)를 쓰고, 판정은 순번(쓴 건수 + 1)을 씁니다. 저장 전 미리보기는 쓴 건수에 1을 더해 판정해야 저장 결과와 같습니다
+- **저장된 진료의 코드는 다시 계산하지 않습니다.** 판정은 저장하는 진료 하나의 순번만 봅니다. 이미 8건이 있는 날에 더 이른 시각의 진료를 소급해 넣으면 그 진료는 `G`가 되고, 뒤로 밀린 9번째 진료도 `G`로 남아 그날 `G`가 9건이 됩니다. 같은 의사의 동시 저장도 같은 결과가 날 수 있어, 순번 계산과 저장은 의사 단위로 직렬화해야 합니다
+  - 대안: 구간 전체 `G` 건수가 한도를 넘으면 뒤 진료에도 경고. 저장된 진료를 고치는 일이라 택하지 않았습니다
+  - 되돌릴 조건: 소급 입력이 흔해 청구 단계에서 한도 초과가 자주 나오면, 저장할 때 구간 전체 건수도 함께 검사합니다
+- **의사별 한도는 질환 이력 판정 뒤에 `applyPilotHerbalDoctorLimit`로 더합니다(질문 5).** 넘으면 이력과 상관없이 코드 `U`, 전액부담 선택 불가이고, 완료 여부(`accepted`)는 질환 이력 판정을 그대로 둡니다. 다른 기관 이력으로 처방 불가여도 코드는 `U`라 현행과 같습니다
+- **이력을 아직 받지 못했어도 한도를 넘으면 `U`입니다.** 현행은 이력이 없으면 아무것도 바꾸지 않았습니다. 한도 초과는 이력과 무관하게 `U`이므로 기다릴 이유가 없습니다. `PILOT_HERBAL_HISTORY_UNKNOWN` 경고는 그대로 남습니다
+- **경고는 넘은 구간 하나만 담습니다.** 현행 문구의 일 → 월 → 연 우선순위를 따르고, 문구는 `pilotHerbalDoctorLimitMessage`가 만듭니다
+- **한도 8/60/600은 `regulatory-limits` 참조데이터로 옮길 초기값 상수로 둡니다.** 함수는 한도를 인자로 받습니다. 남은 건수(`remainingPilotHerbalDoctorQuota`)는 현행처럼 음수를 그대로 돌려줍니다
 
 ## 원무
 
@@ -1013,7 +1029,11 @@ pilot-herbal-claim-checks에서 함께 반영한 결정입니다.
 | 4 | 월·연 구간이 달력 기준인지 롤링인지 서버 엔드포인트만 안다 | **보류:** 현행 서버 엔드포인트의 구간 정의와 고시 문구를 확인해야 합니다. 확인 전 기본값은 Asia/Seoul 달력 월·연(1~12월)으로 둡니다 | 매뉴얼 요약은 "1일 8건, 월 60건, 연 600건"만 적고 구간 정의는 없습니다([ocs.md](../reference/spec/ocs.md)). 급여일수는 회계연도 기준이라 달력 구간이 유력합니다 |
 | 5 | 횟수가 바뀔 때마다 `watch`가 사용자 선택을 `U`로 덮고, 서버 강제는 보이지 않는다 | **따름:** 서버가 저장 시 한도 초과면 본인부담률 코드를 `U`로 정하고 `PILOT_HERBAL_DOCTOR_LIMIT` 경고를 줍니다. 초과인데 `G`로 보내도 `U`로 저장합니다 | 설계가 "초과분은 `U`로 자동 변경 + 경고"로 정했습니다([clinical.md](../design/clinical.md#완료-검증-규칙)). 같은 처방에 30%와 100%를 섞을 수 없습니다([ocs.md](../reference/spec/ocs.md)) |
 
-**바뀌는 케이스:** 없음.
+**바뀌는 케이스:**
+- `copay: history not loaded returns undefined even when over limit`: 바꾸지 않음 → `U`, 전액부담 선택 불가 (Q5)
+- 옮기지 않음: `numeric strings are coerced: day '9' exceeds`, `missing fields never exceed`는 서버가 정수 횟수를 모두 세므로 성립하지 않습니다
+- 옮기지 않음: `message: counts not loaded`, `copay: counts not loaded returns undefined (no change)`는 서버가 판정 전에 횟수를 세므로 불러오는 중 상태가 없습니다
+- 옮기지 않음: `copay: no disease code returns undefined`는 질환 코드가 요청 스키마의 필수 값이라 빈 값이 없습니다 (pilot-herbal-diagnosis-limit의 `eligibility: no code selected`와 같은 이유)
 
 ### pilot-herbal-approval-required
 
