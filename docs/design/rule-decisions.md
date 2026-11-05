@@ -308,6 +308,9 @@
 | `blocksCompletion` | 위반 상세 필드 | [chuna-annual-limit](#chuna-annual-limit) `CHUNA_ANNUAL_LIMIT`가 완료를 막는지. 자보는 거짓 (질문 4) |
 | `DIAGNOSIS_MISMATCH` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) |
 | `POLICY_OFF`·`COVERAGE_NOT_SUBMITTABLE`·`ANNUAL_LIMIT`·`SAME_DAY`·`NO_UNAPPROVED_LINE` | 자동 제출을 건너뛴 사유 | [chuna-auto-approval](#chuna-auto-approval) 완료 트랜잭션의 큐 판정 결과 |
+| `PILOT_HERBAL_HISTORY_UNKNOWN` | 경고 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 심평원 첩약 이력을 아직 받지 못해 판정하지 않음 (질문 5) |
+| `PILOT_HERBAL_HISTORY_UNVERIFIED` | 경고 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 등록 여부를 알 수 없는 이력이 있어 본인부담률 코드를 정하지 않음 (질문 6) |
+| `HERBAL_DISEASE_NOT_APPLICABLE` | 422 오류 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 질환 코드가 진료일 기준 `herbal-applicable-diseases`에 없음 (질문 9) |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -333,6 +336,7 @@
 | [telemedicine-fee-lines](#telemedicine-fee-lines) | [telemedicine-fee-lines.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.ts) (진료 저장 전, 순수 함수) | [telemedicine-fee-lines.fixtures.test.ts](../../src/modules/clinical/fees/telemedicine-fee-lines.fixtures.test.ts) | 스키마가 막는 기준일시 형식 1건, 서버에 없는 설정 없음·화면 보류 2건, 화면 최적화 `qh` 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [chuna-annual-limit](#chuna-annual-limit) | [chuna-annual-limit.ts](../../src/modules/clinical/chuna/chuna-annual-limit.ts) (진료 저장·완료·사용량 조회 전, 순수 함수) | [chuna-annual-limit.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-annual-limit.fixtures.test.ts) | 서버에 없는 로딩 중 상태 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다. 현재 진료 제출분 빼기·진료일 기준 당일(질문 1·5)은 단위 테스트에서 새 케이스로 검사합니다 |
 | [chuna-auto-approval](#chuna-auto-approval) | [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) (진료 완료 큐 판정·에이전트 결과 반영 전, 순수 함수) | [chuna-auto-submission.fixtures.test.ts](../../src/modules/clinical/chuna/chuna-auto-submission.fixtures.test.ts) | 없음. 로딩·조회 오류는 사용량 없음으로, 화면 잠금은 같은 날 진행 중인 제출로 옮겼습니다 |
+| [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) | [pilot-herbal-diagnosis-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-diagnosis-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.fixtures.test.ts) | 요청 스키마가 막는 질환 코드 없음 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -511,6 +515,22 @@ chuna-auto-approval에서 함께 반영한 결정입니다.
 - **공상구분코드의 유효기간은 시작일 ≤ 진료일 ≤ 종료일이고 종료일이 비어 있으면 끝이 없습니다.** 현행 원본(`query-keys.js` `w`)을 이 저장소에서 확인할 수 없어 규칙 문서 요약과 픽스처(종료일 공백인 차상위 `C`)로 정했습니다
   - 되돌릴 조건: 원본이 다른 경계(종료일 미포함 등)를 쓰면 `benefitCategory`만 고칩니다
 - **페이로드는 서버 도메인 형식(`YYYY-MM-DD`, 영문 필드)이고 심평원 전문 형식은 에이전트가 맞춥니다.** 픽스처 테스트의 `legacyPayload`가 그 변환입니다
+
+pilot-herbal-diagnosis-limit에서 함께 반영한 결정입니다.
+
+- **처방 불가는 저장 warning이고 완료를 막습니다.** 다른 규칙과 같이 `blocksCompletion`과 `accepted`로 알립니다. 20일 초과(`DAY_LIMIT`)는 `U`로 정하고 경고만 하며 막지 않습니다
+  - 대안: 처방 줄 저장을 422로 거부. 현행은 추가 버튼을 막았지만, 서버는 줄을 지우거나 저장을 막지 않는다는 방침을 따릅니다
+- **선택 질환 이력은 등록 여부별로 따로 합칩니다(질문 3·6).** 이 기관 행이 하나라도 있으면 현행처럼 모든 행의 최대 일수로 이 기관 이력을 봅니다(질문 3 보류). 없으면 다른 기관 행의 최대 일수가 1일 이상일 때 처방 불가, 그다음 알 수 없는 행의 최대 일수가 1일 이상일 때 "확인 필요" 경고입니다
+  - 현행은 알 수 없는 행을 `N`으로 바꿔 다른 기관 행과 일수를 섞었습니다. 다른 기관 0일 행과 알 수 없는 30일 행이 함께 있으면 서버는 막지 않고 경고합니다
+- **다른 2개 질환 판정은 이 기관(`Y`) 행만 셉니다.** 현행 `R0e`와 같습니다. 알 수 없는 행은 세지 않습니다
+- **선택 질환이 공통처방(`00`)이어도 다른 질환이 2개 이상이면 처방 불가입니다(질문 1).** 질문 1의 "이력 ∪ 선택이 2개를 넘으면"을 공통처방에 그대로 적용하면 허용이지만, 같은 행의 "결과는 `Cdn`과 같다"를 따라 현행 `R0e`를 유지합니다. 공통처방도 급여 질환 범위 안에서 쓰는 처방이라는 가정입니다
+  - 되돌릴 조건: 고시가 공통처방을 질환 수와 무관하게 허용하면 `hasTwoOtherDiseases`에서 `00`일 때 거짓을 돌려줍니다
+- **등록 여부의 앞뒤 공백은 무시합니다.** 현행은 `" Y"`를 `N`(다른 기관)으로 읽었습니다
+- **누적 투약일수는 `pilotHerbalHistoryRow`가 읽습니다.** 숫자가 아니거나 음수면 현행처럼 0일입니다
+- **경고에 첩약 처방 줄 ID(`lineIds`)를 담습니다.** 추나 규칙과 같이 완료 위반이 가리키는 줄을 알려 줍니다
+- **처방 불가·확인 필요·이력 없음이면 본인부담률 코드를 `null`로 두어 자동으로 정하지 않습니다.** 현행 빈 코드(`""`)는 "선택 불가"였고, 서버에서는 판정 결과(`accepted`)로 막고 코드는 사람이 고릅니다
+- **문구는 `pilotHerbalDiagnosisMessage`가 만들고 판정과 분리합니다(질문 7).** 받침이 없거나 `ㄹ`이면 `로`, 그 밖은 `으로`입니다
+- **이력의 연도는 호출하는 쪽이 진료 `serviceAt`의 병원 시간대 연도로 조회합니다(질문 8).** 판정 함수는 받은 이력만 봅니다
 
 ## 원무
 
@@ -918,10 +938,12 @@ chuna-auto-approval에서 함께 반영한 결정입니다.
 
 **바뀌는 케이스:**
 - `copay: current-disease history skips the 2-disease check (differs from eligibility)`: `G`·전액부담 선택 가능 → 처방 불가와 같은 빈 코드(`""`, 선택 불가) (Q1)
-- `eligibility: empty registration flag is normalized to N and blocks as other clinic`: 처방 불가 → 처방 가능 + "심평원 이력 확인 필요" 경고 (Q6)
-- `copay: empty registration flag is normalized to N and gives blank`: 빈 코드 → 자동 지정 안 함(`undefined`, 사용자 선택 유지) (Q6)
+- `eligibility: empty registration flag is normalized to N and blocks as other clinic`: 처방 불가 → 처방 가능 + `PILOT_HERBAL_HISTORY_UNVERIFIED` warning (Q6)
+- `copay: empty registration flag is normalized to N and gives blank`: 빈 코드 → 자동 지정 안 함(`copayCode: null`, 사용자 선택 유지) (Q6)
 - `eligibility: particle 으로 is appended regardless of final consonant`: 문구가 "환자가 안면신경마비로 20일 처방받았습니다."로 바뀜, 판정은 같음 (Q7)
-- `eligibility: code outside M0e with matching row throws`: `TypeError` → 422 검증 오류 (Q9)
+- `eligibility: code outside M0e with matching row throws`: `TypeError` → 422 `HERBAL_DISEASE_NOT_APPLICABLE` (Q9)
+- `eligibility: history not loaded`: 판정 없음 → `PILOT_HERBAL_HISTORY_UNKNOWN` warning, 본인부담률 코드는 정하지 않음 (Q5)
+- 옮기지 않음: `eligibility: no code selected`는 질환 코드가 요청 스키마의 필수 값이라 서버 테스트에서 뺍니다
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
