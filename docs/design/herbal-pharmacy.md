@@ -138,7 +138,7 @@ ExternalHerbalOrder
 ├─ herbalPrescriptionId
 ├─ provider: "MEDIONE" | ...
 ├─ draft: { herbs[], materials[], options[], compounding{...}, medicationGuideFileId? }
-├─ precheck?: { checkedAt, ok, lineIssues[{ line, code: OUT_OF_STOCK|... }] }
+├─ precheck?: { checkedAt, ok, errors[], lineIssues[{ line (precheck 요청 items[] 순번), code: OUT_OF_STOCK|UNKNOWN, rawCode }] }
 ├─ quote?: { id, expiresAt, breakdown, payable }
 ├─ payment?: { methods[], paidAt }
 ├─ shipping: { recipient, phone, address, memo }
@@ -163,8 +163,9 @@ GET  /external-herbal-providers/{provider}/eligibility | /contract | /options
 POST /external-herbal-providers/{provider}/herbs:search   { q }   → GET으로: GET .../herbs?q=
 ```
 
-- **`:place`는 서버가 precheck를 다시 합니다.** precheck가 실패하거나 외부 시스템에 닿지 않으면 422/503으로 결제를 막습니다. 현행 재고 확인 우회 버그를 구조적으로 막습니다
+- **`:place`는 서버가 precheck를 다시 합니다.** precheck가 실패하거나 외부 시스템에 닿지 않으면 422/503으로 결제를 막습니다. 현행 재고 확인 우회 버그를 구조적으로 막습니다. 판정은 [external-herbal-precheck.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.ts) ([결정](rule-decisions.md#external-herbal-precheck))
 - **견적 만료:** `quote.expiresAt`이 지나면 `:place`가 409 `QUOTE_EXPIRED`
+- **같은 견적은 한 번만 결제:** 결제 결과를 아직 확인하지 못한 견적으로 다시 `:place`하면 Idempotency-Key가 달라도 409 `PAYMENT_UNCONFIRMED` ([결정](rule-decisions.md#external-herbal-precheck))
 - **주문 수정:** 현행 "hold → (변경 없으면) info + unhold, 변경 있으면 새 결제 후 기존 cancel"을 클라이언트가 조합했습니다. `:amend`가 서버에서 판단하지만, 외부 결제 두 건이 걸려 있어 **원자적일 수 없습니다.** 그래서 단계를 가진 Job(사가)으로 처리합니다
   1. 기존 주문 `:hold` (실패하면 중단, 변경 없음)
   2. 재견적이 필요 없으면 배송·조제 정보 갱신 → `:release`. 끝

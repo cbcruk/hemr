@@ -313,6 +313,11 @@
 | `HERBAL_DISEASE_NOT_APPLICABLE` | 422 오류 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 질환 코드가 진료일 기준 `herbal-applicable-diseases`에 없음 (질문 9) |
 | `period`·`count`·`limit` | 위반 상세 필드 | [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) `PILOT_HERBAL_DOCTOR_LIMIT`가 넘은 구간(`DAY`·`MONTH`·`YEAR`, 일 → 월 → 연 순으로 하나), 현재 진료 순번, 한도 |
 | `PILOT_HERBAL_NOT_AVAILABLE` | 422 오류 | [pilot-herbal-approval-required](#pilot-herbal-approval-required) EMR 제품이 없는 SOO 단독 테넌트가 첩약 시범사업 카테고리 줄을 만듦 (질문 2) |
+| `EXTERNAL_PRECHECK_FAILED` | 422 오류 | [external-herbal-precheck](#external-herbal-precheck) 탕전원 precheck가 `ok: true`가 아님. 본문에 `precheck` 결과(`errors`, `lineIssues[]`)를 담음 (질문 1·2) |
+| `EXTERNAL_PRECHECK_UNAVAILABLE` | 503 오류 | [external-herbal-precheck](#external-herbal-precheck) 탕전원 precheck에 닿지 못함 (질문 1) |
+| `PAYMENT_AMOUNT_MISMATCH` | 422 오류 | [external-herbal-precheck](#external-herbal-precheck) 결제수단 합이 `quote.payable`과 다름(`TOTAL`) 또는 0원 이하 수단(`NON_POSITIVE_AMOUNT`) (질문 5) |
+| `PAYMENT_UNCONFIRMED` | 409 오류 | [external-herbal-precheck](#external-herbal-precheck) 같은 견적의 결제 결과를 아직 확인하지 못해 다시 결제하지 않음. 현행 "외부 결제는 완료되었으나" 문구를 대신함 |
+| `lineIssues[].rawCode` | 위반 상세 필드 | [external-herbal-precheck](#external-herbal-precheck) 탕전원이 준 원문 줄 실패 코드 (질문 3) |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -342,6 +347,7 @@
 | [pilot-herbal-claim-checks](#pilot-herbal-claim-checks) | [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) (진료 저장·청구 명세서 검사 전, 순수 함수) | [pilot-herbal-claim-checks.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.fixtures.test.ts) | 서버 입력으로 성립하지 않는 기준일시 없음 1건, 서버에 없는 화면 필터 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) | [pilot-herbal-doctor-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-doctor-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.fixtures.test.ts) | 서버에 없는 문자열·빠진 필드 횟수 2건, 횟수를 불러오는 중 상태 2건, 빈 질환 코드 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [pilot-herbal-approval-required](#pilot-herbal-approval-required) | [pilot-herbal-approval.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.ts) (처방 줄 생성·진료 완료 전, 순수 함수). C0005는 [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) | [pilot-herbal-approval.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.fixtures.test.ts) | 없음. 추적 케이스 4건은 서버 판정 함수로 바뀐 결과를 검사합니다 |
+| [external-herbal-precheck](#external-herbal-precheck) | [external-herbal-precheck.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.ts) (원외탕전 `:quote`·`:place` 전, 순수 함수) | [external-herbal-precheck.fixtures.test.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.fixtures.test.ts) | 서버에 없는 모의 모드 1건, 결제액 없는 견적 1건, 연동 어댑터에서 옮길 견적 정규화 2건, 오류 문구로 판별하던 중복 결제 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -575,6 +581,19 @@ pilot-herbal-approval-required에서 함께 반영한 결정입니다.
 - **SOO 단독 테넌트는 EMR 제품이 없는 테넌트입니다(질문 2).** 현행 "계정 서비스가 정확히 `soo`"를 `Tenant.products`에 `EMR`이 없는 것으로 옮깁니다. `SOO`·`CRM`처럼 EMR 없는 다른 조합도 진료 차트가 없으므로 함께 거부합니다. 첩약뿐 아니라 시범사업 카테고리 다섯 가지 줄을 모두 422 `PILOT_HERBAL_NOT_AVAILABLE`로 거부합니다. 승인 대상이 아닌 시범사업 줄도 첩약 없이는 청구할 수 없기 때문입니다
   - 되돌릴 조건: SOO 단독 테넌트에도 시범사업 수가를 따로 청구하는 업무가 있으면 거부를 `35001001`로 좁힙니다
 - **미승인이어도 진료 저장은 통과합니다(질문 4).** 현행은 대화상자를 띄우고 저장하지 않았습니다. 서버는 C0005 warning으로 알리고 완료만 막습니다
+
+external-herbal-precheck에서 함께 반영한 결정입니다.
+
+- **현행 응답의 `data` 래퍼는 연동 어댑터가 벗깁니다(질문 2).** `data`가 있으면 벗기고 없으면 본문을 그대로 넘깁니다. 판정 함수 `parseExternalPrecheck`는 본문 `{ ok, lines[], errors[] }`만 읽습니다. `ok: true`면 실패한 줄이 섞여 있어도 현행처럼 통과합니다. 본문이 객체가 아니면 형식 오류로 보고 422입니다(질문 1·2) 어댑터는 네트워크 오류·4xx·5xx·시간 초과를 모두 `UNREACHABLE`로 넘겨 503이 됩니다
+- **줄 실패 위치는 탕전원 응답 `lines[]`의 순번입니다.** precheck 요청 `items[]`와 같은 순서라는 현행 가정을 따릅니다. `items[]`에는 파우치·박스·옵션 줄도 있어 약재 순번이 아닙니다. 객체가 아닌 줄도 실패로 셉니다
+- **`UNKNOWN` 줄 실패의 화면 문구는 현행처럼 "수량 불일치"입니다(질문 3 보류).** 코드 목록을 확인하면 코드별 문구로 나눕니다
+- **0원 이하 결제수단도 422 `PAYMENT_AMOUNT_MISMATCH`(`NON_POSITIVE_AMOUNT`)입니다(질문 5).** 현행은 0원 수단을 빼고 보냈습니다. 서버는 받은 수단을 그대로 외부 결제에 넘기므로 고치지 않고 거부합니다. 결제액이 0원인 견적은 수단 없이 합 0으로 통과합니다
+- **약재 수량은 `shared/money/decimal.ts`의 십진 분수로 계산합니다(질문 6).** 용량은 소수점 아래 6자리, 첩수는 정수만 받고 요청 스키마가 막습니다. 판정 함수는 그 밖의 값을 `RangeError`로 거부합니다
+- **박스 수량은 현행 식을 그대로 씁니다.** 과금팩수가 없거나 0이면 팩수와 상관없이 1개입니다. 탕전원 과금표를 확인하기 전까지 바꾸지 않습니다
+- **결제수단 금액과 `quote.payable`은 원 단위 정수입니다.** 요청 스키마가 정수만 받습니다
+- **견적 응답 정규화는 연동 어댑터를 만들 때 옮깁니다.** 판정이 아니라 외부 응답 해석이라 순수 규칙에 두지 않습니다
+- **같은 견적은 한 번만 결제합니다.** `:place`는 주문이 `QUOTED`일 때만 받고, 외부 결제를 부르기 전에 주문에 결제 시도(`quoteId`, Idempotency-Key)를 먼저 기록합니다. 외부 결제는 성공했는데 주문 저장에 실패하면 주문을 `PLACED`로 맞추는 복구 작업이 외부 결제 조회로 정리하고, 그동안 같은 견적의 `:place`는 409 `PAYMENT_UNCONFIRMED`입니다. 새 Idempotency-Key로 다시 보내도 같은 견적이면 막힙니다. 현행은 "외부 결제는 완료되었으나" 문구로만 판별했습니다
+  - 되돌릴 조건: 탕전원이 결제 요청에 멱등 키를 받으면 복구 작업 대신 같은 키 재요청으로 정리합니다
 
 ## 원무
 
@@ -1088,10 +1107,15 @@ pilot-herbal-approval-required에서 함께 반영한 결정입니다.
 - `precheckGate: null result -> TypeError swallowed -> proceeds`: 결과가 비었으므로 실패로 보고 막습니다
 - `precheckGate: result without .data wrapper (ok:false at top level) -> proceeds`: 래퍼 없는 `ok:false`를 그대로 읽어 422로 막고 "재고 부족"을 알립니다
 - `precheckGate: ok missing (undefined) -> proceeds`: `ok !== true`이므로 막습니다
-- `allocatePaymentMethods: general card absorbs remainder`: 서버가 금액을 채우지 않습니다. 합 30,000 ≠ 50,000이므로 422입니다
+- `allocatePaymentMethods: general card absorbs remainder`: 서버가 금액을 채우지 않습니다. 0원 일반카드가 있고 합 30,000 ≠ 50,000이므로 422입니다(`NON_POSITIVE_AMOUNT`)
 - `allocatePaymentMethods: deposit cards trimmed from last when over total`: 합 70,000 ≠ 40,000이므로 422입니다
 - `allocatePaymentMethods: no general card: last deposit card topped up`: 합 20,000 ≠ 25,000이므로 422입니다
 - `allocatePaymentMethods: zero-amount methods dropped`: 합 55,000 ≠ 50,000이므로 422입니다
+- `allocatePaymentMethods: server total 0 leaves input unchanged`: 그대로 둠 → 합 100 ≠ 0이므로 422입니다 (Q5)
+- `precheckGate: null result -> TypeError swallowed -> proceeds`, `precheckGate: ok missing (undefined) -> proceeds`: 422 문구는 "주문 확인 실패: 수량·재고를 확인해주세요."입니다
+- 옮기지 않음: `precheckGate: mock mode (no client) skips precheck`는 서버에 모의 모드가 없고 precheck를 건너뛰지 않습니다 (Q1)
+- 옮기지 않음: `allocatePaymentMethods: server total null leaves input unchanged`는 `:place`가 결제액 있는 견적으로만 받습니다 (Q5)
+- 옮기지 않음: `normalizeQuote` 2건과 `duplicatePaymentRisk` 3건은 외부 응답 해석이라 연동 어댑터와 `:place`(Idempotency-Key)를 만들 때 옮깁니다
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 
