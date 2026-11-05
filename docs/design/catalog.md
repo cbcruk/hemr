@@ -36,6 +36,7 @@ GET /reference/{dataset}/versions
 
 - 각 행: `{ code, name, validFrom, validTo, attributes }`
 - `asOf`를 빼면 오늘 기준입니다. 진료·청구 서버 로직은 항상 해당 진료일을 `asOf`로 씁니다
+- 버전은 `{ versionId, validFrom, validTo }`이고 `validFrom ≤ asOf < validTo`인 버전을 씁니다. 없으면 422 `REFERENCE_DATA_UNAVAILABLE`입니다. 진료 시각은 병원 시간대 날짜로 바꿔 비교합니다. 판정은 [reference-version.ts](../../src/modules/catalog/reference/reference-version.ts)
 - 클라이언트가 오프라인 검색을 원하면 `GET /reference/{dataset}/snapshot?asOf=` → 서명된 CDN URL을 받습니다. 어떤 스냅샷을 쓸지는 서버가 정합니다
 - 새 고시가 나오면 데이터 적재만 하면 됩니다. 클라이언트 배포가 필요 없습니다
 

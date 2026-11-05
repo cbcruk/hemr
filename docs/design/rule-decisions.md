@@ -324,6 +324,7 @@
 | [duplicate-consultation-fee](#duplicate-consultation-fee) | [duplicate-consultation-fee.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.ts) (진료 저장·완료 전, 순수 함수) | [duplicate-consultation-fee.fixtures.test.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.fixtures.test.ts) | 서버에서 생기지 않는 진료 시각 없음 1건. 확인창 문구는 `paidEncounterIds`로 검사합니다 |
 | [auto-insurance-same-day-consultation](#auto-insurance-same-day-consultation) | [auto-insurance-same-day-consultation.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.ts) (진료 저장·청구 집계 전, 순수 함수) | [auto-insurance-same-day-consultation.fixtures.test.ts](../../src/modules/clinical/fees/auto-insurance-same-day-consultation.fixtures.test.ts) | 결과가 버려지는 `IBt` 2건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [coverage-category-band](#coverage-category-band) | [coverage-category-band.ts](../../src/modules/clinical/fees/coverage-category-band.ts) (보험구분 변경·진료 저장·완료 전, 순수 함수) | [coverage-category-band.fixtures.test.ts](../../src/modules/clinical/fees/coverage-category-band.fixtures.test.ts) | 요청 스키마가 막는 빈 보험구분 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [reference-version-selection](#reference-version-selection) | [reference-version.ts](../../src/modules/catalog/reference/reference-version.ts) (참조데이터 조회·진료 저장 전, 순수 함수) | [reference-version.fixtures.test.ts](../../src/modules/catalog/reference/reference-version.fixtures.test.ts) | 없음. 정적 JSON 컷오프는 버전 표로, 수가 적용일자는 이관한 날짜로 만든 버전 표로 옮겼습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -438,6 +439,15 @@ coverage-category-band에서 함께 반영한 결정입니다.
 - **첩약 시범사업 카테고리에 한약재 `35001002`를 넣습니다.** 규칙 문서 표의 `35001001`–`35004001`은 범위 표기이고, 현행 상수에는 한약재가 들어 있어 현행과 같습니다
 - **판정 함수는 쓸 수 없는 줄 ID만 돌려줍니다.** 보험구분 변경은 그 줄을 `invalid: COVERAGE_MISMATCH`로 표시하고, 진료 저장은 `COVERAGE_CATEGORY_MISMATCH` warning, 완료는 같은 코드의 422 위반으로 만듭니다(질문 4·5). 세 경로가 같은 함수를 씁니다
 - **현행의 빈 `Set`(확장 자리)은 옮기지 않습니다.** 아무 영향이 없던 자리라 차단 표에 행을 더하는 것으로 대신합니다
+
+reference-version-selection에서 함께 반영한 결정입니다.
+
+- **버전의 `validTo`는 제외 경계입니다.** `validFrom ≤ asOf < validTo`이고, 시작일만 있는 목록(수가 적용일자)은 다음 시작일을 `validTo`로 씁니다. 겹치는 버전이 있으면 시작일이 가장 늦은 것을 고릅니다
+- **수가 적용일자 이관에서 날짜가 아닌 값은 버리지 않고 `rejected`로 보고합니다.** 현행은 숫자가 없는 값을 조용히 버렸습니다. 이관 담당자가 원본을 확인할 수 있게 합니다
+  - 되돌릴 조건: 원본에 의미 없는 값이 많아 보고가 소음이 되면 숫자가 없는 값만 조용히 버립니다
+- **구버전 정적 JSON의 시작일은 이관할 때 정합니다.** 픽스처 이전에서는 `2000-01-01`로 두었습니다. 그보다 이른 진료일은 `REFERENCE_DATA_UNAVAILABLE`입니다
+- **버전 선택은 카탈로그 모듈(`modules/catalog/reference`)에 둡니다.** 진료·청구가 같은 함수를 부릅니다. 날짜·시각 형식 검사는 다른 모듈도 쓰므로 `shared/time/date-format.ts`에 둡니다
+- **LA 시간대 케이스는 기준일시가 병원 벽시계 시각(KST)이라는 가정으로 옮깁니다.** 진료 기록에 저장된 값이라 브라우저 시간대로 만든 값이 아니라고 봅니다
 
 ## 원무
 
@@ -712,6 +722,7 @@ coverage-category-band에서 함께 반영한 결정입니다.
 - `feeVersion query with no digits -> latest`: 400 `VALIDATION_FAILED` (#3)
 - `feeVersion before earliest -> earliest (fallback, not empty)`: 422 `REFERENCE_DATA_UNAVAILABLE` (#5)
 - `feeVersion dates list empty -> empty string`: 422 `REFERENCE_DATA_UNAVAILABLE` (#5)
+- `feeVersion empty query -> latest`: "가장 늦은 버전"이 아니라 "오늘 유효한 버전"을 고릅니다 (#4). 오늘이 가장 늦은 적용일자 뒤면 결과는 같습니다
 - 그 밖의 `feeVersion` 케이스는 고르는 버전은 같고, `적용일자` 표현만 `YYYY-MM-DD`로 바뀝니다 (#6). 구버전 `null`은 서버에서 구체적인 버전 ID(`kcd` `20250722` 등)로 나옵니다 (#1)
 
 ### special-case-code-match
