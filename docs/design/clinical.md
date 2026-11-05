@@ -137,7 +137,7 @@ If-Match: "8"
 | 같은 날 진찰료 중복 (대면·비대면 구분 없이, 같은 사고의 자보 진료 포함) | `DUPLICATE_CONSULTATION_FEE` (`acknowledge` 가능) | [duplicate-consultation-fee](../reference/rules/duplicate-consultation-fee.md). 현행은 대면·비대면 조합만 검사하고 확인 후 저장 가능 ([결정](rule-decisions.md#duplicate-consultation-fee)) |
 | 자보 같은 날 다른 사고번호의 두 번째 진료는 진찰료 제외 | 자동 조정 + warning | [auto-insurance-same-day-consultation](../reference/rules/auto-insurance-same-day-consultation.md) |
 | 산정특례 등록번호(05·14·21·23)면 특정기호 4자 필수. 상병과 특정기호 일치는 **신규 규칙** | `SPECIAL_CASE_CODE_MISMATCH` | [special-case-code-match](../reference/rules/special-case-code-match.md). 현행은 상병 일치를 검사하지 않음 |
-| 초진·재진, 야간·공휴·토요 가산 | 서버가 진찰료 수가코드 결정 | [consultation-fee-code](../reference/rules/consultation-fee-code.md), [procedure-fee-modifiers](../reference/rules/procedure-fee-modifiers.md) |
+| 초진·재진, 야간·공휴·토요 가산 | 서버가 진찰료 수가코드 결정. 마스터에 없는 코드는 `FEE_CODE_NOT_IN_MASTER` warning(완료는 막음) | [consultation-fee-code](../reference/rules/consultation-fee-code.md), [procedure-fee-modifiers](../reference/rules/procedure-fee-modifiers.md). 판정은 [consultation-fee-code.ts](../../src/modules/clinical/fees/consultation-fee-code.ts) |
 | 다른 보험구분 전용 처방 카테고리 차단 (차단 표는 참조데이터, 대역 일치는 강제하지 않음) | `COVERAGE_CATEGORY_MISMATCH` | [coverage-category-band](../reference/rules/coverage-category-band.md). 현행과 같은 차단 방식이고, 현행은 보험구분을 바꿀 때만 검사 ([결정](rule-decisions.md#coverage-category-band)) |
 | `OWN` 범위 사용자는 담당 환자 진료만 | 403 | 클라이언트 + (추정) 서버 |
 | 이관된 진료는 수정·반복 불가 | `MIGRATED_ENCOUNTER_READONLY` | 클라이언트 |

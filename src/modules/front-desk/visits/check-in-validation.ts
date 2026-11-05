@@ -1,3 +1,4 @@
+import { ageOn } from '../../../shared/time/calendar.ts'
 import type {
   CheckInErrorCode,
   CheckInInput,
@@ -6,6 +7,8 @@ import type {
   EligibilityKind,
   IdentityPatient,
 } from './check-in-validation.types.ts'
+
+export { ageOn }
 
 /** 접수를 막는 급여제한 코드입니다. 무자격·사망·국외이민은 자격 상실과 같습니다. */
 const BLOCKING_RESTRICTIONS: ReadonlySet<string> = new Set(['01', '04', '05'])
@@ -160,14 +163,6 @@ export function identityVerificationBlocks(input: CheckInInput, patient: Identit
     (patient !== undefined &&
       (ageOn(patient.birthDate, input.date) < IDENTITY_EXEMPT_UNDER_AGE || patient.pregnant === true))
   return !exempt
-}
-
-/** `date`(`YYYY-MM-DD`) 기준 만 나이입니다. 생일 당일에 한 살 늘어납니다. */
-export function ageOn(birthDate: string, date: string): number {
-  const [by, bm, bd] = birthDate.split('-').map(Number) as [number, number, number]
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number]
-  const hadBirthday = m > bm || (m === bm && d >= bd)
-  return y - by - (hadBirthday ? 0 : 1)
 }
 
 /** 날짜에서 개월 수를 뺍니다. 그 달에 같은 날이 없으면 말일로 맞춥니다(8월 31일 − 6개월 = 2월 28일). */
