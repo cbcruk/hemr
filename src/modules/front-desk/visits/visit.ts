@@ -4,16 +4,16 @@ import { isId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { problemType } from '../../../shared/problem/problem.ts'
 
-/** Identifier of a visit, such as `vis_01J...`. */
+/** 내원 ID입니다. 예: `vis_01J...` */
 export const VisitId = Schema.String.pipe(Schema.refine((value): value is Id<'visit'> => isId('visit', value)))
 
-/** Identifier of a patient, such as `pat_01J...`. */
+/** 환자 ID입니다. 예: `pat_01J...` */
 export const PatientId = Schema.String.pipe(Schema.refine((value): value is Id<'patient'> => isId('patient', value)))
 
-/** Where a visit stands in the front-desk flow on the day of service. */
+/** 진료 당일 접수 흐름에서 내원이 있는 단계입니다. */
 export const VisitStatus = Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT', 'COMPLETED', 'CANCELED'])
 
-/** Command that moves a visit between statuses. */
+/** 내원 상태를 옮기는 커맨드입니다. */
 export const VisitCommand = Schema.Literals([
   'START_TREATMENT',
   'RETURN_TO_WAITING',
@@ -24,39 +24,39 @@ export const VisitCommand = Schema.Literals([
 ])
 
 /**
- * A patient's visit on the day of service.
+ * 진료 당일 환자의 내원입니다.
  *
- * Only the fields the status commands need are modeled so far; see
- * `docs/design/front-desk.md` for the full resource.
+ * 지금은 상태 커맨드에 필요한 필드만 두었습니다. 전체 리소스는
+ * `docs/design/front-desk.md`를 보세요.
  */
 export const Visit = Schema.Struct({
   id: VisitId,
   patientId: PatientId,
-  /** Day of service, as `YYYY-MM-DD`. */
+  /** 진료일입니다. 형식은 `YYYY-MM-DD`입니다. */
   date: Schema.String,
   status: VisitStatus,
   statusChangedAt: Schema.String,
-  /** Reason given by the last `:reopen` or `:cancel`. */
+  /** 마지막 `:reopen` 또는 `:cancel`에서 받은 사유입니다. */
   statusReason: Schema.optionalKey(Schema.String),
 })
 
 export type Visit = typeof Visit.Type
 
-/** No visit has the requested id. */
+/** 요청한 ID의 내원이 없습니다. */
 export class VisitNotFound extends HttpApiError.Problem<VisitNotFound>()(
   'VisitNotFound',
   { type: problemType('VISIT_NOT_FOUND'), status: 404, title: 'Visit not found' },
   { code: Schema.tag('VISIT_NOT_FOUND') },
 ) {}
 
-/** The command is not allowed from the visit's current status. */
+/** 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. */
 export class VisitTransitionInvalid extends HttpApiError.Problem<VisitTransitionInvalid>()(
   'VisitTransitionInvalid',
   { type: problemType('VISIT_TRANSITION_INVALID'), status: 409, title: 'Visit status does not allow this command' },
   { code: Schema.tag('VISIT_TRANSITION_INVALID'), currentStatus: VisitStatus, command: VisitCommand },
 ) {}
 
-/** A cancel would discard encounters or receipts and was sent without `cascade`. */
+/** 진료나 수납 기록이 있는 내원을 `cascade` 없이 취소하려 했습니다. */
 export class VisitHasClinicalData extends HttpApiError.Problem<VisitHasClinicalData>()(
   'VisitHasClinicalData',
   { type: problemType('VISIT_HAS_CLINICAL_DATA'), status: 409, title: 'Visit has clinical data' },

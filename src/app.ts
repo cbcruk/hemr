@@ -11,9 +11,9 @@ const SystemLive = HttpApiBuilder.group(Api, 'system', (handlers) =>
 )
 
 /**
- * Renders unmatched routes and defects as Problem Details.
+ * 일치하는 경로가 없거나 예상하지 못한 오류(defect)가 나면 Problem Details로 응답합니다.
  *
- * Declared endpoint errors never reach here; they are encoded by their route.
+ * 엔드포인트에 선언한 오류는 여기까지 오지 않고, 해당 경로가 직접 응답으로 바꿉니다.
  */
 const ProblemFallback = HttpRouter.middleware(
   (httpEffect) =>
@@ -29,9 +29,9 @@ function isRouteNotFound(error: unknown): boolean {
 }
 
 /**
- * All routes of the API, ready to be served by an HTTP server.
+ * HTTP 서버에 올릴 수 있는 API 전체 경로입니다.
  *
- * Storage is left to the caller, which provides a `VisitRepository` layer.
+ * 저장소는 호출하는 쪽이 `VisitRepository` Layer로 넣습니다.
  */
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),

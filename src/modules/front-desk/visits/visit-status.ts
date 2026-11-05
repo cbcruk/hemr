@@ -32,13 +32,12 @@ const TRANSITIONS: Record<VisitStatus, Partial<Record<VisitCommand, Transition>>
 }
 
 /**
- * Evaluates a visit command against the current status and returns the next status.
+ * 현재 상태에 내원 커맨드를 적용해 다음 상태를 돌려줍니다.
  *
- * This is the server-side replacement for the client-only transition table of the
- * current app. It checks the state machine only; permission checks and data-level
- * blockers of a cascading cancel live in the command handlers.
+ * 현행 앱에서 클라이언트에만 있던 상태 전이 표를 서버로 옮긴 것입니다. 상태 기계만 검사하고,
+ * 권한 확인과 연쇄 취소를 막는 데이터 조건은 커맨드 핸들러가 맡습니다.
  *
- * @example Cancel a visit that is already in treatment
+ * @example 이미 진료 중인 내원 취소하기
  * ```ts
  * import { transitionVisit } from "./visit-status.ts";
  *
@@ -60,9 +59,9 @@ export function transitionVisit(
 }
 
 /**
- * Lists the commands available from a status, for the `allowedActions` field.
+ * 한 상태에서 보낼 수 있는 커맨드 목록입니다. `allowedActions` 필드에 씁니다.
  *
- * Commands that need `cascade` are included, since the client offers them as an option.
+ * 클라이언트가 선택지로 보여 주므로 `cascade`가 필요한 커맨드도 포함합니다.
  */
 export function allowedVisitCommands(status: VisitStatus): VisitCommand[] {
   return Object.keys(TRANSITIONS[status]) as VisitCommand[]

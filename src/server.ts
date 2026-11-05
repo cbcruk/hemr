@@ -8,7 +8,7 @@ import type { Visit } from './modules/front-desk/visits/visit.ts'
 
 const port = Number(process.env['PORT'] ?? 3000)
 
-/** Sample visits so the status commands can be tried locally until check-in exists. */
+/** 접수 기능이 생기기 전까지 로컬에서 상태 커맨드를 시험해 볼 샘플 내원입니다. */
 const devVisits: Visit[] = [
   {
     id: 'vis_01JBQ000000000000000000001' as Visit['id'],

@@ -1,15 +1,15 @@
-/** A single field-level validation failure inside a problem response. */
+/** 오류 응답에 담는 필드 하나의 검증 실패입니다. */
 export interface Violation {
-  /** JSON path of the offending field, such as `startAt` or `payments[0].amount`. */
+  /** 문제가 된 필드의 JSON 경로입니다. 예: `startAt`, `payments[0].amount` */
   field: string
-  /** Machine-readable reason in `SCREAMING_SNAKE_CASE`. */
+  /** 기계가 읽는 사유입니다. 형식은 `SCREAMING_SNAKE_CASE`입니다. */
   code: string
 }
 
 /**
- * Error response body following RFC 9457 Problem Details.
+ * RFC 9457 Problem Details 형식의 오류 응답 본문입니다.
  *
- * Clients pick user-facing text by `code`; `detail` is for developers.
+ * 클라이언트는 `code`로 사용자에게 보일 문구를 고르고, `detail`은 개발자용입니다.
  */
 export interface ProblemDetails {
   type: string

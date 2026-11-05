@@ -6,9 +6,9 @@ const params = { id: VisitId }
 const errors = [VisitNotFound, VisitTransitionInvalid]
 
 /**
- * Status commands of a visit, sent as `POST /visits/{id}:{command}`.
+ * 내원 상태 커맨드입니다. `POST /visits/{id}:{command}`로 보냅니다.
  *
- * The router reads `::` as a literal colon, so `/:id::cancel` matches `/vis_01J...:cancel`.
+ * 라우터는 `::`를 콜론 문자로 읽으므로 `/:id::cancel`이 `/vis_01J...:cancel`과 일치합니다.
  */
 export class VisitsApi extends HttpApiGroup.make('visits')
   .add(

@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option, Ref } from 'effect'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import type { Visit } from './visit.ts'
 
-/** Storage of visits, swapped per environment by providing a different layer. */
+/** 내원 저장소입니다. 환경마다 다른 Layer를 넣어 구현을 바꿉니다. */
 export class VisitRepository extends Context.Service<
   VisitRepository,
   {
@@ -10,7 +10,7 @@ export class VisitRepository extends Context.Service<
     save(visit: Visit): Effect.Effect<void>
   }
 >()('hemr/front-desk/VisitRepository') {
-  /** Keeps visits in process memory, starting from `seed`. */
+  /** `seed`로 시작해 프로세스 메모리에 내원을 보관합니다. */
   static readonly layerMemory = (seed: ReadonlyArray<Visit> = []) =>
     Layer.effect(
       VisitRepository,

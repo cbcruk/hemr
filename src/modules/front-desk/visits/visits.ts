@@ -6,23 +6,23 @@ import { VisitHasClinicalData, VisitNotFound, VisitTransitionInvalid } from './v
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
 
-/** Inputs of a status command beyond the command itself. */
+/** 상태 커맨드에 커맨드 외로 함께 보내는 입력입니다. */
 export interface VisitCommandInput extends VisitTransitionOptions {
-  /** Why the visit was reopened or canceled. */
+  /** 내원을 다시 열거나 취소한 사유입니다. */
   reason?: string
 }
 
-/** Errors a status command can fail with. */
+/** 상태 커맨드가 실패할 수 있는 오류입니다. */
 export type VisitCommandError = VisitNotFound | VisitTransitionInvalid | VisitHasClinicalData
 
-/** Front-desk operations on visits. */
+/** 접수 데스크의 내원 작업입니다. */
 export class Visits extends Context.Service<
   Visits,
   {
     /**
-     * Applies a status command to a visit and stores the new status.
+     * 내원에 상태 커맨드를 적용하고 새 상태를 저장합니다.
      *
-     * Permission checks and the records a cascading cancel voids are not handled yet.
+     * 권한 확인과, 연쇄 취소 때 함께 무효로 할 기록 처리는 아직 없습니다.
      */
     apply(id: Id<'visit'>, command: VisitCommand, input?: VisitCommandInput): Effect.Effect<Visit, VisitCommandError>
   }

@@ -1,18 +1,18 @@
-/** Where a visit stands in the front-desk flow on the day of service. */
+/** 진료 당일 접수 흐름에서 내원이 있는 단계입니다. */
 export type VisitStatus = 'WAITING' | 'IN_TREATMENT' | 'AWAITING_PAYMENT' | 'COMPLETED' | 'CANCELED'
 
-/** Command that moves a visit between statuses, sent as `POST /visits/{id}:{command}`. */
+/** 내원 상태를 옮기는 커맨드입니다. `POST /visits/{id}:{command}`로 보냅니다. */
 export type VisitCommand =
   'START_TREATMENT' | 'RETURN_TO_WAITING' | 'SEND_TO_CHECKOUT' | 'CHECKOUT' | 'REOPEN' | 'CANCEL'
 
-/** Inputs that change whether a transition is allowed. */
+/** 전이 허용 여부를 바꾸는 입력입니다. */
 export interface VisitTransitionOptions {
-  /** Whether a cancel also voids the visit's encounters, receipts and related records. */
+  /** 취소할 때 그 내원의 진료·수납과 관련 기록도 함께 무효로 할지 여부입니다. */
   cascade?: boolean
 }
 
-/** Error codes returned when a visit transition is refused. */
+/** 내원 상태 전이를 거부할 때 돌려주는 오류 코드입니다. */
 export type VisitTransitionErrorCode = 'VISIT_TRANSITION_INVALID' | 'VISIT_HAS_CLINICAL_DATA'
 
-/** Outcome of evaluating a visit command against the current status. */
+/** 현재 상태에 내원 커맨드를 적용해 본 결과입니다. */
 export type VisitTransitionResult = { ok: true; to: VisitStatus } | { ok: false; code: VisitTransitionErrorCode }

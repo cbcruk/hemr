@@ -17,7 +17,7 @@ function visit(status: Visit['status']): Visit {
   }
 }
 
-/** Sends one command to a fresh app whose repository holds only `seed`. */
+/** 저장소에 `seed`만 있는 새 앱에 커맨드 하나를 보냅니다. */
 async function send(seed: Visit[], path: string, body?: unknown): Promise<Response> {
   const app = HttpRouter.toWebHandler(
     AppLive.pipe(Layer.provide([VisitRepository.layerMemory(seed), HttpServer.layerServices])),

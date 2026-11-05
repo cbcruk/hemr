@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware } from 'effect/http-api'
 import { VisitsApi } from './modules/front-desk/visits/visits.api.ts'
 
-/** Liveness check for load balancers and local development. */
+/** 로드 밸런서와 로컬 개발에서 쓰는 생존 확인입니다. */
 export class SystemApi extends HttpApiGroup.make('system').add(
   HttpApiEndpoint.get('health', '/health', {
     success: Schema.Struct({ status: Schema.Literal('ok') }),
@@ -10,9 +10,9 @@ export class SystemApi extends HttpApiGroup.make('system').add(
 ) {}
 
 /**
- * HTTP contract of the backend, with every route under `/v1`.
+ * 백엔드의 HTTP 계약입니다. 모든 경로는 `/v1` 아래에 있습니다.
  *
- * Request decoding failures are rendered as RFC 9457 Problem Details.
+ * 요청 디코딩 실패는 RFC 9457 Problem Details로 응답합니다.
  */
 export class Api extends HttpApi.make('hemr')
   .add(SystemApi)

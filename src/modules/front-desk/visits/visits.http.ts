@@ -4,7 +4,7 @@ import { Api } from '../../../api.ts'
 import type { VisitHasClinicalData } from './visit.ts'
 import { Visits } from './visits.ts'
 
-/** Only a cancel can need a cascade, so the other commands never fail this way. */
+/** 연쇄 취소가 필요한 커맨드는 취소뿐이라, 다른 커맨드는 이 오류로 실패하지 않습니다. */
 function withoutCascade<A, E, R>(
   effect: Effect.Effect<A, E | VisitHasClinicalData, R>,
 ): Effect.Effect<A, Exclude<E, VisitHasClinicalData>, R> {
@@ -15,7 +15,7 @@ function withoutCascade<A, E, R>(
   >
 }
 
-/** Handlers of the visit status commands. */
+/** 내원 상태 커맨드 핸들러입니다. */
 export const VisitsHttpLive = HttpApiBuilder.group(
   Api,
   'visits',
