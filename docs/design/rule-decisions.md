@@ -331,6 +331,9 @@
 | `NIGHT_TIME` | 수신자 제외 사유 | [crm-send-window](#crm-send-window) 광고를 야간 시간대에 보내는데 야간 동의가 없거나 병원이 야간 광고를 막음. 견적 `excluded.nightTime`, 연락 작업 `SKIPPED` 사유 (질문 4·5) |
 | `CONTACT_TASK_NIGHT_SEND_TIME` | 경고 코드 | [crm-send-window](#crm-send-window) 광고 연락 작업의 예정 시각이 야간 시간대. `POST /contact-tasks`·`:reschedule`·`:approve`에서 주고 저장은 막지 않음 (질문 4·5) |
 | `CONTACT_RULE_NIGHT_SEND_TIME` | 경고 코드 | [crm-send-window](#crm-send-window) 광고 연락 규칙의 발송 시각이 야간 시간대. 저장은 막지 않음 (질문 4) |
+| `ADVERTISING_DISCLOSURE_INCOMPLETE` | 422 오류 | [message-type-selection](#message-type-selection) 광고 법정 표기에 넣을 병원명·080 번호·인증 코드 중 빈 값이 있음 (질문 1) |
+| `SMS_OVERFLOW` | 수신자 제외 사유 | [message-type-selection](#message-type-selection) SMS 캠페인이 변수 치환 뒤 90byte를 넘고 `overflow: EXCLUDE` (질문 3) |
+| `BODY_TOO_LONG` | 수신자 제외 사유 | [message-type-selection](#message-type-selection) 변수 치환 뒤 최종 본문이 2,000byte 초과 (질문 3) |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -364,6 +367,7 @@
 | [procedure-timer](#procedure-timer) | [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts) (시술 `:start`·`PATCH`·만료 작업 전, 순수 함수) | [procedure-timer.fixtures.test.ts](../../src/modules/clinical/treatment-room/procedure-timer.fixtures.test.ts) | 없음. 현행 API 호출 순서는 서버 커맨드 하나로 합쳐 비교하지 않습니다 |
 | [settings-validation](#settings-validation) | [settings-validation.ts](../../src/modules/catalog/settings/settings-validation.ts) (설정 저장 전, 순수 함수) | [settings-validation.fixtures.test.ts](../../src/modules/catalog/settings/settings-validation.fixtures.test.ts) | 없음. 입력 자르기·blur 되돌리기·라벨·배너처럼 화면에만 있는 값은 비교하지 않습니다 |
 | [crm-send-window](#crm-send-window) | [night-advertising.ts](../../src/modules/crm/messaging/night-advertising.ts) (캠페인 견적·발송 실행·연락 규칙 저장 전, 순수 함수) | [night-advertising.fixtures.test.ts](../../src/modules/crm/messaging/night-advertising.fixtures.test.ts) | 없음. 현행 시간 선택기 범위(`window`)는 화면 값이라 비교하지 않습니다 |
+| [message-type-selection](#message-type-selection) | [message-body.ts](../../src/modules/crm/messaging/message-body.ts) (캠페인 견적·발송·이관 전, 순수 함수) | [message-body.fixtures.test.ts](../../src/modules/crm/messaging/message-body.fixtures.test.ts) | 없음. 현행 `maxBytes`는 편집기 한도라 유형별 한도로 비교합니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -644,6 +648,19 @@ crm-send-window에서 함께 반영한 결정입니다.
 - **연락 규칙의 야간 발송 시각은 저장 경고 `CONTACT_RULE_NIGHT_SEND_TIME`이고 저장을 막지 않습니다(질문 4).** 판정을 위해 연락 규칙과 연락 작업에 `purpose`(`ADVERTISING`/`INFORMATIONAL`)를 둡니다([crm.md](crm.md#모델)). 템플릿에서 채우되 직접 쓴 본문이나 전화 연락도 판정할 수 있게 작업에 직접 저장합니다. CENTRAL 프로그램은 병원별 `overrides.sendTime`이 있으면 그 값으로 검사합니다. `sendTime`(`HH:mm`) 형식이 틀리면 요청 검증 단계에서 400입니다
 - **연락 작업의 수동 등록·변경·승인도 막지 않고 경고합니다(질문 4·5).** 현행 연락 일정 팝오버는 야간 광고 작업 저장을 막았습니다. 서버는 `POST /contact-tasks`·`:reschedule`·`:approve`에서 `CONTACT_TASK_NIGHT_SEND_TIME` 경고를 주고 저장하며, 발송 시점에 야간 동의 없는 수신자면 `SKIPPED`(`NIGHT_TIME`)로 둡니다. 경고에는 엔드포인트가 `message`를 붙입니다
   - 대안: 야간 광고 작업 저장을 422로 막기. 야간 동의가 있는 환자에게 보내는 작업까지 막게 되어 버렸습니다
+
+message-type-selection에서 함께 반영한 결정입니다.
+
+- **광고 법정 표기에 빈 값이 있으면 보내지 않습니다(질문 1).** 현행은 병원명·인증 코드가 없으면 빈칸으로 붙여 보냈습니다. 서버는 병원명·080 번호·인증 코드 중 하나라도 비면 422 `ADVERTISING_DISCLOSURE_INCOMPLETE`와 빈 필드의 위반 목록을 돌려줍니다. 광고에는 전송자 명칭과 수신거부 방법을 밝혀야 하기 때문입니다([compliance.md](compliance.md#광고성-정보-전송))
+  - 대안: 현행처럼 빈칸으로 보내기. 법정 표기가 빠진 광고가 나가 버렸습니다
+- **표기 형식은 현행 그대로입니다.** `(광고) {병원명}\n{본문}\n\n무료거부: {080 번호}\n인증: {인증 코드}`입니다. 이관한 본문과 새 본문이 같은 바이트로 판정됩니다
+- **수신자별 2,000byte 초과는 `BODY_TOO_LONG`으로 뺍니다(질문 3).** 변수 치환으로 LMS·MMS 한도를 넘은 수신자는 올릴 유형이 없기 때문입니다. SMS 캠페인이 90byte를 넘을 때만 `overflow` 정책을 따릅니다
+- **캠페인 유형은 변수를 치환하지 않은 템플릿 본문에 법정 표기를 붙여 판정하고, 수신자 유형은 그보다 낮아지지 않습니다(질문 3).** LMS 캠페인에서 치환 뒤 90byte 이하가 된 수신자도 LMS입니다. 견적 단가와 실제 유형이 어긋나지 않게 하기 위해서입니다. SMS 채널 캠페인의 초과 처리는 새 필드 `overflow`(기본 `UPGRADE_TO_LMS`)이고, 카카오 대체 발송은 `fallback.overflow`입니다([crm.md](crm.md#모델-1))
+  - 대안: 수신자마다 더 싼 유형으로 낮추기. 견적과 청구가 달라져 버렸습니다
+- **`ADVERTISING_DISCLOSURE_INCOMPLETE`의 `violations[].field`는 병원 설정 키(`clinicName`·`optOutNumber`·`optOutCode`)이고 코드는 `REQUIRED`입니다(질문 1).** 표기 값은 공백·줄바꿈을 한 칸으로 줄여 넣어 머리말·꼬리말이 한 줄씩 유지됩니다
+- **이관할 때 꼬리말은 CRLF와 끝 공백을 허용해 마지막 하나만 뗍니다(질문 5).** 떼고도 `\n\n무료거부:`가 남는 행은 이관 보고서에 표시해 사람이 확인합니다. 그대로 두면 서버 꼬리말이 두 번 붙기 때문입니다
+- **바이트 계산은 현행 코드 그대로입니다(질문 2, 보류).** 짝이 없는 서로게이트도 현행처럼 4byte로 세고 다음 코드 단위를 건너뜁니다
+- **이관할 때 현행 메시지 유형이 `광고`·`알림` 밖이면 `ADVERTISING`입니다.** 현행 정규화와 같고, 광고 규칙을 더 엄격하게 적용하는 쪽입니다. 새 API는 `purpose`를 필수 열거형으로 받습니다
 
 ## 원무
 
@@ -1254,4 +1271,5 @@ crm-send-window에서 함께 반영한 결정입니다.
 | 4 | 클라이언트 `ht()` 결과는 표시와 한도(maxBytes 90 vs 2000)에만 쓰고, 최종 유형은 서버가 정한다고 가정합니다. | **따름:** 판정 순서(첨부 → 제목 → 90byte)와 경계(90byte 이하는 SMS)를 서버가 그대로 씁니다. 바이트는 머리말·꼬리말을 붙인 최종 본문으로 세고, 결과를 `Message.smsKind`에 남깁니다. 클라이언트는 `estimate` 결과만 보여 줍니다 | 재설계가 이미 정했습니다 ([crm.md](../design/crm.md#엔드포인트-1)) |
 | 5 | `F()`는 첫 줄이 `(광고)`로 시작할 때만 머리말을 떼고, 사용자가 쓴 본문에 `\n\n무료거부:`가 있으면 거기서 잘립니다. | **바꿈:** 서버는 본문(`content.body`)과 법정 표기를 나눠 저장하므로, 평소에는 떼어 낼 일이 없습니다. 현행 `messageText`를 이관할 때만 떼어 내고, 꼬리말은 본문 **끝**에 생성 형식(`\n\n무료거부: … \n인증: …`) 그대로 있을 때만 제거합니다 | 이관 때 이중 표기를 피해야 합니다 ([규칙 문서](../reference/rules/message-type-selection.md)). 최종본은 서버가 `resolvedBody`로 만듭니다 ([crm.md](../design/crm.md#모델-1)) |
 
-**바뀌는 케이스:** 없음
+**바뀌는 케이스:**
+- `applyAdHeaderFooter: missing name/code leave blanks`: 빈칸으로 붙이지 않고 422 `ADVERTISING_DISCLOSURE_INCOMPLETE`입니다 (Q1)
