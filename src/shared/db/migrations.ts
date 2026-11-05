@@ -25,7 +25,7 @@ export const migrations = {
         version INTEGER NOT NULL CHECK (version >= 1)
       ) STRICT
     `
-    // seq는 테넌트가 생기기 전까지 전체에서 단조 증가합니다. AUTOINCREMENT라 지운 번호를 다시 쓰지 않습니다
+    // seq는 outbox에 tenant_id가 붙기 전까지 전체에서 단조 증가합니다. AUTOINCREMENT라 지운 번호를 다시 쓰지 않습니다
     yield* sql`
       CREATE TABLE outbox (
         seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +43,59 @@ export const migrations = {
       ) STRICT
     `
     yield* sql`CREATE INDEX outbox_pending ON outbox (seq) WHERE published_at IS NULL`
+  }),
+  '0002_identity': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // products·features는 JSON 배열 문자열입니다
+    yield* sql`
+      CREATE TABLE tenants (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        hira_institution_code TEXT
+          CHECK (hira_institution_code IS NULL OR hira_institution_code GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
+        timezone TEXT NOT NULL,
+        products TEXT NOT NULL CHECK (json_valid(products)),
+        features TEXT NOT NULL CHECK (json_valid(features))
+      ) STRICT
+    `
+    yield* sql`
+      CREATE TABLE users (
+        id TEXT PRIMARY KEY,
+        login_id TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        phone TEXT,
+        license_number TEXT,
+        license_type TEXT CHECK (license_type IN ('KOREAN_MEDICINE_DOCTOR', 'PHARMACIST'))
+      ) STRICT
+    `
+    yield* sql`
+      CREATE TABLE memberships (
+        tenant_id TEXT NOT NULL REFERENCES tenants (id),
+        user_id TEXT NOT NULL REFERENCES users (id),
+        role TEXT NOT NULL
+          CHECK (role IN ('OWNER_DOCTOR', 'ASSOCIATE_DOCTOR', 'MANAGER', 'FRONT_DESK', 'THERAPIST')),
+        employment_type TEXT,
+        joined_on TEXT NOT NULL CHECK (joined_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'DEACTIVATED')),
+        deactivated_from TEXT
+          CHECK (deactivated_from IS NULL OR deactivated_from GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        scope TEXT NOT NULL CHECK (scope IN ('ALL', 'OWN')),
+        PRIMARY KEY (tenant_id, user_id),
+        -- 진료의는 근무형태가 있어야 청구를 보낼 수 있습니다
+        CHECK (role NOT IN ('OWNER_DOCTOR', 'ASSOCIATE_DOCTOR') OR employment_type IS NOT NULL)
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX memberships_user ON memberships (user_id)`
+    yield* sql`
+      CREATE TABLE permission_grants (
+        tenant_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        permission TEXT NOT NULL,
+        effect TEXT NOT NULL CHECK (effect IN ('GRANT', 'REVOKE')),
+        PRIMARY KEY (tenant_id, user_id, permission),
+        FOREIGN KEY (tenant_id, user_id) REFERENCES memberships (tenant_id, user_id) ON DELETE CASCADE
+      ) STRICT
+    `
   }),
 }
 

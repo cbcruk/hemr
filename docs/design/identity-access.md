@@ -29,12 +29,14 @@ erDiagram
 
 | 엔티티 | 핵심 필드 | 비고 |
 |---|---|---|
-| `Tenant` | `id`, `hiraInstitutionCode`(요양기관기호, 8자리, 없을 수 있음), `kcomwelInstitutionCode`(산재기관기호), `timezone`, `products[]`, `features[]`, `chartLayout` | `products`: `EMR`, `SOO`, `INSURANCE`, `CRM`, `MEMBERS` (현행 `서비스연동`) |
+| `Tenant` | `id`, `name`, `hiraInstitutionCode`(요양기관기호, 8자리, 없을 수 있음), `kcomwelInstitutionCode`(산재기관기호), `timezone`, `products[]`, `features[]`, `chartLayout` | `products`: `EMR`, `SOO`, `INSURANCE`, `CRM`, `MEMBERS` (현행 `서비스연동`) |
 | `TenantProfile` | 상호·대표자·주소·사업자등록번호·청구대행단체·첩약시범기관 여부 등 | 사업자등록번호처럼 증빙이 필요한 필드는 `ChangeRequest`로만 바꿈 |
 | `User` | `id`, `loginId`, `name`, `phone`, `licenseNumber`(면허번호), `licenseType`(`KOREAN_MEDICINE_DOCTOR`, `PHARMACIST`…) | 한 사람이 여러 병원에 속할 수 있게 `Membership`으로 분리 |
-| `Membership` | `tenantId`, `userId`, `role`, `employmentType`(현행 `근무형태`), `joinedOn`, `status`(`ACTIVE`/`DEACTIVATED`), `deactivatedFrom`, `stampImageId` | 현행 `근무형태`가 없으면 청구 전송이 409로 실패함. 재설계는 진료의 `Membership` 생성 시 필수 |
+| `Membership` | `tenantId`, `userId`, `role`, `employmentType`(현행 `근무형태`), `joinedOn`, `status`(`ACTIVE`/`DEACTIVATED`), `deactivatedFrom`, `scope`(`ALL`/`OWN`), `grants[]`, `stampImageId` | 현행 `근무형태`가 없으면 청구 전송이 409로 실패함. 재설계는 진료의 `Membership` 생성 시 필수 |
 | `Device` | `id`, `kind`(`DESKTOP_AGENT`, `TABLET`, `BROWSER`), `name`, `lastSeenAt` | 태블릿 계정(현행 `/tablet/accounts` 아이디·비밀번호)을 기기 등록으로 바꿈 |
 | `ApiToken` | `id`, `name`, `scopes[]`, `createdBy`, `lastUsedAt`, `revokedAt` | 현행 MCP 토큰 (병원당 1개 제한은 정책값으로) |
+
+지금 구현([identity.ts](../../src/modules/identity/identity.ts))은 `Tenant.kcomwelInstitutionCode`·`chartLayout`, `Membership.stampImageId`, `TenantProfile`·`Device`·`ApiToken`을 아직 두지 않습니다. 쓰는 기능을 만들 때 더합니다.
 
 ## 권한 모델
 
@@ -52,6 +54,31 @@ erDiagram
 - **면허 기반 행위:** 진료기록 작성·정정·철회(`encounter:write/amend/retract`), 처방(`prescription:*`), 진료기록 전자서명(`signature:sign` + `kind: MEDICAL_RECORDS`)은 권한과 별개로 `licenseType`이 맞아야 합니다. 권한 설정으로 데스크 직원에게 처방 권한을 줄 수 없게 합니다
   - 본인부담금 대장 서명(`kind: COPAYMENT_LEDGERS`)은 데스크 업무라 면허 요건이 없습니다
   - 면허 없는 사용자나 시스템이 진료기록을 바꿔야 하는 경우(청구 자동수정, 보험구분 변경)는 정정 제안만 만듭니다 ([clinical.md](clinical.md#진료-encounter))
+
+### 역할 프리셋 기본값
+
+권한 카탈로그와 계산은 [permissions.ts](../../src/modules/identity/permissions.ts)에 있습니다. 현행 역할별 기본 권한은 서버에 있어 분석으로 확인할 수 없었습니다. 그래서 아래 기본값을 정했고, 병원은 `PermissionGrant`로 조정합니다.
+
+| 역할 | 기본 권한 |
+|---|---|
+| `OWNER_DOCTOR` | 카탈로그 전체 |
+| `ASSOCIATE_DOCTOR` | 데스크 조회 + 처방·원외탕전·청구·연말정산·CRM·수신거부 조회 + 데스크 업무 + 진료(`encounter:write/amend/retract`, 방문진료 서식, `prescription:*`, `procedure:write`) |
+| `MANAGER` | 봉직의의 조회와 데스크 업무 + 매출 리포트 + 환자 삭제·문서 무효·청구 전송·사전심사·의료급여 승인·CRM·수신거부 관리 + 설정(구성원 관리 제외) |
+| `FRONT_DESK` | 데스크 조회(환자·예약·내원·수납·진료·시술·첩약·문서·연락·메시지) + 데스크 업무 |
+| `THERAPIST` | 환자·예약·내원·진료 조회, `visit:update`, `procedure:read/write` |
+
+데스크 업무는 환자 등록·수정, 예약, 접수·취소, 수납·정정·무효·환불, 문서 발급, 서명, 문자 발송, 연락 작업입니다. 감사 로그와 구성원 관리(`setting.members:update`)는 대표원장만, 매출 리포트(`report:read`)는 대표원장과 실장만 가집니다. 봉직의에게 매출을 보이지 않는 병원이 많기 때문입니다. 연쇄 취소(D3)에 필요한 세 권한을 모두 가진 프리셋은 원장 둘뿐입니다.
+
+- **프리셋은 목록으로 직접 적습니다.** 카탈로그에 권한을 더해도 프리셋에 저절로 들어가지 않습니다. 테스트가 프리셋 내용을 고정해, 바꾸면 리뷰에서 드러납니다
+- **설정 영역:** 현행 설정 권한 코드를 영역 이름으로 씁니다(`normal_setting` → `setting.normal:update`, catalog.md). `billing`·`normal`·`info`·`record`·`prescription`·`template`·`appointment`·`caller_number`·`system`·`schedule`·`tablet`·`message_template`이고, 구성원·권한 관리 `members`를 새로 둡니다. 재무 `finance.*`는 범위가 정해지면 더합니다
+- **조정 규칙:** 한 권한에 조정은 하나입니다. 저장할 때 `GRANT`·`REVOKE`가 함께 오면 `REVOKE`만 남깁니다. 카탈로그에 없는 권한은 부여할 수 없고, 카탈로그에서 사라진 권한의 조정은 읽을 때 뺍니다
+  - 대안: 나중에 저장한 조정이 이기기. 순서를 저장해야 하고, 막으려던 권한이 실수로 열릴 수 있어 버렸습니다
+- **면허 권한:** 면허 권한은 `licenseType`이 한의사가 아니면 부여했어도 계산 결과에서 빠집니다. 그래서 `/me`에도 나오지 않습니다. 진료기록 서명은 서명 종류에 따라 판정이 달라 따로 판정합니다(`canSign`). 계산 결과에 면허를 함께 담아, 다른 사람의 면허로 판정하는 실수를 막습니다
+- **데이터 범위:** `scope`(`ALL`/`OWN`)는 권한마다가 아니라 소속마다 하나입니다. 현행 `all`/`owner_only`도 권한 코드가 아니라 사용자 단위 설정이었습니다. 기본은 `ALL`입니다
+- **소속 유효 기간:** 입사일(`joinedOn`) 전, `status: DEACTIVATED`, `deactivatedFrom` 날짜(병원 시간대)부터는 권한이 없습니다
+- **진료의 근무형태:** `OWNER_DOCTOR`·`ASSOCIATE_DOCTOR` 소속은 `employmentType`이 있어야 합니다. DB 제약과 저장 검증이 함께 막습니다
+- **로그인 아이디:** 전체에서 유일하고, 앞뒤 공백을 빼고 소문자로 저장·비교합니다. `Doctor`와 `doctor`는 같은 아이디입니다. 중복은 DB 유니크 제약으로 판정합니다
+- **되돌릴 조건:** 현행 역할별 기본 권한을 확보하면 프리셋을 그 값에 맞춥니다. 이관하는 병원은 현행 권한을 `PermissionGrant`로 옮겨 차이를 메웁니다
 
 현행 65개 코드의 전체 대응표는 [review.md](review.md#권한-코드-대응) 한 곳에 둡니다. 주의할 점만 적습니다.
 
