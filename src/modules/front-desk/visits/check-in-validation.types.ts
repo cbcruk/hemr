@@ -1,5 +1,6 @@
-/** 내원의 보험구분입니다. `docs/design/front-desk.md`의 용어 표를 따릅니다. */
-export type Coverage = 'NHIS' | 'MEDICAL_AID' | 'AUTO_INSURANCE' | 'INDUSTRIAL_ACCIDENT' | 'SELF_PAY'
+import type { Coverage } from '../../../shared/coverage.ts'
+
+export type { Coverage }
 
 /** 건보 자격 조회의 `자격여부`가 뜻하는 자격 종류입니다. `1`–`6`은 건보, `7`·`8`은 의료급여입니다. */
 export type EligibilityKind = 'NHIS' | 'MEDICAL_AID'

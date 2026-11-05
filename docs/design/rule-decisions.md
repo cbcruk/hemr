@@ -300,6 +300,7 @@
 | `PAYMENT_METHOD_NOT_ALLOWED` | 422 오류 | [checkout-settlement](#checkout-settlement) 서버가 만드는 결제 수단(`JEJU_SUBSIDY`, `OVERPAID_CREDIT`, `PACKAGE`)을 요청에 넣음 |
 | `FEE_CODE_NOT_IN_MASTER` | 경고 | [consultation-fee-code](#consultation-fee-code), [procedure-fee-modifiers](#procedure-fee-modifiers) |
 | `conflictingEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) |
+| `paidEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) 현재·충돌 진료 중 수납을 마친 진료. 현행 "과수납금" 문구 두 갈래를 대신합니다 |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
 | `SPECIAL_CASE_CODE_MISMATCH` | 오류 | [special-case-code-match](#special-case-code-match) |
 | `CHUNA_USAGE_UNKNOWN` | 경고 | [chuna-annual-limit](#chuna-annual-limit) |
@@ -319,6 +320,7 @@
 | [cash-drawer-expected-closing](#cash-drawer-expected-closing) | [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts) (시재 엔드포인트 전, 순수 함수) | [cash-drawer.fixtures.test.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.fixtures.test.ts) | 없음. 현행의 서버 값 경로와 fallback 경로를 모두 같은 원장 계산으로 옮겼습니다 |
 | [consultation-fee-code](#consultation-fee-code) | [consultation-fee-code.ts](../../src/modules/clinical/fees/consultation-fee-code.ts) (진료 저장 전, 순수 함수) | [consultation-fee-code.fixtures.test.ts](../../src/modules/clinical/fees/consultation-fee-code.fixtures.test.ts) | 서버가 이전 진료를 직접 조회해 생기지 않는 "목록 없음" 1건. 시술 가산(`JLt`) 10건은 [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts)로 검사합니다 |
 | [procedure-fee-modifiers](#procedure-fee-modifiers) | [procedure-fee-modifiers.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.ts) (처방 줄 upsert·완료 전, 순수 함수) | [procedure-fee-modifiers.fixtures.test.ts](../../src/modules/clinical/fees/procedure-fee-modifiers.fixtures.test.ts) | 서버에서 생기지 않는 설정·진료 시각·환자 없음 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [duplicate-consultation-fee](#duplicate-consultation-fee) | [duplicate-consultation-fee.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.ts) (진료 저장·완료 전, 순수 함수) | [duplicate-consultation-fee.fixtures.test.ts](../../src/modules/clinical/fees/duplicate-consultation-fee.fixtures.test.ts) | 서버에서 생기지 않는 진료 시각 없음 1건. 확인창 문구는 `paidEncounterIds`로 검사합니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -404,6 +406,16 @@ procedure-fee-modifiers에서 함께 반영한 결정입니다.
 - **비대면 진료는 산정코드를 다시 계산하지 않습니다.** 현행과 같습니다. 진찰료(consultation-fee-code)도 비대면이면 가산을 붙이지 않습니다
 - **금액은 `단가 × 1일 투여량 × 일수`를 한 번만 반올림(0.5는 올림)합니다.** 1일 투여량이 소수여도 정수 연산으로 계산하도록 수납 등급 할인과 같은 도우미(`shared/money/decimal.ts`)를 씁니다
 - **마스터에 없는 코드는 진료마다 한 번만 경고에 담습니다.** 같은 코드의 줄이 여러 개여도 경고의 `feeCodes`에는 한 번만 들어갑니다
+
+duplicate-consultation-fee에서 함께 반영한 결정입니다.
+
+- **수납 완료 여부는 위반 상세의 `paidEncounterIds`로 알립니다.** 현행은 오늘 대기 목록의 `수납완료`로 확인창 문구만 바꿨습니다. 서버는 수납 기록을 보므로 지난 날짜 진료도 수납 완료를 압니다. 문구 선택은 클라이언트가 합니다
+  - 대안: 현행처럼 오늘 날짜일 때만 확인합니다. 대기 목록이 오늘 것뿐이라 생긴 제약이라 고르지 않았습니다
+  - 되돌릴 조건: 없습니다. 문구만 달라지고 판정은 같습니다
+- **진찰료 판정은 공용 함수(`fees/fee-kinds.ts`의 `isConsultationFee`)를 씁니다.** 질문 3의 참조데이터 속성을 만들기 전까지 초기값 `10` 대역을 여기에 두고, auto-insurance-same-day-consultation을 옮길 때 같은 함수를 씁니다
+- **`T0004`는 비대면 진료에만 붙입니다.** 비대면 청구 코드라 대면끼리 중복에는 쓰지 않습니다. 같은 방식 중복은 `DUPLICATE_CONSULTATION_FEE`의 acknowledge 이력으로 남습니다. 완료된 진료에 중복이 있으면 확인을 받은 것이므로 이슈 함수는 acknowledge 여부를 다시 보지 않습니다
+- **`T0004`의 같은 날 판정은 위반과 같은 함수를 씁니다.** 호출하는 쪽이 따로 계산한 참·거짓을 받으면 위반과 이슈가 어긋날 수 있어, 같은 환자의 다른 진료 목록을 받습니다. 취소·철회한 진료는 호출하는 쪽이 뺍니다
+- **자보·산재는 이 규칙에서 검사하지 않습니다.** 자보의 같은 날 진찰료는 auto-insurance-same-day-consultation이 같은 코드로 판정합니다
 
 ## 원무
 
@@ -612,6 +624,7 @@ procedure-fee-modifiers에서 함께 반영한 결정입니다.
 - `two face-to-face encounters same day both with 진찰료 -> no dialog` → `DUPLICATE_CONSULTATION_FEE` 위반이 나옵니다(acknowledge 가능)
 - `two telemedicine encounters same day -> no dialog` → `DUPLICATE_CONSULTATION_FEE` 위반이 나옵니다(acknowledge 가능)
 - `telemedicine with 진찰료 and same-day face-to-face 진찰료 -> T0004 raw, filtered from claim warnings` → `shownInClaimWarnings`에 `T0004`가 들어갑니다
+- `past date with paid record -> '가정' wording (today check fails)` → `paidEncounterIds`에 `tele`가 들어갑니다(서버는 수납 기록을 봅니다)
 - 나머지 케이스는 충돌 진료가 하나뿐이라 `conflictingRecordId`가 한 칸짜리 배열이 되는 형태 변화만 있습니다
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
