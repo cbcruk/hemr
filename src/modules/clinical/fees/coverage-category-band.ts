@@ -1,4 +1,5 @@
 import type { Coverage } from '../../../shared/coverage.ts'
+import { PILOT_HERBAL_CATEGORIES } from '../pilot-herbal/pilot-herbal-categories.ts'
 
 /** 보험구분 검사에 쓰는 진료 문맥입니다. 내원의 `benefitFlags`에서 옵니다. */
 export interface CoverageContext {
@@ -46,7 +47,7 @@ const COVERAGE_RESTRICTIONS: readonly CoverageRestriction[] = [
   },
   {
     // 한방첩약 시범사업은 건보에만 있습니다
-    categories: new Set(['35001001', '35001002', '35002001', '35003001', '35004001']),
+    categories: PILOT_HERBAL_CATEGORIES,
     allowedIn: (context) => context.coverage === 'NHIS' && context.herbalPilot,
   },
   {

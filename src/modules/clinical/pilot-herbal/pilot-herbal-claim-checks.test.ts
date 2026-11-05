@@ -5,7 +5,15 @@ import type { PilotHerbalClaimInput, PilotHerbalClaimLine } from './pilot-herbal
 const AT = { date: '2026-01-15', time: '10:00' }
 
 function line(lineId: string, category: string, overrides: Partial<PilotHerbalClaimLine> = {}): PilotHerbalClaimLine {
-  return { lineId, category, feeCode: null, name: '', approved: true, herbalDetails: null, ...overrides }
+  return {
+    lineId,
+    category,
+    feeCode: null,
+    name: '',
+    hiraApproval: { status: 'APPROVED' },
+    herbalDetails: null,
+    ...overrides,
+  }
 }
 
 function input(overrides: Partial<PilotHerbalClaimInput> = {}): PilotHerbalClaimInput {
@@ -35,7 +43,10 @@ describe('pilotHerbalClaimIssues', () => {
   })
 
   it('flags every unapproved herbal line (C0005)', () => {
-    const lines = [line('h1', '35001001', { approved: false }), line('h2', '35001001', { approved: false })]
+    const lines = [
+      line('h1', '35001001', { hiraApproval: { status: 'PENDING' } }),
+      line('h2', '35001001', { hiraApproval: null }),
+    ]
     expect(pilotHerbalClaimIssues(input({ lines }))).toEqual([{ code: 'C0005', lineIds: ['h1', 'h2'] }])
   })
 

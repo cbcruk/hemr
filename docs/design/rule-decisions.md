@@ -247,7 +247,7 @@
 
 #### pilot-herbal-approval-required 2: SOO 경로의 승인 검사 · 채택
 
-- **결정:** 계정이나 완료 경로와 상관없이, 미승인 `35001001` 라인이 있으면 완료를 막습니다. SOO 단독 테넌트는 첩약 시범 라인을 만들 수 없게 합니다
+- **결정:** 계정이나 완료 경로와 상관없이, 미승인 `35001001` 라인이 있으면 완료를 막습니다. SOO 단독 테넌트는 첩약 시범사업 카테고리 라인을 만들 수 없게 합니다
 - **검토한 대안:** 현행처럼 SOO 단독 계정과 비대면 SOO 주문 완료는 검사 생략
 - **선택 이유:** 미제출 첩약은 심사불능이라 경로 예외를 둘 근거가 없습니다. 규칙을 경로가 아니라 라인 상태로 판정해야 우회로가 생기지 않습니다(기준 2)
 - **가정과 되돌릴 조건:** 비대면 SOO 주문에 첩약 시범 라인이 실제로 들어오고, 승인 전에 완료해야 하는 업무가 있다면 그 경로에만 "완료 후 제출" 예외를 둡니다
@@ -312,6 +312,7 @@
 | `PILOT_HERBAL_HISTORY_UNVERIFIED` | 경고 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 등록 여부를 알 수 없는 이력이 있어 본인부담률 코드를 정하지 않음 (질문 6) |
 | `HERBAL_DISEASE_NOT_APPLICABLE` | 422 오류 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) 질환 코드가 진료일 기준 `herbal-applicable-diseases`에 없음 (질문 9) |
 | `period`·`count`·`limit` | 위반 상세 필드 | [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) `PILOT_HERBAL_DOCTOR_LIMIT`가 넘은 구간(`DAY`·`MONTH`·`YEAR`, 일 → 월 → 연 순으로 하나), 현재 진료 순번, 한도 |
+| `PILOT_HERBAL_NOT_AVAILABLE` | 422 오류 | [pilot-herbal-approval-required](#pilot-herbal-approval-required) EMR 제품이 없는 SOO 단독 테넌트가 첩약 시범사업 카테고리 줄을 만듦 (질문 2) |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -340,6 +341,7 @@
 | [pilot-herbal-diagnosis-limit](#pilot-herbal-diagnosis-limit) | [pilot-herbal-diagnosis-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-diagnosis-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-diagnosis-limit.fixtures.test.ts) | 요청 스키마가 막는 질환 코드 없음 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [pilot-herbal-claim-checks](#pilot-herbal-claim-checks) | [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) (진료 저장·청구 명세서 검사 전, 순수 함수) | [pilot-herbal-claim-checks.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.fixtures.test.ts) | 서버 입력으로 성립하지 않는 기준일시 없음 1건, 서버에 없는 화면 필터 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) | [pilot-herbal-doctor-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-doctor-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.fixtures.test.ts) | 서버에 없는 문자열·빠진 필드 횟수 2건, 횟수를 불러오는 중 상태 2건, 빈 질환 코드 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [pilot-herbal-approval-required](#pilot-herbal-approval-required) | [pilot-herbal-approval.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.ts) (처방 줄 생성·진료 완료 전, 순수 함수). C0005는 [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) | [pilot-herbal-approval.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.fixtures.test.ts) | 없음. 추적 케이스 4건은 서버 판정 함수로 바뀐 결과를 검사합니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -564,6 +566,15 @@ pilot-herbal-doctor-limit에서 함께 반영한 결정입니다.
 - **이력을 아직 받지 못했어도 한도를 넘으면 `U`입니다.** 현행은 이력이 없으면 아무것도 바꾸지 않았습니다. 한도 초과는 이력과 무관하게 `U`이므로 기다릴 이유가 없습니다. `PILOT_HERBAL_HISTORY_UNKNOWN` 경고는 그대로 남습니다
 - **경고는 넘은 구간 하나만 담습니다.** 현행 문구의 일 → 월 → 연 우선순위를 따르고, 문구는 `pilotHerbalDoctorLimitMessage`가 만듭니다
 - **한도 8/60/600은 `regulatory-limits` 참조데이터로 옮길 초기값 상수로 둡니다.** 함수는 한도를 인자로 받습니다. 남은 건수(`remainingPilotHerbalDoctorQuota`)는 현행처럼 음수를 그대로 돌려줍니다
+
+pilot-herbal-approval-required에서 함께 반영한 결정입니다.
+
+- **승인 상태가 없거나 `PENDING`·`REJECTED`이면 미승인입니다.** 현행 `승인여부`가 없을 때 막던 것과 같습니다. 첩약 줄은 `PENDING`으로 만들고(`initialHiraApprovalStatus`), 나머지 줄은 `NOT_REQUIRED`입니다
+- **`PILOT_HERBAL_NOT_APPROVED`에 미승인 첩약 줄을 모두 담습니다.** 완료를 막는 다른 규칙과 같이 `blocksCompletion`과 `lineIds`로 알립니다
+- **청구 검사 C0005도 줄의 `hiraApproval`을 받아 `isHiraApproved`로 판정합니다.** 완료 검사와 청구 검사가 같은 승인 판정을 쓰므로, 호출하는 쪽이 승인 여부를 따로 계산할 수 없습니다. 시범사업 카테고리 목록은 `pilot-herbal-categories.ts` 하나를 처방 카테고리 대역 검사와 함께 씁니다
+- **SOO 단독 테넌트는 EMR 제품이 없는 테넌트입니다(질문 2).** 현행 "계정 서비스가 정확히 `soo`"를 `Tenant.products`에 `EMR`이 없는 것으로 옮깁니다. `SOO`·`CRM`처럼 EMR 없는 다른 조합도 진료 차트가 없으므로 함께 거부합니다. 첩약뿐 아니라 시범사업 카테고리 다섯 가지 줄을 모두 422 `PILOT_HERBAL_NOT_AVAILABLE`로 거부합니다. 승인 대상이 아닌 시범사업 줄도 첩약 없이는 청구할 수 없기 때문입니다
+  - 되돌릴 조건: SOO 단독 테넌트에도 시범사업 수가를 따로 청구하는 업무가 있으면 거부를 `35001001`로 좁힙니다
+- **미승인이어도 진료 저장은 통과합니다(질문 4).** 현행은 대화상자를 띄우고 저장하지 않았습니다. 서버는 C0005 warning으로 알리고 완료만 막습니다
 
 ## 원무
 
@@ -1042,7 +1053,7 @@ pilot-herbal-doctor-limit에서 함께 반영한 결정입니다.
 | # | 질문 | 권장 | 근거 |
 |---|---|---|---|
 | 1 | `35001001`(첩약) 라인만 승인 검사하고 조제·탕전료·심층변증·한약재·시범사업약재는 보지 않는데 승인 단위가 첩약 라인이 맞는가 | **따름:** 승인 검사는 `35001001` 라인만 합니다. 다른 시범사업 라인은 `hiraApproval.status = NOT_REQUIRED`입니다 | 설계가 "카테고리 `35001001`은 모두 승인 상태"로 정했습니다([clinical.md](../design/clinical.md#완료-검증-규칙)). 심평원 제출은 수진자 진료정보(처방) 단위입니다([claim.md](../reference/spec/claim.md)) |
-| 2 | SOO 단독 계정과 비대면 SOO 주문 완료는 승인 검사를 건너뛰는데 서버도 예외로 두는가 | **바꿈:** 계정·완료 경로로 건너뛰지 않고 미승인 `35001001` 라인이 있으면 어느 경로든 완료를 막습니다. SOO 단독 테넌트는 애초에 첩약 시범 라인을 만들 수 없게 합니다 | 서버 규칙은 라인 상태로 판정합니다([clinical.md](../design/clinical.md#완료-검증-규칙)). 미제출 첩약은 심사불능이라([claim.md](../reference/spec/claim.md)) 경로 예외를 둘 근거가 없습니다 |
+| 2 | SOO 단독 계정과 비대면 SOO 주문 완료는 승인 검사를 건너뛰는데 서버도 예외로 두는가 | **바꿈:** 계정·완료 경로로 건너뛰지 않고 미승인 `35001001` 라인이 있으면 어느 경로든 완료를 막습니다. SOO 단독 테넌트는 애초에 첩약 시범사업 카테고리 라인을 만들 수 없게 합니다 | 서버 규칙은 라인 상태로 판정합니다([clinical.md](../design/clinical.md#완료-검증-규칙)). 미제출 첩약은 심사불능이라([claim.md](../reference/spec/claim.md)) 경로 예외를 둘 근거가 없습니다 |
 | 3 | 청구 검사 C0005는 첫 라인만, 완료 검사는 모든 라인을 본다 | **바꿈:** 둘 다 모든 `35001001` 라인을 봅니다 | 같은 승인 규칙을 두 곳에서 다르게 판정할 이유가 없습니다(pilot-herbal-claim-checks Q10) |
 | 4 | 진료 화면 실시간 경고가 C0005를 걸러 내고, 청구함 C0005는 서버 데이터에서 온다 | **바꿈:** 서버가 진료 저장 응답 `warnings`와 청구 명세서 `issues[]`에 같은 C0005를 넣습니다. 완료는 `PILOT_HERBAL_NOT_APPROVED`로 막습니다 | "저장은 warnings로 알리고 완료는 막는다"는 설계와 맞습니다([clinical.md](../design/clinical.md#저장)). 검사 출처를 서버 하나로 합칩니다 |
 | 5 | `승인여부 = true`를 심평원 제출 화면(클라이언트)이 정하므로 서버에 자체 승인 상태 출처가 필요하다 | **바꿈:** 승인 여부는 `HiraPreSubmission`(kind `PILOT_HERBAL`) 결과로만 바뀌는 라인의 `hiraApproval.status`로 판정하고, 클라이언트가 보낸 플래그는 무시합니다 | 이미 정한 설계입니다([clinical.md](../design/clinical.md#처방-라인), [claims.md](../design/claims.md#심평원-사전-제출)). 픽스처의 `승인여부`는 `hiraApproval.status == APPROVED`로 읽습니다 |
@@ -1052,6 +1063,7 @@ pilot-herbal-doctor-limit에서 함께 반영한 결정입니다.
 - `flow: SOO-only account skips the approval check`: 검사 건너뜀 → SOO 단독 테넌트에서는 첩약 시범 라인 생성 자체가 거부되고, 라인이 있으면 완료가 막힘 (Q2)
 - `flow: non-face-to-face SOO order completion skips save and approval check`: 검사 건너뜀 → `PILOT_HERBAL_NOT_APPROVED`로 완료가 막힘 (Q2)
 - `realtime claim warning: C0005 is computed but filtered out of treatment-screen warnings`: `[]` → `["C0005"]` (Q4)
+- `flow: normal account with unapproved line stops before save and done`: 저장·완료 안 함 → 저장은 C0005 warning과 함께 통과하고 완료는 `PILOT_HERBAL_NOT_APPROVED`로 막힘 (Q4)
 
 **결정 기록:** 이 규칙의 정책 판단과 그 이유는 [결정 기록](#결정-기록)에 있습니다.
 

@@ -2,9 +2,10 @@ import type { Coverage } from '../../../shared/coverage.ts'
 import { daysBetween } from '../../../shared/time/calendar.ts'
 import type { ServiceAt } from '../fees/consultation-fee-code.ts'
 import { DEFAULT_PILOT_HERBAL_DISEASES } from './pilot-herbal-diagnosis-limit.ts'
+import { isHiraApproved } from './pilot-herbal-approval.ts'
+import type { HiraApprovalStatus } from './pilot-herbal-approval.ts'
+import { PILOT_HERBAL_CATEGORY } from './pilot-herbal-categories.ts'
 
-/** 첩약 시범사업 처방 카테고리입니다. */
-export const PILOT_HERBAL_CATEGORY = '35001001'
 const HERBAL_MEDICINE_CATEGORY = '34001001'
 const HERBAL_DISPENSING_CATEGORY = '34002001'
 
@@ -41,8 +42,8 @@ export interface PilotHerbalClaimLine {
   category: string
   feeCode: string | null
   name: string
-  /** 심평원 승인 상태가 `APPROVED`인지입니다 (pilot-herbal-approval-required 결정 5). */
-  approved: boolean
+  /** 심평원 승인 상태입니다. C0005는 완료 검사와 같은 `isHiraApproved`로 판정합니다 (pilot-herbal-approval-required 결정 3·5). */
+  hiraApproval: { status: HiraApprovalStatus } | null
   /** 첩약 줄의 특정내역입니다. 없으면 `null`입니다. */
   herbalDetails: { targetDisease: string | null; checklistSubmitted: boolean | null } | null
 }
@@ -177,7 +178,7 @@ const CHECKS: readonly Check[] = [
     return repeated ? issue('C0004', ids(current)) : null
   },
   // C0005: 심평원에 제출(승인)되지 않은 첩약 줄입니다 (결정 10)
-  ({ lines }) => issue('C0005', ids(herbalLines(lines).filter((line) => !line.approved))),
+  ({ lines }) => issue('C0005', ids(herbalLines(lines).filter((line) => !isHiraApproved(line)))),
   // C0006: 첩약 특정내역이 있는데 체크리스트를 제출하지 않았습니다. 제출 여부를 모르면 미제출로 봅니다
   ({ lines }) =>
     issue(

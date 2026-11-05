@@ -32,7 +32,7 @@ function toLine(legacy: Record<string, any>): PilotHerbalClaimLine {
     category: legacy['카테고리숫자코드'],
     feeCode: legacy['수가코드'] ?? null,
     name: legacy['처방명'] ?? '',
-    approved: legacy['승인여부'] === true,
+    hiraApproval: legacy['승인여부'] === true ? { status: 'APPROVED' } : null,
     herbalDetails:
       details === undefined
         ? null
