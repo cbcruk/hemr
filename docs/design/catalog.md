@@ -81,7 +81,7 @@ POST   /settings/{resource}/{id}:duplicate
 | `clinic-hours` (단일) | `/settings/clinic-hours` | 요일별 진료·휴게 시간 |
 | `clinic-calendar` | `/settings/clinic-calendar/days`, `/closed-days`, `/holidays/*` | `GET /settings/clinic-calendar?from=&to=` → 일자별 `{ closed, specialHours }`. 공휴일은 참조데이터 |
 | `doctor-schedules` | `/settings/doctor-schedules`, `/clinic-schedules`, `/doctors/{id}` | 의사별 주간 패턴 + 일자별 예외(`대체진료의Id` 포함) |
-| `appointment-policy` (단일) | `/settings/appointments` | `slotMinutes`, `capacityPerSlot`, `noShowAfterMinutes`(10/30/60), `noShowAtClosing` |
+| `appointment-policy` (단일) | `/settings/appointments` | `slotMinutes`, `capacityPerSlot`, `noShowAfterMinutes`(10/30/60), `noShowAtClinicClose` |
 | `visit-types` | `/settings/medical-treatments` | 현행 "진료항목". 이름 충돌을 피하려고 `visit-types`로 바꿈. `defaultDurationMinutes`, `exclusiveBooking`(현행 `추가예약제한`) |
 | `patient-grades` | `/settings/patient-levels` | `discountRate` |
 | `referral-sources` | `/settings/visit-pathways` | 내원경로 |

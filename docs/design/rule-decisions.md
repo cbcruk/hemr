@@ -108,7 +108,7 @@
 
 #### appointment-no-show 4: 옛 부도 시간 값 이관 · 채택
 
-- **결정:** 설정은 10/30/60분 또는 진료 마감만 받습니다. 이관할 때 다른 값은 그보다 큰 가장 가까운 값으로 올리고(45 → 60) 병원에 알립니다
+- **결정:** 설정은 10/30/60분 또는 진료 마감만 받습니다. 이관할 때 다른 값은 그보다 크거나 같은 가장 가까운 값으로 올리고(45 → 60) 병원에 알립니다
 - **검토한 대안:** 가장 가까운 값 / 임의 값 허용
 - **선택 이유:** 내리면 부도가 전보다 일찍 생겨, 늦게 온 환자가 부도 처리되는 일이 생깁니다. 올리면 부도 처리가 조금 늦어질 뿐입니다
 - **가정과 되돌릴 조건:** 없음. 이관 스크립트의 변환 규칙입니다
@@ -293,6 +293,7 @@
 | `CAPACITY_EXCEEDED` | acknowledge 코드 | [appointment-acceptance](#appointment-acceptance) 예약 한도 초과 |
 | `BREAK_TIME` | 오류 | [appointment-acceptance](#appointment-acceptance) 점심·저녁 휴게 슬롯. 현행 "휴게 시간에는 예약을 이동할 수 없습니다". 확인으로 넘길 수 없어 `SLOT_BLOCKED`와 따로 둡니다 |
 | `APPOINTMENT_DURATION_INVALID` | 오류 | [appointment-acceptance](#appointment-acceptance) 예약 길이가 예약시간단위의 배수가 아니거나 120분 초과 (질문 9) |
+| `NO_SHOW_MINUTES_INVALID` | 422 오류 | [appointment-no-show](#appointment-no-show) 부도 처리 시점이 10/30/60분이 아님 (질문 4) |
 | `FEE_CODE_NOT_IN_MASTER` | 경고 | [consultation-fee-code](#consultation-fee-code), [procedure-fee-modifiers](#procedure-fee-modifiers) |
 | `conflictingEncounterIds[]` | 위반 상세 필드 | [duplicate-consultation-fee](#duplicate-consultation-fee) |
 | `REFERENCE_DATA_UNAVAILABLE` | 422 오류 | [reference-version-selection](#reference-version-selection) |
@@ -309,6 +310,7 @@
 | [visit-status-transitions](#visit-status-transitions) | [visit-status.ts](../../src/modules/front-desk/visits/visit-status.ts), [visits.ts](../../src/modules/front-desk/visits/visits.ts) | [visit-status.fixtures.test.ts](../../src/modules/front-desk/visits/visit-status.fixtures.test.ts) | 권한·접수·베드 배정·수납이 필요한 13건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [check-in-validation](#check-in-validation) | [check-in-validation.ts](../../src/modules/front-desk/visits/check-in-validation.ts) (접수 엔드포인트 전, 순수 함수) | [check-in-validation.fixtures.test.ts](../../src/modules/front-desk/visits/check-in-validation.fixtures.test.ts) | 화면 문구와 버튼 표시, 권한, 보험구분 변경, 자보 한도 다이얼로그, 본인확인 중복 케이스, 진료 완료로 옮긴 산정특례 7건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [appointment-acceptance](#appointment-acceptance) | [appointment-acceptance.ts](../../src/modules/front-desk/appointments/appointment-acceptance.ts) (예약 엔드포인트 전, 순수 함수) | [appointment-acceptance.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-acceptance.fixtures.test.ts) | 화면 셀 상태·기본 선택값, 권한, 진료의 근무 일정, 중복 예약 409, 생기지 않는 입력(빈 셀, 0분 단위) 12건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [appointment-no-show](#appointment-no-show) | [appointment-no-show.ts](../../src/modules/front-desk/appointments/appointment-no-show.ts) (부도 스케줄러·설정 API 전, 순수 함수) | [appointment-no-show.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-no-show.fixtures.test.ts) | 이력 문구 2건. 예약 이력과 `displayStatus`를 만들 때 옮깁니다. 부도 판정식은 클라이언트에 없어 단위 테스트가 질문 1–3으로 검사합니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -341,6 +343,16 @@ appointment-acceptance에서 함께 반영한 결정입니다.
 - **일정을 옮길 때 옮기는 예약 자신은 셀에서 빼고 셉니다.** 빼지 않으면 같은 자리로 길이만 바꿔도 자기 자신 때문에 한도 초과 경고가 납니다
 - **날짜는 `YYYY-MM-DD`, 시각은 `HH:mm`만 받습니다.** check-in-validation과 같은 이유로, 형식이 다르면 예외를 던집니다
 - **중복 예약(409)의 기준은 아직 정하지 않았습니다.** 현행은 서버가 409를 돌려주지만 기준(같은 환자·같은 시각인지)을 클라이언트에서 볼 수 없습니다. 예약 저장소를 만들 때 정합니다
+
+appointment-no-show에서 함께 반영한 결정입니다.
+
+- **부도 처리 시각은 예약일 기준 분으로 셉니다.** 23:45 예약에 30분 설정이면 `24:15`, 즉 다음 날 00:15입니다. 날짜가 바뀌어도 시각 비교가 틀리지 않게 하려는 것입니다
+- **진료 마감 모드를 켜도 분 값을 지우지 않습니다.** 설정은 `{noShowAfterMinutes, noShowAtClinicClose}` 두 필드이고, 현행처럼 모드를 끄면 전에 고른 분 값으로 돌아갑니다
+- **이관할 때 빈 분 값은 10분, 60분을 넘는 값은 진료 마감 모드로 바꿉니다.** 질문 4의 "올림"을 빈 값(현행 화면 0분)과 올릴 값이 없는 경우로 넓힌 것입니다. 60으로 내리면 모든 예약의 부도가 일찍 생기고, 진료 마감 모드는 대부분의 예약에서 더 늦습니다. 다만 마감 직전 예약(예: 90분 설정, 17:30 예약, 18:00 마감)은 현행 19:00보다 이른 18:30에 부도가 됩니다. 이관 결과(`adjusted`)로 병원에 알려 설정을 다시 고르게 합니다. 되돌릴 조건: 60분을 넘는 값을 쓰던 병원이 많으면 분 선택지에 90·120을 더합니다
+- **진료 마감 모드에서도 시작 + N분 전에는 부도로 만들지 않습니다.** 부도 시각은 진료 마감과 시작 + N분 중 늦은 쪽입니다. 근무 시간 밖 예약(오전만 근무하는 진료의의 14:00 예약)이 시작하기도 전에 부도가 되는 일을 막습니다
+- **휴진이 아닌데 구간이 없는 일정은 건너뜁니다.** 덜 채운 날짜별 일정 때문에 진료 마감이 자정으로 밀리지 않게 하려는 것입니다
+- **진료의 반나절 휴진은 호출하는 쪽이 진료의 날짜별 일정에 반영합니다.** 오후 휴진이면 그날 진료 마감은 오전 구간의 끝입니다
+- **휴진일·일정 없음의 진료 마감은 `24:00`입니다.** 질문 2의 "휴진일 예약은 그날 자정에 처리"를 시각으로 적은 것입니다
 
 ## 원무
 

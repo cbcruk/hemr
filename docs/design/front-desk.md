@@ -52,6 +52,8 @@ stateDiagram-v2
 - 현행 표시 상태 7종은 `status` + `history`로 서버가 계산한 `displayStatus`로 줍니다 (`ARRIVED_AFTER_NO_SHOW`, `RESCHEDULED_AFTER_CANCEL` …). 클라이언트 추론(`vl()`, `Lnt`)을 없앱니다
 - **삭제는 두지 않습니다.** 잘못 만든 예약은 `:cancel {reason: "ENTERED_IN_ERROR"}`로 취소하고 목록에서 거릅니다. 현행 `DELETE`는 알림 메시지까지 지웠습니다
 - **부도 처리:** 정책(`noShowAfterMinutes` 10/30/60분 또는 진료 마감 시점)에 따라 서버 스케줄러가 전이합니다. 현행과 같지만 명시적 상태가 됩니다
+  - `BOOKED`만 대상이고, 예약 시작 + N분 이상이 되면 바꿉니다. 시간 미정 예약은 진료 마감, 진료 마감 모드는 진료 마감과 시작 + N분 중 늦은 쪽입니다. 진료 마감은 진료의 날짜별 > 진료의 요일별 > 병원 날짜별 > 병원 요일별 일정의 마지막 구간 종료이고, 휴진일이면 자정입니다
+  - 설정은 `{noShowAfterMinutes: 10|30|60, noShowAtClinicClose}`이고 다른 분 값은 422 `NO_SHOW_MINUTES_INVALID`입니다. 판정은 [appointment-no-show.ts](../../src/modules/front-desk/appointments/appointment-no-show.ts)의 순수 함수입니다
 
 ### 리소스
 

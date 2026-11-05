@@ -247,7 +247,10 @@ function assertInput(input: AppointmentSlotInput): void {
 }
 
 function assertDate(date: string): void {
-  if (!ISO_DATE.test(date)) throw new RangeError(`Expected a YYYY-MM-DD date, got "${date}"`)
+  const [year, month, day] = date.split('-').map(Number) as [number, number, number]
+  // `2026-02-30`처럼 없는 날짜는 다음 달로 넘어가므로 되돌려 보고 다르면 거부합니다
+  const valid = ISO_DATE.test(date) && new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10) === date
+  if (!valid) throw new RangeError(`Expected a YYYY-MM-DD date, got "${date}"`)
 }
 
 function assertTime(time: string): void {
