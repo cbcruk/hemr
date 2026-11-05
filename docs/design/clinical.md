@@ -214,6 +214,7 @@ stateDiagram-v2
   RUNNING --> TIMER_ELAPSED: timerEndsAt 경과 (서버)
   RUNNING --> RUNNING: :restart-timer
   TIMER_ELAPSED --> RUNNING: :restart-timer
+  TIMER_ELAPSED --> RUNNING: :start (다른 만료 시술 자동 완료)
   RUNNING --> DONE: :complete
   TIMER_ELAPSED --> DONE: :complete
   DONE --> RUNNING: :start (재시작)
@@ -223,6 +224,7 @@ stateDiagram-v2
 - **타이머 만료는 서버 상태입니다.** 서버가 `timerEndsAt`에 맞춰 `TIMER_ELAPSED`로 바꾸고 이벤트를 보냅니다. 현행은 클라이언트가 로컬에서 `pending + 타이머종료`로 바꿨고 서버에는 그 전이가 없었습니다
 - **자동 완료 정책:** 현행은 "다른 시술을 시작하면 타이머가 끝난 시술을 자동 완료"를 클라이언트가 했습니다. 재설계는 `:start`가 같은 베드의 `TIMER_ELAPSED` 시술을 정책(`procedure-timers.autoCompleteElapsedOnNextStart`)에 따라 함께 완료합니다
 - `DONE → RUNNING` 재시작은 현행 `uncomplete` → `start` 두 번 호출이었습니다. 한 커맨드로 합칩니다
+- 만료·시작·시간 변경 판정은 [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts)에 있습니다 ([결정](rule-decisions.md#procedure-timer))
 
 ```
 GET  /treatment-rooms/board?date=          → rooms[].beds[].{ visit, procedures[] } + serverTime   (현행 /treatments/snapshot)

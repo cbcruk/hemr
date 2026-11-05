@@ -318,6 +318,9 @@
 | `PAYMENT_AMOUNT_MISMATCH` | 422 오류 | [external-herbal-precheck](#external-herbal-precheck) 결제수단 합이 `quote.payable`과 다름(`TOTAL`) 또는 0원 이하 수단(`NON_POSITIVE_AMOUNT`) (질문 5) |
 | `PAYMENT_UNCONFIRMED` | 409 오류 | [external-herbal-precheck](#external-herbal-precheck) 같은 견적의 결제 결과를 아직 확인하지 못해 다시 결제하지 않음. 현행 "외부 결제는 완료되었으나" 문구를 대신함 |
 | `lineIssues[].rawCode` | 위반 상세 필드 | [external-herbal-precheck](#external-herbal-precheck) 탕전원이 준 원문 줄 실패 코드 (질문 3) |
+| `PROCEDURE_DURATION_INVALID` | 422 오류 | [procedure-timer](#procedure-timer) 시술 시간이 1 이상의 정수가 아니거나 증감값이 0·소수 |
+| `PROCEDURE_DURATION_TOO_SHORT` | 422 오류 | [procedure-timer](#procedure-timer) 진행 중 시술의 새 시간이 서버 시계 기준 경과 + 1초보다 짧음 (질문 4) |
+| `PROCEDURE_ALREADY_DONE` | 409 오류 | [procedure-timer](#procedure-timer) 완료된 시술의 시간을 바꿈 |
 | `PRECHECK_UNAVAILABLE` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 같은 날 기제출 조회가 실패해 제출하지 않음 (질문 3) |
 | `DIAGNOSIS_MISSING`·`PATIENT_INFO_MISSING`·`LICENSE_MISSING`·`CLINIC_CODE_MISSING`·`COVERAGE_NOT_SUBMITTABLE`·`ACCIDENT_NUMBER_MISSING`·`ELIGIBILITY_MISSING` | 제출 실패 사유 | [chuna-auto-approval](#chuna-auto-approval) 페이로드 검증 실패. 현행 오류 토스트 순서대로 처음 것 하나 (질문 3) |
 
@@ -348,6 +351,7 @@
 | [pilot-herbal-doctor-limit](#pilot-herbal-doctor-limit) | [pilot-herbal-doctor-limit.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.ts) (첩약 처방 저장·완료 전, 순수 함수) | [pilot-herbal-doctor-limit.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-doctor-limit.fixtures.test.ts) | 서버에 없는 문자열·빠진 필드 횟수 2건, 횟수를 불러오는 중 상태 2건, 빈 질환 코드 1건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [pilot-herbal-approval-required](#pilot-herbal-approval-required) | [pilot-herbal-approval.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.ts) (처방 줄 생성·진료 완료 전, 순수 함수). C0005는 [pilot-herbal-claim-checks.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-claim-checks.ts) | [pilot-herbal-approval.fixtures.test.ts](../../src/modules/clinical/pilot-herbal/pilot-herbal-approval.fixtures.test.ts) | 없음. 추적 케이스 4건은 서버 판정 함수로 바뀐 결과를 검사합니다 |
 | [external-herbal-precheck](#external-herbal-precheck) | [external-herbal-precheck.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.ts) (원외탕전 `:quote`·`:place` 전, 순수 함수) | [external-herbal-precheck.fixtures.test.ts](../../src/modules/herbal-pharmacy/external-orders/external-herbal-precheck.fixtures.test.ts) | 서버에 없는 모의 모드 1건, 결제액 없는 견적 1건, 연동 어댑터에서 옮길 견적 정규화 2건, 오류 문구로 판별하던 중복 결제 3건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [procedure-timer](#procedure-timer) | [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts) (시술 `:start`·`PATCH`·만료 작업 전, 순수 함수) | [procedure-timer.fixtures.test.ts](../../src/modules/clinical/treatment-room/procedure-timer.fixtures.test.ts) | 없음. 현행 API 호출 순서는 서버 커맨드 하나로 합쳐 비교하지 않습니다 |
 
 visit-status-transitions에서 함께 반영한 결정입니다.
 
@@ -594,6 +598,16 @@ external-herbal-precheck에서 함께 반영한 결정입니다.
 - **견적 응답 정규화는 연동 어댑터를 만들 때 옮깁니다.** 판정이 아니라 외부 응답 해석이라 순수 규칙에 두지 않습니다
 - **같은 견적은 한 번만 결제합니다.** `:place`는 주문이 `QUOTED`일 때만 받고, 외부 결제를 부르기 전에 주문에 결제 시도(`quoteId`, Idempotency-Key)를 먼저 기록합니다. 외부 결제는 성공했는데 주문 저장에 실패하면 주문을 `PLACED`로 맞추는 복구 작업이 외부 결제 조회로 정리하고, 그동안 같은 견적의 `:place`는 409 `PAYMENT_UNCONFIRMED`입니다. 새 Idempotency-Key로 다시 보내도 같은 견적이면 막힙니다. 현행은 "외부 결제는 완료되었으나" 문구로만 판별했습니다
   - 되돌릴 조건: 탕전원이 결제 요청에 멱등 키를 받으면 복구 작업 대신 같은 키 재요청으로 정리합니다
+
+procedure-timer에서 함께 반영한 결정입니다.
+
+- **`:start`는 대기·만료·완료 시술을 모두 받습니다(질문 2).** 만료 시술은 현행 `restart`, 완료 시술은 `uncomplete` → `start`와 같은 결과로 다시 시작하고 `completedAt`을 비웁니다. 진행 중이면 바꾸지 않고 통과합니다(`ALREADY_RUNNING`). 대상이 없으면 404입니다. 다시 보낸 커맨드가 새 타이머 만료 뒤에 오면 다시 시작되므로, 중복 요청은 Idempotency-Key와 `version`으로 막습니다
+- **`:start`는 판정 전에 서버 시계로 만료를 다시 봅니다(질문 1·4).** 만료 작업이 늦어 아직 `RUNNING`인 시술도 종료 시각이 지났으면 만료로 보고, 자동 완료하거나(다른 시술) 다시 시작합니다(대상). 현행 픽스처의 "이미 진행 중" 케이스는 종료 시각이 지난 행이라 서버에서는 다시 시작됩니다. 이때 만료한 시술은 결과의 `elapsedIds`로 돌려줘, 호출하는 쪽이 만료 이벤트와 종료 알림을 빠뜨리지 않게 합니다. 시간 변경(`PATCH`)도 같은 방식으로 먼저 만료를 봅니다
+- **자동 완료는 `startProcedures` 하나가 합니다.** 개별 `:start`는 대상 하나, 세트를 베드에서 시작하는 `:start-all`은 세트 시술 모두를 대상으로 넘기고, 대상 밖의 만료 시술만 완료합니다. 현행 `Ea(내원, 제외Ids)`와 같습니다. `:complete-all`·`:restart-timer`·`:reorder`는 이 함수를 부르지 않습니다
+- **시간 변경 오류에 이름을 붙입니다(질문 4).** 정수가 아니거나 1 미만이면 422 `PROCEDURE_DURATION_INVALID`, 진행 중인데 경과 + 1초보다 짧으면 422 `PROCEDURE_DURATION_TOO_SHORT`, 완료된 시술은 409 `PROCEDURE_ALREADY_DONE`입니다. 현행은 모두 조용히 무시했습니다. 같은 값은 바꾸지 않고 통과합니다
+- **만료 시술의 시간을 바꿔도 만료 상태를 둡니다.** 현행 `pending`과 같이 시간만 바꾸고, 실제로 끝난 시각인 `timerEndsAt`도 그대로 둡니다. 다시 돌리려면 `:restart-timer`나 `:start`를 씁니다
+- **이관할 때 시작 시각이 있어도 타이머가 끝나지 않은 `pending` 행은 시작·종료 시각을 비운 `PENDING`입니다(질문 3).** `PENDING`에는 시작 시각이 없다는 불변식을 지키기 위해서입니다
+- **종료 알림 키는 `timer-end:{procedureId}:{timerEndsAt 밀리초}`이고, 제목은 현행 문구를 씁니다(질문 3).** 키 모양은 현행과 같아 태블릿 앱의 중복 제거가 그대로 동작합니다
 
 ## 원무
 
@@ -1138,6 +1152,11 @@ external-herbal-precheck에서 함께 반영한 결정입니다.
 - `mapServerProcedure: running without 시작일시 keeps running with null remaining`: 이런 행은 생기지 않습니다. 이관분은 `PENDING`이 됩니다
 - `tick: simultaneous expiries share one batch; no-start row counts down remaining`: 만료된 a·b가 `TIMER_ELAPSED`가 되고, 시작 시각 없는 running 행 d는 생기지 않습니다. 알림 키는 모두 `timerEndsAt`을 가집니다
 - `startTreatment: starting a done procedure uncompletes then starts`: `uncomplete` + `start` 두 번 대신 `:start` 한 번으로 같은 결과를 냅니다
+- `startTreatment: restarting an elapsed procedure uses /restart`: `restart`(실패 시 `start`) 대신 `:start` 한 번으로 같은 결과를 냅니다
+- `startTreatment: already running is a no-op`: 입력 행은 종료 시각(01:05)이 지난 `running`이라, 서버 시계로 만료로 보고 01:10에 다시 시작합니다 (Q1·Q4)
+- `setDuration: running: shorter than elapsed+1 rejected`: 무시 → 422 `PROCEDURE_DURATION_TOO_SHORT` (Q4)
+- `setDuration: zero rejected`, `setDuration: non-integer rejected`, `adjustTimer: -600s hits 0 and is rejected`: 무시 → 422 `PROCEDURE_DURATION_INVALID` (Q4)
+- `setDuration: done procedure rejected`: 무시 → 409 `PROCEDURE_ALREADY_DONE` (Q4)
 
 ### settings-validation
 
