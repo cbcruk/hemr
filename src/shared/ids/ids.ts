@@ -1,4 +1,4 @@
-import { ulid } from 'ulid'
+import { monotonicFactory, ulid } from 'ulid'
 import type { Id, IdKind } from './ids.types.ts'
 
 /**
@@ -42,6 +42,15 @@ const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
  */
 export function newId<K extends IdKind>(kind: K, time?: number): Id<K> {
   return `${ID_PREFIXES[kind]}_${ulid(time)}` as Id<K>
+}
+
+/**
+ * 같은 시각의 새 ID `count`개를 만든 순서대로 커지게 만듭니다. 한 요청에서 만든 여러 행을 ID 순으로 읽어도 요청
+ * 순서가 유지됩니다. `newId`는 같은 밀리초 안에서 순서가 무작위입니다.
+ */
+export function newIds<K extends IdKind>(kind: K, count: number, time: number): Array<Id<K>> {
+  const next = monotonicFactory()
+  return Array.from({ length: count }, () => `${ID_PREFIXES[kind]}_${next(time)}` as Id<K>)
 }
 
 /**

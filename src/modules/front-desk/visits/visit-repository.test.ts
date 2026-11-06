@@ -252,6 +252,7 @@ describe('VisitRepository (sqlite) transaction', () => {
       'encounter_revisions',
       'procedures',
       'receipts',
+      'payments',
     ])
   })
 
@@ -279,6 +280,7 @@ describe('VisitRepository (sqlite) transaction', () => {
         'encounter_revisions',
         'procedures',
         'receipts',
+        'payments',
       ])
     } finally {
       rmSync(dir, { recursive: true, force: true })

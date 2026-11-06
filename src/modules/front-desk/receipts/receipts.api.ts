@@ -9,7 +9,9 @@ import {
   CheckoutCoverageUnsupported,
   CheckoutEncounterInvalid,
   CheckoutErrorCode,
+  CheckoutPaymentInvalid,
   CheckoutRejected,
+  PaymentId,
   PaymentMethod,
   PrepaidKind,
   QuoteId,
@@ -25,7 +27,7 @@ import { CheckedOut } from './receipts.ts'
 const params = { id: VisitId }
 const strict = { errors: 'all', onExcessProperty: 'error' } as const
 
-/** 수납 요청의 결제 하나입니다. 0원 결제는 받되 기록하지 않습니다. */
+/** 수납 요청 안에서 받는 결제 하나입니다. 0원 결제는 받되 기록하지 않습니다. */
 const PaymentInput = Schema.Struct({
   method: PaymentMethod,
   prepaidKind: Schema.optionalKey(PrepaidKind),
@@ -35,6 +37,8 @@ const PaymentInput = Schema.Struct({
 /** 견적과 수납이 같이 받는 필드입니다. */
 const options = {
   encounterIds: Schema.optionalKey(Schema.Array(EncounterId).check(Schema.isMinLength(1), Schema.isMaxLength(20))),
+  /** 미리 기록한 외부 승인 결제(`POST /payments`)입니다. */
+  paymentIds: Schema.optionalKey(Schema.Array(PaymentId).check(Schema.isMaxLength(20))),
   payments: Schema.optionalKey(Schema.Array(PaymentInput).check(Schema.isMaxLength(20))),
   useOverpaidCredit: Schema.optionalKey(Schema.NullOr(Schema.Literals(['TAX_EXEMPT', 'TAXABLE']))),
   writeOffRemainder: Schema.optionalKey(Schema.Boolean),
@@ -68,6 +72,7 @@ const quoteErrors = [
   ReceiptAlreadyExists,
   CheckoutEncounterInvalid,
   CheckoutCoverageUnsupported,
+  CheckoutPaymentInvalid,
 ]
 
 /**

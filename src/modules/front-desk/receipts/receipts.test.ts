@@ -1,4 +1,4 @@
-import { Effect, Layer, Option } from 'effect'
+import { Effect, Exit, Layer, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
@@ -9,18 +9,21 @@ import { testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
 import { Visits } from '../visits/visits.ts'
+import { Payments } from './payments.ts'
+import { ReceiptRepository } from './receipt-repository.ts'
 import { Receipts } from './receipts.ts'
 
 const desk = testMember({ role: 'FRONT_DESK' })
 
-type Services = Receipts | Visits | Patients | EncounterRepository | Outbox | CurrentAccess
+type Services =
+  Receipts | Payments | ReceiptRepository | Visits | Patients | EncounterRepository | Outbox | CurrentAccess
 
 const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sqlite') =>
   Effect.runPromise(
     program.pipe(
       Effect.provideService(CurrentAccess, desk.access),
       Effect.provide(
-        Receipts.layer.pipe(
+        Layer.merge(Receipts.layer, Payments.layer).pipe(
           Layer.provideMerge(Visits.layer),
           Layer.provideMerge(Patients.layer),
           Layer.provideMerge(desk.seed),
@@ -96,5 +99,111 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
       store,
     )
     expect(error).toMatchObject({ code: 'CHECKOUT_COVERAGE_UNSUPPORTED' })
+  })
+
+  it('applies a recorded payment ahead of in-request payments and reads them back in that order', async () => {
+    const result = await run(
+      Effect.gen(function* () {
+        const visit = yield* checkedIn
+        const payments = yield* Payments
+        const receipts = yield* Receipts
+        const card = yield* payments.record({
+          patientId: visit.patientId,
+          method: 'CARD',
+          amount: { taxable: 0, taxExempt: 3_000 },
+          processorRef: '1',
+          idempotencyKey: 'p',
+        })
+        const options = {
+          paymentIds: [card.id],
+          payments: [
+            { method: 'CASH' as const, amount: { taxable: 0, taxExempt: 1_000 } },
+            { method: 'BANK_TRANSFER' as const, amount: { taxable: 0, taxExempt: 2_000 } },
+            { method: 'CASH' as const, amount: { taxable: 0, taxExempt: 4_000 } },
+          ],
+        }
+        const quote = yield* receipts.quote(visit.id, options)
+        const { receipt } = yield* receipts.checkout(visit.id, {
+          ...options,
+          quoteId: quote.quoteId,
+          idempotencyKey: 'k',
+        })
+        const repository = yield* ReceiptRepository
+        const pending = yield* (yield* Outbox).pending(100)
+        return {
+          visitId: visit.id,
+          card,
+          receipt,
+          stored: Option.getOrThrow(yield* repository.findById(visit.tenantId, receipt.id)),
+          captured: Option.getOrThrow(yield* repository.findPayment(visit.tenantId, card.id)),
+          events: pending
+            .map((row) => row.event)
+            .filter((event) => event.type === 'payment.recorded' || event.type === 'receipt.created'),
+        }
+      }),
+      store,
+    )
+    // 미리 기록한 결제는 받은 시각 순서라 보통 앞이지만, 같은 밀리초면 ID 순입니다. 요청 안의 결제는 요청 순서입니다
+    const amounts = result.receipt.payments
+      .filter((each) => each.id !== result.card.id)
+      .map((each) => [each.method, each.amount.taxExempt])
+    expect(result.receipt.payments).toHaveLength(4)
+    expect(amounts).toEqual([
+      ['CASH', 1_000],
+      ['BANK_TRANSFER', 2_000],
+      ['CASH', 4_000],
+    ])
+    expect(result.stored.payments).toEqual(result.receipt.payments)
+    // 내원 없이 기록한 결제는 적용한 수납의 내원을 받습니다
+    expect(result.captured).toMatchObject({ status: 'CAPTURED', receiptId: result.receipt.id, visitId: result.visitId })
+    expect(result.events.map((event) => [event.type, event.data])).toEqual([
+      [
+        'payment.recorded',
+        {
+          paymentId: result.card.id,
+          patientId: result.card.patientId,
+          visitId: null,
+          method: 'CARD',
+          amount: { taxable: 0, taxExempt: 3_000 },
+        },
+      ],
+      ['receipt.created', expect.objectContaining({ paymentIds: result.receipt.payments.map((each) => each.id) })],
+    ])
+  })
+
+  it('writes nothing when a payment to apply is no longer unapplied', async () => {
+    const result = await run(
+      Effect.gen(function* () {
+        const visit = yield* checkedIn
+        const receipts = yield* Receipts
+        const quote = yield* receipts.quote(visit.id, {})
+        const { receipt } = yield* receipts.checkout(visit.id, {
+          quoteId: quote.quoteId,
+          payments: [{ method: 'CASH', amount: { taxable: 0, taxExempt: 1 } }],
+          acknowledge: ['OUTSTANDING'],
+          idempotencyKey: 'k',
+        })
+        const repository = yield* ReceiptRepository
+        const cash = receipt.payments[0]!
+        const other = {
+          ...receipt,
+          id: 'rcp_01JBQ000000000000000000077' as Id<'receipt'>,
+          visitId: 'vis_01JBQ000000000000000000077' as Id<'visit'>,
+          payments: [cash, { ...cash, id: 'pay_01JBQ000000000000000000077' as Id<'payment'> }],
+        }
+        const exit = yield* Effect.exit(repository.insert(other, [], [cash.id]))
+        return {
+          exit,
+          found: yield* repository.findById(visit.tenantId, other.id),
+          fresh: yield* repository.findPayment(visit.tenantId, 'pay_01JBQ000000000000000000077' as Id<'payment'>),
+          cash: Option.getOrThrow(yield* repository.findPayment(visit.tenantId, cash.id)),
+        }
+      }),
+      store,
+    )
+    expect(Exit.isFailure(result.exit)).toBe(true)
+    expect(result.found).toEqual(Option.none())
+    expect(result.fresh).toEqual(Option.none())
+    expect(result.cash).toMatchObject({ receiptId: expect.stringMatching(/^rcp_/), version: 1 })
   })
 })

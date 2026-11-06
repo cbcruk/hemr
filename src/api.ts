@@ -4,6 +4,7 @@ import { Access } from './modules/identity/auth/access.ts'
 import { AuthApi, MeApi } from './modules/identity/auth/auth.api.ts'
 import { EncountersApi } from './modules/clinical/encounters/encounters.api.ts'
 import { ProceduresApi } from './modules/clinical/treatment-room/procedures.api.ts'
+import { PaymentsApi } from './modules/front-desk/receipts/payments.api.ts'
 import { ReceiptsApi } from './modules/front-desk/receipts/receipts.api.ts'
 import { VisitsApi } from './modules/front-desk/visits/visits.api.ts'
 import { PatientsApi } from './modules/patients/patients.api.ts'
@@ -33,6 +34,7 @@ export class Api extends HttpApi.make('hemr')
   .add(EncountersApi)
   .add(ProceduresApi)
   .add(ReceiptsApi)
+  .add(PaymentsApi)
   .prefix('/v1')
   .middleware(RequestValidation)
   .annotate(HttpApi.ParseOptions, { errors: 'all' }) {}
