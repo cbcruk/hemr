@@ -1,5 +1,8 @@
 import type { Id } from '../../../shared/ids/ids.types.ts'
-import type { ClinicalNote, Diagnosis, EncounterChangeError, EncounterWarning } from './encounter.ts'
+import { applyLineChanges, coverageMismatches } from '../prescriptions/prescription-line-changes.ts'
+import type { PrescriptionLineChanges, PrescriptionLineRef } from '../prescriptions/prescription-line-changes.ts'
+import type { PrescriptionLine } from '../prescriptions/prescription-line.ts'
+import type { ClinicalNote, Diagnosis, Encounter, EncounterChangeError, EncounterWarning } from './encounter.ts'
 
 /** 고칠 상병입니다. `id`가 있으면 그 상병을, 없으면 같은 코드의 상병을 고치고 그런 상병이 없으면 더합니다. */
 export interface DiagnosisUpsert {
@@ -16,12 +19,20 @@ export interface EncounterChanges {
     upsert?: ReadonlyArray<DiagnosisUpsert>
     remove?: ReadonlyArray<Id<'diagnosis'>>
   }
+  prescriptionLines?: PrescriptionLineChanges
 }
 
 /** 고칠 수 있는 진료 내용입니다. */
 export interface EncounterContent {
   note: ClinicalNote
   diagnoses: ReadonlyArray<Diagnosis>
+  prescriptionLines: ReadonlyArray<PrescriptionLine>
+}
+
+/** 새 상병·처방 라인의 ID를 만듭니다. */
+export interface NewIds {
+  diagnosis: () => Id<'diagnosis'>
+  prescriptionLine: () => Id<'prescriptionLine'>
 }
 
 export type ApplyChangesResult =
@@ -30,6 +41,8 @@ export type ApplyChangesResult =
       content: EncounterContent
       /** 실제로 바뀐 필드입니다. 비어 있으면 저장하지 않습니다. */
       changed: ReadonlyArray<keyof EncounterContent>
+      /** 새 처방 라인의 `clientRef`와 서버 ID입니다. */
+      prescriptionLineRefs: ReadonlyArray<PrescriptionLineRef>
     }
   | { ok: false; errors: ReadonlyArray<EncounterChangeError> }
 
@@ -38,15 +51,10 @@ export type ApplyChangesResult =
  * 고친 상병은 자리와 ID를 지킵니다.
  *
  * 없는 상병 ID, 한 요청 안에서 같은 코드나 같은 ID를 둘 보내기, 고친 결과 같은 코드가 둘이 되기는 모두 거절하고 이유를 모두
- * 돌려줍니다. 주상병 개수처럼 완료 전에만 맞으면 되는 것은 거절하지 않고 `diagnosisWarnings`로 알립니다.
- *
- * `newDiagnosisId`는 새 상병의 ID를 만듭니다.
+ * 돌려줍니다. 처방 라인은 `applyLineChanges`가 같은 방식으로 적용하고, 두 쪽의 이유를 함께 돌려줍니다. 주상병 개수처럼
+ * 완료 전에만 맞으면 되는 것은 거절하지 않고 `encounterWarnings`로 알립니다.
  */
-export function applyChanges(
-  current: EncounterContent,
-  changes: EncounterChanges,
-  newDiagnosisId: () => Id<'diagnosis'>,
-): ApplyChangesResult {
+export function applyChanges(current: EncounterContent, changes: EncounterChanges, ids: NewIds): ApplyChangesResult {
   const errors: EncounterChangeError[] = []
   const known = new Set(current.diagnoses.map((each) => each.id))
   const removed = new Set(changes.diagnoses?.remove ?? [])
@@ -73,7 +81,7 @@ export function applyChanges(
     const same = diagnoses.find((each) => each.code === item.code)
     diagnoses =
       same === undefined
-        ? [...diagnoses, { id: newDiagnosisId(), code: item.code, kind: item.kind }]
+        ? [...diagnoses, { id: ids.diagnosis(), code: item.code, kind: item.kind }]
         : diagnoses.map((each) => (each.id === same.id ? { ...each, kind: item.kind } : each))
   }
   // ID로 고친 상병이 다른 상병의 코드를 가져간 경우입니다
@@ -86,13 +94,46 @@ export function applyChanges(
     }
     codes.add(each.code)
   }
-  if (errors.length > 0) return { ok: false, errors }
+  const lines = applyLineChanges(current.prescriptionLines, changes.prescriptionLines ?? {}, ids.prescriptionLine)
+  if (!lines.ok) errors.push(...lines.errors)
+  if (errors.length > 0 || !lines.ok) return { ok: false, errors }
 
   const note = changes.note ?? current.note
   const changed: Array<keyof EncounterContent> = []
   if (note.body !== current.note.body) changed.push('note')
   if (JSON.stringify(diagnoses) !== JSON.stringify(current.diagnoses)) changed.push('diagnoses')
-  return { ok: true, content: { note, diagnoses }, changed }
+  if (JSON.stringify(lines.lines) !== JSON.stringify(current.prescriptionLines)) changed.push('prescriptionLines')
+  return {
+    ok: true,
+    content: { note, diagnoses, prescriptionLines: lines.lines },
+    changed,
+    prescriptionLineRefs: lines.refs,
+  }
+}
+
+/**
+ * 저장은 되지만 완료 전에 고쳐야 하는 것입니다. 상병 문제(`diagnosisWarnings`) 다음에 진료의 보험구분에서 쓸 수 없는
+ * 처방 라인(`COVERAGE_CATEGORY_MISMATCH`)입니다.
+ *
+ * 내원에 아직 첩약·비대면 시범사업 표시가 없어 둘 다 아닌 진료로 봅니다. 그 카테고리·코드의 라인은 늘 경고입니다.
+ */
+export function encounterWarnings(
+  encounter: Pick<Encounter, 'coverage' | 'diagnoses' | 'prescriptionLines'>,
+): EncounterWarning[] {
+  const warnings = diagnosisWarnings(encounter.diagnoses)
+  const mismatched = coverageMismatches(encounter.prescriptionLines, {
+    coverage: encounter.coverage,
+    herbalPilot: false,
+    telemedicinePilot: false,
+  })
+  if (mismatched.length > 0) {
+    warnings.push({
+      code: 'COVERAGE_CATEGORY_MISMATCH',
+      message: 'Some prescription lines cannot be used with the coverage of the encounter.',
+      targets: mismatched,
+    })
+  }
+  return warnings
 }
 
 /** 저장은 되지만 완료 전에 고쳐야 하는 상병 문제입니다. 상병이 없으면 아직 쓰는 중이라 알리지 않습니다. */

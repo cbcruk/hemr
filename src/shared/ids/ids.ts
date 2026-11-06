@@ -15,6 +15,7 @@ export const ID_PREFIXES = {
   visit: 'vis',
   encounter: 'enc',
   diagnosis: 'dx',
+  prescriptionLine: 'pl',
   receipt: 'rcp',
   payment: 'pay',
   quote: 'qt',

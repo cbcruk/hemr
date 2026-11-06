@@ -11,6 +11,17 @@ const doctor = testMember({ role: 'OWNER_DOCTOR' })
 const desk = testMember({ role: 'FRONT_DESK' })
 /** 원장 역할이지만 면허가 없어 진료기록을 쓰지 못합니다. */
 const unlicensed = testMember({ role: 'OWNER_DOCTOR', licenseType: null })
+/** 진료기록은 쓰지만 처방은 쓰지 못합니다. */
+const noPrescribing = testMember({ grants: [{ permission: 'prescription:write', effect: 'REVOKE' }] })
+/** 처방은 쓰지만 PRN 처방은 쓰지 못합니다. */
+const noPrn = testMember({ grants: [{ permission: 'prescription:write_prn', effect: 'REVOKE' }] })
+/** 진료기록만 쓰고 처방은 PRN까지 모두 쓰지 못합니다. */
+const noLines = testMember({
+  grants: [
+    { permission: 'prescription:write', effect: 'REVOKE' },
+    { permission: 'prescription:write_prn', effect: 'REVOKE' },
+  ],
+})
 const elsewhere = testMember({
   tenant: { ...TEST_TENANT, id: 'ten_01JBQ000000000000000000002' as typeof TEST_TENANT.id },
 })
@@ -25,9 +36,15 @@ interface Init {
 }
 
 function app(store: 'memory' | 'sqlite' = 'memory') {
-  const seeds = Layer.mergeAll(doctor.seed, desk.seed, unlicensed.seed, elsewhere.seed).pipe(
-    Layer.provideMerge(store === 'memory' ? PersistenceMemory() : PersistenceSqlite(':memory:')),
-  )
+  const seeds = Layer.mergeAll(
+    doctor.seed,
+    desk.seed,
+    unlicensed.seed,
+    noPrescribing.seed,
+    noPrn.seed,
+    noLines.seed,
+    elsewhere.seed,
+  ).pipe(Layer.provideMerge(store === 'memory' ? PersistenceMemory() : PersistenceSqlite(':memory:')))
   const web = HttpRouter.toWebHandler(
     AppLive.pipe(Layer.provide([seeds, HttpServer.layerServices, TestAuthConfig, TestPatientCrypto])),
     { disableLogger: true },
@@ -150,13 +167,13 @@ describe('encounters HTTP', () => {
     const missing = await send('PATCH', `/encounters/${encounterId}`, { body: { note: { body: 'x' } } })
     const excess = await send('PATCH', `/encounters/${encounterId}`, {
       ifMatch: '"1"',
-      body: { prescriptionLines: { upsert: [] }, diagnoses: { upsert: [{ code: 'u23', kind: 'PRIMARY' }] } },
+      body: { vitals: [], diagnoses: { upsert: [{ code: 'u23', kind: 'PRIMARY' }] } },
     })
 
     expect(missing.status).toBe(400)
     expect(excess.status).toBe(400)
     expect(((await json(excess))['violations'] as Body[]).map((each) => each['field'])).toEqual([
-      'prescriptionLines',
+      'vitals',
       'diagnoses.upsert[0].code',
     ])
     expect((await json(await send('GET', `/encounters/${encounterId}`)))['version']).toBe(1)
@@ -247,5 +264,192 @@ describe('encounters HTTP', () => {
     expect(canceled.status).toBe(200)
     expect(late.status).toBe(409)
     expect(await json(late)).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
+  })
+})
+
+/** 처방 라인 하나입니다. 시험마다 필요한 필드만 바꿉니다. */
+const acupuncture = {
+  kind: 'ACUPUNCTURE',
+  feeCode: '40011',
+  categoryCode: '33001001',
+  name: '침술',
+  dose: { perDay: 1, days: 1 },
+  unitPrice: 4_210,
+}
+
+describe.each(['memory', 'sqlite'] as const)('encounter prescription lines HTTP (%s)', (store) => {
+  it('saves lines with server amounts, maps clientRefs, warns about coverage and replaces a line by ID', async () => {
+    const send = app(store)
+    const { encounterId } = await checkedIn(send)
+    const saved = await send('PATCH', `/encounters/${encounterId}`, {
+      ifMatch: '"1"',
+      body: {
+        prescriptionLines: {
+          upsert: [
+            { ...acupuncture, clientRef: 'temp1', dose: { perDay: 2, days: 1 } },
+            // 자보 전용 카테고리라 자보가 아닌 진료에서는 경고입니다
+            {
+              ...acupuncture,
+              clientRef: 'temp2',
+              categoryCode: '73001001',
+              unitPrice: 12_345,
+              dose: { perDay: 0.5, days: 3 },
+            },
+          ],
+        },
+      },
+    })
+    const body = await json(saved)
+    const lines = (body['encounter'] as { prescriptionLines: Body[] }).prescriptionLines
+    const refs = body['prescriptionLineRefs'] as Array<{ clientRef: string; id: string }>
+    const replaced = await send('PATCH', `/encounters/${encounterId}`, {
+      ifMatch: '"2"',
+      body: {
+        prescriptionLines: { upsert: [{ ...acupuncture, id: lines[1]!.id, prn: true }], remove: [lines[0]!.id] },
+      },
+    })
+    const after = await json(await send('GET', `/encounters/${encounterId}`, { as: desk }))
+
+    expect(saved.status).toBe(200)
+    expect(lines).toMatchObject([
+      { id: expect.stringMatching(/^pl_/), unitPrice: 4_210, amount: 8_420, prn: false },
+      { id: expect.stringMatching(/^pl_/), categoryCode: '73001001', amount: 18_518 },
+    ])
+    expect(refs).toEqual([
+      { clientRef: 'temp1', id: lines[0]!.id },
+      { clientRef: 'temp2', id: lines[1]!.id },
+    ])
+    expect(body['warnings']).toEqual([
+      { code: 'COVERAGE_CATEGORY_MISMATCH', message: expect.any(String), targets: [lines[1]!.id] },
+    ])
+    expect(replaced.status).toBe(200)
+    expect(await json(replaced)).toMatchObject({ warnings: [], prescriptionLineRefs: [] })
+    expect(after['prescriptionLines']).toEqual([
+      { ...acupuncture, id: lines[1]!.id, feeCode: '40011', amount: 4_210, prn: true },
+    ])
+    expect(after['version']).toBe(3)
+  })
+})
+
+describe('encounter prescription lines HTTP', () => {
+  it('needs prescription:write for lines, and prescription:write_prn for PRN lines', async () => {
+    const send = app()
+    const { encounterId } = await checkedIn(send)
+    const lines = { prescriptionLines: { upsert: [acupuncture] } }
+    const byNoPrescribing = await send('PATCH', `/encounters/${encounterId}`, {
+      as: noPrescribing,
+      ifMatch: '"1"',
+      body: lines,
+    })
+    const noteByNoPrescribing = await send('PATCH', `/encounters/${encounterId}`, {
+      as: noPrescribing,
+      ifMatch: '"1"',
+      body: { note: { body: '요통' } },
+    })
+    const prnByNoPrn = await send('PATCH', `/encounters/${encounterId}`, {
+      as: noPrn,
+      ifMatch: '"2"',
+      body: { prescriptionLines: { upsert: [{ ...acupuncture, prn: true }] } },
+    })
+    const byNoPrn = await send('PATCH', `/encounters/${encounterId}`, { as: noPrn, ifMatch: '"2"', body: lines })
+
+    expect(byNoPrescribing.status).toBe(403)
+    expect(await json(byNoPrescribing)).toMatchObject({ code: 'PERMISSION_DENIED', missing: ['prescription:write'] })
+    expect(noteByNoPrescribing.status).toBe(200)
+    expect(prnByNoPrn.status).toBe(403)
+    expect(await json(prnByNoPrn)).toMatchObject({ missing: ['prescription:write_prn'] })
+    expect(byNoPrn.status).toBe(200)
+  })
+
+  it('lists every missing permission, checks them before the version, and skips them for empty line changes', async () => {
+    const send = app()
+    const { encounterId } = await checkedIn(send)
+    const prn = await send('PATCH', `/encounters/${encounterId}`, {
+      as: noLines,
+      ifMatch: '"9"',
+      body: { prescriptionLines: { upsert: [{ ...acupuncture, prn: true }] } },
+    })
+    const empty = await send('PATCH', `/encounters/${encounterId}`, {
+      as: noLines,
+      ifMatch: '"1"',
+      body: { note: { body: '요통' }, prescriptionLines: { upsert: [], remove: [] } },
+    })
+
+    expect(prn.status).toBe(403)
+    expect(await json(prn)).toMatchObject({ missing: ['prescription:write', 'prescription:write_prn'] })
+    expect(empty.status).toBe(200)
+  })
+
+  it('lets a user without prescription:write_prn turn PRN off and remove PRN lines', async () => {
+    const send = app()
+    const { encounterId } = await checkedIn(send)
+    const saved = await json(
+      await send('PATCH', `/encounters/${encounterId}`, {
+        ifMatch: '"1"',
+        body: {
+          prescriptionLines: {
+            upsert: [
+              { ...acupuncture, prn: true },
+              { ...acupuncture, prn: true },
+            ],
+          },
+        },
+      }),
+    )
+    const [first, second] = (saved['encounter'] as { prescriptionLines: Body[] }).prescriptionLines
+    const changed = await send('PATCH', `/encounters/${encounterId}`, {
+      as: noPrn,
+      ifMatch: '"2"',
+      body: { prescriptionLines: { upsert: [{ ...acupuncture, id: first!.id }], remove: [second!.id] } },
+    })
+
+    expect(changed.status).toBe(200)
+    expect(((await json(changed))['encounter'] as { prescriptionLines: Body[] }).prescriptionLines).toEqual([
+      { ...acupuncture, id: first!.id, amount: 4_210, prn: false },
+    ])
+  })
+
+  it('rejects unknown lines with 422 and amounts sent by the client with 400', async () => {
+    const send = app()
+    const { encounterId } = await checkedIn(send)
+    const unknown = await send('PATCH', `/encounters/${encounterId}`, {
+      ifMatch: '"1"',
+      body: {
+        prescriptionLines: { remove: ['pl_01JBQ000000000000000000009'] },
+        diagnoses: { remove: ['dx_01JBQ000000000000000000009'] },
+      },
+    })
+    const withAmount = await send('PATCH', `/encounters/${encounterId}`, {
+      ifMatch: '"1"',
+      body: { prescriptionLines: { upsert: [{ ...acupuncture, amount: 1, unitPrice: 1.234 }] } },
+    })
+
+    expect(unknown.status).toBe(422)
+    expect(await json(unknown)).toMatchObject({
+      code: 'ENCOUNTER_CHANGE_INVALID',
+      // 상병 이유가 먼저입니다
+      errors: [
+        { reason: 'DIAGNOSIS_NOT_FOUND', target: 'dx_01JBQ000000000000000000009' },
+        { reason: 'PRESCRIPTION_LINE_NOT_FOUND', target: 'pl_01JBQ000000000000000000009' },
+      ],
+    })
+    expect(withAmount.status).toBe(400)
+    expect(((await json(withAmount))['violations'] as Body[]).map((each) => each['field'])).toEqual([
+      'prescriptionLines.upsert[0].amount',
+      'prescriptionLines.upsert[0].unitPrice',
+    ])
+  })
+
+  it('counts prescription lines as clinical data when canceling the visit', async () => {
+    const send = app()
+    const { visit, encounterId } = await checkedIn(send)
+    await send('PATCH', `/encounters/${encounterId}`, {
+      ifMatch: '"1"',
+      body: { prescriptionLines: { upsert: [acupuncture] } },
+    })
+    const canceled = await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
+
+    expect(canceled.status).toBe(409)
+    expect(await json(canceled)).toMatchObject({ code: 'VISIT_HAS_CLINICAL_DATA' })
   })
 })
