@@ -4,7 +4,8 @@ import { isId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { problemType } from '../../../shared/problem/problem.ts'
 import { TenantId } from '../../identity/identity.ts'
-import { PatientId } from '../../patients/patient.ts'
+import { LocalDate, PatientId } from '../../patients/patient.ts'
+import type { CheckInErrorCode } from './check-in-validation.types.ts'
 
 /** 내원 ID입니다. 예: `vis_01J...` */
 export const VisitId = Schema.String.pipe(Schema.refine((value): value is Id<'visit'> => isId('visit', value)))
@@ -22,11 +23,53 @@ export const VisitCommand = Schema.Literals([
   'CANCEL',
 ])
 
+/** 보험구분입니다. `docs/design/front-desk.md`의 용어 표를 따릅니다. */
+export const Coverage = Schema.Literals(['NHIS', 'MEDICAL_AID', 'AUTO_INSURANCE', 'INDUSTRIAL_ACCIDENT', 'SELF_PAY'])
+
+/** 접수 때 받은 공단 자격 조회 결과입니다. 코드는 공단이 정한 값 그대로입니다 (`NhisEligibility`). */
+export const NhisEligibility = Schema.Struct({
+  /** `자격여부`입니다. `1`–`6`은 건보, `7`·`8`은 의료급여입니다. */
+  qualificationCode: Schema.String.check(Schema.isMaxLength(4)),
+  /** `급여제한여부`입니다. */
+  benefitRestrictionCode: Schema.NullOr(Schema.String.check(Schema.isMaxLength(4))),
+  /** `본인부담여부`입니다. */
+  copayCode: Schema.NullOr(Schema.String.check(Schema.isMaxLength(8))),
+  /** 선택기관기호 1–4입니다. */
+  selectedInstitutionCodes: Schema.Array(Schema.String.check(Schema.isMaxLength(20))).check(Schema.isMaxLength(4)),
+  /** `본인확인예외여부`가 `Y`인지입니다. */
+  identityExempt: Schema.Boolean,
+})
+export type NhisEligibility = typeof NhisEligibility.Type
+
+/** 접수 때 판정한 자격입니다. */
+export const VisitEligibility = Schema.Struct({
+  /** 건보·의료급여는 자격 조회를 거쳐 `VERIFIED`, 그 밖의 보험구분은 `NOT_REQUIRED`입니다. */
+  status: Schema.Literals(['VERIFIED', 'NOT_REQUIRED']),
+  nhis: Schema.NullOr(NhisEligibility),
+  /** 이번 접수에서 본인확인을 했는지입니다. 다음 접수의 6개월 판정에 씁니다. */
+  identityVerified: Schema.Boolean,
+  /** 체납(`02`·`03`) 급여제한자입니다. 접수는 되지만 전액 수납하고 청구를 보냅니다. */
+  benefitRestricted: Schema.Boolean,
+  /** 직원이 고른 본인부담여부입니다. */
+  copayCode: Schema.NullOr(Schema.String),
+  /** 저장한 선택의료기관 기호입니다. 의뢰 코드가 아니면 서버가 비웁니다. */
+  selectedInstitutionCode: Schema.NullOr(Schema.String),
+})
+export type VisitEligibility = typeof VisitEligibility.Type
+
+/** 본인부담·검사 예외에 쓰는 표시입니다. 나머지 표시(산정특례 등)는 쓰는 기능이 생길 때 더합니다. */
+export const BenefitFlags = Schema.Struct({
+  /** 본인부담 100%입니다. */
+  fullSelfPay: Schema.Boolean,
+  pregnant: Schema.Boolean,
+})
+export type BenefitFlags = typeof BenefitFlags.Type
+
 /**
  * 진료 당일 환자의 내원입니다.
  *
- * 지금은 상태 커맨드에 필요한 필드만 두었습니다. 전체 리소스는
- * `docs/design/front-desk.md`를 보세요.
+ * 지금은 접수와 상태 커맨드에 필요한 필드만 두었습니다. 진료의·진료항목·진료(encounter)·예약은 그 모듈이 생길 때
+ * 더합니다. 전체 리소스는 `docs/design/front-desk.md`를 보세요.
  */
 export const Visit = Schema.Struct({
   id: VisitId,
@@ -34,7 +77,14 @@ export const Visit = Schema.Struct({
   tenantId: TenantId,
   patientId: PatientId,
   /** 진료일입니다. 형식은 `YYYY-MM-DD`입니다. */
-  date: Schema.String,
+  date: LocalDate,
+  /** 접수한 시각입니다. 목록은 이 순서입니다. */
+  checkedInAt: Schema.String,
+  coverage: Coverage,
+  /** 초진인지입니다. 취소하지 않은 이전 내원이 없으면 초진으로 서버가 정합니다. */
+  isFirstVisit: Schema.Boolean,
+  eligibility: VisitEligibility,
+  benefitFlags: BenefitFlags,
   status: VisitStatus,
   statusChangedAt: Schema.String,
   /** 마지막 `:reopen` 또는 `:cancel`에서 받은 사유입니다. */
@@ -77,4 +127,31 @@ export class VisitDatePast extends HttpApiError.Problem<VisitDatePast>()(
   'VisitDatePast',
   { type: problemType('VISIT_DATE_PAST'), status: 422, title: 'Visit date has passed' },
   { code: Schema.tag('VISIT_DATE_PAST'), date: Schema.String },
+) {}
+
+/** 같은 ID의 내원이 이미 있습니다. 응답을 받지 못해 다시 보냈다면 `GET /visits/{id}`로 확인합니다. */
+export class VisitAlreadyExists extends HttpApiError.Problem<VisitAlreadyExists>()(
+  'VisitAlreadyExists',
+  { type: problemType('VISIT_ALREADY_EXISTS'), status: 409, title: 'Visit already exists' },
+  { code: Schema.tag('VISIT_ALREADY_EXISTS') },
+) {}
+
+/** 접수 검증(`validateCheckIn`)이 막았습니다. `errors`는 검사 순서대로 모든 이유입니다. */
+export class CheckInRejected extends HttpApiError.Problem<CheckInRejected>()(
+  'CheckInRejected',
+  { type: problemType('CHECK_IN_REJECTED'), status: 422, title: 'Check-in rejected' },
+  {
+    code: Schema.tag('CHECK_IN_REJECTED'),
+    errors: Schema.Array(
+      Schema.Literals([
+        'NHIS_NOT_ELIGIBLE',
+        'NHIS_BENEFIT_RESTRICTED',
+        'SELECTED_INSTITUTION_REQUIRED',
+        'IDENTITY_VERIFICATION_REQUIRED',
+        'AUTO_INSURANCE_LIMIT_EXCEEDED',
+        'AUTO_INSURANCE_CASE_EXPIRED',
+        'APPOINTMENT_NOT_TODAY',
+      ] satisfies ReadonlyArray<CheckInErrorCode>),
+    ),
+  },
 ) {}

@@ -227,6 +227,35 @@ export const migrations = {
       ) STRICT
     `
   }),
+  '0006_visit_check_in': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 0004와 같은 이유로 테이블을 새로 만듭니다. 이 마이그레이션 전에는 접수 엔드포인트가 없어 있는 내원은 개발용
+    // 샘플뿐입니다. 실제 데이터가 생긴 뒤의 열 추가는 옮기는 마이그레이션으로 해야 합니다.
+    // eligibility·benefit_flags는 내원의 하위 값이라 JSON으로 둡니다. 본인확인 이력은 json_extract로 셉니다
+    yield* sql`DROP TABLE visits`
+    yield* sql`
+      CREATE TABLE visits (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        checked_in_at TEXT NOT NULL,
+        coverage TEXT NOT NULL
+          CHECK (coverage IN ('NHIS', 'MEDICAL_AID', 'AUTO_INSURANCE', 'INDUSTRIAL_ACCIDENT', 'SELF_PAY')),
+        is_first_visit INTEGER NOT NULL CHECK (is_first_visit IN (0, 1)),
+        eligibility TEXT NOT NULL CHECK (json_valid(eligibility)),
+        benefit_flags TEXT NOT NULL CHECK (json_valid(benefit_flags)),
+        status TEXT NOT NULL
+          CHECK (status IN ('WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT', 'COMPLETED', 'CANCELED')),
+        status_changed_at TEXT NOT NULL,
+        status_reason TEXT,
+        has_clinical_data INTEGER NOT NULL CHECK (has_clinical_data IN (0, 1)),
+        version INTEGER NOT NULL CHECK (version >= 1)
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX visits_tenant_date ON visits (tenant_id, date, checked_in_at)`
+    yield* sql`CREATE INDEX visits_tenant_patient ON visits (tenant_id, patient_id)`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

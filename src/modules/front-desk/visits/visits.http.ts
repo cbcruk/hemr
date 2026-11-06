@@ -20,7 +20,7 @@ function cannotFail<const Tag extends string>(tag: Tag) {
     >
 }
 
-/** 내원 상태 커맨드 핸들러입니다. */
+/** 내원 접수·조회와 상태 커맨드 핸들러입니다. */
 export const VisitsHttpLive = HttpApiBuilder.group(
   Api,
   'visits',
@@ -31,6 +31,9 @@ export const VisitsHttpLive = HttpApiBuilder.group(
       effect.pipe(cannotFail('VisitHasClinicalData'), cannotFail('PermissionDenied'))
 
     return handlers.handleAll({
+      list: ({ query }) => visits.list(query).pipe(Effect.map((items) => ({ items }))),
+      checkIn: ({ payload }) => visits.checkIn(payload).pipe(Effect.map(withEtag)),
+      get: ({ params }) => visits.get(params.id).pipe(Effect.map(withEtag)),
       startTreatment: ({ params, headers }) =>
         visits
           .apply(params.id, 'START_TREATMENT', expectedVersion(headers['if-match']))

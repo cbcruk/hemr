@@ -1,15 +1,56 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
 import { domainEvent } from '../../../shared/events/domain-event.ts'
+import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
 import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
+import { IdentityRepository } from '../../identity/identity-repository.ts'
+import type { PatientNotFound } from '../../patients/patient.ts'
+import { Patients } from '../../patients/patients.ts'
+import { validateCheckIn } from './check-in-validation.ts'
+import type { AutoInsuranceGuarantee, NhisEligibility as EligibilityInput } from './check-in-validation.types.ts'
 import { transitionVisit } from './visit-status.ts'
 import type { VisitCommand, VisitStatus, VisitTransitionErrorCode } from './visit-status.types.ts'
-import { VisitDatePast, VisitHasClinicalData, VisitNotFound, VisitTransitionInvalid } from './visit.ts'
-import type { Visit } from './visit.ts'
+import {
+  CheckInRejected,
+  VisitAlreadyExists,
+  VisitDatePast,
+  VisitHasClinicalData,
+  VisitNotFound,
+  VisitTransitionInvalid,
+} from './visit.ts'
+import type { NhisEligibility, Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
+import type { VisitListQuery } from './visit-repository.ts'
+
+/**
+ * 접수 요청입니다 (front-desk.md 접수 커맨드). 진료일은 받지 않고 병원 시간대의 오늘로 서버가 정합니다.
+ *
+ * 자격 조회·자보 지급보증은 그 모듈이 생기기 전까지 조회 ID(`eligibilityLookupId`·`autoInsuranceCaseId`) 대신 결과를
+ * 본문으로 받습니다.
+ */
+export interface CheckInInput {
+  /** 엣지가 만든 내원 ID입니다(offline.md). 없으면 서버가 만듭니다. 같은 ID가 이미 있으면 409입니다. */
+  id?: Id<'visit'>
+  patientId: Id<'patient'>
+  coverage: Visit['coverage']
+  eligibility?: EligibilityInput | null
+  autoInsurance?: AutoInsuranceGuarantee | null
+  benefitFlags?: Partial<Visit['benefitFlags']>
+  /** 직원이 고른 본인부담여부입니다. */
+  copayCode?: string | null
+  /** 직원이 고른 선택의료기관 기호입니다. */
+  selectedInstitutionCode?: string | null
+  /** 이번 접수에서 본인확인을 했는지입니다. */
+  identityVerified?: boolean
+  /** 접수 뒤 상태입니다. 바로 진료실로 들어가면 `IN_TREATMENT`입니다. */
+  initialStatus?: 'WAITING' | 'IN_TREATMENT'
+}
+
+/** 접수가 실패할 수 있는 오류입니다. */
+export type CheckInError = PatientNotFound | CheckInRejected | VisitAlreadyExists | PermissionDenied
 
 /** 상태 커맨드에 커맨드 외로 함께 보내는 입력입니다. */
 export interface VisitCommandInput {
@@ -58,6 +99,23 @@ export class Visits extends Context.Service<
       command: VisitCommand,
       input?: VisitCommandInput,
     ): Effect.Effect<Visit, VisitCommandError, CurrentAccess>
+
+    /**
+     * 환자를 오늘 진료로 접수합니다. 현재 사용자가 고른 병원의 환자만 받고, 없으면 404 `PATIENT_NOT_FOUND`입니다.
+     *
+     * 접수 검증(`validateCheckIn`)이 막으면 422 `CHECK_IN_REJECTED`로 모든 이유를 돌려줍니다. 본인확인 판정의 첫
+     * 내원·마지막 확인일은 취소하지 않은 이전 내원에서 셉니다. 요양기관기호는 병원 설정입니다.
+     *
+     * 내원과 `visit.checked_in` 이벤트를 한 트랜잭션에서 씁니다. 바로 진료로 들어가도(`initialStatus: IN_TREATMENT`)
+     * 이벤트는 접수 하나입니다. 진료(encounter)·예약·제주 지원 스냅샷은 그 모듈이 생길 때 같은 트랜잭션에 더합니다.
+     */
+    checkIn(input: CheckInInput): Effect.Effect<Visit, CheckInError, CurrentAccess>
+
+    /** 고른 병원의 내원 하나입니다. 다른 병원의 내원은 404입니다. */
+    get(id: Id<'visit'>): Effect.Effect<Visit, VisitNotFound, CurrentAccess>
+
+    /** 고른 병원의 그날 내원입니다. 접수 시각 순서입니다. 날짜가 없으면 오늘입니다. */
+    list(query: Partial<VisitListQuery>): Effect.Effect<ReadonlyArray<Visit>, never, CurrentAccess>
   }
 >()('hemr/front-desk/Visits') {
   static readonly layer = Layer.effect(
@@ -130,9 +188,128 @@ export class Visits extends Context.Service<
             )
           : attempt(id, command, input)
 
-      return Visits.of({ apply })
+      const patients = yield* Patients
+      const identity = yield* IdentityRepository
+
+      const checkIn = Effect.fn('Visits.checkIn')(function* (input: CheckInInput) {
+        const access = yield* CurrentAccess
+        // 바로 진료로 들어가는 것은 `:start-treatment`와 같아, 본문에 따라 그 권한을 더 확인합니다 (D3와 같은 방식)
+        if (input.initialStatus === 'IN_TREATMENT') yield* requirePermissions('visit:update')
+        const patient = yield* patients.get(input.patientId)
+        const now = yield* DateTime.now
+        const date = clinicDate(DateTime.toEpochMillis(now))
+        const history = yield* repository.historyOf(access.tenantId, patient.id)
+        const tenant = yield* identity.findTenant(access.tenantId)
+        const flags = {
+          fullSelfPay: input.benefitFlags?.fullSelfPay ?? false,
+          pregnant: input.benefitFlags?.pregnant ?? false,
+        }
+        const firstVisitDate = patient.firstVisitDate ?? history.firstVisitDate
+        // 현행 화면은 고르지 않으면 `없음`을 보냈습니다. 공백·`없음`은 고르지 않은 것으로 저장합니다
+        const chosen = input.copayCode?.trim() ?? ''
+        const copayCode = chosen === '' || chosen === '없음' ? null : chosen
+
+        const validation = validateCheckIn({
+          coverage: input.coverage,
+          date,
+          fullSelfPay: flags.fullSelfPay,
+          eligibility: input.eligibility ?? null,
+          clinicInstitutionCode: Option.match(tenant, {
+            onNone: () => null,
+            onSome: (each) => each.hiraInstitutionCode,
+          }),
+          chosenCopayCode: copayCode,
+          chosenInstitutionCode: input.selectedInstitutionCode ?? null,
+          patient: {
+            birthDate: patient.birthDate,
+            firstVisitDate,
+            lastIdentityVerifiedOn: history.lastIdentityVerifiedOn,
+            pregnant: flags.pregnant,
+          },
+          identityVerified: input.identityVerified ?? false,
+          autoInsurance: input.autoInsurance ?? null,
+        })
+        if (validation.errors.length > 0) return yield* new CheckInRejected({ errors: validation.errors })
+
+        const national = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
+        const checkedInAt = DateTime.formatIso(now)
+        const visit: Visit = {
+          id: input.id ?? newId('visit'),
+          tenantId: access.tenantId,
+          patientId: patient.id,
+          date,
+          checkedInAt,
+          coverage: input.coverage,
+          isFirstVisit: firstVisitDate === null,
+          eligibility: {
+            status: national ? 'VERIFIED' : 'NOT_REQUIRED',
+            // 건보·의료급여가 아니면 자격 결과를 남기지 않습니다. 판정에 쓰지 않은 값이기 때문입니다
+            nhis: national ? storedEligibility(input.eligibility) : null,
+            identityVerified: input.identityVerified ?? false,
+            benefitRestricted: validation.benefitRestricted,
+            copayCode: national ? copayCode : null,
+            selectedInstitutionCode: national ? validation.selectedInstitutionCode : null,
+          },
+          benefitFlags: flags,
+          status: input.initialStatus ?? 'WAITING',
+          statusChangedAt: checkedInAt,
+          hasClinicalData: false,
+          version: 1,
+        }
+        const event = domainEvent(
+          'visit.checked_in',
+          visit.id,
+          checkedInAt,
+          {
+            visitId: visit.id,
+            patientId: visit.patientId,
+            date,
+            coverage: visit.coverage,
+            isFirstVisit: visit.isFirstVisit,
+            status: visit.status,
+          },
+          { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+        )
+        // 같은 ID가 이미 있으면 저장소가 `VersionMismatch`로 거절합니다. 새로 만드는 것이라 412가 아니라 409입니다
+        yield* repository
+          .save(visit, { expectedVersion: null, events: [event] })
+          .pipe(Effect.catchTag('VersionMismatch', () => Effect.fail(new VisitAlreadyExists({}))))
+        return visit
+      })
+
+      const get = Effect.fn('Visits.get')(function* (id: Id<'visit'>) {
+        const access = yield* CurrentAccess
+        return yield* repository
+          .findById(access.tenantId, id)
+          .pipe(
+            Effect.flatMap(Option.match({ onNone: () => Effect.fail(new VisitNotFound({})), onSome: Effect.succeed })),
+          )
+      })
+
+      const list = Effect.fn('Visits.list')(function* (query: Partial<VisitListQuery>) {
+        const access = yield* CurrentAccess
+        const date = query.date ?? clinicDate(DateTime.toEpochMillis(yield* DateTime.now))
+        return yield* repository.list(access.tenantId, {
+          date,
+          ...(query.status === undefined ? {} : { status: query.status }),
+        })
+      })
+
+      return Visits.of({ apply, checkIn, get, list })
     }),
   )
+}
+
+/** 저장할 자격 결과입니다. 빠진 코드는 `null`, 예외 여부는 `false`로 채웁니다. */
+function storedEligibility(input: EligibilityInput | null | undefined): NhisEligibility | null {
+  if (input === undefined || input === null) return null
+  return {
+    qualificationCode: input.qualificationCode,
+    benefitRestrictionCode: input.benefitRestrictionCode ?? null,
+    copayCode: input.copayCode ?? null,
+    selectedInstitutionCodes: input.selectedInstitutionCodes,
+    identityExempt: input.identityExempt ?? false,
+  }
 }
 
 function toError(

@@ -344,7 +344,7 @@
 | 규칙 | 코드 | 픽스처 테스트 | 옮기지 않은 케이스 |
 |---|---|---|---|
 | [visit-status-transitions](#visit-status-transitions) | [visit-status.ts](../../src/modules/front-desk/visits/visit-status.ts), [visits.ts](../../src/modules/front-desk/visits/visits.ts) | [visit-status.fixtures.test.ts](../../src/modules/front-desk/visits/visit-status.fixtures.test.ts) | 권한·접수·베드 배정·수납이 필요한 13건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
-| [check-in-validation](#check-in-validation) | [check-in-validation.ts](../../src/modules/front-desk/visits/check-in-validation.ts) (접수 엔드포인트 전, 순수 함수) | [check-in-validation.fixtures.test.ts](../../src/modules/front-desk/visits/check-in-validation.fixtures.test.ts) | 화면 문구와 버튼 표시, 권한, 보험구분 변경, 자보 한도 다이얼로그, 본인확인 중복 케이스, 진료 완료로 옮긴 산정특례 7건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
+| [check-in-validation](#check-in-validation) | [check-in-validation.ts](../../src/modules/front-desk/visits/check-in-validation.ts), [visits.ts](../../src/modules/front-desk/visits/visits.ts) (`POST /visits:check-in`) | [check-in-validation.fixtures.test.ts](../../src/modules/front-desk/visits/check-in-validation.fixtures.test.ts) | 화면 문구와 버튼 표시, 권한, 보험구분 변경, 자보 한도 다이얼로그, 본인확인 중복 케이스, 진료 완료로 옮긴 산정특례 7건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [appointment-acceptance](#appointment-acceptance) | [appointment-acceptance.ts](../../src/modules/front-desk/appointments/appointment-acceptance.ts) (예약 엔드포인트 전, 순수 함수) | [appointment-acceptance.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-acceptance.fixtures.test.ts) | 화면 셀 상태·기본 선택값, 권한, 진료의 근무 일정, 중복 예약 409, 생기지 않는 입력(빈 셀, 0분 단위) 12건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
 | [appointment-no-show](#appointment-no-show) | [appointment-no-show.ts](../../src/modules/front-desk/appointments/appointment-no-show.ts) (부도 스케줄러·설정 API 전, 순수 함수) | [appointment-no-show.fixtures.test.ts](../../src/modules/front-desk/appointments/appointment-no-show.fixtures.test.ts) | 이력 문구 2건. 예약 이력과 `displayStatus`를 만들 때 옮깁니다. 부도 판정식은 클라이언트에 없어 단위 테스트가 질문 1–3으로 검사합니다 |
 | [checkout-settlement](#checkout-settlement) | [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts) (수납 견적·수납 커맨드 전, 순수 함수) | [checkout-settlement.fixtures.test.ts](../../src/modules/front-desk/receipts/checkout-settlement.fixtures.test.ts) | 보류한 음수 과수금액(질문 5), 스키마가 막는 숫자 아닌 금액, 현행 요청 본문, 전액 미수 토글 4건. 이유는 테스트 파일의 `NOT_PORTED`에 있습니다 |
@@ -379,6 +379,7 @@ visit-status-transitions에서 함께 반영한 결정입니다.
 check-in-validation에서 함께 반영한 결정입니다.
 
 - **환자 정보가 없으면 본인확인이 필요하다고 봅니다.** 신규 환자처럼 첫 내원·확인 이력을 모르면 확인 대상입니다. 이때 나이·임산부 예외는 판정할 수 없어 공단 예외 `Y`와 본인부담 100%만 면제합니다. 되돌릴 조건: 신규 환자 등록과 접수를 한 요청으로 묶으면 등록 정보로 판정합니다
+  - 접수 엔드포인트는 늘 등록된 환자로 판정합니다. 첫 내원·마지막 확인일은 취소하지 않은 이전 내원에서 세고, 생년월일이 없는 환자는 나이 예외만 판정하지 않습니다 (#16, [front-desk.md](front-desk.md#접수-구현-결정))
 - **보험구분과 자격 코드가 어긋나는지는 검사하지 않습니다.** 예를 들어 `NHIS`로 접수했는데 자격이 의료급여(`7`)여도 막지 않고 자격 코드로 판정합니다. 현행 클라이언트는 자격 조회 결과로 보험구분을 자동으로 고르므로 어긋날 일이 드뭅니다. 되돌릴 조건: 이관 데이터나 수동 변경에서 어긋난 접수가 보이면 `COVERAGE_ELIGIBILITY_MISMATCH`를 추가합니다
 - **산정특례 미선택은 접수에서 막지 않습니다.** [special-case-code-match](#special-case-code-match) 질문 6에 따라 진료 완료 때 막고, 저장은 `warnings`로 알립니다. 접수 시점에는 상병이 없어 판정 근거가 부족합니다
 - **날짜 입력은 `YYYY-MM-DD`만 받습니다.** 날짜를 문자열로 비교하므로 현행 `yyyyMMdd`가 그대로 들어오면 만료·나이 판정이 조용히 틀립니다. 형식이 다르면 호출하는 쪽의 버그로 보고 예외를 던집니다

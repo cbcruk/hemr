@@ -233,6 +233,35 @@ Idempotency-Key: ...
 
 **보험구분 변경**(`:change-coverage`)은 이미 승인된 처방(추나·첩약 심평원 승인)이 있으면 409입니다. 새 보험구분에서 쓸 수 없는 처방 라인은 서버가 지우지 않고 `invalid: COVERAGE_MISMATCH`로 표시해 응답의 `invalidatedPrescriptionLines[]`로 알립니다. 진료가 `DRAFT`면 의사가 고치기 전까지 진료 완료가 막히고, 이미 `COMPLETED`면 [정정 제안](clinical.md#진료-encounter)이 만들어집니다. 처방은 면허 행위라 데스크 동작이 진료기록을 직접 바꾸지 않게 합니다. 현행은 클라이언트가 판단해 `record/save`로 지웠습니다.
 
+### 접수 구현 결정
+
+구현은 [visits.ts](../../src/modules/front-desk/visits/visits.ts)의 `checkIn`·`get`·`list`입니다 (#16).
+
+- **범위:** 등록된 환자를 오늘 진료로 접수하고(`POST /visits:check-in`), 내원 하나(`GET /visits/{id}`)와 그날 목록(`GET /visits?date=&status=`)을 엽니다. 내원은 보험구분·초진 여부·판정한 자격·본인부담 표시(`fullSelfPay`·`pregnant`)·접수 시각을 저장합니다
+  - 미룸: 신환 동시 등록(`newPatient`), 예약 `ARRIVED`(`appointmentId`), 진료(encounter) 생성, 진료의·진료항목(`doctorId`·`visitTypeId`), 제주 지원 스냅샷, 자격 조회 결과로 환자 갱신, `channel`·`origin`, `acknowledge`, 나머지 `benefitFlags`, `PATCH /visits/{id}`, 목록의 `derived`. 모두 그 모듈이 생길 때 같은 트랜잭션에 더합니다
+- **아직 받지 않는 필드는 400입니다.** 위 요청 예의 `date`·`appointmentId`·`newPatient`·`doctorId`·`eligibilityLookupId`처럼 미룬 필드를 보내면 조용히 버리지 않고 `VALIDATION_FAILED`로 알립니다. 버리면 예약이 `ARRIVED`가 되지 않거나 다른 날로 접수된 것을 모릅니다. 이 엔드포인트만 남는 키를 거절하고(`PayloadParseOptions`), 필드를 더할 때 함께 받습니다
+- **진료일은 서버가 정합니다.** 본문에 `date`를 받지 않고 병원 시간대의 오늘로 접수합니다. 지난 날짜 접수를 열면 지난 날짜 내원 규칙(`VISIT_DATE_PAST`)과 청구 마감이 함께 흔들립니다. `APPOINTMENT_NOT_TODAY`는 예약을 받을 때 씁니다
+  - 되돌릴 조건: 오프라인 엣지가 밀린 접수를 올릴 때(offline.md)는 그 경로에서 엣지의 진료일을 받습니다
+- **자격·자보는 결과를 본문으로 받습니다.** 자격 조회·자보 사고 모듈이 없어 `eligibilityLookupId`·`autoInsuranceCaseId` 대신 공단 응답(`eligibility`)과 지급보증(`autoInsurance`)을 받습니다. 클라이언트가 보낸 값을 믿는 것이라, 조회 모듈이 생기면 ID로 바꾸고 서버가 조회 결과를 읽습니다. 건보·의료급여가 아니면 받은 자격 결과를 저장하지 않습니다
+- **검증 오류는 `CHECK_IN_REJECTED` 하나로 모두 돌려줍니다.** 422 문제 응답의 `errors`에 `validateCheckIn`의 코드를 검사 순서대로 담습니다. 위 표의 코드는 `errors`의 값입니다
+  - 대안: 코드마다 문제 타입(`NHIS_NOT_ELIGIBLE` 등)을 두고 첫 오류만 돌려주기. 데스크가 한 번에 모든 이유를 고칠 수 없어 버렸습니다
+- **본인확인·초진은 이전 내원에서 셉니다.** 첫 내원일은 환자의 `firstVisitDate`(아직 아무도 채우지 않음), 없으면 취소하지 않은 가장 이른 내원의 진료일입니다. 마지막 본인확인일은 `identityVerified`로 접수한 취소하지 않은 마지막 내원의 진료일입니다. 취소한 내원은 잘못 받은 접수라 세지 않습니다. 이전 내원이 없으면 초진(`isFirstVisit: true`)입니다
+  - 대안: 환자에 `lastIdentityVerifiedOn`을 저장하기. 내원을 취소할 때 되돌릴 값이 생겨 버렸습니다. 이력이 길어져 느려지면 환자에 캐시합니다
+- **요양기관기호는 병원 설정(`hiraInstitutionCode`)입니다.** 없으면 선택의료기관 적용자 판정을 하지 않습니다(의뢰 코드의 기관 누락만 봅니다)
+- **같은 ID 재접수는 409 `VISIT_ALREADY_EXISTS`입니다.** 오프라인 엣지가 ID를 정해 보내므로(`id`), 응답을 못 받고 다시 보내면 409를 받고 `GET /visits/{id}`로 확인합니다. 저장소의 새 내원 충돌(`VersionMismatch`)을 바꾼 것입니다. 다른 병원의 같은 ID도 409라 ID가 겹쳤다는 것만 드러나는데, ULID라 실제로 겹칠 일이 없습니다
+  - 대안: `Idempotency-Key`로 처음 응답을 다시 주기. conventions.md의 대상(돈·외부 효과)이 아니고 ID로 중복이 막혀 미뤘습니다
+- **같은 환자의 같은 날 접수를 막지 않습니다.** 오전·오후 따로 오는 환자가 있습니다. 실수로 두 번 받은 접수는 취소합니다
+  - 같은 환자를 동시에 두 번 접수하면 둘 다 이전 내원을 보지 못해 둘 다 초진이 되고 본인확인 판정도 같이 통과할 수 있습니다. 이력 읽기와 저장이 한 트랜잭션이 아니기 때문입니다. 데스크 한 곳이 한 환자를 접수하는 것이 보통이라 받아들이고, 둘째 접수를 취소하면 바로잡힙니다. 되돌릴 조건: 초진 산정이 청구에 쓰이기 시작하면 저장소의 같은 트랜잭션에서 이력을 읽습니다
+- **바로 진료는 `visit:update`도 필요합니다.** `initialStatus: IN_TREATMENT`는 `:start-treatment`와 같아, 본문에 따라 서비스가 더 확인합니다(D3의 연쇄 취소와 같은 방식). 없으면 403 `PERMISSION_DENIED`입니다
+- **바로 진료(`initialStatus: IN_TREATMENT`)도 이벤트는 `visit.checked_in` 하나입니다.** 데이터는 `{ visitId, patientId, date, coverage, isFirstVisit, status }`이고 `tenantId`·`actor`를 채웁니다
+- **응답은 내원 하나입니다.** 위 예의 `{ visit, encounter, appointment? }` 대신 conventions.md의 "커맨드 응답은 바뀐 주 리소스"를 따릅니다. 진료가 생기면 내원의 `encounterId`로 잇고, 함께 바뀐 예약은 이벤트로 알립니다
+- **자격 필드 이름:** 리소스 표의 `selectedInstitution?` 대신 `selectedInstitutionCode`(기호)를 두고, 직원이 고른 `copayCode`(공백·`없음`은 `null`)와 체납 표시 `benefitRestricted`를 더했습니다. `UNVERIFIED`는 오프라인 엣지가 자격 조회 없이 받은 접수에 쓸 값이라 그 경로가 생길 때 더합니다
+- **자보 지급보증이 없으면 한도·만료를 보지 않습니다.** `autoInsurance`를 보내지 않은 자보 접수는 통과하고, 보증 값은 저장하지 않습니다. 자보 사고 모듈이 생기면 사고 ID를 필수로 받아 서버가 보증을 읽습니다
+- **병원 시간대는 아직 `Asia/Seoul` 하나입니다.** 병원의 `timezone` 설정이 있지만 상태 커맨드(`VISIT_DATE_PAST`)와 같이 `clinicDate`를 씁니다. 다른 시간대의 병원이 생기면 두 곳을 함께 병원 설정으로 바꿉니다
+- **목록은 쪽을 나누지 않습니다.** 하루 내원은 수백 건 안쪽이라 접수 시각, ID 순서로 모두 줍니다. 날짜가 없으면 오늘입니다
+- **저장:** 마이그레이션 `0006_visit_check_in`이 `visits`를 새로 만듭니다(그 전 내원은 개발용 샘플뿐). 자격·표시는 JSON 열이고 본인확인 이력은 `json_extract`로 셉니다. `patient_id`에 외래 키를 걸지 않습니다. 환자는 다른 모듈의 테이블이라 모듈 사이는 ID로만 잇고(0004와 같음), 접수가 환자를 읽어 확인합니다. 개발 서버의 샘플 내원은 없앴습니다. 이제 접수로 만듭니다
+- **되돌릴 조건:** 오프라인 엣지가 생기면 그 경로의 진료일·`origin`을 받습니다. 자격 조회 모듈이 생기면 본문의 자격 결과를 받지 않습니다
+
 ### 연쇄 취소
 
 접수를 잘못 받았거나 환자가 진료 후 취소를 원하는 경우, 그 내원에 딸린 기록을 한 트랜잭션에서 모두 취소합니다.
