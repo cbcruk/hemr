@@ -121,6 +121,14 @@ describe('validateCheckIn identity verification', () => {
     ])
   })
 
+  it('uses the visit history without an age exemption when the birth date is unknown', () => {
+    const unknownAge = { ...ADULT, birthDate: null }
+    expect(validateCheckIn({ ...base, patient: unknownAge }).errors).toEqual([])
+    expect(validateCheckIn({ ...base, patient: { ...unknownAge, lastIdentityVerifiedOn: null } }).errors).toEqual([
+      'IDENTITY_VERIFICATION_REQUIRED',
+    ])
+  })
+
   it('passes once verified at this check-in', () => {
     expect(validateCheckIn({ ...base, identityVerified: true }).errors).toEqual([])
   })

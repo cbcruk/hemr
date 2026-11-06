@@ -8,23 +8,14 @@ import { AppLive } from '../../../app.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
+import { testVisit } from './testing.ts'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
 
 const VISIT_ID = 'vis_01JBQ000000000000000000001'
 const PAST_DATE = '2000-01-01'
 
 function visit(status: Visit['status'], overrides: Partial<Visit> = {}): Visit {
-  return {
-    id: VISIT_ID as Visit['id'],
-    tenantId: TEST_TENANT.id,
-    patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
-    date: clinicDate(Date.now()),
-    status,
-    statusChangedAt: '2026-11-05T00:00:00.000Z',
-    hasClinicalData: false,
-    version: 1,
-    ...overrides,
-  }
+  return testVisit({ id: VISIT_ID as Visit['id'], status, ...overrides })
 }
 
 interface SendOptions {

@@ -9,20 +9,12 @@ import { domainEvent } from '../../../shared/events/domain-event.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
+import { testVisit } from './testing.ts'
 
 const TENANT = 'ten_01JBQ000000000000000000001' as Visit['tenantId']
 const OTHER_TENANT = 'ten_01JBQ000000000000000000002' as Visit['tenantId']
 
-const visit: Visit = {
-  id: 'vis_01JBQ000000000000000000001' as Visit['id'],
-  tenantId: TENANT,
-  patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
-  date: '2026-11-05',
-  status: 'WAITING',
-  statusChangedAt: '2026-11-05T00:00:00.000Z',
-  hasClinicalData: false,
-  version: 1,
-}
+const visit = testVisit({ tenantId: TENANT, date: '2026-11-05' })
 
 const changed = (from: Visit, to: Visit['status']): Visit => ({
   ...from,
@@ -112,6 +104,102 @@ describe.each([
     expect(result.pending).toEqual([])
   })
 
+  it('lists a day of one tenant in check-in order and filters by status', async () => {
+    const result = await run(
+      layer(),
+      Effect.gen(function* () {
+        const repository = yield* VisitRepository
+        const at = (n: number, overrides: Partial<Visit>) =>
+          testVisit({
+            id: `vis_01JBQ00000000000000000000${n}` as Visit['id'],
+            tenantId: TENANT,
+            date: '2026-11-05',
+            checkedInAt: `2026-11-05T0${n}:00:00.000Z`,
+            ...overrides,
+          })
+        for (const each of [
+          at(3, {}),
+          at(1, { status: 'IN_TREATMENT' }),
+          at(2, {}),
+          at(4, { date: '2026-11-04' }),
+          at(5, { tenantId: OTHER_TENANT }),
+        ]) {
+          yield* repository.save(each, { expectedVersion: null })
+        }
+        const ids = (visits: ReadonlyArray<Visit>) => visits.map((each) => each.id.slice(-1))
+        return {
+          day: ids(yield* repository.list(TENANT, { date: '2026-11-05' })),
+          waiting: ids(yield* repository.list(TENANT, { date: '2026-11-05', status: 'WAITING' })),
+          stored: (yield* repository.list(TENANT, { date: '2026-11-04' }))[0],
+        }
+      }),
+    )
+    expect(result.day).toEqual(['1', '2', '3'])
+    expect(result.waiting).toEqual(['2', '3'])
+    expect(result.stored?.eligibility).toEqual(visit.eligibility)
+    expect(result.stored?.benefitFlags).toEqual(visit.benefitFlags)
+  })
+
+  it('reports the first visit and the last identity check, skipping canceled visits and other patients', async () => {
+    const result = await run(
+      layer(),
+      Effect.gen(function* () {
+        const repository = yield* VisitRepository
+        const verified = (identityVerified: boolean) => ({ ...visit.eligibility, identityVerified })
+        const seed = [
+          testVisit({
+            id: 'vis_01JBQ000000000000000000001' as Visit['id'],
+            tenantId: TENANT,
+            date: '2026-01-10',
+            status: 'CANCELED',
+            eligibility: verified(true),
+          }),
+          testVisit({
+            id: 'vis_01JBQ000000000000000000002' as Visit['id'],
+            tenantId: TENANT,
+            date: '2026-03-01',
+            status: 'COMPLETED',
+            eligibility: verified(true),
+          }),
+          testVisit({
+            id: 'vis_01JBQ000000000000000000003' as Visit['id'],
+            tenantId: TENANT,
+            date: '2026-05-01',
+            status: 'COMPLETED',
+            eligibility: verified(false),
+          }),
+          testVisit({
+            id: 'vis_01JBQ000000000000000000004' as Visit['id'],
+            tenantId: TENANT,
+            date: '2026-06-01',
+            status: 'CANCELED',
+            eligibility: verified(true),
+          }),
+          testVisit({
+            id: 'vis_01JBQ000000000000000000005' as Visit['id'],
+            tenantId: TENANT,
+            patientId: 'pat_01JBQ000000000000000000009' as Visit['patientId'],
+            date: '2025-01-01',
+            eligibility: verified(true),
+          }),
+          testVisit({
+            id: 'vis_01JBQ000000000000000000006' as Visit['id'],
+            tenantId: OTHER_TENANT,
+            date: '2025-01-01',
+            eligibility: verified(true),
+          }),
+        ]
+        for (const each of seed) yield* repository.save(each, { expectedVersion: null })
+        return {
+          patient: yield* repository.historyOf(TENANT, visit.patientId),
+          unknown: yield* repository.historyOf(TENANT, 'pat_01JBQ000000000000000000008' as Visit['patientId']),
+        }
+      }),
+    )
+    expect(result.patient).toEqual({ firstVisitDate: '2026-03-01', lastIdentityVerifiedOn: '2026-03-01' })
+    expect(result.unknown).toEqual({ firstVisitDate: null, lastIdentityVerifiedOn: null })
+  })
+
   it('keeps the optional reason absent when it was never set', async () => {
     const found = await run(
       layer(),
@@ -157,6 +245,7 @@ describe('VisitRepository (sqlite) transaction', () => {
       'auth',
       'visit_tenant',
       'patients',
+      'visit_check_in',
     ])
   })
 
@@ -177,6 +266,7 @@ describe('VisitRepository (sqlite) transaction', () => {
         'auth',
         'visit_tenant',
         'patients',
+        'visit_check_in',
       ])
     } finally {
       rmSync(dir, { recursive: true, force: true })

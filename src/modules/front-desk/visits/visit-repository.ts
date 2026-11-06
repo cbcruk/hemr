@@ -18,6 +18,19 @@ export interface SaveVisitOptions {
   events?: ReadonlyArray<DomainEvent>
 }
 
+/** 내원 목록 조건입니다. */
+export interface VisitListQuery {
+  date: string
+  status?: Visit['status']
+}
+
+/** 환자의 이전 내원에서 본 값입니다. 취소한 내원은 세지 않습니다. 접수 검증(본인확인·초진)에 씁니다. */
+export interface VisitHistory {
+  firstVisitDate: string | null
+  /** 본인확인을 한 마지막 내원의 진료일입니다. */
+  lastIdentityVerifiedOn: string | null
+}
+
 /**
  * 내원 저장소입니다. 환경마다 다른 Layer를 넣어 구현을 바꿉니다.
  *
@@ -31,6 +44,9 @@ export class VisitRepository extends Context.Service<
   VisitRepository,
   {
     findById(tenantId: Id<'tenant'>, id: Id<'visit'>): Effect.Effect<Option.Option<Visit>>
+    /** 그 병원·진료일의 내원입니다. 접수 시각, ID 순서입니다. */
+    list(tenantId: Id<'tenant'>, query: VisitListQuery): Effect.Effect<ReadonlyArray<Visit>>
+    historyOf(tenantId: Id<'tenant'>, patientId: Id<'patient'>): Effect.Effect<VisitHistory>
     save(visit: Visit, options: SaveVisitOptions): Effect.Effect<void, VersionMismatch>
   }
 >()('hemr/front-desk/VisitRepository') {
@@ -48,6 +64,29 @@ export class VisitRepository extends Context.Service<
               Effect.map((visits) =>
                 Option.filter(Option.fromNullishOr(visits.get(id)), (each) => each.tenantId === tenantId),
               ),
+            ),
+          list: (tenantId, query) =>
+            Ref.get(store).pipe(
+              Effect.map((visits) =>
+                [...visits.values()]
+                  .filter(
+                    (each) =>
+                      each.tenantId === tenantId &&
+                      each.date === query.date &&
+                      (query.status === undefined || each.status === query.status),
+                  )
+                  .sort((a, b) => compare(a.checkedInAt, b.checkedInAt) || compare(a.id, b.id)),
+              ),
+            ),
+          historyOf: (tenantId, patientId) =>
+            Ref.get(store).pipe(
+              Effect.map((visits) => {
+                const dates = [...visits.values()].filter(
+                  (each) => each.tenantId === tenantId && each.patientId === patientId && each.status !== 'CANCELED',
+                )
+                const verified = dates.filter((each) => each.eligibility.identityVerified)
+                return { firstVisitDate: earliest(dates), lastIdentityVerifiedOn: latest(verified) }
+              }),
             ),
           save: (visit, options) =>
             Effect.gen(function* () {
@@ -78,6 +117,11 @@ export class VisitRepository extends Context.Service<
         tenantId: string
         patientId: string
         date: string
+        checkedInAt: string
+        coverage: Visit['coverage']
+        isFirstVisit: number
+        eligibility: string
+        benefitFlags: string
         status: Visit['status']
         statusChangedAt: string
         statusReason: string | null
@@ -90,6 +134,11 @@ export class VisitRepository extends Context.Service<
         tenantId: row.tenantId as Visit['tenantId'],
         patientId: row.patientId as Visit['patientId'],
         date: row.date,
+        checkedInAt: row.checkedInAt,
+        coverage: row.coverage,
+        isFirstVisit: row.isFirstVisit === 1,
+        eligibility: JSON.parse(row.eligibility) as Visit['eligibility'],
+        benefitFlags: JSON.parse(row.benefitFlags) as Visit['benefitFlags'],
         status: row.status,
         statusChangedAt: row.statusChangedAt,
         ...(row.statusReason === null ? {} : { statusReason: row.statusReason }),
@@ -106,6 +155,11 @@ export class VisitRepository extends Context.Service<
         const values = {
           patient_id: visit.patientId,
           date: visit.date,
+          checked_in_at: visit.checkedInAt,
+          coverage: visit.coverage,
+          is_first_visit: visit.isFirstVisit ? 1 : 0,
+          eligibility: JSON.stringify(visit.eligibility),
+          benefit_flags: JSON.stringify(visit.benefitFlags),
           status: visit.status,
           status_changed_at: visit.statusChangedAt,
           status_reason: visit.statusReason ?? null,
@@ -126,14 +180,35 @@ export class VisitRepository extends Context.Service<
             `
       }
 
+      const columns = sql`
+        id, tenant_id AS tenantId, patient_id AS patientId, date, checked_in_at AS checkedInAt, coverage,
+        is_first_visit AS isFirstVisit, eligibility, benefit_flags AS benefitFlags, status,
+        status_changed_at AS statusChangedAt, status_reason AS statusReason, has_clinical_data AS hasClinicalData, version
+      `
+
       return VisitRepository.of({
         findById: (tenantId, id) =>
-          sql<Row>`
-            SELECT id, tenant_id AS tenantId, patient_id AS patientId, date, status, status_changed_at AS statusChangedAt,
-              status_reason AS statusReason, has_clinical_data AS hasClinicalData, version
-            FROM visits WHERE id = ${id} AND tenant_id = ${tenantId}
-          `.pipe(
+          sql<Row>`SELECT ${columns} FROM visits WHERE id = ${id} AND tenant_id = ${tenantId}`.pipe(
             Effect.map((rows) => Option.map(Option.fromNullishOr(rows[0]), toVisit)),
+            Effect.orDie,
+          ),
+        list: (tenantId, query) =>
+          sql<Row>`
+            SELECT ${columns} FROM visits
+            WHERE tenant_id = ${tenantId} AND date = ${query.date}
+              ${query.status === undefined ? sql`` : sql`AND status = ${query.status}`}
+            ORDER BY checked_in_at, id
+          `.pipe(
+            Effect.map((rows) => rows.map(toVisit)),
+            Effect.orDie,
+          ),
+        historyOf: (tenantId, patientId) =>
+          sql<VisitHistory>`
+            SELECT MIN(date) AS firstVisitDate,
+              MAX(CASE WHEN json_extract(eligibility, '$.identityVerified') = 1 THEN date END) AS lastIdentityVerifiedOn
+            FROM visits WHERE tenant_id = ${tenantId} AND patient_id = ${patientId} AND status != 'CANCELED'
+          `.pipe(
+            Effect.map((rows) => rows[0] ?? { firstVisitDate: null, lastIdentityVerifiedOn: null }),
             Effect.orDie,
           ),
         save: (visit, options) =>
@@ -148,3 +223,11 @@ export class VisitRepository extends Context.Service<
     }),
   )
 }
+
+const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+const earliest = (visits: ReadonlyArray<Visit>) => visits.map((each) => each.date).sort(compare)[0] ?? null
+const latest = (visits: ReadonlyArray<Visit>) =>
+  visits
+    .map((each) => each.date)
+    .sort(compare)
+    .at(-1) ?? null

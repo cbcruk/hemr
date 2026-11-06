@@ -46,8 +46,12 @@ const SecurityLive = Layer.mergeAll(AuthenticationLive, AuthorizationLive).pipe(
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
   Layer.provide(Layer.mergeAll(AuthHttpLive, MeHttpLive)),
-  Layer.provide(PatientsHttpLive.pipe(Layer.provide(Patients.layer))),
-  Layer.provide(VisitsHttpLive.pipe(Layer.provide(Visits.layer))),
+  // 접수(`Visits`)가 환자를 읽으므로 두 모듈이 같은 `Patients`를 씁니다
+  Layer.provide(
+    Layer.mergeAll(PatientsHttpLive, VisitsHttpLive.pipe(Layer.provide(Visits.layer))).pipe(
+      Layer.provide(Patients.layer),
+    ),
+  ),
   Layer.provide(SecurityLive),
   Layer.provide(RequestValidationLive),
   Layer.provide(accessCheck(Api)),

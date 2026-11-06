@@ -5,29 +5,38 @@ import { Outbox } from '../../../shared/events/outbox.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import { TEST_TENANT, testMember } from '../../identity/auth/testing.ts'
+import { IdentityRepository } from '../../identity/identity-repository.ts'
+import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
+import { PatientRepository } from '../../patients/patient-repository.ts'
+import { Patients } from '../../patients/patients.ts'
+import { AccessLog } from '../../../shared/audit/access-log.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
 import { Visits } from './visits.ts'
+import { testVisit } from './testing.ts'
 
-const visit: Visit = {
-  id: 'vis_01JBQ000000000000000000001' as Visit['id'],
-  tenantId: TEST_TENANT.id,
-  patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
-  date: clinicDate(Date.now()),
-  status: 'COMPLETED',
-  statusChangedAt: '2026-11-05T00:00:00.000Z',
-  hasClinicalData: false,
-  version: 1,
-}
+const visit = testVisit({ status: 'COMPLETED' })
 
 const owner = testMember()
 
+/**
+ * `persistence`의 내원 저장소·outbox로 `Visits`를 만듭니다. 접수가 읽는 환자·병원 저장소는 따로 메모리에 둡니다.
+ */
+const visitsWith = (persistence: Layer.Layer<VisitRepository | Outbox, unknown>) =>
+  Visits.layer.pipe(
+    Layer.provide(Patients.layer),
+    Layer.provideMerge(persistence),
+    Layer.provide(
+      Layer.mergeAll(IdentityRepository.layerMemory, PatientRepository.layerMemory, AccessLog.layerMemory).pipe(
+        Layer.provide(Outbox.layerMemory),
+      ),
+    ),
+    Layer.provide(TestPatientCrypto),
+  )
+
 const run = <A, E>(program: Effect.Effect<A, E, Visits | Outbox | CurrentAccess>, access = owner.access) =>
   Effect.runPromise(
-    program.pipe(
-      Effect.provideService(CurrentAccess, access),
-      Effect.provide(Visits.layer.pipe(Layer.provideMerge(PersistenceMemory([visit])))),
-    ),
+    program.pipe(Effect.provideService(CurrentAccess, access), Effect.provide(visitsWith(PersistenceMemory([visit])))),
   )
 
 describe('Visits.apply', () => {
@@ -119,7 +128,7 @@ describe('Visits.apply under concurrency', () => {
         const repository = yield* VisitRepository
         let raced = false
         return VisitRepository.of({
-          findById: repository.findById,
+          ...repository,
           save: (next, options) =>
             Effect.gen(function* () {
               if (!raced) {
@@ -142,10 +151,7 @@ describe('Visits.apply under concurrency', () => {
     program: Effect.Effect<A, E, Visits | Outbox | CurrentAccess>,
   ) =>
     Effect.runPromise(
-      program.pipe(
-        Effect.provideService(CurrentAccess, owner.access),
-        Effect.provide(Visits.layer.pipe(Layer.provideMerge(layer))),
-      ),
+      program.pipe(Effect.provideService(CurrentAccess, owner.access), Effect.provide(visitsWith(layer))),
     )
 
   it('retries a lost race when the client sent no version', async () => {

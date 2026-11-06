@@ -161,7 +161,8 @@ export function identityVerificationBlocks(input: CheckInInput, patient: Identit
     input.eligibility?.identityExempt === true ||
     input.fullSelfPay === true ||
     (patient !== undefined &&
-      (ageOn(patient.birthDate, input.date) < IDENTITY_EXEMPT_UNDER_AGE || patient.pregnant === true))
+      ((patient.birthDate !== null && ageOn(patient.birthDate, input.date) < IDENTITY_EXEMPT_UNDER_AGE) ||
+        patient.pregnant === true))
   return !exempt
 }
 

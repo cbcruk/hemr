@@ -14,15 +14,15 @@ export interface NhisEligibility {
   /** `본인부담여부`. `M001`/`M002`/`B001`/`B002`는 선택의료기관 적용자입니다. */
   copayCode?: string | null
   /** 선택기관기호 1–4. */
-  selectedInstitutionCodes: string[]
+  selectedInstitutionCodes: ReadonlyArray<string>
   /** `본인확인예외여부`가 `Y`인지. */
   identityExempt?: boolean
 }
 
 /** 본인확인 판정에 쓰는 환자 정보입니다. */
 export interface IdentityPatient {
-  /** 생년월일 `YYYY-MM-DD`. 만 나이를 서버가 계산합니다. */
-  birthDate: string
+  /** 생년월일 `YYYY-MM-DD`. 만 나이를 서버가 계산합니다. 모르면 `null`이고, 나이 예외를 판정하지 않습니다. */
+  birthDate: string | null
   /** 최초 내원일. 없으면 첫 내원입니다. */
   firstVisitDate?: string | null
   /** 마지막 본인확인일. */
