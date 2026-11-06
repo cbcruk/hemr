@@ -6,6 +6,7 @@ import { PersistenceMemory } from '../../../persistence.ts'
 import type { Membership, Tenant, User } from '../identity.ts'
 import { IdentityRepository } from '../identity-repository.ts'
 import { TestAuthConfig } from './auth-config.ts'
+import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { AuthRepository } from './auth-repository.ts'
 import { hashPassword } from './password.ts'
 
@@ -51,9 +52,12 @@ let dispose: (() => Promise<void>) | undefined
 afterEach(() => dispose?.())
 
 function app() {
-  const web = HttpRouter.toWebHandler(AppLive.pipe(Layer.provide([Seed, HttpServer.layerServices, TestAuthConfig])), {
-    disableLogger: true,
-  })
+  const web = HttpRouter.toWebHandler(
+    AppLive.pipe(Layer.provide([Seed, HttpServer.layerServices, TestAuthConfig, TestPatientCrypto])),
+    {
+      disableLogger: true,
+    },
+  )
   dispose = web.dispose
   return (method: string, path: string, init: { body?: unknown; token?: string; cookie?: string } = {}) => {
     const headers: Record<string, string> = {}

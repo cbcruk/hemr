@@ -2,6 +2,7 @@ import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { describe, expect, it } from 'vitest'
 import { TestAuthConfig } from '../../identity/auth/auth-config.ts'
+import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { TEST_TENANT, testMember } from '../../identity/auth/testing.ts'
 import { AppLive } from '../../../app.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
@@ -56,6 +57,7 @@ async function send(seed: Visit[], path: string, options: SendOptions = {}): Pro
         member === null ? persistence : member.seed.pipe(Layer.provideMerge(persistence)),
         HttpServer.layerServices,
         TestAuthConfig,
+        TestPatientCrypto,
       ]),
     ),
     { disableLogger: true },

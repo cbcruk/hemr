@@ -8,6 +8,8 @@ import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
 import { AuthorizationLive, accessCheck } from './modules/identity/auth/authorization.ts'
 import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
 import { Visits } from './modules/front-desk/visits/visits.ts'
+import { PatientsHttpLive } from './modules/patients/patients.http.ts'
+import { Patients } from './modules/patients/patients.ts'
 import { Internal, NotFound } from './shared/problem/problem.ts'
 import { RequestValidationLive } from './shared/problem/request-validation.ts'
 
@@ -39,11 +41,12 @@ const SecurityLive = Layer.mergeAll(AuthenticationLive, AuthorizationLive).pipe(
 /**
  * HTTP 서버에 올릴 수 있는 API 전체 경로입니다.
  *
- * 저장소(`persistence.ts`)와 인증 설정(`AuthConfig`)은 호출하는 쪽이 넣습니다.
+ * 저장소(`persistence.ts`), 인증 설정(`AuthConfig`), 환자 정보 암호화(`PatientCrypto`)는 호출하는 쪽이 넣습니다.
  */
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
   Layer.provide(Layer.mergeAll(AuthHttpLive, MeHttpLive)),
+  Layer.provide(PatientsHttpLive.pipe(Layer.provide(Patients.layer))),
   Layer.provide(VisitsHttpLive.pipe(Layer.provide(Visits.layer))),
   Layer.provide(SecurityLive),
   Layer.provide(RequestValidationLive),

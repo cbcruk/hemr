@@ -151,7 +151,13 @@ describe('VisitRepository (sqlite) transaction', () => {
         return yield* sql<{ name: string }>`SELECT name FROM effect_sql_migrations`
       }).pipe(Effect.provide(PersistenceSqlite(':memory:'))),
     )
-    expect(applied.map((row) => row.name)).toEqual(['visits_and_outbox', 'identity', 'auth', 'visit_tenant'])
+    expect(applied.map((row) => row.name)).toEqual([
+      'visits_and_outbox',
+      'identity',
+      'auth',
+      'visit_tenant',
+      'patients',
+    ])
   })
 
   it('applies migrations once across restarts of the same file', async () => {
@@ -165,7 +171,13 @@ describe('VisitRepository (sqlite) transaction', () => {
       )
     try {
       await names()
-      expect((await names()).map((row) => row.name)).toEqual(['visits_and_outbox', 'identity', 'auth', 'visit_tenant'])
+      expect((await names()).map((row) => row.name)).toEqual([
+        'visits_and_outbox',
+        'identity',
+        'auth',
+        'visit_tenant',
+        'patients',
+      ])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

@@ -1,8 +1,7 @@
 import { Effect } from 'effect'
-import { HttpApiBuilder, HttpApiSchema } from 'effect/http-api'
+import { HttpApiBuilder } from 'effect/http-api'
 import { Api } from '../../../api.ts'
-import type { Visit } from './visit.ts'
-import type { VisitCommandInput } from './visits.ts'
+import { expectedVersion, withEtag } from '../../../shared/http/etag.ts'
 import { Visits } from './visits.ts'
 
 /**
@@ -19,17 +18,6 @@ function cannotFail<const Tag extends string>(tag: Tag) {
       Exclude<E, { readonly _tag: Tag }>,
       R
     >
-}
-
-/** `If-Match: "7"`(또는 `W/"7"`, `7`)에서 버전을 읽습니다. 숫자가 아니면 어떤 버전과도 맞지 않습니다. */
-function expectedVersion(ifMatch: string | undefined): Pick<VisitCommandInput, 'expectedVersion'> {
-  if (ifMatch === undefined) return {}
-  const version = Number(ifMatch.replace(/^W\//, '').replaceAll('"', ''))
-  return { expectedVersion: Number.isInteger(version) ? version : Number.NaN }
-}
-
-function withEtag(visit: Visit) {
-  return HttpApiSchema.withHeaders({ body: visit, headers: { etag: `"${visit.version}"` } })
 }
 
 /** 내원 상태 커맨드 핸들러입니다. */

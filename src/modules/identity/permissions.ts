@@ -33,6 +33,8 @@ export const PERMISSIONS = [
   'patient:create',
   'patient:update',
   'patient:delete',
+  // 주민등록번호 원문 조회입니다. 사유(`X-Access-Reason`)를 받고 열람 기록을 남깁니다. 치료사는 갖지 않습니다
+  'patient.rrn:read',
   'appointment:read',
   'appointment:create',
   'appointment:update',
@@ -115,6 +117,7 @@ export const DOCTOR_ROLES: ReadonlySet<Role> = new Set(['OWNER_DOCTOR', 'ASSOCIA
 // 프리셋은 목록으로 직접 적습니다. 카탈로그에 권한을 더해도 프리셋에 저절로 들어가지 않게 하기 위해서입니다
 const DESK_READS: Permission[] = [
   'patient:read',
+  'patient.rrn:read',
   'appointment:read',
   'visit:read',
   'receipt:read',

@@ -118,6 +118,7 @@ describe('preset contents', () => {
 
 const DESK_READS: Permission[] = [
   'patient:read',
+  'patient.rrn:read',
   'appointment:read',
   'visit:read',
   'receipt:read',
