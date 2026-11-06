@@ -7,6 +7,7 @@ import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
 import { draftEncounter, hasClinicalContent } from '../../clinical/encounters/encounter-draft.ts'
+import { retractEncounter } from '../../clinical/encounters/encounter-retraction.ts'
 import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
 import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
@@ -94,8 +95,12 @@ export class Visits extends Context.Service<
      *
      * 커맨드 자체의 권한(`visit:update`·`visit:cancel`)은 엔드포인트 선언이 확인합니다. 연쇄 취소는 본문에 따라
      * 정해지므로 여기서 `visit:cancel`·`receipt:void`·`encounter:retract`를 모두 확인합니다(D3). 내원을 읽기 전에
-     * 확인해, 권한이 없으면 내원 상태와 상관없이 403 `PERMISSION_DENIED`입니다. 함께 무효로 할 진료·수납 기록 처리는
-     * 그 모듈이 생길 때 더합니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다.
+     * 확인해, 권한이 없으면 내원 상태와 상관없이 403 `PERMISSION_DENIED`입니다. 취소는 같은 트랜잭션에서 내원의 진료를
+     * 철회합니다(`encounter.retracted`, 사유는 취소 사유). 연쇄가 아니면 내용이 없는 진료만 여기까지 오고, 연쇄 취소는
+     * 고정한 진료도 철회합니다. 수납 기록 처리는 그 모듈이
+     * 생길 때 더합니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다.
+     *
+     * 읽기·판정·쓰기를 한 트랜잭션에서 해, 진료 저장이 취소의 진료 내용 판정과 저장 사이에 끼어들지 못합니다.
      *
      * 진료에 본문이나 상병이 있으면 저장된 `hasClinicalData`와 상관없이 진료 내용이 있는 내원으로 판정합니다.
      */
@@ -131,13 +136,21 @@ export class Visits extends Context.Service<
       const encounters = yield* EncounterRepository
       const transaction = yield* Transaction
 
-      /** 저장된 값이나 진료 내용으로 판정합니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 저장된 값만 봅니다. */
+      /**
+       * 저장된 값이나 진료 내용으로 판정합니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 저장된 값만 봅니다. 철회한
+       * 진료는 기록이 남아도 무효라 내용으로 치지 않습니다.
+       */
       const hasClinicalData = (visit: Visit) =>
         visit.hasClinicalData || visit.encounterId === null
           ? Effect.succeed(visit.hasClinicalData)
-          : encounters
-              .findById(visit.tenantId, visit.encounterId)
-              .pipe(Effect.map(Option.match({ onNone: () => false, onSome: hasClinicalContent })))
+          : encounters.findById(visit.tenantId, visit.encounterId).pipe(
+              Effect.map(
+                Option.match({
+                  onNone: () => false,
+                  onSome: (each) => each.status !== 'ENTERED_IN_ERROR' && hasClinicalContent(each),
+                }),
+              ),
+            )
 
       const attempt = Effect.fn('Visits.apply')(function* (
         id: Id<'visit'>,
@@ -148,54 +161,81 @@ export class Visits extends Context.Service<
         if (command === 'CANCEL' && input.cascade === true) {
           yield* requirePermissions('visit:cancel', 'receipt:void', 'encounter:retract')
         }
-        const visit = yield* repository.findById(access.tenantId, id).pipe(
-          Effect.flatMap(
-            Option.match({
-              onNone: () => Effect.fail(new VisitNotFound({})),
-              onSome: Effect.succeed,
-            }),
-          ),
-        )
-        if (input.expectedVersion !== undefined && input.expectedVersion !== visit.version) {
-          return yield* new VersionMismatch({ currentVersion: visit.version })
-        }
-
-        const now = yield* DateTime.now
-        const options = {
-          hasClinicalData: yield* hasClinicalData(visit),
-          isPastDate: visit.date < clinicDate(DateTime.toEpochMillis(now)),
-          ...(input.cascade === undefined ? {} : { cascade: input.cascade }),
-        }
-        const steps =
-          command === 'REOPEN' && input.then !== undefined ? [command, THEN_COMMANDS[input.then]] : [command]
-
-        // 중간 단계가 실패하면 아무것도 저장하지 않습니다.
-        let status = visit.status
-        for (const step of steps) {
-          const result = transitionVisit(status, step, options)
-          if (!result.ok) return yield* toError(result.code, visit, status, step)
-          status = result.to
-        }
-
-        const { statusReason: _, ...rest } = visit
-        const next: Visit = {
-          ...rest,
-          status,
-          statusChangedAt: DateTime.formatIso(now),
-          version: visit.version + 1,
-          ...(input.reason === undefined ? {} : { statusReason: input.reason }),
-        }
-        const event = domainEvent(
-          'visit.status_changed',
-          visit.id,
-          next.statusChangedAt,
-          { visitId: visit.id, patientId: visit.patientId, from: visit.status, to: status },
-          { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
-        )
-        // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
-        yield* repository.save(next, { expectedVersion: visit.version, events: [event] })
-        return next
+        return yield* transaction.run(transition(access, id, command, input))
       })
+
+      const transition = (
+        access: CurrentAccess['Service'],
+        id: Id<'visit'>,
+        command: VisitCommand,
+        input: VisitCommandInput,
+      ) =>
+        Effect.gen(function* () {
+          const visit = yield* repository.findById(access.tenantId, id).pipe(
+            Effect.flatMap(
+              Option.match({
+                onNone: () => Effect.fail(new VisitNotFound({})),
+                onSome: Effect.succeed,
+              }),
+            ),
+          )
+          if (input.expectedVersion !== undefined && input.expectedVersion !== visit.version) {
+            return yield* new VersionMismatch({ currentVersion: visit.version })
+          }
+
+          const now = yield* DateTime.now
+          const options = {
+            hasClinicalData: yield* hasClinicalData(visit),
+            isPastDate: visit.date < clinicDate(DateTime.toEpochMillis(now)),
+            ...(input.cascade === undefined ? {} : { cascade: input.cascade }),
+          }
+          const steps =
+            command === 'REOPEN' && input.then !== undefined ? [command, THEN_COMMANDS[input.then]] : [command]
+
+          // 중간 단계가 실패하면 아무것도 저장하지 않습니다.
+          let status = visit.status
+          for (const step of steps) {
+            const result = transitionVisit(status, step, options)
+            if (!result.ok) return yield* toError(result.code, visit, status, step)
+            status = result.to
+          }
+
+          const { statusReason: _, ...rest } = visit
+          const next: Visit = {
+            ...rest,
+            status,
+            statusChangedAt: DateTime.formatIso(now),
+            version: visit.version + 1,
+            ...(input.reason === undefined ? {} : { statusReason: input.reason }),
+          }
+          const event = domainEvent(
+            'visit.status_changed',
+            visit.id,
+            next.statusChangedAt,
+            { visitId: visit.id, patientId: visit.patientId, from: visit.status, to: status },
+            { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+          )
+          // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
+          yield* repository.save(next, { expectedVersion: visit.version, events: [event] })
+          // 취소한 내원의 진료는 철회합니다. 연쇄가 아니면 여기까지 온 진료는 내용이 없는 진료입니다
+          if (status === 'CANCELED' && visit.encounterId !== null) {
+            const encounter = yield* encounters.findById(access.tenantId, visit.encounterId)
+            if (Option.isSome(encounter) && encounter.value.status !== 'ENTERED_IN_ERROR') {
+              const retracted = retractEncounter(encounter.value, {
+                reason: input.reason ?? 'Visit canceled',
+                at: next.statusChangedAt,
+                by: access.userId,
+                tenantId: access.tenantId,
+              })
+              // 같은 트랜잭션에서 방금 읽은 진료라 버전이 어긋나지 않습니다. 어긋나면 결함이고 SQL 저장소는 취소도
+              // 되돌립니다. 되돌리지 못하는 메모리 저장소(테스트·개발용)에서는 내원만 취소된 채 남을 수 있습니다
+              yield* encounters
+                .save(retracted.encounter, { expectedVersion: encounter.value.version, events: [retracted.event] })
+                .pipe(Effect.orDie)
+            }
+          }
+          return next
+        })
 
       const apply = (id: Id<'visit'>, command: VisitCommand, input: VisitCommandInput = {}) =>
         input.expectedVersion === undefined

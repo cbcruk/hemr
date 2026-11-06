@@ -168,6 +168,28 @@ If-Match: "8"
 - **저장:** 마이그레이션 `0009_encounter_completion`이 `encounters`에 `completed_at`을 더합니다
 - **모듈:** 진료가 내원 커맨드(`Visits`)를 쓰고 접수가 빈 진료를 만들어 서로를 부르므로, 접수가 쓰는 `draftEncounter`·`hasClinicalContent`를 [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)로 옮겨 import 순환을 없앴습니다
 
+### 정정·철회·판·고정 구현 결정
+
+구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `amend`·`retract`·`setLocked`·`revisions`·`revision`, 철회는 [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)입니다 (#25).
+
+- **범위:** `:amend`, `:retract`, `GET /encounters/{id}/versions`·`/versions/{n}`, `:lock`·`:unlock`, 내원 연쇄 취소의 진료 철회
+  - 미룸: 정정 제안(`AmendmentProposal`, #30). 만드는 쪽(청구 자동수정, 보험구분 변경, 면허 없는 사용자의 정정 요청)이 아직 없어 그때 함께 엽니다. 초진 기록 자동 고정(`encounter-policy.autoLockInitialRecord`)은 병원 정책 설정이 생길 때, 수납·청구한 진료의 철회 409는 그 모듈이 생길 때, 판의 `source` 중 `CLAIM_AUTOFIX`·`AI_ASSISTED`는 그 기능이 생길 때 더합니다. 서명(판에 붙음)과 추가기재·수정 접속기록 저장소도 서명·감사 기능과 함께 붙입니다
+- **판(`revision`)과 낙관적 잠금 버전(`version`)을 나눕니다.** `/versions/{n}`의 `n`은 진료기록 판입니다. 초안은 0판이고 판이 없습니다. 완료하면 1판(`source: COMPLETION`), 정정할 때마다 다음 판(`AMENDMENT`, `reason`)을 남깁니다. 고정·철회처럼 내용이 바뀌지 않는 커맨드는 `version`만 올리고 판을 남기지 않습니다. 초안 저장마다 판을 남기지 않는 것은, 법이 보존을 요구하는 것이 완료한 기록의 수정 전 원본이기 때문입니다
+  - 대안: 낙관적 잠금 `version`을 판 번호로 쓰기. 고정·철회와 초안 저장에도 올라 번호가 띄엄띄엄이 되고 "몇 번째 기록인가"를 알 수 없어 버렸습니다
+- **판은 추가만 합니다.** `encounter_revisions` 테이블에 판마다 그때의 본문·상병·처방 라인 전체를 남기고, 트리거가 `UPDATE`·`DELETE`를 막습니다 (compliance.md 진료기록 정정). 진료 저장과 같은 트랜잭션에서 쓰고, 버전이 어긋나 거절된 저장은 판도 남기지 않습니다. 판 목록은 내용 전체를 줍니다. 판이 많지 않고 화면이 비교에 바로 쓰기 때문입니다
+  - 대안: 바뀐 필드만 남기기(diff). 특정 판을 다시 만들려면 처음부터 쌓아야 하고 원본 보존이라는 목적에 비해 복잡해 버렸습니다
+- **정정은 `PATCH`와 같은 `changes`를 받아 한 번에 새 판을 확정합니다.** 위 [진료](#진료-encounter)의 설계대로입니다. `reason`(1–500자)이 필수이고, 적용 규칙·처방 라인 권한·422 `ENCOUNTER_CHANGE_INVALID`는 `PATCH`와 같습니다. 정정한 결과도 완료 검증을 통과해야 합니다(422 `ENCOUNTER_COMPLETION_REJECTED`, `acknowledge` 받음). 완료한 기록이 정정으로 완료 조건을 잃지 않게 하려는 것입니다. 바뀐 것이 없으면 판을 남기지 않고 그대로 돌려줍니다(`PATCH`와 같음)
+  - 정정할 수 있는 상태는 `COMPLETED`·`AMENDED`이고, 그 밖은 409 `ENCOUNTER_NOT_EDITABLE`입니다. 응답은 `{ encounter, prescriptionLineRefs }`입니다
+- **철회는 사유와 함께 `ENTERED_IN_ERROR`로 남깁니다.** `retraction { reason, retractedAt, retractedBy }`를 진료에 두고 내용은 그대로입니다. 초안·완료·정정한 진료를 철회할 수 있고, 철회한 진료는 아무 커맨드도 받지 않습니다(409). 진찰료 중복 판정에서 빠지고, 내원 취소의 진료 내용 판정에서도 빠집니다
+  - 열린 내원의 초안을 바로 철회하면 그 내원에서는 더 진료를 쓸 수 없습니다(내원 하나에 진료 하나). 데스크가 `cascade` 없이 내원을 취소하고 다시 접수합니다. 철회한 진료는 내용으로 치지 않아 취소가 막히지 않습니다. 대안: 열린 내원의 초안 철회를 막기. 잘못 연 진료를 의사가 정리하지 못하게 되어 버렸습니다
+- **고정한 진료는 정정·철회할 수 없습니다(409 `ENCOUNTER_LOCKED`).** 고정은 완료·정정한 진료에만 걸고(그 밖은 409 `ENCOUNTER_NOT_EDITABLE`), 이미 그 상태면 버전을 올리지 않습니다. 고정 권한은 따로 없어 정정과 같은 `encounter:amend`(면허)입니다. 기록을 바꾸지 못하게 하는 일이 기록을 바꾸는 권한과 같은 무게이기 때문입니다. 되돌릴 조건: 실장 등 면허 없는 사용자가 고정해야 하면 `encounter:lock` 권한을 더합니다
+- **내원 취소는 같은 트랜잭션에서 진료를 철회합니다.** 사유는 취소 사유입니다. 연쇄가 아닌 취소는 진료 내용이 없을 때만 통과하므로 빈 초안만 철회합니다(front-desk.md 연쇄 취소의 설계대로). 이 철회는 데스크의 취소에 따른 것이라 `encounter:retract`를 보지 않습니다. 연쇄 취소(`cascade: true`)는 내용이 있는 진료도 철회합니다. 고정한 진료도 철회합니다. 연쇄 취소는 `encounter:retract`(면허)가 있어야 하고 사용자가 명시적으로 고른 일이라, 고정보다 앞선다고 봤습니다. 이미 철회한 진료는 건너뜁니다
+- **내원 커맨드와 진료 저장·정정·철회·고정은 읽기·판정·쓰기를 한 트랜잭션에서 합니다.** #22에서 받아들인 취소·저장 경합을 이것으로 막았습니다
+- **`If-Match`가 필수입니다.** 정정·철회·고정 모두 진료 버전으로 비교합니다(빠지면 400, 어긋나면 412)
+- **권한:** 정정·고정은 `encounter:amend`, 철회는 `encounter:retract`, 판 조회는 `encounter:read`(데스크도 가짐)입니다
+- **이벤트:** `encounter.amended { encounterId, visitId, patientId, revision, changed, reason, acknowledged }`, `encounter.retracted { encounterId, visitId, patientId, from }`, `encounter.locked`·`encounter.unlocked { encounterId, visitId, patientId }`
+- **저장:** 마이그레이션 `0010_encounter_revisions`가 `encounters`에 `revision`·`locked`·`retraction`을 더하고 `encounter_revisions`를 만듭니다. 0009 뒤로 완료한 진료는 그 내용을 1판으로 옮깁니다(기록한 사람은 진료의, 시각은 완료 시각). 그 전에 취소한 내원의 진료는 철회로 맞춥니다(사유·시각은 내원 취소에서, 철회한 사람은 내원에 남지 않아 `null`). 판의 기본키는 `(tenant_id, encounter_id, revision)`입니다
+
 ### 다른 날짜 반복
 
 현행은 날짜마다 클라이언트가 `nhic/m2` 자격조회 → `POST /desk/waiting` → `save` → `done` → 수납 이동을 반복했습니다. 재설계는 `POST /encounters/{id}:repeat {dates[]}` → `Job`이고, 항목별 결과(성공·자격조회 실패·규칙 위반)를 돌려줍니다. 현행 `/treatment/repeat-results` 화면이 이 결과를 보여 줍니다.
@@ -177,7 +199,7 @@ If-Match: "8"
 구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `get`·`listForPatient`·`update`, 변경 적용은 [encounter-changes.ts](../../src/modules/clinical/encounters/encounter-changes.ts)입니다 (#22).
 
 - **범위:** 접수가 빈 초안 진료를 만들고, 진료 하나(`GET /encounters/{id}`)와 환자의 진료 목록(`GET /patients/{id}/encounters`)을 열고, 초안의 본문·상병을 저장합니다(`PATCH /encounters/{id}`)
-  - 미룸: 정정·철회·버전·고정(#25), 내원 없는 진료(`POST /encounters`), 활력징후, 서명, `allowedActions`, 목록의 `from`·`to`·`type`·`cursor`, `clinical-summary`, 상병 마스터 검색, 진료 조회의 열람 기록(`access_logs`, conventions.md 감사와 열람 기록). 열람 기록은 환자 조회(patients.md)와 같이 미루고, 진료기록 서명·정정과 함께 붙입니다
+  - 미룸: 내원 없는 진료(`POST /encounters`), 활력징후, 서명, `allowedActions`, 목록의 `from`·`to`·`type`·`cursor`, `clinical-summary`, 상병 마스터 검색, 진료 조회의 열람 기록(`access_logs`, conventions.md 감사와 열람 기록). 열람 기록은 환자 조회(patients.md)와 같이 미루고, 진료기록 서명·정정과 함께 붙입니다
 - **접수가 내원과 진료를 한 트랜잭션에서 만듭니다.** 두 모듈의 저장소에 걸친 쓰기라 공통 `Transaction`([transaction.ts](../../src/shared/db/transaction.ts))으로 묶습니다. 저장소 `save`의 트랜잭션은 그 안에서 savepoint가 됩니다. 메모리 저장소는 되돌리지 못해, 실패할 수 있는 내원 쓰기(같은 ID)를 먼저 하고 서버가 만든 ID의 진료를 뒤에 씁니다
   - 대안: 진료를 처음 열 때(`GET`) 만들기. 읽기가 쓰기가 되고, 내원 목록에서 `encounterId`를 바로 줄 수 없어 버렸습니다
   - 대안: 내원 저장소가 진료 행도 쓰기. Front Desk가 Clinical 테이블을 알게 되어 버렸습니다
@@ -192,11 +214,11 @@ If-Match: "8"
 - **본문은 받은 HTML 그대로 둡니다.** 20만 자까지 받습니다. 서버가 HTML을 정리하지 않으므로 화면에 그리는 쪽이 정리해야 합니다. 되돌릴 조건: 서버가 문서(진료기록 사본)를 렌더링하기 시작하면 저장할 때 허용 태그만 남깁니다
 - **아직 받지 않는 필드(활력징후 등)는 400입니다.** 접수와 같은 이유입니다
 - **초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`입니다.** 완료한 뒤의 수정은 정정(`:amend`, #25)입니다
-- **내원 취소는 진료 내용을 봅니다.** 본문이나 상병, 처방 라인이 있는 진료의 내원은 `cascade` 없이 취소할 수 없습니다(409 `VISIT_HAS_CLINICAL_DATA`). 저장된 `hasClinicalData`(수납이 생기기 전까지의 값)에 진료 내용을 더해 판정합니다. 편집기가 비운 본문(`<p><br></p>`, 공백)은 내용이 아니고, 그림(`<img>`)은 내용입니다. 취소한 내원의 초안 진료는 남지만 고칠 수 없습니다(409 `ENCOUNTER_VISIT_CANCELED`). 내원을 다시 열면 고칠 수 있고, 철회(`:retract`)가 생기면 함께 정리합니다(#25)
-  - 받아들인 경합: 취소가 진료 내용을 읽은 뒤 저장하기 전에 진료 저장이 끼어들면, 내용이 있는 진료가 취소한 내원에 남습니다. 두 쓰기가 다른 행이라 버전으로 막지 못합니다. 데스크 취소와 진료 저장이 같은 순간에 일어나는 일은 드물고 기록은 지워지지 않아 받아들였습니다. 되돌릴 조건: 연쇄 취소가 진료를 철회하게 되면(#25) 취소와 진료 상태를 한 트랜잭션에서 버전과 함께 씁니다
+- **내원 취소는 진료 내용을 봅니다.** 본문이나 상병, 처방 라인이 있는 진료의 내원은 `cascade` 없이 취소할 수 없습니다(409 `VISIT_HAS_CLINICAL_DATA`). 저장된 `hasClinicalData`(수납이 생기기 전까지의 값)에 진료 내용을 더해 판정합니다. 편집기가 비운 본문(`<p><br></p>`, 공백)은 내용이 아니고, 그림(`<img>`)은 내용입니다. 취소한 내원의 빈 초안 진료는 #25부터 취소와 함께 철회합니다(front-desk.md 연쇄 취소). 그 전에 취소한 내원의 초안은 남지만 고칠 수 없습니다(409 `ENCOUNTER_VISIT_CANCELED`)
+  - 취소와 진료 저장이 겹치는 경합: 처음(#22)에는 받아들였고, #25에서 내원 커맨드와 진료 저장이 읽기·판정·쓰기를 한 트랜잭션에서 하게 해 막았습니다. SQLite는 트랜잭션을 하나씩 실행하므로 먼저 들어간 쪽만 이기고, 뒤에 온 쪽은 409(`VISIT_HAS_CLINICAL_DATA` 또는 `ENCOUNTER_VISIT_CANCELED`)입니다
 - **이벤트:** `encounter.created { encounterId, visitId, patientId }`(접수와 같은 트랜잭션), `encounter.updated { encounterId, visitId, patientId, changed }`(`changed`는 `note`·`diagnoses`·`prescriptionLines`)
 - **목록은 쪽을 나누지 않습니다.** 최근 진료가 먼저입니다(`serviceAt`, ID 내림차순). 되돌릴 조건: 진료가 많은 환자의 목록이 느려지거나 화면이 기간 조회를 쓰면 `from`·`to`·`cursor`를 더합니다
-- **저장:** 마이그레이션 `0007_encounters`가 `encounters`를 만들고 `visits`에 `encounter_id`를 더합니다. 0006 뒤로 실제 접수가 생겨 테이블을 다시 만들지 않고 열을 더했고, 그 전 내원은 `encounterId: null`입니다. 상병·표시는 JSON 열입니다. `visit_id`에 부분 유일 색인을 걸어 내원 하나에 진료 하나를 지킵니다. 철회 뒤 같은 내원에 새 진료를 만들게 되면(#25) 이 색인을 다시 봅니다. 모듈 사이 외래 키는 두지 않습니다(0006과 같음)
+- **저장:** 마이그레이션 `0007_encounters`가 `encounters`를 만들고 `visits`에 `encounter_id`를 더합니다. 0006 뒤로 실제 접수가 생겨 테이블을 다시 만들지 않고 열을 더했고, 그 전 내원은 `encounterId: null`입니다. 상병·표시는 JSON 열입니다. `visit_id`에 부분 유일 색인을 걸어 내원 하나에 진료 하나를 지킵니다. 철회한 진료도 내원을 계속 차지해, 철회 뒤 같은 내원에 새 진료는 만들 수 없습니다. 그런 흐름이 필요해지면 이 색인을 철회하지 않은 진료로 좁힙니다. 모듈 사이 외래 키는 두지 않습니다(0006과 같음)
 - **권한:** 조회는 `encounter:read`(데스크도 가짐), 저장은 `encounter:write`(면허 권한)입니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다
 
 ## 처방 라인

@@ -112,6 +112,27 @@ describe.each(['memory', 'sqlite'] as const)('Encounters.complete visit flow (%s
   })
 })
 
+describe('Encounters on a visit canceled before cancel retracted encounters', () => {
+  it('refuses to save or complete the draft', async () => {
+    const result = await run(
+      Effect.gen(function* () {
+        const { visit, encounterId } = yield* chartedEncounter
+        // #25 전에 취소한 내원은 진료를 철회하지 않았습니다
+        yield* (yield* VisitRepository).save({ ...visit, status: 'CANCELED', version: 2 }, { expectedVersion: 1 })
+        const encounters = yield* Encounters
+        return {
+          update: yield* Effect.flip(encounters.update(encounterId, { note: { body: 'x' } }, { expectedVersion: 2 })),
+          complete: yield* Effect.flip(encounters.complete(encounterId, { expectedVersion: 2 })),
+        }
+      }),
+      'memory',
+    )
+
+    expect(result.update).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
+    expect(result.complete).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
+  })
+})
+
 describe('Encounters.complete (sqlite)', () => {
   it('rolls the completion back when moving the visit fails', async () => {
     const failing = Layer.effect(

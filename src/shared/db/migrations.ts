@@ -299,6 +299,64 @@ export const migrations = {
     // 이 전에 만든 진료는 모두 초안이라 완료 시각이 없습니다
     yield* sql`ALTER TABLE encounters ADD COLUMN completed_at TEXT`
   }),
+  '0010_encounter_revisions': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    yield* sql`ALTER TABLE encounters ADD COLUMN revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0)`
+    yield* sql`ALTER TABLE encounters ADD COLUMN locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1))`
+    yield* sql`
+      ALTER TABLE encounters ADD COLUMN retraction TEXT CHECK (retraction IS NULL OR json_valid(retraction))
+    `
+    // 진료기록 판은 추가만 합니다 (compliance.md 진료기록 정정). 고치거나 지우는 문장은 트리거가 막습니다
+    yield* sql`
+      CREATE TABLE encounter_revisions (
+        tenant_id TEXT NOT NULL,
+        encounter_id TEXT NOT NULL,
+        revision INTEGER NOT NULL CHECK (revision >= 1),
+        note_body TEXT NOT NULL,
+        diagnoses TEXT NOT NULL CHECK (json_valid(diagnoses)),
+        prescription_lines TEXT NOT NULL CHECK (json_valid(prescription_lines)),
+        source TEXT NOT NULL CHECK (source IN ('COMPLETION', 'AMENDMENT')),
+        reason TEXT,
+        recorded_by TEXT,
+        recorded_at TEXT NOT NULL,
+        PRIMARY KEY (tenant_id, encounter_id, revision)
+      ) STRICT
+    `
+    yield* sql`
+      CREATE TRIGGER encounter_revisions_no_update BEFORE UPDATE ON encounter_revisions
+      BEGIN SELECT RAISE(ABORT, 'encounter revisions are append-only'); END
+    `
+    yield* sql`
+      CREATE TRIGGER encounter_revisions_no_delete BEFORE DELETE ON encounter_revisions
+      BEGIN SELECT RAISE(ABORT, 'encounter revisions are append-only'); END
+    `
+    // 0009 뒤로 완료한 진료는 그 내용을 1판으로 옮깁니다
+    yield* sql`
+      INSERT INTO encounter_revisions
+        (tenant_id, encounter_id, revision, note_body, diagnoses, prescription_lines, source, reason, recorded_by,
+         recorded_at)
+      SELECT tenant_id, id, 1, note_body, diagnoses, prescription_lines, 'COMPLETION', NULL, doctor_id, completed_at
+      FROM encounters WHERE status = 'COMPLETED'
+    `
+    yield* sql`UPDATE encounters SET revision = 1 WHERE status = 'COMPLETED'`
+    // 취소한 내원의 진료는 이제 취소와 함께 철회합니다. 그 전에 취소한 내원의 진료도 같게 맞춥니다. 사유와 시각은
+    // 내원 취소에서 가져오고, 누가 취소했는지는 내원에 남지 않아 비워 둡니다
+    yield* sql`
+      UPDATE encounters SET
+        status = 'ENTERED_IN_ERROR',
+        retraction = (
+          SELECT json_object(
+            'reason', coalesce(visits.status_reason, 'Visit canceled'),
+            'retractedAt', visits.status_changed_at,
+            'retractedBy', NULL
+          )
+          FROM visits WHERE visits.id = encounters.visit_id
+        ),
+        version = version + 1
+      WHERE status != 'ENTERED_IN_ERROR'
+        AND visit_id IN (SELECT id FROM visits WHERE status = 'CANCELED' AND tenant_id = encounters.tenant_id)
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

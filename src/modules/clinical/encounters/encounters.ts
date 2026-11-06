@@ -22,11 +22,14 @@ import type { Acknowledgeable } from './encounter-completion.ts'
 import {
   EncounterChangeInvalid,
   EncounterCompletionRejected,
+  EncounterLocked,
   EncounterNotEditable,
   EncounterNotFound,
+  EncounterRevisionNotFound,
   EncounterVisitCanceled,
 } from './encounter.ts'
-import type { Encounter, EncounterWarning } from './encounter.ts'
+import type { Encounter, EncounterRevision, EncounterWarning } from './encounter.ts'
+import { retractEncounter } from './encounter-retraction.ts'
 import { EncounterRepository } from './encounter-repository.ts'
 
 /** 저장한 진료와, 완료 전에 고쳐야 하는 것과, 새 처방 라인의 `clientRef`와 서버 ID의 대응입니다. */
@@ -61,6 +64,56 @@ const NEXT_VISIT_COMMANDS: Record<NextVisitStatus, VisitCommand> = {
   IN_TREATMENT: 'START_TREATMENT',
   AWAITING_PAYMENT: 'SEND_TO_CHECKOUT',
 }
+
+export interface AmendEncounterInput {
+  reason: string
+  /** `PATCH`와 같은 형식의 바꿀 내용입니다. */
+  changes: EncounterChanges
+  acknowledge?: ReadonlyArray<Acknowledgeable>
+  expectedVersion: number
+}
+
+/** 정정한 진료와 새 처방 라인의 `clientRef`와 서버 ID의 대응입니다. */
+export interface AmendedEncounter {
+  encounter: Encounter
+  prescriptionLineRefs: ReadonlyArray<PrescriptionLineRef>
+}
+
+export type AmendEncounterError =
+  | EncounterNotFound
+  | EncounterNotEditable
+  | EncounterLocked
+  | EncounterVisitCanceled
+  | EncounterChangeInvalid
+  | EncounterCompletionRejected
+  | VersionMismatch
+  | PermissionDenied
+
+export type RetractEncounterError = EncounterNotFound | EncounterNotEditable | EncounterLocked | VersionMismatch
+
+export type LockEncounterError = EncounterNotFound | EncounterNotEditable | VersionMismatch
+
+/** 변경에 처방 라인이 있을 때 더 필요한 권한입니다. 빠진 권한을 한 번에 모두 알립니다. */
+const requirePrescriptionPermissions = (changes: EncounterChanges) => {
+  const lines = changes.prescriptionLines
+  const needed: Permission[] = []
+  if ((lines?.upsert?.length ?? 0) > 0 || (lines?.remove?.length ?? 0) > 0) needed.push('prescription:write')
+  if (lines?.upsert?.some((each) => each.prn === true)) needed.push('prescription:write_prn')
+  return Arr.isArrayNonEmpty(needed) ? requirePermissions(...needed) : Effect.void
+}
+
+/** 진료기록 판 하나입니다. 지금 내용을 그대로 담습니다. */
+const revisionOf = (
+  encounter: Encounter,
+  input: Pick<EncounterRevision, 'source' | 'reason' | 'recordedBy' | 'recordedAt'>,
+): EncounterRevision => ({
+  encounterId: encounter.id,
+  revision: encounter.revision,
+  note: encounter.note,
+  diagnoses: encounter.diagnoses,
+  prescriptionLines: encounter.prescriptionLines,
+  ...input,
+})
 
 export type UpdateEncounterError =
   | EncounterNotFound
@@ -102,6 +155,49 @@ export class Encounters extends Context.Service<
       changes: EncounterChanges,
       options: { expectedVersion: number },
     ): Effect.Effect<SavedEncounter, UpdateEncounterError, CurrentAccess>
+
+    /**
+     * 완료·정정한 진료를 정정합니다 (clinical.md 진료, compliance.md 진료기록 정정). `changes`를 `PATCH`처럼 적용하고,
+     * 결과가 완료 검증을 통과하면 `AMENDED`로 저장하고 다음 판을 남깁니다. 이전 판은 그대로 남습니다.
+     *
+     * 처방 라인 권한은 `update`와 같습니다. 완료·정정한 진료가 아니면 409 `ENCOUNTER_NOT_EDITABLE`, 고정했으면 409
+     * `ENCOUNTER_LOCKED`, 내원을 취소했으면 409 `ENCOUNTER_VISIT_CANCELED`, 적용할 수 없으면 422
+     * `ENCOUNTER_CHANGE_INVALID`, 결과가 완료 검증에 막히면 422 `ENCOUNTER_COMPLETION_REJECTED`입니다. 바뀐 것이
+     * 없으면 판을 남기지 않고 그대로 돌려줍니다. 이벤트는 `encounter.amended`입니다.
+     */
+    amend(
+      id: Id<'encounter'>,
+      input: AmendEncounterInput,
+    ): Effect.Effect<AmendedEncounter, AmendEncounterError, CurrentAccess>
+
+    /**
+     * 진료를 철회합니다(`ENTERED_IN_ERROR`). 기록은 사유와 함께 남고 진찰료 중복 같은 집계에서 빠집니다. 이미
+     * 철회했으면 409 `ENCOUNTER_NOT_EDITABLE`, 고정했으면 409 `ENCOUNTER_LOCKED`입니다. 이벤트는
+     * `encounter.retracted`입니다. 수납·청구한 진료의 409는 그 모듈이 생길 때 더합니다.
+     */
+    retract(
+      id: Id<'encounter'>,
+      input: { reason: string; expectedVersion: number },
+    ): Effect.Effect<Encounter, RetractEncounterError, CurrentAccess>
+
+    /**
+     * 완료·정정한 진료를 고정하거나 풉니다. 그 밖의 상태는 409 `ENCOUNTER_NOT_EDITABLE`입니다. 이미 그 상태면 버전을
+     * 올리지 않고 그대로 돌려줍니다. 이벤트는 `encounter.locked`·`encounter.unlocked`입니다.
+     */
+    setLocked(
+      id: Id<'encounter'>,
+      locked: boolean,
+      options: { expectedVersion: number },
+    ): Effect.Effect<Encounter, LockEncounterError, CurrentAccess>
+
+    /** 진료기록의 판입니다. 1판(완료)부터 차례로입니다. 초안은 빈 목록입니다. */
+    revisions(id: Id<'encounter'>): Effect.Effect<ReadonlyArray<EncounterRevision>, EncounterNotFound, CurrentAccess>
+
+    /** 진료기록의 `n`판입니다. 없으면 404 `ENCOUNTER_REVISION_NOT_FOUND`입니다. */
+    revision(
+      id: Id<'encounter'>,
+      n: number,
+    ): Effect.Effect<EncounterRevision, EncounterNotFound | EncounterRevisionNotFound, CurrentAccess>
 
     /**
      * 초안 진료를 완료합니다 (clinical.md 완료 커맨드). 버전·상태·취소한 내원은 `update`와 같이 412·409입니다. 완료
@@ -153,53 +249,214 @@ export class Encounters extends Context.Service<
         options: { expectedVersion: number },
       ) {
         const access = yield* CurrentAccess
-        const lines = changes.prescriptionLines
-        const needed: Permission[] = []
-        if ((lines?.upsert?.length ?? 0) > 0 || (lines?.remove?.length ?? 0) > 0) needed.push('prescription:write')
-        if (lines?.upsert?.some((each) => each.prn === true)) needed.push('prescription:write_prn')
-        // 빠진 권한을 한 번에 모두 알립니다
-        if (Arr.isArrayNonEmpty(needed)) yield* requirePermissions(...needed)
-        const current = yield* find(access.tenantId, id)
-        if (options.expectedVersion !== current.version) {
-          return yield* new VersionMismatch({ currentVersion: current.version })
-        }
-        if (current.status !== 'DRAFT') return yield* new EncounterNotEditable({ currentStatus: current.status })
-        if (current.visitId !== null) {
-          const visit = yield* visits.findById(access.tenantId, current.visitId)
-          if (Option.exists(visit, (each) => each.status === 'CANCELED')) return yield* new EncounterVisitCanceled({})
-        }
+        yield* requirePrescriptionPermissions(changes)
+        // 읽기와 쓰기를 한 트랜잭션에서 해, 내원 취소가 진료 내용을 읽고 저장하는 사이에 끼어들지 못합니다
+        return yield* transaction.run(save(access, id, changes, options))
+      })
 
-        const result = applyChanges(current, changes, {
-          diagnosis: () => newId('diagnosis'),
-          prescriptionLine: () => newId('prescriptionLine'),
+      const save = (
+        access: CurrentAccess['Service'],
+        id: Id<'encounter'>,
+        changes: EncounterChanges,
+        options: { expectedVersion: number },
+      ) =>
+        Effect.gen(function* () {
+          const current = yield* find(access.tenantId, id)
+          if (options.expectedVersion !== current.version) {
+            return yield* new VersionMismatch({ currentVersion: current.version })
+          }
+          if (current.status !== 'DRAFT') return yield* new EncounterNotEditable({ currentStatus: current.status })
+          if (current.visitId !== null) {
+            const visit = yield* visits.findById(access.tenantId, current.visitId)
+            if (Option.exists(visit, (each) => each.status === 'CANCELED')) return yield* new EncounterVisitCanceled({})
+          }
+
+          const result = applyChanges(current, changes, {
+            diagnosis: () => newId('diagnosis'),
+            prescriptionLine: () => newId('prescriptionLine'),
+          })
+          if (!result.ok) return yield* new EncounterChangeInvalid({ errors: result.errors })
+          if (result.changed.length === 0) {
+            return { encounter: current, warnings: encounterWarnings(current), prescriptionLineRefs: [] }
+          }
+
+          const updatedAt = DateTime.formatIso(yield* DateTime.now)
+          const next: Encounter = {
+            ...current,
+            ...result.content,
+            doctorId: current.doctorId ?? access.userId,
+            updatedAt,
+            version: current.version + 1,
+          }
+          const event = domainEvent(
+            'encounter.updated',
+            next.id,
+            updatedAt,
+            { encounterId: next.id, visitId: next.visitId, patientId: next.patientId, changed: result.changed },
+            { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+          )
+          // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
+          yield* repository.save(next, { expectedVersion: current.version, events: [event] })
+          return {
+            encounter: next,
+            warnings: encounterWarnings(next),
+            prescriptionLineRefs: result.prescriptionLineRefs,
+          }
         })
-        if (!result.ok) return yield* new EncounterChangeInvalid({ errors: result.errors })
-        if (result.changed.length === 0) {
-          return { encounter: current, warnings: encounterWarnings(current), prescriptionLineRefs: [] }
-        }
 
-        const updatedAt = DateTime.formatIso(yield* DateTime.now)
-        const next: Encounter = {
-          ...current,
-          ...result.content,
-          doctorId: current.doctorId ?? access.userId,
-          updatedAt,
-          version: current.version + 1,
-        }
-        const event = domainEvent(
-          'encounter.updated',
-          next.id,
-          updatedAt,
-          { encounterId: next.id, visitId: next.visitId, patientId: next.patientId, changed: result.changed },
-          { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+      /** 취소한 내원의 진료면 실패합니다. */
+      const requireOpenVisit = (tenantId: Id<'tenant'>, encounter: Encounter) =>
+        encounter.visitId === null
+          ? Effect.void
+          : visits
+              .findById(tenantId, encounter.visitId)
+              .pipe(
+                Effect.flatMap((visit) =>
+                  Option.exists(visit, (each) => each.status === 'CANCELED')
+                    ? Effect.fail(new EncounterVisitCanceled({}))
+                    : Effect.void,
+                ),
+              )
+
+      /** 버전과 상태를 확인합니다. `statuses`에 없는 상태는 409 `ENCOUNTER_NOT_EDITABLE`입니다. */
+      const guard = (current: Encounter, expectedVersion: number, statuses: ReadonlyArray<Encounter['status']>) =>
+        expectedVersion !== current.version
+          ? Effect.fail(new VersionMismatch({ currentVersion: current.version }))
+          : !statuses.includes(current.status)
+            ? Effect.fail(new EncounterNotEditable({ currentStatus: current.status }))
+            : Effect.void
+
+      /** 고정한 진료면 409 `ENCOUNTER_LOCKED`입니다. */
+      const requireUnlocked = (current: Encounter) =>
+        current.locked ? Effect.fail(new EncounterLocked({})) : Effect.void
+
+      const actor = (access: CurrentAccess['Service']) => ({
+        tenantId: access.tenantId,
+        actor: { kind: 'USER' as const, id: access.userId },
+      })
+
+      const amend = Effect.fn('Encounters.amend')(function* (id: Id<'encounter'>, input: AmendEncounterInput) {
+        const access = yield* CurrentAccess
+        yield* requirePrescriptionPermissions(input.changes)
+        return yield* transaction.run(
+          Effect.gen(function* () {
+            const current = yield* find(access.tenantId, id)
+            yield* guard(current, input.expectedVersion, ['COMPLETED', 'AMENDED'])
+            yield* requireUnlocked(current)
+            yield* requireOpenVisit(access.tenantId, current)
+
+            const result = applyChanges(current, input.changes, {
+              diagnosis: () => newId('diagnosis'),
+              prescriptionLine: () => newId('prescriptionLine'),
+            })
+            if (!result.ok) return yield* new EncounterChangeInvalid({ errors: result.errors })
+            if (result.changed.length === 0) return { encounter: current, prescriptionLineRefs: [] }
+
+            const amendedAt = DateTime.formatIso(yield* DateTime.now)
+            const next: Encounter = {
+              ...current,
+              ...result.content,
+              status: 'AMENDED',
+              revision: current.revision + 1,
+              updatedAt: amendedAt,
+              version: current.version + 1,
+            }
+            const judgement = judgeCompletion({
+              encounter: next,
+              others: yield* repository.listByPatient(access.tenantId, current.patientId),
+              acknowledge: input.acknowledge ?? [],
+            })
+            if (judgement.violations.length > 0) {
+              return yield* new EncounterCompletionRejected({ violations: judgement.violations })
+            }
+            const event = domainEvent(
+              'encounter.amended',
+              next.id,
+              amendedAt,
+              {
+                encounterId: next.id,
+                visitId: next.visitId,
+                patientId: next.patientId,
+                revision: next.revision,
+                changed: result.changed,
+                reason: input.reason,
+                acknowledged: judgement.acknowledged,
+              },
+              actor(access),
+            )
+            yield* repository.save(next, {
+              expectedVersion: current.version,
+              events: [event],
+              revision: revisionOf(next, {
+                source: 'AMENDMENT',
+                reason: input.reason,
+                recordedBy: access.userId,
+                recordedAt: amendedAt,
+              }),
+            })
+            return { encounter: next, prescriptionLineRefs: result.prescriptionLineRefs }
+          }),
         )
-        // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
-        yield* repository.save(next, { expectedVersion: current.version, events: [event] })
-        return {
-          encounter: next,
-          warnings: encounterWarnings(next),
-          prescriptionLineRefs: result.prescriptionLineRefs,
-        }
+      })
+
+      const retract = Effect.fn('Encounters.retract')(function* (
+        id: Id<'encounter'>,
+        input: { reason: string; expectedVersion: number },
+      ) {
+        const access = yield* CurrentAccess
+        return yield* transaction.run(
+          Effect.gen(function* () {
+            const current = yield* find(access.tenantId, id)
+            yield* guard(current, input.expectedVersion, ['DRAFT', 'COMPLETED', 'AMENDED'])
+            yield* requireUnlocked(current)
+            const retracted = retractEncounter(current, {
+              reason: input.reason,
+              at: DateTime.formatIso(yield* DateTime.now),
+              by: access.userId,
+              tenantId: access.tenantId,
+            })
+            yield* repository.save(retracted.encounter, { expectedVersion: current.version, events: [retracted.event] })
+            return retracted.encounter
+          }),
+        )
+      })
+
+      const setLocked = Effect.fn('Encounters.setLocked')(function* (
+        id: Id<'encounter'>,
+        locked: boolean,
+        options: { expectedVersion: number },
+      ) {
+        const access = yield* CurrentAccess
+        return yield* transaction.run(
+          Effect.gen(function* () {
+            const current = yield* find(access.tenantId, id)
+            yield* guard(current, options.expectedVersion, ['COMPLETED', 'AMENDED'])
+            if (current.locked === locked) return current
+            const at = DateTime.formatIso(yield* DateTime.now)
+            const next: Encounter = { ...current, locked, updatedAt: at, version: current.version + 1 }
+            const event = domainEvent(
+              locked ? 'encounter.locked' : 'encounter.unlocked',
+              next.id,
+              at,
+              { encounterId: next.id, visitId: next.visitId, patientId: next.patientId },
+              actor(access),
+            )
+            yield* repository.save(next, { expectedVersion: current.version, events: [event] })
+            return next
+          }),
+        )
+      })
+
+      const revisions = Effect.fn('Encounters.revisions')(function* (id: Id<'encounter'>) {
+        const access = yield* CurrentAccess
+        const encounter = yield* find(access.tenantId, id)
+        return yield* repository.listRevisions(access.tenantId, encounter.id)
+      })
+
+      const revision = Effect.fn('Encounters.revision')(function* (id: Id<'encounter'>, n: number) {
+        const found = (yield* revisions(id)).find((each) => each.revision === n)
+        if (found === undefined) return yield* new EncounterRevisionNotFound({})
+        return found
       })
 
       const complete = Effect.fn('Encounters.complete')(function* (id: Id<'encounter'>, input: CompleteEncounterInput) {
@@ -235,6 +492,7 @@ export class Encounters extends Context.Service<
               doctorId: current.doctorId ?? access.userId,
               status: 'COMPLETED',
               completedAt,
+              revision: 1,
               updatedAt: completedAt,
               version: current.version + 1,
             }
@@ -263,7 +521,16 @@ export class Encounters extends Context.Service<
             )
 
             // 실패할 수 있는 진료 쓰기(버전 비교)를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 내원만 옮겨지지 않습니다
-            yield* repository.save(next, { expectedVersion: current.version, events: [event] })
+            yield* repository.save(next, {
+              expectedVersion: current.version,
+              events: [event],
+              revision: revisionOf(next, {
+                source: 'COMPLETION',
+                reason: null,
+                recordedBy: access.userId,
+                recordedAt: completedAt,
+              }),
+            })
             const moved = yield* Option.match(move, {
               onNone: () => Effect.succeed(Option.getOrNull(visit)),
               // 같은 트랜잭션에서 방금 읽은 내원이라 이 전이는 늘 됩니다. 실패하면(요청 중 자정이 지나는 등) 결함이고
@@ -275,7 +542,7 @@ export class Encounters extends Context.Service<
         )
       })
 
-      return Encounters.of({ get, listForPatient, update, complete })
+      return Encounters.of({ get, listForPatient, update, complete, amend, retract, setLocked, revisions, revision })
     }),
   )
 }

@@ -15,8 +15,11 @@ import {
   EncounterChangeInvalid,
   EncounterCompletionRejected,
   EncounterId,
+  EncounterLocked,
   EncounterNotEditable,
   EncounterNotFound,
+  EncounterRevision,
+  EncounterRevisionNotFound,
   EncounterVisitCanceled,
   EncounterWarning,
 } from './encounter.ts'
@@ -74,13 +77,37 @@ const CompletePayload = Schema.Struct({
   ),
 })
 
+/** 정정·철회 사유입니다. */
+const Reason = Schema.NonEmptyString.check(Schema.isMaxLength(500))
+
+/** 정정 본문입니다. `changes`는 `PATCH` 본문과 같습니다. */
+const AmendPayload = Schema.Struct({
+  reason: Reason,
+  changes: UpdatePayload,
+  acknowledge: CompletePayload.fields.acknowledge,
+})
+
+/** 새 처방 라인의 `clientRef`와 서버가 만든 ID입니다. */
+const PrescriptionLineRefs = Schema.Array(Schema.Struct({ clientRef: Schema.String, id: PrescriptionLineId }))
+
+const lockEndpoint = (name: 'lock' | 'unlock') =>
+  HttpApiEndpoint.post(name, `/encounters/:id::${name}`, {
+    params: { id: EncounterId },
+    headers: { 'if-match': Schema.String },
+    success: HttpApiSchema.WithHeaders(Encounter, { etag: Schema.String }),
+    error: [EncounterNotFound, EncounterNotEditable, VersionMismatch],
+  }).annotate(Access, Access.requires('encounter:amend'))
+
 /**
- * 진료 조회, 초안 저장, 완료입니다. 조회는 `encounter:read`, 저장은 면허 권한 `encounter:write`가 필요합니다. 처방 라인을
+ * 진료 조회, 초안 저장, 완료, 정정·철회·고정, 판 조회입니다. 조회는 `encounter:read`, 저장은 면허 권한 `encounter:write`가 필요합니다. 처방 라인을
  * 보내면 `prescription:write`(PRN 라인은 `prescription:write_prn`도)가 더 필요합니다.
  *
  * 완료(`:complete`)도 면허 권한 `encounter:write`이고, 내원을 옮기는 권한(`visit:update`)은 따로 보지 않습니다.
  *
- * 저장과 완료는 `If-Match`가 필수입니다. 여러 진료실 단말이나 한의사가 함께 고칠 때 마지막 저장이 이기지 않게 합니다. 빠지면 400입니다.
+ * 정정(`:amend`)과 고정(`:lock`·`:unlock`)은 면허 권한 `encounter:amend`, 철회(`:retract`)는 `encounter:retract`입니다.
+ * 판(`/versions`)은 `encounter:read`로 엽니다.
+ *
+ * 저장·완료·정정·철회·고정은 `If-Match`가 필수입니다. 여러 진료실 단말이나 한의사가 함께 고칠 때 마지막 저장이 이기지 않게 합니다. 빠지면 400입니다.
  * 활력징후처럼 아직 받지 않는 필드는 조용히 버리지 않고 400으로 알립니다.
  */
 export class EncountersApi extends HttpApiGroup.make('encounters')
@@ -103,8 +130,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
         Schema.Struct({
           encounter: Encounter,
           warnings: Schema.Array(EncounterWarning),
-          /** 새 처방 라인의 `clientRef`와 서버가 만든 ID입니다. */
-          prescriptionLineRefs: Schema.Array(Schema.Struct({ clientRef: Schema.String, id: PrescriptionLineId })),
+          prescriptionLineRefs: PrescriptionLineRefs,
         }),
         { etag: Schema.String },
       ),
@@ -136,5 +162,47 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
     })
       .annotate(Access, Access.requires('encounter:write'))
       .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
+    HttpApiEndpoint.post('amend', '/encounters/:id::amend', {
+      params: { id: EncounterId },
+      headers: { 'if-match': Schema.String },
+      payload: AmendPayload,
+      success: HttpApiSchema.WithHeaders(
+        Schema.Struct({ encounter: Encounter, prescriptionLineRefs: PrescriptionLineRefs }),
+        { etag: Schema.String },
+      ),
+      error: [
+        EncounterNotFound,
+        EncounterNotEditable,
+        EncounterLocked,
+        EncounterVisitCanceled,
+        EncounterChangeInvalid,
+        EncounterCompletionRejected,
+        VersionMismatch,
+        PermissionDenied,
+      ],
+    })
+      .annotate(Access, Access.requires('encounter:amend'))
+      .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
+    HttpApiEndpoint.post('retract', '/encounters/:id::retract', {
+      params: { id: EncounterId },
+      headers: { 'if-match': Schema.String },
+      payload: Schema.Struct({ reason: Reason }),
+      success: HttpApiSchema.WithHeaders(Encounter, { etag: Schema.String }),
+      error: [EncounterNotFound, EncounterNotEditable, EncounterLocked, VersionMismatch],
+    })
+      .annotate(Access, Access.requires('encounter:retract'))
+      .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
+    lockEndpoint('lock'),
+    lockEndpoint('unlock'),
+    HttpApiEndpoint.get('listRevisions', '/encounters/:id/versions', {
+      params: { id: EncounterId },
+      success: Schema.Struct({ items: Schema.Array(EncounterRevision) }),
+      error: EncounterNotFound,
+    }).annotate(Access, Access.requires('encounter:read')),
+    HttpApiEndpoint.get('getRevision', '/encounters/:id/versions/:n', {
+      params: { id: EncounterId, n: Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)) },
+      success: EncounterRevision,
+      error: [EncounterNotFound, EncounterRevisionNotFound],
+    }).annotate(Access, Access.requires('encounter:read')),
   )
   .middleware(Authorization) {}

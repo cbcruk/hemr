@@ -37,7 +37,7 @@ export type Diagnosis = typeof Diagnosis.Type
 export const ClinicalNote = Schema.Struct({ body: Schema.String })
 export type ClinicalNote = typeof ClinicalNote.Type
 
-/** 진료가 있는 단계입니다 (clinical.md 진료 상태도). 지금은 초안 저장과 완료(`:complete`)가 있습니다. */
+/** 진료가 있는 단계입니다 (clinical.md 진료 상태도). */
 export const EncounterStatus = Schema.Literals(['DRAFT', 'COMPLETED', 'AMENDED', 'ENTERED_IN_ERROR'])
 
 /** 진료 방식입니다. 지금은 내원 접수로 만드는 `OFFICE`만 있습니다. */
@@ -46,7 +46,7 @@ export const EncounterType = Schema.Literals(['OFFICE', 'HOME_VISIT', 'TELEMEDIC
 /**
  * 진료입니다. 내원 하나에 하나 생깁니다.
  *
- * 지금은 초안 저장에 필요한 필드만 두었습니다. 활력징후·서명·고정·`allowedActions`는 그 기능이 생길 때
+ * 활력징후·서명·`allowedActions`는 그 기능이 생길 때
  * 더합니다. 전체 리소스는 `docs/design/clinical.md`를 보세요.
  */
 export const Encounter = Schema.Struct({
@@ -70,8 +70,19 @@ export const Encounter = Schema.Struct({
   /** 내원에서 복사한 표시입니다. */
   benefitFlags: BenefitFlags,
   status: EncounterStatus,
-  /** 처음 완료한 시각입니다. 완료 전에는 `null`입니다. */
+  /** 처음 완료한 시각입니다. 완료 전에는 `null`입니다. 정정해도 바뀌지 않습니다. */
   completedAt: Schema.NullOr(Schema.String),
+  /**
+   * 진료기록 판(revision)입니다. 초안은 0, 완료하면 1, 정정할 때마다 1씩 오릅니다. 판마다 그때 내용이
+   * `/encounters/{id}/versions/{n}`에 남습니다. 낙관적 잠금 `version`과 다릅니다.
+   */
+  revision: Schema.Int,
+  /** 고정한 기록입니다(현행 고정된기록여부). 고정하면 정정·철회할 수 없습니다. */
+  locked: Schema.Boolean,
+  /** 철회(`ENTERED_IN_ERROR`)한 사유와 시각입니다. 철회하지 않았으면 `null`입니다. */
+  retraction: Schema.NullOr(
+    Schema.Struct({ reason: Schema.String, retractedAt: Schema.String, retractedBy: Schema.NullOr(UserId) }),
+  ),
   createdAt: Schema.String,
   updatedAt: Schema.String,
   /** 낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. */
@@ -94,10 +105,13 @@ export class EncounterNotFound extends HttpApiError.Problem<EncounterNotFound>()
   { code: Schema.tag('ENCOUNTER_NOT_FOUND') },
 ) {}
 
-/** 초안(`DRAFT`)이 아닌 진료를 `PATCH`로 고치려 했습니다. 완료된 진료는 정정(`:amend`)으로 고칩니다. */
+/**
+ * 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한
+ * 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.
+ */
 export class EncounterNotEditable extends HttpApiError.Problem<EncounterNotEditable>()(
   'EncounterNotEditable',
-  { type: problemType('ENCOUNTER_NOT_EDITABLE'), status: 409, title: 'Encounter is not a draft' },
+  { type: problemType('ENCOUNTER_NOT_EDITABLE'), status: 409, title: 'Encounter status does not allow this command' },
   { code: Schema.tag('ENCOUNTER_NOT_EDITABLE'), currentStatus: EncounterStatus },
 ) {}
 
@@ -146,4 +160,38 @@ export class EncounterCompletionRejected extends HttpApiError.Problem<EncounterC
   'EncounterCompletionRejected',
   { type: problemType('ENCOUNTER_COMPLETION_REJECTED'), status: 422, title: 'Encounter completion rejected' },
   { code: Schema.tag('ENCOUNTER_COMPLETION_REJECTED'), violations: Schema.Array(CompletionViolation) },
+) {}
+
+/** 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). */
+export class EncounterLocked extends HttpApiError.Problem<EncounterLocked>()(
+  'EncounterLocked',
+  { type: problemType('ENCOUNTER_LOCKED'), status: 409, title: 'Encounter is locked' },
+  { code: Schema.tag('ENCOUNTER_LOCKED') },
+) {}
+
+/**
+ * 진료기록의 한 판입니다. 완료할 때 1판, 정정할 때마다 다음 판을 남깁니다. 한 번 쓰면 고치거나 지우지 않습니다
+ * (compliance.md 진료기록 정정).
+ */
+export const EncounterRevision = Schema.Struct({
+  encounterId: EncounterId,
+  revision: Schema.Int,
+  note: ClinicalNote,
+  diagnoses: Schema.Array(Diagnosis),
+  prescriptionLines: Schema.Array(PrescriptionLine),
+  /** `COMPLETION`은 완료, `AMENDMENT`는 정정입니다. 청구 자동수정·AI 보조 정정은 그 기능이 생길 때 더합니다. */
+  source: Schema.Literals(['COMPLETION', 'AMENDMENT']),
+  /** 정정 사유입니다. 완료한 판은 `null`입니다. */
+  reason: Schema.NullOr(Schema.String),
+  /** 이 판을 남긴 사용자입니다. 마이그레이션이 옮긴 판에서 진료의를 모르면 `null`입니다. */
+  recordedBy: Schema.NullOr(UserId),
+  recordedAt: Schema.String,
+})
+export type EncounterRevision = typeof EncounterRevision.Type
+
+/** 요청한 판이 없습니다. */
+export class EncounterRevisionNotFound extends HttpApiError.Problem<EncounterRevisionNotFound>()(
+  'EncounterRevisionNotFound',
+  { type: problemType('ENCOUNTER_REVISION_NOT_FOUND'), status: 404, title: 'Encounter revision not found' },
+  { code: Schema.tag('ENCOUNTER_REVISION_NOT_FOUND') },
 ) {}
