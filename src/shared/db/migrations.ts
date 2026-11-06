@@ -286,6 +286,14 @@ export const migrations = {
     // 내원 하나에 진료 하나입니다
     yield* sql`CREATE UNIQUE INDEX encounters_visit ON encounters (visit_id) WHERE visit_id IS NOT NULL`
   }),
+  '0008_prescription_lines': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 처방 라인은 상병처럼 진료의 하위 값이라 JSON 열로 둡니다. 이 전에 만든 진료는 라인이 없습니다
+    yield* sql`
+      ALTER TABLE encounters ADD COLUMN prescription_lines TEXT NOT NULL DEFAULT '[]'
+        CHECK (json_valid(prescription_lines))
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

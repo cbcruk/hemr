@@ -7,20 +7,29 @@ import type { Diagnosis } from './encounter.ts'
 const dx = (n: number) => `dx_01JBQ00000000000000000000${n}` as Id<'diagnosis'>
 const primary: Diagnosis = { id: dx(1), code: 'U23.4', kind: 'PRIMARY' }
 const secondary: Diagnosis = { id: dx(2), code: 'M54.5', kind: 'SECONDARY' }
-const current: EncounterContent = { note: { body: '<p>요통</p>' }, diagnoses: [primary, secondary] }
+const current: EncounterContent = {
+  note: { body: '<p>요통</p>' },
+  diagnoses: [primary, secondary],
+  prescriptionLines: [],
+}
 
-/** 새 상병 ID를 `dx_new1`부터 차례로 만듭니다. */
+/** 새 상병 ID를 `dx_new1`부터, 처방 라인 ID를 `pl_new1`부터 차례로 만듭니다. */
 const ids = () => {
   let next = 1
-  return () => `dx_new${next++}` as Id<'diagnosis'>
+  let nextLine = 1
+  return {
+    diagnosis: () => `dx_new${next++}` as Id<'diagnosis'>,
+    prescriptionLine: () => `pl_new${nextLine++}` as Id<'prescriptionLine'>,
+  }
 }
 
 describe('applyChanges', () => {
   it('replaces the note and reports only the fields that changed', () => {
     expect(applyChanges(current, { note: { body: '<p>요통 호전</p>' } }, ids())).toEqual({
       ok: true,
-      content: { note: { body: '<p>요통 호전</p>' }, diagnoses: [primary, secondary] },
+      content: { note: { body: '<p>요통 호전</p>' }, diagnoses: [primary, secondary], prescriptionLines: [] },
       changed: ['note'],
+      prescriptionLineRefs: [],
     })
     expect(applyChanges(current, { note: current.note, diagnoses: { upsert: [primary] } }, ids())).toMatchObject({
       ok: true,
@@ -67,16 +76,19 @@ describe('applyChanges', () => {
           { id: dx(1), code: 'U23.5', kind: 'PRIMARY' },
           { id: 'dx_new1', code: 'M54.5', kind: 'SECONDARY' },
         ],
+        prescriptionLines: [],
       },
       changed: ['diagnoses'],
+      prescriptionLineRefs: [],
     })
   })
 
   it('changes the kind of an existing code instead of adding it twice', () => {
     expect(applyChanges(current, { diagnoses: { upsert: [{ code: 'M54.5', kind: 'PRIMARY' }] } }, ids())).toEqual({
       ok: true,
-      content: { note: current.note, diagnoses: [primary, { ...secondary, kind: 'PRIMARY' }] },
+      content: { note: current.note, diagnoses: [primary, { ...secondary, kind: 'PRIMARY' }], prescriptionLines: [] },
       changed: ['diagnoses'],
+      prescriptionLineRefs: [],
     })
   })
 

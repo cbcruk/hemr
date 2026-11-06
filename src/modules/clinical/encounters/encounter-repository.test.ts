@@ -21,6 +21,7 @@ const encounter = (n: number, overrides: Partial<Encounter> = {}): Encounter => 
   serviceAt: `2026-11-0${n}T00:00:00.000Z`,
   note: { body: '' },
   diagnoses: [],
+  prescriptionLines: [],
   benefitFlags: { fullSelfPay: false, pregnant: false },
   status: 'DRAFT',
   createdAt: `2026-11-0${n}T00:00:00.000Z`,
@@ -47,6 +48,19 @@ describe.each([
       note: { body: '<p>요통</p>' },
       diagnoses: [
         { id: 'dx_01JBQ000000000000000000001' as Encounter['diagnoses'][number]['id'], code: 'U23.4', kind: 'PRIMARY' },
+      ],
+      prescriptionLines: [
+        {
+          id: 'pl_01JBQ000000000000000000001' as Encounter['prescriptionLines'][number]['id'],
+          kind: 'HERBAL',
+          feeCode: null,
+          categoryCode: '39001001',
+          name: '첩약',
+          dose: { perDay: 0.5, days: 3 },
+          unitPrice: 12_345.5,
+          amount: 18_518,
+          prn: true,
+        },
       ],
       updatedAt: '2026-11-01T01:00:00.000Z',
       version: 2,

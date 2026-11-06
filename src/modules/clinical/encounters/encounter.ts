@@ -6,6 +6,7 @@ import { problemType } from '../../../shared/problem/problem.ts'
 import { TenantId, UserId } from '../../identity/identity.ts'
 import { PatientId } from '../../patients/patient.ts'
 import { BenefitFlags, Coverage, VisitId } from '../../front-desk/visits/visit.ts'
+import { PrescriptionLine } from '../prescriptions/prescription-line.ts'
 import { EncounterId } from './encounter-id.ts'
 
 export { EncounterId }
@@ -45,7 +46,7 @@ export const EncounterType = Schema.Literals(['OFFICE', 'HOME_VISIT', 'TELEMEDIC
 /**
  * 진료입니다. 내원 하나에 하나 생깁니다.
  *
- * 지금은 초안 저장에 필요한 필드만 두었습니다. 처방 라인·활력징후·서명·고정·`allowedActions`는 그 기능이 생길 때
+ * 지금은 초안 저장에 필요한 필드만 두었습니다. 활력징후·서명·고정·`allowedActions`는 그 기능이 생길 때
  * 더합니다. 전체 리소스는 `docs/design/clinical.md`를 보세요.
  */
 export const Encounter = Schema.Struct({
@@ -64,6 +65,8 @@ export const Encounter = Schema.Struct({
   note: ClinicalNote,
   /** 저장한 순서입니다. */
   diagnoses: Schema.Array(Diagnosis),
+  /** 저장한 순서입니다. */
+  prescriptionLines: Schema.Array(PrescriptionLine),
   /** 내원에서 복사한 표시입니다. */
   benefitFlags: BenefitFlags,
   status: EncounterStatus,
@@ -74,10 +77,11 @@ export const Encounter = Schema.Struct({
 })
 export type Encounter = typeof Encounter.Type
 
-/** 저장은 통과했지만 완료 전에 고쳐야 하는 것입니다. */
+/** 저장은 통과했지만 완료 전에 고쳐야 하는 것입니다. `targets`는 문제가 있는 처방 라인 ID입니다. */
 export const EncounterWarning = Schema.Struct({
-  code: Schema.Literals(['PRIMARY_DIAGNOSIS_MISSING', 'PRIMARY_DIAGNOSIS_MULTIPLE']),
+  code: Schema.Literals(['PRIMARY_DIAGNOSIS_MISSING', 'PRIMARY_DIAGNOSIS_MULTIPLE', 'COVERAGE_CATEGORY_MISMATCH']),
   message: Schema.String,
+  targets: Schema.optionalKey(Schema.Array(Schema.String)),
 })
 export type EncounterWarning = typeof EncounterWarning.Type
 
@@ -102,14 +106,19 @@ export class EncounterVisitCanceled extends HttpApiError.Problem<EncounterVisitC
   { code: Schema.tag('ENCOUNTER_VISIT_CANCELED') },
 ) {}
 
-/** 변경을 적용할 수 없는 이유입니다. `target`은 상병 ID나 상병코드입니다. */
+/** 변경을 적용할 수 없는 이유입니다. `target`은 상병 ID·상병코드나 처방 라인 ID·`clientRef`입니다. */
 export const EncounterChangeError = Schema.Struct({
-  reason: Schema.Literals(['DIAGNOSIS_NOT_FOUND', 'DIAGNOSIS_DUPLICATE']),
+  reason: Schema.Literals([
+    'DIAGNOSIS_NOT_FOUND',
+    'DIAGNOSIS_DUPLICATE',
+    'PRESCRIPTION_LINE_NOT_FOUND',
+    'PRESCRIPTION_LINE_DUPLICATE',
+  ]),
   target: Schema.String,
 })
 export type EncounterChangeError = typeof EncounterChangeError.Type
 
-/** 없는 상병을 고치거나 지우려 했거나, 같은 상병코드가 둘이 됩니다. `errors`는 찾은 순서대로 모든 이유입니다. */
+/** 없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. */
 export class EncounterChangeInvalid extends HttpApiError.Problem<EncounterChangeInvalid>()(
   'EncounterChangeInvalid',
   { type: problemType('ENCOUNTER_CHANGE_INVALID'), status: 422, title: 'Encounter change is invalid' },
