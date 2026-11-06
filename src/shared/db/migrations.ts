@@ -256,6 +256,36 @@ export const migrations = {
     yield* sql`CREATE INDEX visits_tenant_date ON visits (tenant_id, date, checked_in_at)`
     yield* sql`CREATE INDEX visits_tenant_patient ON visits (tenant_id, patient_id)`
   }),
+  '0007_encounters': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 접수가 내원과 진료를 함께 만듭니다. 0006 뒤로 실제 접수가 생겨 내원을 지우지 않고 열을 더합니다. 이 전에 접수한
+    // 내원은 진료가 없어 비어 있습니다
+    yield* sql`ALTER TABLE visits ADD COLUMN encounter_id TEXT`
+    // 본문은 검색하지 않는 긴 문자열이라 열 하나로, 상병·표시는 진료의 하위 값이라 JSON으로 둡니다
+    yield* sql`
+      CREATE TABLE encounters (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        visit_id TEXT,
+        doctor_id TEXT,
+        encounter_type TEXT NOT NULL CHECK (encounter_type IN ('OFFICE', 'HOME_VISIT', 'TELEMEDICINE')),
+        coverage TEXT NOT NULL
+          CHECK (coverage IN ('NHIS', 'MEDICAL_AID', 'AUTO_INSURANCE', 'INDUSTRIAL_ACCIDENT', 'SELF_PAY')),
+        service_at TEXT NOT NULL,
+        note_body TEXT NOT NULL,
+        diagnoses TEXT NOT NULL CHECK (json_valid(diagnoses)),
+        benefit_flags TEXT NOT NULL CHECK (json_valid(benefit_flags)),
+        status TEXT NOT NULL CHECK (status IN ('DRAFT', 'COMPLETED', 'AMENDED', 'ENTERED_IN_ERROR')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version >= 1)
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX encounters_tenant_patient ON encounters (tenant_id, patient_id, service_at)`
+    // 내원 하나에 진료 하나입니다
+    yield* sql`CREATE UNIQUE INDEX encounters_visit ON encounters (visit_id) WHERE visit_id IS NOT NULL`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

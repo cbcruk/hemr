@@ -238,7 +238,7 @@ Idempotency-Key: ...
 구현은 [visits.ts](../../src/modules/front-desk/visits/visits.ts)의 `checkIn`·`get`·`list`입니다 (#16).
 
 - **범위:** 등록된 환자를 오늘 진료로 접수하고(`POST /visits:check-in`), 내원 하나(`GET /visits/{id}`)와 그날 목록(`GET /visits?date=&status=`)을 엽니다. 내원은 보험구분·초진 여부·판정한 자격·본인부담 표시(`fullSelfPay`·`pregnant`)·접수 시각을 저장합니다
-  - 미룸: 신환 동시 등록(`newPatient`), 예약 `ARRIVED`(`appointmentId`), 진료(encounter) 생성, 진료의·진료항목(`doctorId`·`visitTypeId`), 제주 지원 스냅샷, 자격 조회 결과로 환자 갱신, `channel`·`origin`, `acknowledge`, 나머지 `benefitFlags`, `PATCH /visits/{id}`, 목록의 `derived`. 모두 그 모듈이 생길 때 같은 트랜잭션에 더합니다
+  - 미룸: 신환 동시 등록(`newPatient`), 예약 `ARRIVED`(`appointmentId`), 진료의·진료항목(`doctorId`·`visitTypeId`), 제주 지원 스냅샷, 자격 조회 결과로 환자 갱신, `channel`·`origin`, `acknowledge`, 나머지 `benefitFlags`, `PATCH /visits/{id}`, 목록의 `derived`. 모두 그 모듈이 생길 때 같은 트랜잭션에 더합니다
 - **아직 받지 않는 필드는 400입니다.** 위 요청 예의 `date`·`appointmentId`·`newPatient`·`doctorId`·`eligibilityLookupId`처럼 미룬 필드를 보내면 조용히 버리지 않고 `VALIDATION_FAILED`로 알립니다. 버리면 예약이 `ARRIVED`가 되지 않거나 다른 날로 접수된 것을 모릅니다. 이 엔드포인트만 남는 키를 거절하고(`PayloadParseOptions`), 필드를 더할 때 함께 받습니다
 - **진료일은 서버가 정합니다.** 본문에 `date`를 받지 않고 병원 시간대의 오늘로 접수합니다. 지난 날짜 접수를 열면 지난 날짜 내원 규칙(`VISIT_DATE_PAST`)과 청구 마감이 함께 흔들립니다. `APPOINTMENT_NOT_TODAY`는 예약을 받을 때 씁니다
   - 되돌릴 조건: 오프라인 엣지가 밀린 접수를 올릴 때(offline.md)는 그 경로에서 엣지의 진료일을 받습니다
@@ -254,7 +254,7 @@ Idempotency-Key: ...
   - 같은 환자를 동시에 두 번 접수하면 둘 다 이전 내원을 보지 못해 둘 다 초진이 되고 본인확인 판정도 같이 통과할 수 있습니다. 이력 읽기와 저장이 한 트랜잭션이 아니기 때문입니다. 데스크 한 곳이 한 환자를 접수하는 것이 보통이라 받아들이고, 둘째 접수를 취소하면 바로잡힙니다. 되돌릴 조건: 초진 산정이 청구에 쓰이기 시작하면 저장소의 같은 트랜잭션에서 이력을 읽습니다
 - **바로 진료는 `visit:update`도 필요합니다.** `initialStatus: IN_TREATMENT`는 `:start-treatment`와 같아, 본문에 따라 서비스가 더 확인합니다(D3의 연쇄 취소와 같은 방식). 없으면 403 `PERMISSION_DENIED`입니다
 - **바로 진료(`initialStatus: IN_TREATMENT`)도 이벤트는 `visit.checked_in` 하나입니다.** 데이터는 `{ visitId, patientId, date, coverage, isFirstVisit, status }`이고 `tenantId`·`actor`를 채웁니다
-- **응답은 내원 하나입니다.** 위 예의 `{ visit, encounter, appointment? }` 대신 conventions.md의 "커맨드 응답은 바뀐 주 리소스"를 따릅니다. 진료가 생기면 내원의 `encounterId`로 잇고, 함께 바뀐 예약은 이벤트로 알립니다
+- **응답은 내원 하나입니다.** 위 예의 `{ visit, encounter, appointment? }` 대신 conventions.md의 "커맨드 응답은 바뀐 주 리소스"를 따릅니다. 함께 만든 진료는 내원의 `encounterId`로 잇고(#22, [clinical.md](clinical.md#진료-구현-결정)), 함께 바뀐 예약은 이벤트로 알립니다
 - **자격 필드 이름:** 리소스 표의 `selectedInstitution?` 대신 `selectedInstitutionCode`(기호)를 두고, 직원이 고른 `copayCode`(공백·`없음`은 `null`)와 체납 표시 `benefitRestricted`를 더했습니다. `UNVERIFIED`는 오프라인 엣지가 자격 조회 없이 받은 접수에 쓸 값이라 그 경로가 생길 때 더합니다
 - **자보 지급보증이 없으면 한도·만료를 보지 않습니다.** `autoInsurance`를 보내지 않은 자보 접수는 통과하고, 보증 값은 저장하지 않습니다. 자보 사고 모듈이 생기면 사고 ID를 필수로 받아 서버가 보증을 읽습니다
 - **병원 시간대는 아직 `Asia/Seoul` 하나입니다.** 병원의 `timezone` 설정이 있지만 상태 커맨드(`VISIT_DATE_PAST`)와 같이 `clinicDate`를 씁니다. 다른 시간대의 병원이 생기면 두 곳을 함께 병원 설정으로 바꿉니다

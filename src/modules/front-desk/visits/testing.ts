@@ -21,6 +21,7 @@ export function testVisit(overrides: Partial<Visit> = {}): Visit {
       selectedInstitutionCode: null,
     },
     benefitFlags: { fullSelfPay: false, pregnant: false },
+    encounterId: null,
     status: 'WAITING',
     statusChangedAt: '2026-11-05T00:00:00.000Z',
     hasClinicalData: false,
