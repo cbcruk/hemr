@@ -10,6 +10,7 @@ import type { Permission } from '../../identity/permissions.ts'
 import type { Visit } from '../../front-desk/visits/visit.ts'
 import type { VisitCommand } from '../../front-desk/visits/visit-status.types.ts'
 import { Visits } from '../../front-desk/visits/visits.ts'
+import { Procedures } from '../treatment-room/procedures.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
 import type { PrescriptionLineRef } from '../prescriptions/prescription-line-changes.ts'
@@ -206,7 +207,9 @@ export class Encounters extends Context.Service<
      * 통과하면 한 트랜잭션에서 진료를 `COMPLETED`로 저장하고 `encounter.completed`를 내고, 내원을 `nextVisitStatus`로
      * 옮깁니다(`Visits.apply`, `visit.status_changed`). 내원이 이미 그 상태이거나, 진료가 끝난 상태(`COMPLETED`)이거나,
      * 지난 날짜의 내원이면 내원은 그대로 둡니다. `nextVisitStatus`를 고르지 않았으면 수납 대기(`AWAITING_PAYMENT`)인
-     * 내원도 그대로 둡니다. 읽기와 판정도 같은 트랜잭션 안에서 합니다. 진료의가 비어 있으면 완료한 사용자로 채웁니다.
+     * 내원도 그대로 둡니다. 대기·수납을 골랐고 내원이 그 상태가 되었거나 이미 그 상태면 그 내원의 진행 중·만료 시술을
+     * 완료합니다 (`Procedures.finishRunning`). 읽기와 판정도 같은 트랜잭션 안에서 합니다. 진료의가 비어 있으면 완료한 사용자로
+     * 채웁니다.
      */
     complete(
       id: Id<'encounter'>,
@@ -221,6 +224,7 @@ export class Encounters extends Context.Service<
       const patients = yield* Patients
       const visits = yield* VisitRepository
       const visitCommands = yield* Visits
+      const procedures = yield* Procedures
       const transaction = yield* Transaction
 
       const find = (tenantId: Id<'tenant'>, id: Id<'encounter'>) =>
@@ -537,6 +541,11 @@ export class Encounters extends Context.Service<
               // 진료도 되돌립니다
               onSome: (each) => visitCommands.apply(each.id, NEXT_VISIT_COMMANDS[target]).pipe(Effect.orDie),
             })
+            // 대기·수납으로 보내면 진행 중인 시술을 같은 트랜잭션에서 완료합니다. 데스크가 먼저 그 상태로 보낸 내원도
+            // 같습니다
+            if (moved !== null && target !== 'IN_TREATMENT' && moved.status === target) {
+              yield* procedures.finishRunning(moved, actor(access))
+            }
             return { encounter: next, visit: moved }
           }),
         )

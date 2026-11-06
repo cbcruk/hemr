@@ -10,6 +10,7 @@ import { testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
 import { Encounters } from './encounters.ts'
+import { Procedures } from '../treatment-room/procedures.ts'
 
 const doctor = testMember({ role: 'OWNER_DOCTOR' })
 
@@ -28,6 +29,7 @@ const run = <A, E>(
         // 진료가 쓰는 내원 커맨드만 `visits`로 바꿀 수 있습니다. 접수는 늘 `Visits.layer`입니다
         Encounters.layer.pipe(
           Layer.provide(visits),
+          Layer.provideMerge(Procedures.layer),
           Layer.provideMerge(Visits.layer),
           Layer.provideMerge(Patients.layer),
           Layer.provideMerge(doctor.seed),
