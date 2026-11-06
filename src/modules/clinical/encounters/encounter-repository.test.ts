@@ -24,6 +24,7 @@ const encounter = (n: number, overrides: Partial<Encounter> = {}): Encounter => 
   prescriptionLines: [],
   benefitFlags: { fullSelfPay: false, pregnant: false },
   status: 'DRAFT',
+  completedAt: null,
   createdAt: `2026-11-0${n}T00:00:00.000Z`,
   updatedAt: `2026-11-0${n}T00:00:00.000Z`,
   version: 1,

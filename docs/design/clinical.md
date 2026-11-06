@@ -144,6 +144,30 @@ If-Match: "8"
 
 한도 규칙의 상수(8/60/600, 20회)는 고시로 바뀔 수 있으므로 참조데이터 `regulatory-limits`에 유효기간과 함께 둡니다.
 
+### 완료 구현 결정
+
+구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `complete`, 검증은 [encounter-completion.ts](../../src/modules/clinical/encounters/encounter-completion.ts)의 `judgeCompletion`입니다 (#24).
+
+- **범위:** `POST /encounters/{id}:complete`가 초안을 검증하고, 진료를 `COMPLETED`로 저장하고, 내원을 `nextVisitStatus`로 옮깁니다. 위 [완료 커맨드](#완료-커맨드)의 1·5·6입니다
+  - 미룸: 2(금액 확정은 라인 단가가 이미 고정이라 할 일이 없고, 패키지 사용은 패키지가 생길 때), 3(탕전), 4(추나 자동 승인과 `hiraSubmissions[]`, 심평원 제출이 생길 때), 치료실 시술 종료(#26), 초진 기록 자동 고정(#25)
+- **지금 데이터로 판정할 수 있는 규칙만 봅니다.** 순서대로 주상병(`PRIMARY_DIAGNOSIS_MISSING`·`PRIMARY_DIAGNOSIS_MULTIPLE`), 보험구분 전용 처방(`COVERAGE_CATEGORY_MISMATCH`), 첩약 시범사업 승인(`PILOT_HERBAL_NOT_APPROVED`), 같은 날 진찰료 중복(`DUPLICATE_CONSULTATION_FEE`)입니다
+  - 미룸: 첩약 의사별 한도·상병 한도·청구 검사(심평원 이력과 의사별 집계), 추나 연 한도(심평원 사용량), 자보 같은 날 2차 진료(사고번호), 산정특례(등록번호), 진찰료 수가코드 결정(병원 설정·공휴일·수가 마스터), 이관 진료, 담당 환자 범위. 판정 함수는 이미 있고, 입력 데이터가 생기면 `judgeCompletion`에 더합니다
+- **막히면 422 `ENCOUNTER_COMPLETION_REJECTED`의 `violations[]`에 모든 이유를 담습니다.** 각 이유는 `{ code, message, targets? }`이고 `targets`는 처방 라인 ID나 진찰료가 겹치는 진료 ID입니다. 요청 형식 오류의 400 `violations`(`field`)와 이름은 같지만 문제 유형(`type`)이 달라 구분됩니다
+- **주상병은 정확히 하나여야 합니다.** 저장은 상병이 없으면 경고하지 않지만, 완료는 상병이 없어도 `PRIMARY_DIAGNOSIS_MISSING`입니다. 일반(`SELF_PAY`) 진료도 같습니다. 진료기록에 상병은 늘 있어야 하기 때문입니다. 되돌릴 조건: 상병 없이 끝내는 진료(상담만 등)가 필요하면 진료 종류나 보험구분으로 예외를 둡니다
+- **첩약 시범사업 라인은 늘 막힙니다.** 처방 라인에 아직 심평원 승인 상태가 없어 승인 전으로 봅니다. 시범사업 표시도 없어 보험구분 전용 처방으로도 막힙니다. 심평원 제출이 생기면 라인의 승인 상태를 씁니다
+- **진찰료 중복은 완료한 같은 날 진료와 비교하고(취소한 내원의 완료 진료도 셉니다. 연쇄 취소가 진료를 철회하게 되면(#25) 빠집니다) `acknowledge: ["DUPLICATE_CONSULTATION_FEE"]`로 넘깁니다.** 초안끼리는 비교하지 않아, 먼저 완료한 진료는 통과하고 뒤 진료가 확인을 받습니다. 날짜는 병원 시간대(`Asia/Seoul`)로 셉니다. 수납이 아직 없어 모두 수납 전(`paid: false`)입니다. 넘긴 위반은 `encounter.completed`의 `acknowledged`에 남깁니다. 다른 코드는 넘길 수 없어 400입니다
+- **내원은 `Visits.apply`로 옮깁니다.** `nextVisitStatus`(기본 `IN_TREATMENT`)로 가는 내원 커맨드(`:start-treatment`·`:return-to-waiting`·`:send-to-checkout`)를 같은 트랜잭션에서 실행해 `visit.status_changed`가 함께 나갑니다. 내원 커맨드 권한(`visit:update`)은 따로 보지 않습니다. 진료를 완료할 수 있는 한의사가 진료 흐름을 넘기는 일이기 때문입니다
+  - 내원을 그대로 두는 경우: 이미 그 상태, 수납까지 끝난 내원(`COMPLETED`), 지난 날짜의 내원(진료 흐름 커맨드가 막힘), `nextVisitStatus`를 고르지 않았는데 데스크가 이미 수납 대기(`AWAITING_PAYMENT`)로 보낸 내원. 전날 진료를 오늘 마무리하거나 환자를 보낸 뒤에 기록을 끝내도 완료가 막히거나 내원이 되돌아가지 않게 하려는 것입니다. 수납 대기에서 옮기려면 `nextVisitStatus`를 보냅니다
+  - **읽기·판정·쓰기를 모두 한 트랜잭션에서 합니다.** SQLite는 트랜잭션을 하나씩 실행하므로, 완료가 진료·내원·같은 날 진료를 읽은 뒤 데스크의 내원 커맨드나 다른 진료의 완료가 끼어들지 못합니다. 그래서 함께 들어온 `:start-treatment`나 취소가 500이 아니라 각각 내원 그대로 두기·409가 되고, 같은 날 두 진료를 동시에 완료해도 뒤 진료가 진찰료 중복을 봅니다. 되돌릴 조건: 동시에 쓰는 DB(PostgreSQL 등)로 옮기면 내원 행을 잠그거나(`SELECT … FOR UPDATE`) 직렬화 격리 수준을 씁니다
+  - 진료를 먼저 쓰고 내원을 옮깁니다. 진료 쓰기는 버전 비교로 실패할 수 있어, 되돌리지 못하는 메모리 저장소에서도 내원만 옮겨지지 않습니다. 같은 트랜잭션에서 방금 읽은 내원이라 내원 커맨드는 늘 통과합니다. 요청 중 자정이 지나는 것처럼 그래도 실패하면 결함(500)이고 진료도 되돌립니다
+- **같은 날 진료는 환자의 진료 전체에서 고릅니다.** 진료가 아주 많은 환자에서 느려지면 날짜로 좁혀 읽습니다
+- **진료 쪽 검사는 `update`와 같습니다.** `If-Match` 필수(빠지면 400, 어긋나면 412), 초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`, 취소한 내원이면 409 `ENCOUNTER_VISIT_CANCELED`, 권한은 `encounter:write`(면허)입니다
+- **응답은 `{ encounter, visit }`입니다.** 내원 없는 진료는 `visit: null`입니다. `ETag`는 진료 버전입니다. `hiraSubmissions[]`는 심평원 제출이 생길 때 더합니다
+- **진료의가 비어 있으면 완료한 사용자로 채웁니다.** `completedAt`은 처음 완료한 시각이고, 정정(#25)해도 바꾸지 않습니다
+- **이벤트:** `encounter.completed { encounterId, visitId, patientId, doctorId, acknowledged }`, 그리고 내원을 옮겼으면 `visit.status_changed`
+- **저장:** 마이그레이션 `0009_encounter_completion`이 `encounters`에 `completed_at`을 더합니다
+- **모듈:** 진료가 내원 커맨드(`Visits`)를 쓰고 접수가 빈 진료를 만들어 서로를 부르므로, 접수가 쓰는 `draftEncounter`·`hasClinicalContent`를 [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)로 옮겨 import 순환을 없앴습니다
+
 ### 다른 날짜 반복
 
 현행은 날짜마다 클라이언트가 `nhic/m2` 자격조회 → `POST /desk/waiting` → `save` → `done` → 수납 이동을 반복했습니다. 재설계는 `POST /encounters/{id}:repeat {dates[]}` → `Job`이고, 항목별 결과(성공·자격조회 실패·규칙 위반)를 돌려줍니다. 현행 `/treatment/repeat-results` 화면이 이 결과를 보여 줍니다.
@@ -153,7 +177,7 @@ If-Match: "8"
 구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `get`·`listForPatient`·`update`, 변경 적용은 [encounter-changes.ts](../../src/modules/clinical/encounters/encounter-changes.ts)입니다 (#22).
 
 - **범위:** 접수가 빈 초안 진료를 만들고, 진료 하나(`GET /encounters/{id}`)와 환자의 진료 목록(`GET /patients/{id}/encounters`)을 열고, 초안의 본문·상병을 저장합니다(`PATCH /encounters/{id}`)
-  - 미룸: 완료(#24), 정정·철회·버전·고정(#25), 내원 없는 진료(`POST /encounters`), 활력징후, 서명, `allowedActions`, 목록의 `from`·`to`·`type`·`cursor`, `clinical-summary`, 상병 마스터 검색, 진료 조회의 열람 기록(`access_logs`, conventions.md 감사와 열람 기록). 열람 기록은 환자 조회(patients.md)와 같이 미루고, 진료기록 서명·정정과 함께 붙입니다
+  - 미룸: 정정·철회·버전·고정(#25), 내원 없는 진료(`POST /encounters`), 활력징후, 서명, `allowedActions`, 목록의 `from`·`to`·`type`·`cursor`, `clinical-summary`, 상병 마스터 검색, 진료 조회의 열람 기록(`access_logs`, conventions.md 감사와 열람 기록). 열람 기록은 환자 조회(patients.md)와 같이 미루고, 진료기록 서명·정정과 함께 붙입니다
 - **접수가 내원과 진료를 한 트랜잭션에서 만듭니다.** 두 모듈의 저장소에 걸친 쓰기라 공통 `Transaction`([transaction.ts](../../src/shared/db/transaction.ts))으로 묶습니다. 저장소 `save`의 트랜잭션은 그 안에서 savepoint가 됩니다. 메모리 저장소는 되돌리지 못해, 실패할 수 있는 내원 쓰기(같은 ID)를 먼저 하고 서버가 만든 ID의 진료를 뒤에 씁니다
   - 대안: 진료를 처음 열 때(`GET`) 만들기. 읽기가 쓰기가 되고, 내원 목록에서 `encounterId`를 바로 줄 수 없어 버렸습니다
   - 대안: 내원 저장소가 진료 행도 쓰기. Front Desk가 Clinical 테이블을 알게 되어 버렸습니다
@@ -167,7 +191,7 @@ If-Match: "8"
 - **상병코드는 형식만 봅니다.** 영문 대문자 하나, 숫자 둘, `.`과 세부 분류 1–3자입니다(`U23.4`). 점 없는 코드(`U234`)는 받지 않습니다. 마스터에 있는지는 참조데이터가 생길 때 봅니다
 - **본문은 받은 HTML 그대로 둡니다.** 20만 자까지 받습니다. 서버가 HTML을 정리하지 않으므로 화면에 그리는 쪽이 정리해야 합니다. 되돌릴 조건: 서버가 문서(진료기록 사본)를 렌더링하기 시작하면 저장할 때 허용 태그만 남깁니다
 - **아직 받지 않는 필드(활력징후 등)는 400입니다.** 접수와 같은 이유입니다
-- **초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`입니다.** 지금은 초안만 생기지만, 완료(#24) 뒤의 수정은 정정(`:amend`)이라 미리 막습니다
+- **초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`입니다.** 완료한 뒤의 수정은 정정(`:amend`, #25)입니다
 - **내원 취소는 진료 내용을 봅니다.** 본문이나 상병, 처방 라인이 있는 진료의 내원은 `cascade` 없이 취소할 수 없습니다(409 `VISIT_HAS_CLINICAL_DATA`). 저장된 `hasClinicalData`(수납이 생기기 전까지의 값)에 진료 내용을 더해 판정합니다. 편집기가 비운 본문(`<p><br></p>`, 공백)은 내용이 아니고, 그림(`<img>`)은 내용입니다. 취소한 내원의 초안 진료는 남지만 고칠 수 없습니다(409 `ENCOUNTER_VISIT_CANCELED`). 내원을 다시 열면 고칠 수 있고, 철회(`:retract`)가 생기면 함께 정리합니다(#25)
   - 받아들인 경합: 취소가 진료 내용을 읽은 뒤 저장하기 전에 진료 저장이 끼어들면, 내용이 있는 진료가 취소한 내원에 남습니다. 두 쓰기가 다른 행이라 버전으로 막지 못합니다. 데스크 취소와 진료 저장이 같은 순간에 일어나는 일은 드물고 기록은 지워지지 않아 받아들였습니다. 되돌릴 조건: 연쇄 취소가 진료를 철회하게 되면(#25) 취소와 진료 상태를 한 트랜잭션에서 버전과 함께 씁니다
 - **이벤트:** `encounter.created { encounterId, visitId, patientId }`(접수와 같은 트랜잭션), `encounter.updated { encounterId, visitId, patientId, changed }`(`changed`는 `note`·`diagnoses`·`prescriptionLines`)
@@ -214,7 +238,7 @@ PrescriptionLine
 - **`upsert`의 `id`가 있으면 그 라인을 통째로 바꿉니다.** 필드 단위로 합치지 않으므로 라인의 모든 필드를 보내야 합니다(빠진 `prn`은 `false`). 자리와 ID는 지킵니다. `id`가 없으면 새 라인을 뒤에 더합니다. 상병과 달리 같은 수가코드의 라인을 여럿 둘 수 있어(부위가 다른 침술 등) 코드로 찾지 않습니다
 - **`clientRef`는 저장하지 않고 응답에서만 돌려줍니다.** 새 라인(`id` 없음)에 붙인 `clientRef`를 응답의 `prescriptionLineRefs[] { clientRef, id }`가 서버 ID와 이어 줍니다. 위 모델에서 라인의 `clientRef?`를 뺐습니다. 현행 `temp…` 임시 ID는 화면을 열 때마다 다시 매겨질 수 있어, 저장하면 다음 요청의 `clientRef`와 겹쳐 뜻이 모호해집니다. `id`가 있는 라인의 `clientRef`는 이을 것이 없어 보지 않습니다. 한 요청 안에서 같은 `clientRef`나 같은 `id`를 두 번 보내면 422 `PRESCRIPTION_LINE_DUPLICATE`, 없는(지운) 라인 ID는 `PRESCRIPTION_LINE_NOT_FOUND`입니다. 상병 이유와 함께 `ENCOUNTER_CHANGE_INVALID` 하나로 돌려줍니다
 - **권한:** 진료 저장의 `encounter:write`에 더해, 처방 라인을 하나라도 고치거나 지우면 `prescription:write`, `prn: true`인 라인을 보내면 `prescription:write_prn`이 필요합니다(403 `PERMISSION_DENIED`, `missing`에 빠진 권한 모두). 빈 `prescriptionLines`(`{}`, 빈 배열)는 권한을 보지 않습니다. 진료를 읽기 전에 보므로 404·412보다 먼저입니다. 본문에 따라 정해지므로 엔드포인트 선언이 아니라 서비스가 진료를 읽기 전에 봅니다. PRN 라인을 지우거나 PRN을 끄는 것은 `prescription:write`로 됩니다
-- **보험구분에 맞지 않는 처방은 경고입니다.** 진료의 보험구분에서 쓸 수 없는 카테고리·수가코드의 라인([coverage-category-band.ts](../../src/modules/clinical/fees/coverage-category-band.ts))이 있으면 저장하고 `COVERAGE_CATEGORY_MISMATCH` 경고에 그 라인 ID(`targets`)를 담습니다. 완료(#24)는 막습니다. 내원에 아직 첩약·비대면 시범사업 표시가 없어 두 시범사업이 아닌 진료로 판정하므로, 그 카테고리·코드의 라인은 늘 경고입니다. 되돌릴 조건: `benefitFlags`에 시범사업 표시가 생기면 그 값을 씁니다
+- **보험구분에 맞지 않는 처방은 저장에서 경고입니다.** 진료의 보험구분에서 쓸 수 없는 카테고리·수가코드의 라인([coverage-category-band.ts](../../src/modules/clinical/fees/coverage-category-band.ts))이 있으면 저장하고 `COVERAGE_CATEGORY_MISMATCH` 경고에 그 라인 ID(`targets`)를 담습니다. 완료(#24)는 막습니다. 내원에 아직 첩약·비대면 시범사업 표시가 없어 두 시범사업이 아닌 진료로 판정하므로, 그 카테고리·코드의 라인은 늘 경고입니다. 되돌릴 조건: `benefitFlags`에 시범사업 표시가 생기면 그 값을 씁니다
 - **수가코드와 카테고리는 형식만 봅니다.** 수가코드는 영문 대문자·숫자 1–16자이고 없으면(비급여) `null`, 카테고리는 숫자 8자리입니다. 마스터에 있는지는 참조데이터가 생길 때 봅니다
 - **한 요청에 `upsert`·`remove` 각 100개까지 받습니다.**
 - **저장:** 마이그레이션 `0008_prescription_lines`가 `encounters`에 JSON 열 `prescription_lines`(기본값 `[]`)를 더합니다. 상병과 같이 진료의 하위 값이고 진료 단위로만 읽고 씁니다. 되돌릴 조건: 수가코드별 집계(첩약 한도, 추나 횟수, 직전 회차)를 SQL로 하게 되면 별도 테이블로 옮깁니다

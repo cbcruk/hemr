@@ -16,3 +16,15 @@ const formatter = new Intl.DateTimeFormat('en-CA', {
 export function clinicDate(epochMillis: number): string {
   return formatter.format(epochMillis)
 }
+
+const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: CLINIC_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** 시점(epoch 밀리초)을 병원 시간대의 시각 `HH:mm`으로 바꿉니다. */
+export function clinicTime(epochMillis: number): string {
+  return timeFormatter.format(epochMillis)
+}

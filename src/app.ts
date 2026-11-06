@@ -48,13 +48,12 @@ const SecurityLive = Layer.mergeAll(AuthenticationLive, AuthorizationLive).pipe(
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
   Layer.provide(Layer.mergeAll(AuthHttpLive, MeHttpLive)),
-  // 접수(`Visits`)와 진료(`Encounters`)가 환자를 읽으므로 세 모듈이 같은 `Patients`를 씁니다
+  // 접수(`Visits`)와 진료(`Encounters`)가 환자를 읽으므로 세 모듈이 같은 `Patients`를 씁니다. 진료 완료가 내원을
+  // 옮기므로 내원 경로와 진료가 같은 `Visits`를 씁니다
   Layer.provide(
-    Layer.mergeAll(
-      PatientsHttpLive,
-      VisitsHttpLive.pipe(Layer.provide(Visits.layer)),
-      EncountersHttpLive.pipe(Layer.provide(Encounters.layer)),
-    ).pipe(Layer.provide(Patients.layer)),
+    Layer.mergeAll(PatientsHttpLive, VisitsHttpLive, EncountersHttpLive.pipe(Layer.provide(Encounters.layer))).pipe(
+      Layer.provide(Layer.provideMerge(Visits.layer, Patients.layer)),
+    ),
   ),
   Layer.provide(SecurityLive),
   Layer.provide(RequestValidationLive),
