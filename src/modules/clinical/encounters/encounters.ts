@@ -9,6 +9,7 @@ import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import type { Permission } from '../../identity/permissions.ts'
 import type { Visit } from '../../front-desk/visits/visit.ts'
 import type { VisitCommand } from '../../front-desk/visits/visit-status.types.ts'
+import { ReceiptRepository } from '../../front-desk/receipts/receipt-repository.ts'
 import { Visits } from '../../front-desk/visits/visits.ts'
 import { Procedures } from '../treatment-room/procedures.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
@@ -23,6 +24,7 @@ import type { Acknowledgeable } from './encounter-completion.ts'
 import {
   EncounterChangeInvalid,
   EncounterCompletionRejected,
+  EncounterBilled,
   EncounterLocked,
   EncounterNotEditable,
   EncounterNotFound,
@@ -84,13 +86,15 @@ export type AmendEncounterError =
   | EncounterNotFound
   | EncounterNotEditable
   | EncounterLocked
+  | EncounterBilled
   | EncounterVisitCanceled
   | EncounterChangeInvalid
   | EncounterCompletionRejected
   | VersionMismatch
   | PermissionDenied
 
-export type RetractEncounterError = EncounterNotFound | EncounterNotEditable | EncounterLocked | VersionMismatch
+export type RetractEncounterError =
+  EncounterNotFound | EncounterNotEditable | EncounterLocked | EncounterBilled | VersionMismatch
 
 export type LockEncounterError = EncounterNotFound | EncounterNotEditable | VersionMismatch
 
@@ -102,6 +106,10 @@ const requirePrescriptionPermissions = (changes: EncounterChanges) => {
   if (lines?.upsert?.some((each) => each.prn === true)) needed.push('prescription:write_prn')
   return Arr.isArrayNonEmpty(needed) ? requirePermissions(...needed) : Effect.void
 }
+
+/** 처방 라인을 바꾸는 변경인지입니다. 수납한 진료는 처방을 바꿀 수 없습니다. */
+const changesLines = (changes: EncounterChanges) =>
+  (changes.prescriptionLines?.upsert?.length ?? 0) > 0 || (changes.prescriptionLines?.remove?.length ?? 0) > 0
 
 /** 진료기록 판 하나입니다. 지금 내용을 그대로 담습니다. */
 const revisionOf = (
@@ -119,6 +127,7 @@ const revisionOf = (
 export type UpdateEncounterError =
   | EncounterNotFound
   | EncounterNotEditable
+  | EncounterBilled
   | EncounterVisitCanceled
   | EncounterChangeInvalid
   | VersionMismatch
@@ -224,6 +233,7 @@ export class Encounters extends Context.Service<
       const patients = yield* Patients
       const visits = yield* VisitRepository
       const visitCommands = yield* Visits
+      const receipts = yield* ReceiptRepository
       const procedures = yield* Procedures
       const transaction = yield* Transaction
 
@@ -270,6 +280,7 @@ export class Encounters extends Context.Service<
             return yield* new VersionMismatch({ currentVersion: current.version })
           }
           if (current.status !== 'DRAFT') return yield* new EncounterNotEditable({ currentStatus: current.status })
+          if (changesLines(changes)) yield* requireUnbilled(current)
           if (current.visitId !== null) {
             const visit = yield* visits.findById(access.tenantId, current.visitId)
             if (Option.exists(visit, (each) => each.status === 'CANCELED')) return yield* new EncounterVisitCanceled({})
@@ -307,6 +318,19 @@ export class Encounters extends Context.Service<
             prescriptionLineRefs: result.prescriptionLineRefs,
           }
         })
+
+      /** 유효한 영수증에 들어간 진료면 409 `ENCOUNTER_BILLED`입니다. */
+      const requireUnbilled = (encounter: Encounter) =>
+        encounter.visitId === null
+          ? Effect.void
+          : receipts.listByVisit(encounter.tenantId, encounter.visitId).pipe(
+              Effect.flatMap((listed) => {
+                const billed = listed.find(
+                  (each) => each.status === 'ACTIVE' && each.encounterIds.includes(encounter.id),
+                )
+                return billed === undefined ? Effect.void : Effect.fail(new EncounterBilled({ receiptId: billed.id }))
+              }),
+            )
 
       /** 취소한 내원의 진료면 실패합니다. */
       const requireOpenVisit = (tenantId: Id<'tenant'>, encounter: Encounter) =>
@@ -348,6 +372,7 @@ export class Encounters extends Context.Service<
             yield* guard(current, input.expectedVersion, ['COMPLETED', 'AMENDED'])
             yield* requireUnlocked(current)
             yield* requireOpenVisit(access.tenantId, current)
+            if (changesLines(input.changes)) yield* requireUnbilled(current)
 
             const result = applyChanges(current, input.changes, {
               diagnosis: () => newId('diagnosis'),
@@ -413,6 +438,7 @@ export class Encounters extends Context.Service<
             const current = yield* find(access.tenantId, id)
             yield* guard(current, input.expectedVersion, ['DRAFT', 'COMPLETED', 'AMENDED'])
             yield* requireUnlocked(current)
+            yield* requireUnbilled(current)
             const retracted = retractEncounter(current, {
               reason: input.reason,
               at: DateTime.formatIso(yield* DateTime.now),

@@ -162,6 +162,16 @@ export class EncounterCompletionRejected extends HttpApiError.Problem<EncounterC
   { code: Schema.tag('ENCOUNTER_COMPLETION_REJECTED'), violations: Schema.Array(CompletionViolation) },
 ) {}
 
+/**
+ * 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을
+ * 취소하거나 정정합니다(#35). 본문·상병은 바꿀 수 있습니다.
+ */
+export class EncounterBilled extends HttpApiError.Problem<EncounterBilled>()(
+  'EncounterBilled',
+  { type: problemType('ENCOUNTER_BILLED'), status: 409, title: 'Encounter is on an active receipt' },
+  { code: Schema.tag('ENCOUNTER_BILLED'), receiptId: Schema.String },
+) {}
+
 /** 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). */
 export class EncounterLocked extends HttpApiError.Problem<EncounterLocked>()(
   'EncounterLocked',

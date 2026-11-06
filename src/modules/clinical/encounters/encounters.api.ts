@@ -12,6 +12,7 @@ import {
   DiagnosisId,
   DiagnosisKind,
   Encounter,
+  EncounterBilled,
   EncounterChangeInvalid,
   EncounterCompletionRejected,
   EncounterId,
@@ -137,6 +138,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       error: [
         EncounterNotFound,
         EncounterNotEditable,
+        EncounterBilled,
         EncounterVisitCanceled,
         EncounterChangeInvalid,
         VersionMismatch,
@@ -174,6 +176,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
         EncounterNotFound,
         EncounterNotEditable,
         EncounterLocked,
+        EncounterBilled,
         EncounterVisitCanceled,
         EncounterChangeInvalid,
         EncounterCompletionRejected,
@@ -188,7 +191,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       headers: { 'if-match': Schema.String },
       payload: Schema.Struct({ reason: Reason }),
       success: HttpApiSchema.WithHeaders(Encounter, { etag: Schema.String }),
-      error: [EncounterNotFound, EncounterNotEditable, EncounterLocked, VersionMismatch],
+      error: [EncounterNotFound, EncounterNotEditable, EncounterLocked, EncounterBilled, VersionMismatch],
     })
       .annotate(Access, Access.requires('encounter:retract'))
       .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),

@@ -13,6 +13,7 @@ import { PatientRepository } from '../../patients/patient-repository.ts'
 import { Patients } from '../../patients/patients.ts'
 import { AccessLog } from '../../../shared/audit/access-log.ts'
 import type { Visit } from './visit.ts'
+import { ReceiptRepository } from '../receipts/receipt-repository.ts'
 import { VisitRepository } from './visit-repository.ts'
 import { Visits } from './visits.ts'
 import { testVisit } from './testing.ts'
@@ -34,6 +35,7 @@ const visitsWith = (persistence: Layer.Layer<VisitRepository | Outbox, unknown>)
         PatientRepository.layerMemory,
         AccessLog.layerMemory,
         EncounterRepository.layerMemory,
+        ReceiptRepository.layerMemory,
         Transaction.layerMemory,
       ).pipe(Layer.provide(Outbox.layerMemory)),
     ),

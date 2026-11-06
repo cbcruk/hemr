@@ -12,6 +12,7 @@ import {
   VisitAlreadyExists,
   VisitDatePast,
   VisitHasClinicalData,
+  VisitHasReceipt,
   VisitId,
   VisitNotFound,
   VisitStatus,
@@ -133,7 +134,7 @@ export class VisitsApi extends HttpApiGroup.make('visits')
       headers,
       payload: Schema.Struct({ reason: Schema.NonEmptyString, cascade: Schema.optionalKey(Schema.Boolean) }),
       success,
-      error: [...errors, VisitHasClinicalData, PermissionDenied],
+      error: [...errors, VisitHasClinicalData, VisitHasReceipt, PermissionDenied],
     }).annotate(Access, Access.requires('visit:cancel')),
   )
   .middleware(Authorization) {}

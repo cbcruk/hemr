@@ -118,6 +118,15 @@ export class VisitTransitionInvalid extends HttpApiError.Problem<VisitTransition
   { code: Schema.tag('VISIT_TRANSITION_INVALID'), currentStatus: VisitStatus, command: VisitCommand },
 ) {}
 
+/**
+ * 유효한 영수증이 있는 내원을 연쇄 취소하려 했습니다. 영수증 취소(#35)가 생길 때까지 먼저 영수증을 정리해야 합니다.
+ */
+export class VisitHasReceipt extends HttpApiError.Problem<VisitHasReceipt>()(
+  'VisitHasReceipt',
+  { type: problemType('VISIT_HAS_RECEIPT'), status: 409, title: 'Visit has an active receipt' },
+  { code: Schema.tag('VISIT_HAS_RECEIPT'), receiptId: Schema.String },
+) {}
+
 /** 진료나 수납 기록이 있는 내원을 `cascade` 없이 취소하려 했습니다. */
 export class VisitHasClinicalData extends HttpApiError.Problem<VisitHasClinicalData>()(
   'VisitHasClinicalData',

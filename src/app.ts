@@ -8,6 +8,8 @@ import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
 import { AuthorizationLive, accessCheck } from './modules/identity/auth/authorization.ts'
 import { EncountersHttpLive } from './modules/clinical/encounters/encounters.http.ts'
 import { Encounters } from './modules/clinical/encounters/encounters.ts'
+import { ReceiptsHttpLive } from './modules/front-desk/receipts/receipts.http.ts'
+import { Receipts } from './modules/front-desk/receipts/receipts.ts'
 import { ProceduresHttpLive } from './modules/clinical/treatment-room/procedures.http.ts'
 import { Procedures } from './modules/clinical/treatment-room/procedures.ts'
 import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
@@ -52,13 +54,14 @@ export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(Layer.mergeAll(AuthHttpLive, MeHttpLive)),
   // 접수(`Visits`)와 진료(`Encounters`)가 환자를 읽으므로 세 모듈이 같은 `Patients`를 씁니다. 진료 완료가 내원을
   // 옮기므로 내원 경로와 진료가 같은 `Visits`를 씁니다. 진료 완료가 진행 중인 시술을 끝내므로 치료실 경로와 진료가
-  // 같은 `Procedures`를 씁니다
+  // 같은 `Procedures`를 씁니다. 수납이 내원을 `COMPLETED`로 옮기므로 수납 경로도 같은 `Visits`를 씁니다
   Layer.provide(
     Layer.mergeAll(
       PatientsHttpLive,
       VisitsHttpLive,
       EncountersHttpLive.pipe(Layer.provide(Encounters.layer)),
       ProceduresHttpLive,
+      ReceiptsHttpLive.pipe(Layer.provide(Receipts.layer)),
     ).pipe(Layer.provide(Layer.provideMerge(Procedures.layer, Layer.provideMerge(Visits.layer, Patients.layer)))),
   ),
   Layer.provide(SecurityLive),

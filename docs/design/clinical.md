@@ -185,6 +185,7 @@ If-Match: "8"
 - **고정한 진료는 정정·철회할 수 없습니다(409 `ENCOUNTER_LOCKED`).** 고정은 완료·정정한 진료에만 걸고(그 밖은 409 `ENCOUNTER_NOT_EDITABLE`), 이미 그 상태면 버전을 올리지 않습니다. 고정 권한은 따로 없어 정정과 같은 `encounter:amend`(면허)입니다. 기록을 바꾸지 못하게 하는 일이 기록을 바꾸는 권한과 같은 무게이기 때문입니다. 되돌릴 조건: 실장 등 면허 없는 사용자가 고정해야 하면 `encounter:lock` 권한을 더합니다
 - **내원 취소는 같은 트랜잭션에서 진료를 철회합니다.** 사유는 취소 사유입니다. 연쇄가 아닌 취소는 진료 내용이 없을 때만 통과하므로 빈 초안만 철회합니다(front-desk.md 연쇄 취소의 설계대로). 이 철회는 데스크의 취소에 따른 것이라 `encounter:retract`를 보지 않습니다. 연쇄 취소(`cascade: true`)는 내용이 있는 진료도 철회합니다. 고정한 진료도 철회합니다. 연쇄 취소는 `encounter:retract`(면허)가 있어야 하고 사용자가 명시적으로 고른 일이라, 고정보다 앞선다고 봤습니다. 이미 철회한 진료는 건너뜁니다
 - **내원 커맨드와 진료 저장·정정·철회·고정은 읽기·판정·쓰기를 한 트랜잭션에서 합니다.** #22에서 받아들인 취소·저장 경합을 이것으로 막았습니다
+- **수납한 진료(유효한 영수증에 들어간 진료)는 처방 라인을 바꾸거나 철회할 수 없습니다(409 `ENCOUNTER_BILLED`, #33).** 초안 저장과 정정 모두 같고, 본문·상병은 바꿀 수 있습니다. 영수증 금액과 진료 처방이 어긋나지 않게 하려는 것이고, 먼저 영수증을 취소·정정합니다(front-desk.md 수납 구현 결정)
 - **`If-Match`가 필수입니다.** 정정·철회·고정 모두 진료 버전으로 비교합니다(빠지면 400, 어긋나면 412)
 - **권한:** 정정·고정은 `encounter:amend`, 철회는 `encounter:retract`, 판 조회는 `encounter:read`(데스크도 가짐)입니다
 - **이벤트:** `encounter.amended { encounterId, visitId, patientId, revision, changed, reason, acknowledged }`, `encounter.retracted { encounterId, visitId, patientId, from }`, `encounter.locked`·`encounter.unlocked { encounterId, visitId, patientId }`
