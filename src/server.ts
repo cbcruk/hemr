@@ -5,6 +5,7 @@ import { NodeHttpServer, NodeRuntime } from '@effect/platform-node'
 import { Effect, Layer, Option, PubSub } from 'effect'
 import { HttpRouter } from 'effect/http'
 import { AppLive } from './app.ts'
+import { ProcedureTimerSweep, Procedures } from './modules/clinical/treatment-room/procedures.ts'
 import { AuthConfig, isDevMode } from './modules/identity/auth/auth-config.ts'
 import { AuthRepository } from './modules/identity/auth/auth-repository.ts'
 import { hashPassword } from './modules/identity/auth/password.ts'
@@ -86,8 +87,12 @@ const Events = OutboxRelay.polling().pipe(
   Layer.provideMerge(EventBus.layerInProcess),
 )
 
+/** 진행 중인 시술의 타이머 만료를 1초마다 판정합니다. 클라이언트가 없어도 서버가 `TIMER_ELAPSED`로 바꿉니다. */
+const TimerSweep = ProcedureTimerSweep().pipe(Layer.provide(Procedures.layer))
+
 HttpRouter.serve(AppLive).pipe(
   Layer.provide(DevSeed),
+  Layer.provide(TimerSweep),
   Layer.provide(Events),
   Layer.provide(NodeHttpServer.layer(createServer, { port })),
   Layer.provide(AuthConfig.layerFromEnv),

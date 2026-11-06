@@ -3,6 +3,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/http-api'
 import { Access } from './modules/identity/auth/access.ts'
 import { AuthApi, MeApi } from './modules/identity/auth/auth.api.ts'
 import { EncountersApi } from './modules/clinical/encounters/encounters.api.ts'
+import { ProceduresApi } from './modules/clinical/treatment-room/procedures.api.ts'
 import { VisitsApi } from './modules/front-desk/visits/visits.api.ts'
 import { PatientsApi } from './modules/patients/patients.api.ts'
 import { RequestValidation } from './shared/problem/request-validation.ts'
@@ -29,6 +30,7 @@ export class Api extends HttpApi.make('hemr')
   .add(PatientsApi)
   .add(VisitsApi)
   .add(EncountersApi)
+  .add(ProceduresApi)
   .prefix('/v1')
   .middleware(RequestValidation)
   .annotate(HttpApi.ParseOptions, { errors: 'all' }) {}

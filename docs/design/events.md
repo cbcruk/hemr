@@ -63,7 +63,7 @@ GET  /events/stream?ticket=…&since=18200  Server-Sent Events
 |---|---|---|
 | Patients | `patient.created/updated/merged`, `patient.photo_updated`, `memo.created/updated/deleted/proposed`, `consent.changed`, `package_contract.status_changed`, `prepaid.changed` | `ACTION_PATIENT_PHOTO`, `ACTION_MEMO` |
 | Front Desk | `appointment.created/rescheduled/canceled/no_show`, `booking_request.received/confirmed/rejected/expired`, `visit.checked_in`, `visit.status_changed`, `visit.bed_changed`, `payment.recorded`, `receipt.created/voided`, `payment.refunded`, `cash_drawer.changed` | `ACTION_APPOINTMENT`, `ACTION_APPOINTMENT_PLANNER`, `ACTION_WAITING`, `ACTION_RECEIPT` |
-| Clinical | `encounter.created/updated/completed/amended/retracted`, `amendment.proposed`, `prescription_line.approval_changed`, `procedure.updated`, `ai_turn.succeeded/failed`, `observation.recorded` | `ACTION_RECORD`, `ACTION_TREATMENT`, `RECORD_LLM_*` |
+| Clinical | `encounter.created/updated/completed/amended/retracted`, `amendment.proposed`, `prescription_line.approval_changed`, `procedure.created/updated/removed`, `ai_turn.succeeded/failed`, `observation.recorded` | `ACTION_RECORD`, `ACTION_TREATMENT`, `RECORD_LLM_*` |
 | Herbal Pharmacy | `herbal_prescription.created/status_changed/delivery_changed`, `external_herbal_order.status_changed`, `external_herbal_order.precheck_failed` | (`ACTION_RECORD`에 섞임) |
 | Claims | `claim.aggregated/submitted/submission_failed/outcome_unknown/adjudicated`, `hira_pre_submission.status_changed`, `agent.connected/disconnected`, `nhic_certificate.expiring`, `indemnity.lookup_completed` | 없음 |
 | Documents | `document.issued/voided`, `signature_request.status_changed`, `intake.submitted` | 없음 (서명은 5초 폴링) |

@@ -1,5 +1,6 @@
 import { Layer } from 'effect'
 import { EncounterRepository } from './modules/clinical/encounters/encounter-repository.ts'
+import { ProcedureRepository } from './modules/clinical/treatment-room/procedure-repository.ts'
 import { AuthRepository } from './modules/identity/auth/auth-repository.ts'
 import { SecurityLog } from './modules/identity/auth/security-log.ts'
 import { IdentityRepository } from './modules/identity/identity-repository.ts'
@@ -21,6 +22,7 @@ export const PersistenceMemory = (seed: ReadonlyArray<Visit> = []) =>
     PatientRepository.layerMemory,
     AccessLog.layerMemory,
     EncounterRepository.layerMemory,
+    ProcedureRepository.layerMemory,
     Transaction.layerMemory,
   ).pipe(Layer.provideMerge(Outbox.layerMemory))
 
@@ -37,5 +39,6 @@ export const PersistenceSqlite = (filename: string) =>
     PatientRepository.layerSql,
     AccessLog.layerSql,
     EncounterRepository.layerSql,
+    ProcedureRepository.layerSql,
     Transaction.layerSql,
   ).pipe(Layer.provideMerge(Outbox.layerSql), Layer.provideMerge(sqliteLayer(filename)))

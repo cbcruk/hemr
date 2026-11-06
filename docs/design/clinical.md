@@ -118,7 +118,7 @@ If-Match: "8"
 2. 처방 라인 금액 확정(price lock), 패키지 사용 생성. 이미 수납에서 확정됐으면 건너뜁니다 ([patients.md](patients.md#패키지-계약))
 3. 탕전이 필요한 한약 처방은 탕전 미등록 목록에 나타납니다. 탕전 처방은 현행처럼 탕전 담당자가 등록합니다 ([herbal-pharmacy.md](herbal-pharmacy.md#엔드포인트))
 4. 추나 자동 승인 대상이면 심평원 제출 작업 생성 (`hiraSubmissions[]`, 상태 `QUEUED`). 외부 호출은 트랜잭션 밖에서 데스크톱 에이전트가 처리합니다. 판정은 [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) ([결정](rule-decisions.md#chuna-auto-approval))
-5. 내원 상태를 `nextVisitStatus`로 이동. 기본값은 현행과 같이 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`이나 `AWAITING_PAYMENT`로 보낼 때만 진행 중인 치료실 시술을 종료합니다 (현행 `치료완료` 호출 조건)
+5. 내원 상태를 `nextVisitStatus`로 이동. 기본값은 현행과 같이 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`이나 `AWAITING_PAYMENT`로 보낼 때만 진행 중인 치료실 시술을 종료합니다 (현행 `치료완료` 호출 조건). 내원이 이미 그 상태여도 종료합니다
 6. 이벤트 `encounter.completed`
 
 현행은 1–5를 클라이언트가 순서대로 불렀고, 4의 서버 반영 실패는 무시했습니다 ("다음 저장 시 반영됨").
@@ -149,7 +149,7 @@ If-Match: "8"
 구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `complete`, 검증은 [encounter-completion.ts](../../src/modules/clinical/encounters/encounter-completion.ts)의 `judgeCompletion`입니다 (#24).
 
 - **범위:** `POST /encounters/{id}:complete`가 초안을 검증하고, 진료를 `COMPLETED`로 저장하고, 내원을 `nextVisitStatus`로 옮깁니다. 위 [완료 커맨드](#완료-커맨드)의 1·5·6입니다
-  - 미룸: 2(금액 확정은 라인 단가가 이미 고정이라 할 일이 없고, 패키지 사용은 패키지가 생길 때), 3(탕전), 4(추나 자동 승인과 `hiraSubmissions[]`, 심평원 제출이 생길 때), 치료실 시술 종료(#26), 초진 기록 자동 고정(#25)
+  - 미룸: 2(금액 확정은 라인 단가가 이미 고정이라 할 일이 없고, 패키지 사용은 패키지가 생길 때), 3(탕전), 4(추나 자동 승인과 `hiraSubmissions[]`, 심평원 제출이 생길 때), 초진 기록 자동 고정(#25). 5의 치료실 시술 완료는 #26에서 더했습니다([치료실 구현 결정](#치료실-구현-결정))
 - **지금 데이터로 판정할 수 있는 규칙만 봅니다.** 순서대로 주상병(`PRIMARY_DIAGNOSIS_MISSING`·`PRIMARY_DIAGNOSIS_MULTIPLE`), 보험구분 전용 처방(`COVERAGE_CATEGORY_MISMATCH`), 첩약 시범사업 승인(`PILOT_HERBAL_NOT_APPROVED`), 같은 날 진찰료 중복(`DUPLICATE_CONSULTATION_FEE`)입니다
   - 미룸: 첩약 의사별 한도·상병 한도·청구 검사(심평원 이력과 의사별 집계), 추나 연 한도(심평원 사용량), 자보 같은 날 2차 진료(사고번호), 산정특례(등록번호), 진찰료 수가코드 결정(병원 설정·공휴일·수가 마스터), 이관 진료, 담당 환자 범위. 판정 함수는 이미 있고, 입력 데이터가 생기면 `judgeCompletion`에 더합니다
 - **막히면 422 `ENCOUNTER_COMPLETION_REJECTED`의 `violations[]`에 모든 이유를 담습니다.** 각 이유는 `{ code, message, targets? }`이고 `targets`는 처방 라인 ID나 진찰료가 겹치는 진료 ID입니다. 요청 형식 오류의 400 `violations`(`field`)와 이름은 같지만 문제 유형(`type`)이 달라 구분됩니다
@@ -334,6 +334,28 @@ GET  /needle-removals?date=
 - 보드는 이벤트(`procedure.updated`, `visit.bed_changed`)로 갱신합니다. 현행 5초·1분 폴링을 없앱니다
 - `serverTime`을 함께 줘서 클라이언트 시계가 어긋나도 남은 시간을 맞게 그립니다 (현행 `serverNow` 보정 유지)
 
+### 치료실 구현 결정
+
+구현은 [procedures.ts](../../src/modules/clinical/treatment-room/procedures.ts)의 `Procedures`, 저장은 [procedure-repository.ts](../../src/modules/clinical/treatment-room/procedure-repository.ts), 판정은 이미 포팅한 [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts)입니다 (#26).
+
+- **범위:** 위 목록에서 보드, 시술 더하기·시간 변경·삭제, 시술 하나의 `:start`·`:complete`·`:restart-timer`·`:reopen`, 내원의 `:start-all`·`:complete-all`·`:reorder`, 서버 타이머 만료, 진료 완료가 내원을 대기·수납으로 보낼 때 진행 중인 시술 완료(위 [완료 커맨드](#완료-커맨드) 5)
+  - 미룸: 치료실·베드 배정(`roomId`·`bedNumber`, `visit.bed_changed`)과 보드의 `rooms[].beds[]`는 치료실 설정(`treatment-rooms`)이 생길 때, 치료세트(`procedureSetId`·`setInstanceId`)는 `procedure-sets` 설정이 생길 때, 발침 기록(`needle-removals`)과 `:finish-treatment`는 그 화면 흐름을 옮길 때, 이벤트로 보드 갱신(푸시)은 실시간 전달 계층이 생길 때 엽니다. 처방 라인에서 시술을 자동으로 만드는 일(현행 `seed_from_chart`)도 미룹니다. 지금은 `sourcePrescriptionLineId`를 참조로 받기만 하고 진료에 그 라인이 있는지 보지 않습니다
+- **내원 하나를 베드 하나로 봅니다.** 베드 배정이 없어 `startProcedures`의 "같은 베드"는 같은 내원입니다. 보드는 `{ serverTime, items: [{ visit, procedures }] }`이고 그날 취소하지 않은 내원을 접수 순서로 줍니다. 베드가 생기면 `items`를 치료실·베드로 묶습니다
+- **타이머 정책은 기본값(`DEFAULT_PROCEDURE_TIMER_SETTINGS`)입니다.** 새 시술 300초, 다음 시술을 시작하면 만료 시술 자동 완료. `procedure-timers` 설정이 생기면 병원 값으로 바꿉니다
+- **서버 타이머:** `ProcedureTimerSweep`이 1초마다 모든 병원의 끝난 진행 중 시술(`listDue`)을 `TIMER_ELAPSED`로 바꾸고 `procedure.updated`(행위자 `SYSTEM`)를 냅니다. 시술마다 버전을 비교해 쓰고, 그 사이 사용자가 먼저 바꿨으면 건너뜁니다(그 커맨드가 만료도 판정합니다). 실패하면 로그만 남기고 계속합니다. 커맨드도 판정 전에 끝난 타이머를 만료로 보므로, 1초 지연이 상태를 틀리게 만들지 않습니다
+  - 대안: 시술마다 `timerEndsAt`에 맞춘 지연 작업. 서버가 재시작하면 다시 걸어야 하고 시술 시간이 바뀔 때마다 취소해야 해 버렸습니다. 되돌릴 조건: 서버를 여러 대 띄우면 한 대만 훑도록 잠금(리더)을 두거나 작업 큐로 옮깁니다
+- **응답:** 시술 하나의 커맨드는 그 시술을, `:start`와 내원 단위 커맨드는 `{ items }`로 바뀐 시술 모두를 줍니다. `:start`는 같은 내원의 만료 시술을 함께 완료하므로 바뀐 시술이 여럿입니다 ([conventions.md](conventions.md) "커맨드 응답은 바뀐 주 리소스"의 예외)
+- **시술 커맨드는 `If-Match`를 받지 않습니다.** 여러 치료사가 한 보드를 빠르게 누르는 화면이라, 같은 시술을 두 번 시작하면 뒤 요청이 상태 전이로 거절(409 `PROCEDURE_TRANSITION_INVALID`, `currentStatus`)되는 것으로 충분합니다. 서비스가 읽기·판정·쓰기를 한 트랜잭션에서 하고, 저장소의 버전 비교가 어긋나면(메모리 저장소, 타이머와 겹침) 처음부터 3번까지 다시 합니다. 그래도 어긋나면 결함입니다. 되돌릴 조건: 시간 변경처럼 값을 덮어쓰는 커맨드에서 덮어쓰기가 문제가 되면 그 커맨드만 `If-Match`를 받습니다
+- **오류 이름:** [procedure-timer 결정](rule-decisions.md#procedure-timer)의 `PROCEDURE_DURATION_TOO_SHORT`는 422 `PROCEDURE_DURATION_REJECTED`의 `reason`으로, `PROCEDURE_ALREADY_DONE`(409)은 다른 상태 커맨드와 같은 409 `PROCEDURE_TRANSITION_INVALID { currentStatus: DONE }`로 냅니다. 정수가 아니거나 1 미만인 시간(`PROCEDURE_DURATION_INVALID`)은 요청 스키마가 400으로 먼저 막습니다(1–86400초)
+- **닫힌 내원:** 취소했거나 수납까지 끝난(`COMPLETED`) 내원에는 시술을 더하거나 시작·시간 변경·타이머 재시작·되돌리기를 할 수 없습니다(409 `PROCEDURE_VISIT_CLOSED`). 완료·모두 완료·삭제·순서 변경은 정리용이라 받습니다
+  - 미룸: 내원 연쇄 취소의 시술 취소(front-desk.md 연쇄 취소). 시술에 취소 상태가 없어, 지금은 취소한 내원의 시술을 그대로 두고 보드에서 빼고 진행 커맨드를 막습니다. 취소할 때 진행 중이던 시술은 서버 타이머가 만료로 바꾸고 그 뒤로 보드에 보이지 않아 `TIMER_ELAPSED`로 남습니다. 시술 수가 청구와 이어질 때 취소 상태를 더하고 내원 취소가 함께 정리합니다
+- **진료 완료가 `nextVisitStatus`로 대기(`WAITING`)나 수납 대기(`AWAITING_PAYMENT`)를 고르고 내원이 그 상태가 되면(옮겼거나, 데스크가 먼저 그 상태로 보냈거나) 같은 트랜잭션에서 그 내원의 진행 중·만료 시술을 완료합니다(`finishRunning`).** 대기 시술은 그대로 둡니다. 치료실로 보내거나(`IN_TREATMENT`) 내원이 다른 상태로 남는 경우(수납까지 끝남 등)에는 건드리지 않습니다. 권한은 진료 완료 권한으로 충분하다고 봤습니다(`procedure:write`를 따로 보지 않음)
+- **입력 한도:** 이름은 1–100자이고 공백만은 안 됩니다(400). 내원 하나의 시술은 100개까지입니다(422 `PROCEDURE_LIMIT_EXCEEDED`). 순서 변경이 모든 시술 ID를 한 번에 받는 상한과 같습니다
+- **삭제는 대기 시술만 합니다.** 시작한 시술은 기록이라 지우지 않고 완료나 되돌리기로 정리합니다. 순서 변경은 내원의 시술 ID를 빠짐없이 한 번씩 보내야 합니다(422 `PROCEDURE_ORDER_INVALID`). 시술 하나의 `PATCH`로 `order`를 바꾸지는 않습니다. 순서는 내원 전체가 한 번에 바뀌어야 겹치지 않기 때문입니다
+- **권한:** 조회는 `procedure:read`(데스크·치료사·의사), 바꾸기는 `procedure:write`(치료사·의사). 면허는 보지 않습니다. 보드는 내원 전체(보험구분·자격 등)를 함께 주므로 `visit:read`도 봅니다
+- **이벤트:** `procedure.created`·`procedure.updated`·`procedure.removed { procedureId, visitId, patientId, status }`. 바뀐 시술마다 하나씩 냅니다. 순서·시간 변경처럼 상태가 그대로인 변경도 `procedure.updated`입니다
+- **저장:** 마이그레이션 `0011_procedures`가 `procedures`를 만듭니다. 순서는 `sort_order` 열이고(`order`는 SQL 예약어), 진행 중·만료 시술은 시작·종료 시각이 있어야 한다는 `CHECK`를 둡니다. 서버 타이머가 훑는 진행 중 시술은 부분 인덱스(`procedures_running`)로 찾습니다
+
 ## 캔버스 (그림 차트)
 
 현행에서 이미지는 `/patients`, 템플릿은 `/record`에 있고 진료와 연결되지 않습니다.
@@ -372,6 +394,6 @@ POST /ai-turns/{id}:apply                          { target: "note", mode: "appe
 
 ## 이벤트
 
-`encounter.created/updated/completed/amended/retracted`, `amendment.proposed`, `prescription_line.approval_changed`, `procedure.updated`, `ai_turn.succeeded/failed`, `observation.recorded`
+`encounter.created/updated/completed/amended/retracted`, `amendment.proposed`, `prescription_line.approval_changed`, `procedure.created/updated/removed`, `ai_turn.succeeded/failed`, `observation.recorded`
 
 베드 배정은 내원의 속성이라 `visit.bed_changed`는 Front Desk가 냅니다.

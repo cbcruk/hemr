@@ -357,6 +357,34 @@ export const migrations = {
         AND visit_id IN (SELECT id FROM visits WHERE status = 'CANCELED' AND tenant_id = encounters.tenant_id)
     `
   }),
+  '0011_procedures': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    yield* sql`
+      CREATE TABLE procedures (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        source_prescription_line_id TEXT,
+        sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+        assignee TEXT NOT NULL CHECK (assignee IN ('DOCTOR', 'STAFF')),
+        duration_seconds INTEGER NOT NULL CHECK (duration_seconds >= 1),
+        status TEXT NOT NULL CHECK (status IN ('PENDING', 'RUNNING', 'TIMER_ELAPSED', 'DONE')),
+        started_at TEXT,
+        timer_ends_at TEXT,
+        completed_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        -- 진행 중·만료 시술은 시작·종료 시각이 늘 있습니다 (procedure-timer 결정 3)
+        CHECK (status NOT IN ('RUNNING', 'TIMER_ELAPSED') OR (started_at IS NOT NULL AND timer_ends_at IS NOT NULL))
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX procedures_tenant_visit ON procedures (tenant_id, visit_id, sort_order)`
+    // 서버 타이머가 끝난 진행 중 시술을 자주 찾습니다
+    yield* sql`CREATE INDEX procedures_running ON procedures (timer_ends_at) WHERE status = 'RUNNING'`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */
