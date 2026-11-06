@@ -423,6 +423,48 @@ export const migrations = {
       ) STRICT
     `
   }),
+  '0013_payments': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 외부 승인 결제는 영수증 없이(UNAPPLIED) 먼저 남으므로 결제를 영수증의 JSON에서 테이블로 옮깁니다
+    yield* sql`
+      CREATE TABLE payments (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        visit_id TEXT,
+        receipt_id TEXT REFERENCES receipts (id),
+        method TEXT NOT NULL CHECK (
+          method IN (
+            'CARD', 'CASH', 'BANK_TRANSFER', 'KAKAO_PAY', 'LOCAL_CURRENCY', 'ZERO_PAY', 'PREPAID', 'OVERPAID_CREDIT',
+            'JEJU_SUBSIDY', 'PACKAGE'
+          )
+        ),
+        prepaid_kind TEXT CHECK (prepaid_kind IN ('CASH_LIKE', 'CARD_LIKE')),
+        amount_taxable INTEGER NOT NULL CHECK (amount_taxable >= 0),
+        amount_tax_exempt INTEGER NOT NULL CHECK (amount_tax_exempt >= 0),
+        processor_ref TEXT,
+        status TEXT NOT NULL CHECK (status IN ('UNAPPLIED', 'CAPTURED', 'REFUNDED', 'PARTIALLY_REFUNDED', 'VOIDED')),
+        recorded_by TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        -- 적용 전에는 영수증이 없고, 적용하면 있습니다. 미적용 결제의 환불·취소(#35)는 영수증 없이 상태만 바뀝니다
+        CHECK (status <> 'UNAPPLIED' OR receipt_id IS NULL),
+        CHECK (status <> 'CAPTURED' OR receipt_id IS NOT NULL)
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX payments_receipt ON payments (tenant_id, receipt_id)`
+    yield* sql`CREATE INDEX payments_patient_status ON payments (tenant_id, patient_id, status)`
+    yield* sql`
+      INSERT INTO payments
+      SELECT
+        json_extract(p.value, '$.id'), r.tenant_id, r.patient_id, r.visit_id, r.id, json_extract(p.value, '$.method'),
+        json_extract(p.value, '$.prepaidKind'), json_extract(p.value, '$.amount.taxable'),
+        json_extract(p.value, '$.amount.taxExempt'), NULL, 'CAPTURED', r.cashier_id, r.created_at, r.created_at, 1
+      FROM receipts r, json_each(r.payments) p
+    `
+    yield* sql`ALTER TABLE receipts DROP COLUMN payments`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

@@ -346,7 +346,7 @@ Payment
 **외부에서 이미 승인된 결제는 먼저 따로 기록합니다.** 카드 단말·간편결제처럼 수납 커맨드 전에 돈이 오간 결제는 승인 직후 `POST /payments`로 `UNAPPLIED` 상태로 남깁니다. 그래서 수납 커맨드가 어떤 이유로 실패해도 "돈은 받았는데 기록이 없음"이 생기지 않고, 적용되지 않은 결제는 수납현황에 미적용으로 보입니다.
 
 ```
-POST /payments          { patientId, visitId?, method, amount, processorRef }   Idempotency-Key   → { id, status: UNAPPLIED }
+POST /payments          { patientId, visitId?, method, amount, processorRef }   Idempotency-Key   → Payment (status: UNAPPLIED)
 ```
 
 ```jsonc
@@ -393,7 +393,7 @@ Idempotency-Key: ...
 구현은 [receipts.ts](../../src/modules/front-desk/receipts/receipts.ts)의 `quote`·`checkout`, 금액은 [receipt-charges.ts](../../src/modules/front-desk/receipts/receipt-charges.ts), 결산은 이미 포팅한 [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts)의 `settleCheckout`입니다 (#33).
 
 - **범위:** `POST /visits/{id}:quote-checkout`과 `:checkout`. 위 [수납 커맨드](#수납-커맨드)의 3·4·5(내원 `COMPLETED`)·6입니다
-  - 미룸: 외부 승인 결제(`POST /payments`, `paymentIds`, #34), 영수증 조회·취소·정정·환불(#35), 급여 본인부담(#36), 시재(#37), 내원 없는 수납(`POST /receipts`), 패키지 판매·사용, 등급 할인, 제주 지원금, 선수금·과수납금 잔액(환자 원장이 생길 때)
+  - 미룸: 영수증 조회·취소·정정·환불(#35), 급여 본인부담(#36), 시재(#37), 내원 없는 수납(`POST /receipts`), 패키지 판매·사용, 등급 할인, 제주 지원금, 선수금·과수납금 잔액(환자 원장이 생길 때)
 - **1(금액 잠금)은 진료 쪽에서 막습니다.** 단가는 처방 라인이 저장할 때 이미 고정합니다. 수납한 뒤에는 유효한 영수증에 들어간 진료의 처방 라인을 바꾸거나(`PATCH`·`:amend`) 진료를 철회하면 409 `ENCOUNTER_BILLED { receiptId }`입니다. 본문·상병은 바꿀 수 있습니다. 처방을 바꾸려면 영수증을 취소·정정(#35)합니다
   - 대안: 진료에 수납 표시를 저장하기. 영수증을 취소할 때 표시도 함께 되돌려야 해, 영수증에서 바로 판정했습니다
 - **일반(`SELF_PAY`) 진료만 금액을 계산합니다.** 급여 본인부담을 계산하는 규칙이 아직 없어, 보험 진료는 견적·수납 모두 422 `CHECKOUT_COVERAGE_UNSUPPORTED`입니다. 진찰료는 아직 처방 라인이 아니어서, 처방이 없어도 본문·상병이 있으면 진찰료 본인부담이 있는 진료로 보고 막습니다. 아무것도 쓰지 않은 보험 진료만 0원으로 수납합니다. 일반 진료는 처방 라인 금액의 합이 모두 비과세 비급여입니다. 라인에 과세 여부가 없고 한의원 진료는 대부분 면세라서입니다. 과세 비급여는 비급여 항목 설정이 생길 때 라인에 표시를 더합니다
@@ -401,7 +401,7 @@ Idempotency-Key: ...
 - **견적은 저장하지 않습니다.** `quoteId`는 고른 진료별 받을 금액에서 계산한 해시(`qt_` + 26자)라, 수납이 같은 계산을 다시 해서 견적과 다르면 409 `QUOTE_STALE`(새 `quoteId` 포함)입니다. 메모·진료 본문처럼 금액과 상관없는 변경은 견적을 깨지 않습니다(위 동시성 설계대로). 결제 입력은 `quoteId`에 넣지 않습니다. 결제를 바꿔 다시 보내는 것은 견적을 다시 받을 일이 아니기 때문입니다
   - 대안: 견적을 만료 시각과 함께 저장하기. 저장·청소가 늘고 얻는 것(견적 유효기간)이 지금은 필요 없어 버렸습니다. 되돌릴 조건: 할인 승인처럼 견적 시점의 판단을 수납이 그대로 써야 하면 저장합니다
 - **견적은 결산이 막을 이유가 있어도 200입니다.** `errors`·`warnings`를 담아 화면이 그대로 그립니다. 수납은 같은 이유로 422 `CHECKOUT_REJECTED { errors, warnings }`입니다. 수납할 수 없는 내원(수납했거나 취소함, 유효한 영수증이 남음)의 견적은 수납과 같은 409입니다. 받을 수 없는 금액을 보여 주지 않기 위해서입니다
-- **수납 요청의 `payments`는 서버 안에서 끝나는 결제만 받습니다(현금·계좌이체·선수금).** 카드·간편결제·지역화폐·제로페이는 단말 승인 뒤 `POST /payments`(#34)로 먼저 남기는 설계라, 여기로 보내면 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 서버가 만드는 수단(제주 지원금·과수납금·패키지)도 같습니다. 선수금은 잔액이 아직 0이라 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 수단과 상관없이 받지만 기록하지 않습니다
+- **수납 요청의 `payments`는 서버 안에서 끝나는 결제만 받습니다(현금·계좌이체·선수금).** 카드·간편결제·지역화폐·제로페이는 단말 승인 뒤 `POST /payments`로 먼저 남기고 `paymentIds`로 적용하는 설계라([외부 승인 결제 구현 결정](#외부-승인-결제-구현-결정)), 여기로 보내면 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 서버가 만드는 수단(제주 지원금·과수납금·패키지)도 같습니다. 선수금은 잔액이 아직 0이라 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 수단과 상관없이 받지만 기록하지 않습니다
 - **`Idempotency-Key`는 필수입니다(conventions.md).** 병원별 키 하나에 처음 성공 응답을 24시간 남기고([idempotency.ts](../../src/shared/http/idempotency.ts)), 같은 요청이면 그 응답을 그대로, 커맨드나 내원·본문이 다르면 422 `IDEMPOTENCY_KEY_REUSED`입니다. 지문(fingerprint)은 커맨드 이름(`visits.checkout`)과 내원 ID·본문의 해시입니다. 기간이 지난 키는 같은 키가 다시 올 때 덮어쓰고, 지난 키를 지우는 작업은 미룹니다(행이 늘어 문제가 되면 `created_at` 인덱스와 정리 작업을 더합니다). 실패한 요청은 남기지 않아 고쳐서 같은 키로 다시 보낼 수 있습니다. 응답 기록은 수납과 같은 트랜잭션입니다
   - 대안: 실패 응답도 남기기(Stripe 방식). 미수 확인처럼 사용자가 고쳐 다시 보내는 422가 많은 커맨드라 새 키를 강요하게 되어 버렸습니다
 - **한 트랜잭션에서 읽기·판정·쓰기를 합니다.** 내원 `CHECKOUT` 전이(`Visits.apply`, `visit.status_changed`)를 먼저 하고 영수증과 `receipt.created`를 씁니다. 전이 권한(`visit:update`)은 따로 보지 않습니다. 이미 수납했거나 취소한 내원은 금액을 보기 전에 409 `VISIT_TRANSITION_INVALID`입니다
@@ -409,9 +409,35 @@ Idempotency-Key: ...
   - 미룸: 연쇄 취소의 영수증 `VOIDED`(#35). 그때까지 유효한 영수증이 있는 내원의 연쇄 취소는 409 `VISIT_HAS_RECEIPT { receiptId }`입니다. 영수증을 남긴 채 내원만 취소하면 시재·일자 현황이 취소한 내원의 돈을 세기 때문입니다
 - **수납일은 수납한 날(병원 시간대)입니다.** 내원일이 아닙니다. 시재가 현금이 오간 날로 세기 때문입니다
 - **권한:** 견적·수납 모두 `receipt:create`입니다. 견적은 수납 화면이 그리는 값이라 수납과 같은 권한으로 봅니다
-- **이벤트:** `visit.status_changed`, 이어서 `receipt.created { receiptId, visitId, patientId, date, total, result, acknowledged }`. 내원 전이를 먼저 쓰므로 위 6의 순서와 반대입니다
+- **이벤트:** `visit.status_changed`, 이어서 `receipt.created { receiptId, visitId, patientId, date, total, result, acknowledged, paymentIds }`. 내원 전이를 먼저 쓰므로 위 6의 순서와 반대입니다
 - **모델:** 위 `Receipt`의 `flags.writeOff`는 두지 않고 `settlement.result: WRITTEN_OFF`와 `writtenOff`로 나타냅니다. `charges`는 `insuredCopay`·`nonbenefit`·`total`만 있고 패키지·할인은 그 기능과 함께 더합니다. 견적을 추적할 수 있게 `quoteId`를 남깁니다
-- **저장:** 마이그레이션 `0012_receipts`가 `receipts`(청구·결제·결산은 JSON 열)와 `idempotency_keys`를 만듭니다. 결제는 영수증과 함께만 읽고 쓰므로 JSON에 두고, 영수증 없이 결제가 남는 #34에서 테이블로 옮깁니다
+- **저장:** 마이그레이션 `0012_receipts`가 `receipts`(청구·결산은 JSON 열)와 `idempotency_keys`를 만듭니다. 결제는 처음에 영수증의 JSON 열이었고, 영수증 없이 결제가 남는 #34에서 `payments` 테이블로 옮겼습니다(아래)
+
+### 외부 승인 결제 구현 결정
+
+구현은 [payments.ts](../../src/modules/front-desk/receipts/payments.ts)의 `record`·`get`, 적용은 [receipts.ts](../../src/modules/front-desk/receipts/receipts.ts)의 `paymentIds`입니다 (#34).
+
+```
+POST /payments        { patientId, visitId?, method, amount{taxable, taxExempt}, processorRef }   Idempotency-Key   → Payment (UNAPPLIED)
+GET  /payments/{id}                                                                                            → Payment
+```
+
+- **범위:** 위 [수납 커맨드](#수납-커맨드)의 `POST /payments`와 수납·견적의 `paymentIds`입니다. `Payment`는 위 모델에서 `groupId`·`cashReceipt`·`refunds`를 빼고 `patientId`·`visitId`·`recordedBy`·`createdAt`·`updatedAt`·`version`을 더했습니다. 상태는 `UNAPPLIED`·`CAPTURED`만 씁니다
+  - 미룸: 미적용 결제 목록(수납현황, `GET /receipts`와 함께 #35), 미적용 결제의 취소·환불(#35), 카드 분할(`groupId`), 현금영수증(`cashReceipt`)
+- **받는 수단은 밖에서 승인되는 것만입니다(`CARD`·`KAKAO_PAY`·`LOCAL_CURRENCY`·`ZERO_PAY`).** 현금·계좌이체는 수납 요청 안에서 받으므로 미리 남길 이유가 없어 400입니다. 금액은 과세·비과세 합이 0보다 커야 하고, `processorRef`(승인번호 등, 1–100자, 앞뒤 공백 없음)는 필수입니다. 단말 승인 뒤에만 부르는 커맨드라서입니다
+  - 이 제약은 이 커맨드의 것이지 모델의 것이 아닙니다. 오프라인 동기화([offline.md](offline.md))처럼 현금을 `UNAPPLIED`로 남기는 경로는 그 기능에서 엽니다
+- **환자는 있어야 하고(404 `PATIENT_NOT_FOUND`), 내원을 정하면 그 환자의 내원이어야 합니다(404 `VISIT_NOT_FOUND`, 422 `PAYMENT_VISIT_MISMATCH`).** 내원 상태는 보지 않습니다. 돈은 이미 오갔으므로 수납했거나 취소한 내원의 결제도 남겨야 기록이 사라지지 않습니다
+- **적용:** 견적·수납의 `paymentIds`(20개 이하, 중복은 하나로)는 이 병원·이 환자의 `UNAPPLIED` 결제이고, 결제에 내원이 있으면 이 내원이어야 합니다. 하나라도 아니면 422 `CHECKOUT_PAYMENT_INVALID { paymentIds }`입니다. 통과한 결제는 입력 결제(`payments`) 앞에 더해 결산에 넣습니다. 그래서 결산의 `entered`·`received`에 들어가고, 결제가 있으니 미수 확인이 필요 없습니다. 수납이 성공하면 같은 트랜잭션에서 `CAPTURED`와 `receiptId`를 쓰고 `version`을 올립니다. 수납이 실패하면(409 `QUOTE_STALE` 등) 결제는 `UNAPPLIED`로 남아 새 견적으로 다시 수납합니다
+  - `paymentIds`는 `quoteId`에 넣지 않습니다. 결제 입력과 같은 이유입니다
+  - 내원이 없는 결제는 그 환자의 어느 내원에도 적용할 수 있고, 적용하면 그 내원이 결제의 `visitId`가 됩니다. 시재·수납현황이 내원으로 결제를 찾을 수 있게 하려는 것입니다. 취소한 내원에 묶인 결제는 다른 내원에 적용할 수 없어 #35의 환불을 기다립니다
+  - 대안: 수납이 결제 ID 대신 승인번호로 찾기. 승인번호는 단말·카드사마다 겹칠 수 있어 서버가 만든 ID로 고릅니다
+- **영수증의 `payments`는 이제 적용한 결제를 `payments` 테이블에서 읽어 붙입니다.** 받은 시각, 같으면 ID 순입니다. 미리 기록한 결제는 먼저 받았으므로 보통 앞에 오고(같은 밀리초면 ID 순), 수납 요청 안에서 받은 결제는 요청 순서입니다(같은 시각이라 요청 순서대로 커지는 ID를 줍니다). 각 결제에 `processorRef`를 더했습니다
+  - `0013` 전에 만든 영수증의 결제는 모두 같은 시각이고 ID가 무작위라 원래 요청 순서를 잃습니다. 배포한 DB가 없는 지금은 순서 열을 따로 두지 않았습니다. 되돌릴 조건: 결제 순서를 사용자가 바꾸는 기능(정정 #35)이 생기면 순서 열을 더합니다
+- **`Idempotency-Key`는 필수입니다.** 지문의 커맨드 이름은 `payments.record`이고, 수납(`visits.checkout`)과 같은 키를 쓰면 422 `IDEMPOTENCY_KEY_REUSED`입니다. 승인 직후 네트워크가 끊겨 다시 보내도 결제가 둘로 남지 않습니다. 다시 보내면 처음 응답(`UNAPPLIED`)을 그대로 돌려주므로, 지금 상태는 `GET /payments/{id}`로 봅니다
+  - 대안: 병원·수단·승인번호 유일 제약. 승인번호가 겹칠 수 있는 데다 다시 보내기는 키로 막혀서 두지 않았습니다
+- **권한:** 남기기는 `receipt:create`(수납과 같음), 보기는 `receipt:read`입니다. 결제만의 권한은 현행에 없어 더하지 않았습니다
+- **이벤트:** `payment.recorded { paymentId, patientId, visitId, method, amount }`. 적용은 따로 내지 않고 `receipt.created`의 `paymentIds`(그 영수증의 모든 결제, 미리 기록한 것과 수납 요청 안에서 받은 것)로 알립니다
+- **저장:** 마이그레이션 `0013_payments`가 `payments` 테이블(금액은 과세·비과세 정수 열)을 만들고, 기존 영수증 JSON의 결제를 `CAPTURED`로 옮긴 뒤 `receipts.payments` 열을 지웁니다. `UNAPPLIED`이면 `receipt_id`가 없고 `CAPTURED`이면 있도록 CHECK로 막습니다. 환불·취소 상태는 영수증 유무를 정하지 않아, 미적용 결제를 영수증 없이 환불하는 #35를 막지 않습니다. 수단·선수금 계열·금액(0 이상)도 CHECK입니다. 저장소는 영수증과 결제를 같은 `ReceiptRepository`에 둡니다. 수납이 영수증과 결제 적용을 한 번에 쓰기 때문입니다
 
 ### 내원 없는 수납
 

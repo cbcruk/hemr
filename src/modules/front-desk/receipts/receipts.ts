@@ -2,7 +2,7 @@ import { Context, DateTime, Effect, Layer, Option, Schema } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
 import { domainEvent } from '../../../shared/events/domain-event.ts'
 import { idempotent, IdempotencyKeyReused, IdempotencyStore } from '../../../shared/http/idempotency.ts'
-import { newId } from '../../../shared/ids/ids.ts'
+import { newId, newIds } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
@@ -15,9 +15,12 @@ import type { CheckoutPayment, EncounterDue, OverpaidCreditTarget, PaymentMethod
 import { chargesOf, encounterDue, quoteIdOf } from './receipt-charges.ts'
 import { ReceiptRepository } from './receipt-repository.ts'
 import {
+  byRecorded,
   CheckoutCoverageUnsupported,
   CheckoutEncounterInvalid,
+  CheckoutPaymentInvalid,
   CheckoutRejected,
+  ExternalPaymentMethod,
   QuoteStale,
   Receipt,
   ReceiptAlreadyExists,
@@ -28,6 +31,8 @@ import {
 export interface CheckoutOptions {
   /** 수납할 진료입니다. 없으면 이 내원의 철회하지 않은 진료 전부입니다. */
   encounterIds?: ReadonlyArray<Id<'encounter'>>
+  /** 미리 기록한 외부 승인 결제(`POST /payments`)입니다. 이 환자의 `UNAPPLIED` 결제여야 합니다. */
+  paymentIds?: ReadonlyArray<Id<'payment'>>
   /** 서버 안에서 끝나는 결제(현금·계좌이체·선수금)입니다. */
   payments?: ReadonlyArray<CheckoutPayment>
   useOverpaidCredit?: OverpaidCreditTarget | null
@@ -69,15 +74,17 @@ export const CheckedOut = Schema.Struct({ receipt: Receipt, visit: Visit })
 export type CheckedOut = typeof CheckedOut.Type
 
 export type QuoteError =
-  VisitNotFound | VisitTransitionInvalid | ReceiptAlreadyExists | CheckoutEncounterInvalid | CheckoutCoverageUnsupported
+  | VisitNotFound
+  | VisitTransitionInvalid
+  | ReceiptAlreadyExists
+  | CheckoutEncounterInvalid
+  | CheckoutCoverageUnsupported
+  | CheckoutPaymentInvalid
 export type CheckoutError =
   QuoteError | VisitTransitionInvalid | ReceiptAlreadyExists | QuoteStale | CheckoutRejected | IdempotencyKeyReused
 
-/**
- * 카드 단말·간편결제처럼 수납 전에 밖에서 승인되는 결제 수단입니다. `POST /payments`로 먼저 남기고 `paymentIds`로
- * 적용합니다(#34). 수납 요청의 `payments`로 보내면 `PAYMENT_METHOD_NOT_ALLOWED`입니다.
- */
-const EXTERNAL_METHODS: ReadonlySet<PaymentMethod> = new Set(['CARD', 'KAKAO_PAY', 'LOCAL_CURRENCY', 'ZERO_PAY'])
+/** 밖에서 승인되는 결제 수단입니다. 수납 요청의 `payments`로 보내면 `PAYMENT_METHOD_NOT_ALLOWED`입니다. */
+const EXTERNAL_METHODS: ReadonlySet<PaymentMethod> = new Set(ExternalPaymentMethod.literals)
 
 /**
  * 수납입니다 (front-desk.md 수납 커맨드). 견적(`quote`)과 수납(`checkout`)이 같은 계산(`settleCheckout`)을 씁니다.
@@ -92,7 +99,8 @@ export class Receipts extends Context.Service<
      * 수납 견적입니다. 결산이 막을 이유가 있어도 200으로 `errors`·`warnings`를 담아 돌려줍니다. 수납할 수 없는 내원은
      * 수납과 같이 409 `VISIT_TRANSITION_INVALID`·`RECEIPT_ALREADY_EXISTS`입니다. 고른 진료가 이
      * 내원의 진료가 아니면 422 `CHECKOUT_ENCOUNTER_INVALID`, 처방이 있는 보험 진료는 422
-     * `CHECKOUT_COVERAGE_UNSUPPORTED`입니다.
+     * `CHECKOUT_COVERAGE_UNSUPPORTED`입니다. 고른 결제(`paymentIds`)를 적용할 수 없으면 422
+     * `CHECKOUT_PAYMENT_INVALID`입니다.
      */
     quote(visitId: Id<'visit'>, input: CheckoutOptions): Effect.Effect<CheckoutQuote, QuoteError, CurrentAccess>
 
@@ -159,10 +167,27 @@ export class Receipts extends Context.Service<
           }
           if (unsupported.length > 0) return yield* new CheckoutCoverageUnsupported({ encounterIds: unsupported })
 
+          // 미리 기록한 결제는 이 환자의 결제이고 아직 적용하지 않았으며, 내원을 정했다면 이 내원이어야 합니다
+          const paymentIds = [...new Set(input.paymentIds ?? [])]
+          const found = new Map(
+            (yield* repository.listPayments(visit.tenantId, paymentIds)).map((each) => [each.id as string, each]),
+          )
+          const notApplicable = paymentIds.filter((id) => {
+            const payment = found.get(id)
+            return (
+              payment === undefined ||
+              payment.status !== 'UNAPPLIED' ||
+              payment.patientId !== visit.patientId ||
+              (payment.visitId !== null && payment.visitId !== visit.id)
+            )
+          })
+          if (notApplicable.length > 0) return yield* new CheckoutPaymentInvalid({ paymentIds: notApplicable })
+          const applied = paymentIds.map((id) => found.get(id)!).sort(byRecorded)
+
           const payments = input.payments ?? []
           const settlement = settleCheckout({
             encounters: dues,
-            payments,
+            payments: [...applied.map((each) => ({ method: each.method, amount: each.amount })), ...payments],
             overpaidCreditBalance: 0,
             useOverpaidCredit: input.useOverpaidCredit ?? null,
             prepaidBalances: { CASH_LIKE: 0, CARD_LIKE: 0 },
@@ -176,6 +201,7 @@ export class Receipts extends Context.Service<
               : settlement.errors
           return {
             ids: ids as Array<Id<'encounter'>>,
+            applied,
             dues,
             quoteId: quoteIdOf(dues),
             charges: chargesOf(dues),
@@ -240,6 +266,11 @@ export class Receipts extends Context.Service<
                 return yield* new CheckoutRejected({ errors: prepared.errors, warnings: settlement.warnings })
               }
 
+              // 수납 요청 안에서 받은 결제는 같은 시각이라 ID 순으로 읽힙니다. 요청 순서대로 커지는 ID를 줍니다
+              const received = (input.payments ?? []).filter(
+                (each) => each.amount.taxable + each.amount.taxExempt !== 0,
+              )
+              const freshIds = newIds('payment', received.length, DateTime.toEpochMillis(now))
               const receipt: Receipt = {
                 id: newId('receipt'),
                 tenantId: access.tenantId,
@@ -251,13 +282,24 @@ export class Receipts extends Context.Service<
                 encounterIds: prepared.ids,
                 quoteId: prepared.quoteId,
                 charges: prepared.charges,
-                payments: (input.payments ?? [])
-                  .filter((each) => each.amount.taxable + each.amount.taxExempt !== 0)
-                  .map((each) => ({
-                    id: newId('payment'),
+                payments: [
+                  ...prepared.applied,
+                  ...received.map((each, index) => ({
+                    id: freshIds[index]!,
                     method: each.method,
                     prepaidKind: each.prepaidKind ?? null,
                     amount: each.amount,
+                    processorRef: null,
+                    createdAt: at,
+                  })),
+                ]
+                  .sort(byRecorded)
+                  .map((each) => ({
+                    id: each.id,
+                    method: each.method,
+                    prepaidKind: each.prepaidKind,
+                    amount: each.amount,
+                    processorRef: each.processorRef,
                     status: 'CAPTURED' as const,
                   })),
                 settlement: {
@@ -287,15 +329,22 @@ export class Receipts extends Context.Service<
                   total: receipt.charges.total,
                   result: settlement.result,
                   acknowledged: settlement.acknowledged,
+                  paymentIds: receipt.payments.map((each) => each.id),
                 },
                 { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
               )
               // 실패할 수 있는 내원 전이를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 영수증만 남지 않습니다. 같은
-              // 트랜잭션에서 방금 읽은 내원이라 전이는 늘 됩니다
+              // 트랜잭션에서 방금 읽은 내원이라 전이는 늘 됩니다. 영수증 쓰기는 같은 트랜잭션에서 확인한 것(유효한
+              // 영수증 없음, 적용할 결제가 UNAPPLIED)이 그대로일 때만 성공합니다. SQL은 트랜잭션이 하나씩 실행되어
+              // 그대로이고, 메모리는 그 사이에 다른 요청이 끼어들면 내원만 COMPLETED로 남을 수 있습니다
               const completed = yield* visitCommands
                 .apply(visit.id, 'CHECKOUT')
                 .pipe(Effect.catchIf((error) => error._tag !== 'VisitTransitionInvalid', Effect.die))
-              yield* repository.insert(receipt, [event])
+              yield* repository.insert(
+                receipt,
+                [event],
+                prepared.applied.map((each) => each.id),
+              )
               return { receipt, visit: completed }
             }),
           ).pipe(Effect.provideService(IdempotencyStore, idempotency)),

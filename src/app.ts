@@ -8,6 +8,8 @@ import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
 import { AuthorizationLive, accessCheck } from './modules/identity/auth/authorization.ts'
 import { EncountersHttpLive } from './modules/clinical/encounters/encounters.http.ts'
 import { Encounters } from './modules/clinical/encounters/encounters.ts'
+import { PaymentsHttpLive } from './modules/front-desk/receipts/payments.http.ts'
+import { Payments } from './modules/front-desk/receipts/payments.ts'
 import { ReceiptsHttpLive } from './modules/front-desk/receipts/receipts.http.ts'
 import { Receipts } from './modules/front-desk/receipts/receipts.ts'
 import { ProceduresHttpLive } from './modules/clinical/treatment-room/procedures.http.ts'
@@ -62,6 +64,7 @@ export const AppLive = HttpApiBuilder.layer(Api).pipe(
       EncountersHttpLive.pipe(Layer.provide(Encounters.layer)),
       ProceduresHttpLive,
       ReceiptsHttpLive.pipe(Layer.provide(Receipts.layer)),
+      PaymentsHttpLive.pipe(Layer.provide(Payments.layer)),
     ).pipe(Layer.provide(Layer.provideMerge(Procedures.layer, Layer.provideMerge(Visits.layer, Patients.layer)))),
   ),
   Layer.provide(SecurityLive),

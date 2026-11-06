@@ -39,15 +39,55 @@ export const PaymentMethod = Schema.Literals([
 
 export const PrepaidKind = Schema.Literals(['CASH_LIKE', 'CARD_LIKE'])
 
-/** 영수증에 적용한 결제입니다. 환불·외부 승인(`UNAPPLIED`)은 그 기능이 생길 때 더합니다. */
+/**
+ * 카드 단말·간편결제처럼 수납 전에 밖에서 승인되는 결제 수단입니다. `POST /payments`로 먼저 남기고 수납의
+ * `paymentIds`로 적용합니다.
+ */
+export const ExternalPaymentMethod = Schema.Literals(['CARD', 'KAKAO_PAY', 'LOCAL_CURRENCY', 'ZERO_PAY'])
+export type ExternalPaymentMethod = typeof ExternalPaymentMethod.Type
+
+/** 결제 상태입니다. 환불·취소(`REFUNDED`·`PARTIALLY_REFUNDED`·`VOIDED`)는 #35에서 더합니다. */
+export const PaymentStatus = Schema.Literals(['UNAPPLIED', 'CAPTURED'])
+
+/**
+ * 결제입니다. 외부 승인 결제는 `POST /payments`로 영수증 없이(`UNAPPLIED`) 먼저 남고, 수납이 적용하면 `CAPTURED`가
+ * 됩니다. 현금·계좌이체처럼 수납 요청 안에서 받는 결제는 처음부터 `CAPTURED`입니다.
+ */
+export const Payment = Schema.Struct({
+  id: PaymentId,
+  tenantId: TenantId,
+  patientId: PatientId,
+  /** 결제를 받은 내원입니다. 기록할 때 정했으면 그 내원의 수납에만 적용하고, 없으면 적용한 수납의 내원이 됩니다. */
+  visitId: Schema.NullOr(VisitId),
+  /** 적용한 영수증입니다. `UNAPPLIED`이면 없습니다. */
+  receiptId: Schema.NullOr(ReceiptId),
+  method: PaymentMethod,
+  prepaidKind: Schema.NullOr(PrepaidKind),
+  amount: SplitAmount,
+  /** 카드 승인번호처럼 밖에서 받은 참조입니다. */
+  processorRef: Schema.NullOr(Schema.String),
+  status: PaymentStatus,
+  recordedBy: UserId,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+  version: Schema.Int,
+})
+export type Payment = typeof Payment.Type
+
+/** 영수증에 적용한 결제입니다. 전체는 `GET /payments/{id}`입니다. */
 export const ReceiptPayment = Schema.Struct({
   id: PaymentId,
   method: PaymentMethod,
   prepaidKind: Schema.NullOr(PrepaidKind),
   amount: SplitAmount,
+  processorRef: Schema.NullOr(Schema.String),
   status: Schema.Literals(['CAPTURED']),
 })
 export type ReceiptPayment = typeof ReceiptPayment.Type
+
+/** 영수증의 결제 순서입니다. 받은 시각, 같으면 ID 순입니다. 저장소와 수납이 같은 순서로 돌려줍니다. */
+export const byRecorded = (a: { createdAt: string; id: string }, b: { createdAt: string; id: string }) =>
+  a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 
 /** 서버가 계산한 청구 금액입니다. 패키지 판매·할인은 그 기능이 생길 때 더합니다. */
 export const ReceiptCharges = Schema.Struct({
@@ -76,7 +116,7 @@ export type ReceiptSettlement = typeof ReceiptSettlement.Type
 /**
  * 영수증(수납)입니다. 한 내원의 진료를 한 번에 수납한 기록입니다.
  *
- * 내원 없는 수납, 환불·취소(`VOIDED`), 외부 승인 결제는 그 기능이 생길 때 더합니다. 전체 리소스는
+ * 내원 없는 수납, 환불·취소(`VOIDED`)는 그 기능이 생길 때 더합니다. 전체 리소스는
  * `docs/design/front-desk.md`의 수납을 보세요.
  */
 export const Receipt = Schema.Struct({
@@ -154,4 +194,25 @@ export class CheckoutCoverageUnsupported extends HttpApiError.Problem<CheckoutCo
     title: 'Insured copay calculation is not available yet',
   },
   { code: Schema.tag('CHECKOUT_COVERAGE_UNSUPPORTED'), encounterIds: Schema.Array(EncounterId) },
+) {}
+
+/** 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). */
+export class CheckoutPaymentInvalid extends HttpApiError.Problem<CheckoutPaymentInvalid>()(
+  'CheckoutPaymentInvalid',
+  { type: problemType('CHECKOUT_PAYMENT_INVALID'), status: 422, title: 'Payment cannot be applied here' },
+  { code: Schema.tag('CHECKOUT_PAYMENT_INVALID'), paymentIds: Schema.Array(Schema.String) },
+) {}
+
+/** 요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다. */
+export class PaymentNotFound extends HttpApiError.Problem<PaymentNotFound>()(
+  'PaymentNotFound',
+  { type: problemType('PAYMENT_NOT_FOUND'), status: 404, title: 'Payment not found' },
+  { code: Schema.tag('PAYMENT_NOT_FOUND') },
+) {}
+
+/** 결제의 내원이 결제의 환자의 내원이 아닙니다. */
+export class PaymentVisitMismatch extends HttpApiError.Problem<PaymentVisitMismatch>()(
+  'PaymentVisitMismatch',
+  { type: problemType('PAYMENT_VISIT_MISMATCH'), status: 422, title: 'Visit belongs to another patient' },
+  { code: Schema.tag('PAYMENT_VISIT_MISMATCH') },
 ) {}

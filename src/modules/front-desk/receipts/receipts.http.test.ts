@@ -271,6 +271,181 @@ describe.each(['memory', 'sqlite'] as const)('receipts HTTP (%s)', (store) => {
     expect(await json(requote)).toMatchObject({ code: 'VISIT_TRANSITION_INVALID', currentStatus: 'COMPLETED' })
   })
 
+  it('records a terminal payment first and applies it at checkout', async () => {
+    const send = app(store)
+    const { visit } = await charted(send, 30_000)
+    const card = {
+      patientId: visit['patientId'],
+      visitId: visit.id,
+      method: 'CARD',
+      amount: { taxable: 0, taxExempt: 20_000 },
+      processorRef: '30012345',
+    }
+    const recorded = await send('POST', '/payments', { key: 'p1', body: card })
+    const payment = await json(recorded)
+    const replayed = await json(await send('POST', '/payments', { key: 'p1', body: card }))
+    const reused = await send('POST', '/payments', { key: 'p1', body: { ...card, processorRef: '30099999' } })
+    const quote = await json(
+      await send('POST', `/visits/${visit.id}:quote-checkout`, { body: { paymentIds: [payment.id] } }),
+    )
+    // 같은 키를 다른 커맨드에 쓰면 본문과 상관없이 다른 요청입니다
+    const crossed = await send('POST', `/visits/${visit.id}:checkout`, {
+      key: 'p1',
+      body: { quoteId: quote['quoteId'], paymentIds: [payment.id], payments: [cash(10_000)] },
+    })
+    const stale = await send('POST', `/visits/${visit.id}:checkout`, {
+      key: 's',
+      body: { quoteId: 'qt_00000000000000000000000000', paymentIds: [payment.id], payments: [cash(10_000)] },
+    })
+    const stillUnapplied = await json(await send('GET', `/payments/${payment.id}`))
+    const checkedOut = await json(
+      await send('POST', `/visits/${visit.id}:checkout`, {
+        key: 'c',
+        body: { quoteId: quote['quoteId'], paymentIds: [payment.id, payment.id], payments: [cash(10_000)] },
+      }),
+    )
+    const captured = await json(await send('GET', `/payments/${payment.id}`))
+    const receipt = checkedOut['receipt'] as Body
+
+    expect(recorded.status).toBe(200)
+    expect(payment).toMatchObject({
+      id: expect.stringMatching(/^pay_/),
+      patientId: visit['patientId'],
+      visitId: visit.id,
+      receiptId: null,
+      method: 'CARD',
+      amount: { taxable: 0, taxExempt: 20_000 },
+      processorRef: '30012345',
+      status: 'UNAPPLIED',
+      recordedBy: desk.user.id,
+      version: 1,
+    })
+    expect(replayed).toEqual(payment)
+    expect(reused.status).toBe(422)
+    expect(await json(reused)).toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' })
+    expect(crossed.status).toBe(422)
+    expect(await json(crossed)).toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' })
+    expect(quote).toMatchObject({
+      settlement: { entered: { taxable: 0, taxExempt: 20_000 }, remaining: 10_000, result: 'OUTSTANDING' },
+      errors: [],
+      warnings: [],
+    })
+    expect(stale.status).toBe(409)
+    expect(stillUnapplied).toMatchObject({ status: 'UNAPPLIED', receiptId: null })
+    expect(receipt).toMatchObject({
+      payments: [
+        { id: payment.id, method: 'CARD', processorRef: '30012345', amount: { taxExempt: 20_000 } },
+        { method: 'CASH', processorRef: null, amount: { taxExempt: 10_000 } },
+      ],
+      settlement: { result: 'PAID', received: { taxable: 0, taxExempt: 30_000 } },
+    })
+    expect(captured).toMatchObject({ status: 'CAPTURED', receiptId: receipt.id, version: 2 })
+  })
+
+  it('refuses payments of another patient, visit or tenant and payments already applied', async () => {
+    const send = app(store)
+    const first = await charted(send, 10_000)
+    const second = await charted(send, 10_000)
+    const third = await charted(send, 10_000)
+    const record = async (patientId: unknown, visitId: string | undefined, key: string) =>
+      json(
+        await send('POST', '/payments', {
+          key,
+          body: {
+            patientId,
+            ...(visitId === undefined ? {} : { visitId }),
+            method: 'KAKAO_PAY',
+            amount: { taxable: 0, taxExempt: 10_000 },
+            processorRef: key,
+          },
+        }),
+      )
+    const forFirst = await record(first.visit['patientId'], first.visit.id, 'a')
+    const ofSecond = await record(second.visit['patientId'], undefined, 'b')
+    const anyVisit = await record(third.visit['patientId'], undefined, 'c')
+    const quoteOf = async (id: string, paymentIds: string[]) =>
+      send('POST', `/visits/${id}:quote-checkout`, { body: { paymentIds } })
+
+    const otherVisit = await quoteOf(second.visit.id, [forFirst.id, ofSecond.id])
+    const missing = await quoteOf(second.visit.id, ['pay_01JBQ000000000000000000099'])
+    const quote = await json(await quoteOf(third.visit.id, [anyVisit.id]))
+    const checkedOut = await send('POST', `/visits/${third.visit.id}:checkout`, {
+      key: 'k',
+      body: { quoteId: quote['quoteId'], paymentIds: [anyVisit.id] },
+    })
+    const twice = await quoteOf(first.visit.id, [anyVisit.id])
+    const mismatch = await send('POST', '/payments', {
+      key: 'm',
+      body: {
+        patientId: first.visit['patientId'],
+        visitId: second.visit.id,
+        method: 'CARD',
+        amount: { taxable: 0, taxExempt: 1 },
+        processorRef: 'x',
+      },
+    })
+    const noPatient = await send('POST', '/payments', {
+      key: 'n',
+      body: {
+        patientId: 'pat_01JBQ000000000000000000099',
+        method: 'CARD',
+        amount: { taxable: 0, taxExempt: 1 },
+        processorRef: 'x',
+      },
+    })
+    const foreign = await send('GET', `/payments/${forFirst.id}`, { as: elsewhere })
+    const foreignQuote = await send('POST', `/visits/${first.visit.id}:quote-checkout`, {
+      as: elsewhere,
+      body: { paymentIds: [forFirst.id] },
+    })
+
+    expect(otherVisit.status).toBe(422)
+    expect(await json(otherVisit)).toMatchObject({
+      code: 'CHECKOUT_PAYMENT_INVALID',
+      paymentIds: [forFirst.id],
+    })
+    expect(missing.status).toBe(422)
+    expect(checkedOut.status).toBe(200)
+    expect(twice.status).toBe(422)
+    expect(await json(twice)).toMatchObject({ code: 'CHECKOUT_PAYMENT_INVALID', paymentIds: [anyVisit.id] })
+    expect(mismatch.status).toBe(422)
+    expect(await json(mismatch)).toMatchObject({ code: 'PAYMENT_VISIT_MISMATCH' })
+    expect(noPatient.status).toBe(404)
+    expect(await json(noPatient)).toMatchObject({ code: 'PATIENT_NOT_FOUND' })
+    expect(foreign.status).toBe(404)
+    expect(await json(foreign)).toMatchObject({ code: 'PAYMENT_NOT_FOUND' })
+    expect(foreignQuote.status).toBe(404)
+  })
+
+  it('checks permissions and payloads of recorded payments', async () => {
+    const send = app(store)
+    const { visit } = await charted(send)
+    const body = {
+      patientId: visit['patientId'],
+      method: 'CARD',
+      amount: { taxable: 0, taxExempt: 1_000 },
+      processorRef: '1',
+    }
+
+    const noKey = await send('POST', '/payments', { body })
+    const therapistRecord = await send('POST', '/payments', { as: therapist, key: 't', body })
+    const zero = await send('POST', '/payments', { key: 'z', body: { ...body, amount: { taxable: 0, taxExempt: 0 } } })
+    const cashMethod = await send('POST', '/payments', { key: 'c', body: { ...body, method: 'CASH' } })
+    const blankRef = await send('POST', '/payments', { key: 'b', body: { ...body, processorRef: ' ' } })
+    const extra = await send('POST', '/payments', { key: 'e', body: { ...body, status: 'CAPTURED' } })
+    const payment = await json(await send('POST', '/payments', { key: 'ok', body }))
+    const therapistRead = await send('GET', `/payments/${payment.id}`, { as: therapist })
+
+    expect(noKey.status).toBe(400)
+    expect(therapistRecord.status).toBe(403)
+    expect(zero.status).toBe(400)
+    expect(cashMethod.status).toBe(400)
+    expect(blankRef.status).toBe(400)
+    expect(extra.status).toBe(400)
+    expect(payment).toMatchObject({ visitId: null, status: 'UNAPPLIED' })
+    expect(therapistRead.status).toBe(403)
+  })
+
   it('checks permissions, headers, payloads, encounters and tenants', async () => {
     const send = app(store)
     const { visit } = await charted(send, 1_000)
