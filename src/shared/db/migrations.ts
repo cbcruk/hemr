@@ -385,6 +385,44 @@ export const migrations = {
     // 서버 타이머가 끝난 진행 중 시술을 자주 찾습니다
     yield* sql`CREATE INDEX procedures_running ON procedures (timer_ends_at) WHERE status = 'RUNNING'`
   }),
+  '0012_receipts': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 결제·청구·결산은 영수증과 함께만 읽고 쓰므로 JSON으로 둡니다. 외부 승인 결제(#34)가 생기면 결제를 테이블로 옮깁니다
+    yield* sql`
+      CREATE TABLE receipts (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        cashier_id TEXT NOT NULL,
+        memo TEXT NOT NULL,
+        encounter_ids TEXT NOT NULL,
+        quote_id TEXT NOT NULL,
+        charges TEXT NOT NULL,
+        payments TEXT NOT NULL,
+        settlement TEXT NOT NULL,
+        flags TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'VOIDED')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version >= 1)
+      ) STRICT
+    `
+    // 내원 하나에 유효한 영수증은 하나입니다
+    yield* sql`CREATE UNIQUE INDEX receipts_active_visit ON receipts (tenant_id, visit_id) WHERE status = 'ACTIVE'`
+    yield* sql`CREATE INDEX receipts_tenant_date ON receipts (tenant_id, date)`
+    yield* sql`
+      CREATE TABLE idempotency_keys (
+        tenant_id TEXT NOT NULL,
+        key TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        response TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (tenant_id, key)
+      ) STRICT
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

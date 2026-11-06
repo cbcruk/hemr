@@ -4,11 +4,13 @@ import { ProcedureRepository } from './modules/clinical/treatment-room/procedure
 import { AuthRepository } from './modules/identity/auth/auth-repository.ts'
 import { SecurityLog } from './modules/identity/auth/security-log.ts'
 import { IdentityRepository } from './modules/identity/identity-repository.ts'
+import { ReceiptRepository } from './modules/front-desk/receipts/receipt-repository.ts'
 import { VisitRepository } from './modules/front-desk/visits/visit-repository.ts'
 import type { Visit } from './modules/front-desk/visits/visit.ts'
 import { sqliteLayer } from './shared/db/migrations.ts'
 import { Transaction } from './shared/db/transaction.ts'
 import { Outbox } from './shared/events/outbox.ts'
+import { IdempotencyStore } from './shared/http/idempotency.ts'
 import { AccessLog } from './shared/audit/access-log.ts'
 import { PatientRepository } from './modules/patients/patient-repository.ts'
 
@@ -23,6 +25,8 @@ export const PersistenceMemory = (seed: ReadonlyArray<Visit> = []) =>
     AccessLog.layerMemory,
     EncounterRepository.layerMemory,
     ProcedureRepository.layerMemory,
+    ReceiptRepository.layerMemory,
+    IdempotencyStore.layerMemory,
     Transaction.layerMemory,
   ).pipe(Layer.provideMerge(Outbox.layerMemory))
 
@@ -40,5 +44,7 @@ export const PersistenceSqlite = (filename: string) =>
     AccessLog.layerSql,
     EncounterRepository.layerSql,
     ProcedureRepository.layerSql,
+    ReceiptRepository.layerSql,
+    IdempotencyStore.layerSql,
     Transaction.layerSql,
   ).pipe(Layer.provideMerge(Outbox.layerSql), Layer.provideMerge(sqliteLayer(filename)))

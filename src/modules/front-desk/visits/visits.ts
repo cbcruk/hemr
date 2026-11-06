@@ -13,6 +13,7 @@ import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
+import { ReceiptRepository } from '../receipts/receipt-repository.ts'
 import { validateCheckIn } from './check-in-validation.ts'
 import type { AutoInsuranceGuarantee, NhisEligibility as EligibilityInput } from './check-in-validation.types.ts'
 import { transitionVisit } from './visit-status.ts'
@@ -22,6 +23,7 @@ import {
   VisitAlreadyExists,
   VisitDatePast,
   VisitHasClinicalData,
+  VisitHasReceipt,
   VisitNotFound,
   VisitTransitionInvalid,
 } from './visit.ts'
@@ -70,7 +72,13 @@ export interface VisitCommandInput {
 
 /** 상태 커맨드가 실패할 수 있는 오류입니다. */
 export type VisitCommandError =
-  VisitNotFound | VisitTransitionInvalid | VisitHasClinicalData | VisitDatePast | VersionMismatch | PermissionDenied
+  | VisitNotFound
+  | VisitTransitionInvalid
+  | VisitHasClinicalData
+  | VisitHasReceipt
+  | VisitDatePast
+  | VersionMismatch
+  | PermissionDenied
 
 /** `:reopen {then}`의 목표 상태로 가는 커맨드입니다. */
 const THEN_COMMANDS: Record<NonNullable<VisitCommandInput['then']>, VisitCommand> = {
@@ -102,7 +110,8 @@ export class Visits extends Context.Service<
      *
      * 읽기·판정·쓰기를 한 트랜잭션에서 해, 진료 저장이 취소의 진료 내용 판정과 저장 사이에 끼어들지 못합니다.
      *
-     * 진료에 본문이나 상병이 있으면 저장된 `hasClinicalData`와 상관없이 진료 내용이 있는 내원으로 판정합니다.
+     * 진료에 본문이나 상병이 있거나 유효한 영수증이 있으면 저장된 `hasClinicalData`와 상관없이 기록이 있는 내원으로
+     * 판정합니다. 유효한 영수증이 있는 내원의 연쇄 취소는 영수증 취소(#35)가 생길 때까지 409 `VISIT_HAS_RECEIPT`입니다.
      */
     apply(
       id: Id<'visit'>,
@@ -134,13 +143,23 @@ export class Visits extends Context.Service<
     Effect.gen(function* () {
       const repository = yield* VisitRepository
       const encounters = yield* EncounterRepository
+      const receipts = yield* ReceiptRepository
       const transaction = yield* Transaction
 
       /**
-       * 저장된 값이나 진료 내용으로 판정합니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 저장된 값만 봅니다. 철회한
-       * 진료는 기록이 남아도 무효라 내용으로 치지 않습니다.
+       * 저장된 값, 유효한 영수증, 진료 내용으로 판정합니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 진료 내용을
+       * 보지 않습니다. 철회한 진료는 기록이 남아도 무효라 내용으로 치지 않습니다.
        */
       const hasClinicalData = (visit: Visit) =>
+        receipts
+          .listByVisit(visit.tenantId, visit.id)
+          .pipe(
+            Effect.flatMap((listed) =>
+              listed.some((each) => each.status === 'ACTIVE') ? Effect.succeed(true) : hasEncounterData(visit),
+            ),
+          )
+
+      const hasEncounterData = (visit: Visit) =>
         visit.hasClinicalData || visit.encounterId === null
           ? Effect.succeed(visit.hasClinicalData)
           : encounters.findById(visit.tenantId, visit.encounterId).pipe(
@@ -181,6 +200,14 @@ export class Visits extends Context.Service<
           )
           if (input.expectedVersion !== undefined && input.expectedVersion !== visit.version) {
             return yield* new VersionMismatch({ currentVersion: visit.version })
+          }
+
+          // 연쇄 취소가 영수증을 취소하는 일(#35)이 아직 없어, 돈 기록이 남은 채 내원만 취소되지 않게 막습니다
+          if (command === 'CANCEL' && input.cascade === true) {
+            const active = (yield* receipts.listByVisit(visit.tenantId, visit.id)).find(
+              (each) => each.status === 'ACTIVE',
+            )
+            if (active !== undefined) return yield* new VisitHasReceipt({ receiptId: active.id })
           }
 
           const now = yield* DateTime.now
