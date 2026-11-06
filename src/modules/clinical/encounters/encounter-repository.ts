@@ -4,7 +4,7 @@ import type { DomainEvent } from '../../../shared/events/domain-event.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
-import type { Encounter } from './encounter.ts'
+import type { Encounter, EncounterRevision } from './encounter.ts'
 
 /** 저장할 때 함께 넘기는 값입니다. 내원 저장소(`SaveVisitOptions`)와 같습니다. */
 export interface SaveEncounterOptions {
@@ -12,11 +12,14 @@ export interface SaveEncounterOptions {
   expectedVersion: number | null
   /** 같은 트랜잭션에서 outbox에 쓸 이벤트입니다. */
   events?: ReadonlyArray<DomainEvent>
+  /** 같은 트랜잭션에서 남길 진료기록 판입니다. 완료와 정정이 넘깁니다. */
+  revision?: EncounterRevision
 }
 
 /**
  * 진료 저장소입니다. 내원 저장소와 같은 계약입니다. 진료는 병원(`tenantId`)에 속하고, 다른 병원의 같은 ID는 덮어쓰지
- * 않고 `currentVersion` 0의 `VersionMismatch`로 거절합니다. `save`는 버전 비교, 진료 쓰기, outbox 쓰기를 한 번에 합니다.
+ * 않고 `currentVersion` 0의 `VersionMismatch`로 거절합니다. `save`는 버전 비교, 진료 쓰기, 판 쓰기, outbox 쓰기를 한
+ * 번에 합니다. 판은 추가만 하고 고치거나 지우지 않습니다.
  */
 export class EncounterRepository extends Context.Service<
   EncounterRepository,
@@ -25,6 +28,8 @@ export class EncounterRepository extends Context.Service<
     /** 그 병원·환자의 진료입니다. 최근 진료가 먼저입니다(`serviceAt`, ID 내림차순). */
     listByPatient(tenantId: Id<'tenant'>, patientId: Id<'patient'>): Effect.Effect<ReadonlyArray<Encounter>>
     save(encounter: Encounter, options: SaveEncounterOptions): Effect.Effect<void, VersionMismatch>
+    /** 그 병원 진료의 판입니다. 오래된 판이 먼저입니다. 다른 병원의 진료는 빈 목록입니다. */
+    listRevisions(tenantId: Id<'tenant'>, encounterId: Id<'encounter'>): Effect.Effect<ReadonlyArray<EncounterRevision>>
   }
 >()('hemr/clinical/EncounterRepository') {
   /** 프로세스 메모리에 진료를 보관합니다. 이벤트는 `Outbox`에 씁니다. */
@@ -32,6 +37,7 @@ export class EncounterRepository extends Context.Service<
     EncounterRepository,
     Effect.gen(function* () {
       const store = yield* Ref.make(new Map<string, Encounter>())
+      const revisions = yield* Ref.make<ReadonlyArray<EncounterRevision & { tenantId: string }>>([])
       const outbox = yield* Outbox
 
       return EncounterRepository.of({
@@ -58,8 +64,21 @@ export class EncounterRepository extends Context.Service<
                 : [current?.version ?? 0, all]
             })
             if (mismatch !== null) return yield* new VersionMismatch({ currentVersion: mismatch })
+            const revision = options.revision
+            if (revision !== undefined) {
+              yield* Ref.update(revisions, (all) => [...all, { ...revision, tenantId: encounter.tenantId }])
+            }
             yield* outbox.append(options.events ?? [])
           }),
+        listRevisions: (tenantId, encounterId) =>
+          Ref.get(revisions).pipe(
+            Effect.map((all) =>
+              all
+                .filter((each) => each.tenantId === tenantId && each.encounterId === encounterId)
+                .map(({ tenantId: _, ...revision }) => revision)
+                .sort((a, b) => a.revision - b.revision),
+            ),
+          ),
       })
     }),
   )
@@ -86,9 +105,24 @@ export class EncounterRepository extends Context.Service<
         benefitFlags: string
         status: Encounter['status']
         completedAt: string | null
+        revision: number
+        locked: number
+        retraction: string | null
         createdAt: string
         updatedAt: string
         version: number
+      }
+
+      interface RevisionRow {
+        encounterId: string
+        revision: number
+        noteBody: string
+        diagnoses: string
+        prescriptionLines: string
+        source: EncounterRevision['source']
+        reason: string | null
+        recordedBy: string | null
+        recordedAt: string
       }
 
       const toEncounter = (row: Row): Encounter => ({
@@ -106,6 +140,9 @@ export class EncounterRepository extends Context.Service<
         benefitFlags: JSON.parse(row.benefitFlags) as Encounter['benefitFlags'],
         status: row.status,
         completedAt: row.completedAt,
+        revision: row.revision,
+        locked: row.locked === 1,
+        retraction: row.retraction === null ? null : (JSON.parse(row.retraction) as Encounter['retraction']),
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         version: row.version,
@@ -114,7 +151,7 @@ export class EncounterRepository extends Context.Service<
       const columns = sql`
         id, tenant_id AS tenantId, patient_id AS patientId, visit_id AS visitId, doctor_id AS doctorId,
         encounter_type AS encounterType, coverage, service_at AS serviceAt, note_body AS noteBody, diagnoses,
-        prescription_lines AS prescriptionLines, benefit_flags AS benefitFlags, status, completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt, version
+        prescription_lines AS prescriptionLines, benefit_flags AS benefitFlags, status, completed_at AS completedAt, revision, locked, retraction, created_at AS createdAt, updated_at AS updatedAt, version
       `
 
       const currentVersion = (tenantId: string, id: string) =>
@@ -132,6 +169,9 @@ export class EncounterRepository extends Context.Service<
           benefit_flags: JSON.stringify(encounter.benefitFlags),
           status: encounter.status,
           completed_at: encounter.completedAt,
+          revision: encounter.revision,
+          locked: encounter.locked ? 1 : 0,
+          retraction: encounter.retraction === null ? null : JSON.stringify(encounter.retraction),
           updated_at: encounter.updatedAt,
           version: encounter.version,
         }
@@ -181,8 +221,50 @@ export class EncounterRepository extends Context.Service<
                 currentVersion: yield* currentVersion(encounter.tenantId, encounter.id),
               })
             }
+            const revision = options.revision
+            if (revision !== undefined) {
+              yield* sql`
+                INSERT INTO encounter_revisions ${sql.insert({
+                  tenant_id: encounter.tenantId,
+                  encounter_id: revision.encounterId,
+                  revision: revision.revision,
+                  note_body: revision.note.body,
+                  diagnoses: JSON.stringify(revision.diagnoses),
+                  prescription_lines: JSON.stringify(revision.prescriptionLines),
+                  source: revision.source,
+                  reason: revision.reason,
+                  recorded_by: revision.recordedBy,
+                  recorded_at: revision.recordedAt,
+                })}
+              `
+            }
             yield* outbox.append(options.events ?? [])
           }).pipe(sql.withTransaction, Effect.catchTag('SqlError', Effect.die)),
+        listRevisions: (tenantId, encounterId) =>
+          sql<RevisionRow>`
+            SELECT
+              encounter_id AS encounterId, revision, note_body AS noteBody, diagnoses,
+              prescription_lines AS prescriptionLines, source, reason, recorded_by AS recordedBy,
+              recorded_at AS recordedAt
+            FROM encounter_revisions
+            WHERE tenant_id = ${tenantId} AND encounter_id = ${encounterId}
+            ORDER BY revision
+          `.pipe(
+            Effect.map((rows) =>
+              rows.map((row): EncounterRevision => ({
+                encounterId: row.encounterId as EncounterRevision['encounterId'],
+                revision: row.revision,
+                note: { body: row.noteBody },
+                diagnoses: JSON.parse(row.diagnoses) as EncounterRevision['diagnoses'],
+                prescriptionLines: JSON.parse(row.prescriptionLines) as EncounterRevision['prescriptionLines'],
+                source: row.source,
+                reason: row.reason,
+                recordedBy: row.recordedBy as EncounterRevision['recordedBy'],
+                recordedAt: row.recordedAt,
+              })),
+            ),
+            Effect.orDie,
+          ),
       })
     }),
   )

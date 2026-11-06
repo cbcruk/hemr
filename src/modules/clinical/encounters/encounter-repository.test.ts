@@ -1,10 +1,18 @@
-import { Effect, Layer, Option } from 'effect'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { SqliteClient, SqliteMigrator } from '@effect/sql-sqlite-node'
+import { Effect, Exit, Layer, Option } from 'effect'
+import { SqlClient } from 'effect/sql'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import { migrations } from '../../../shared/db/migrations.ts'
 import { domainEvent } from '../../../shared/events/domain-event.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
+import { testVisit } from '../../front-desk/visits/testing.ts'
+import { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
-import type { Encounter } from './encounter.ts'
+import type { Encounter, EncounterRevision } from './encounter.ts'
 import { EncounterRepository } from './encounter-repository.ts'
 
 const OTHER_TENANT = 'ten_01JBQ000000000000000000002' as Encounter['tenantId']
@@ -25,6 +33,9 @@ const encounter = (n: number, overrides: Partial<Encounter> = {}): Encounter => 
   benefitFlags: { fullSelfPay: false, pregnant: false },
   status: 'DRAFT',
   completedAt: null,
+  revision: 0,
+  locked: false,
+  retraction: null,
   createdAt: `2026-11-0${n}T00:00:00.000Z`,
   updatedAt: `2026-11-0${n}T00:00:00.000Z`,
   version: 1,
@@ -115,5 +126,149 @@ describe.each([
     expect(result.listed).toEqual(['3', '2', '1'])
     expect(Option.isNone(result.hidden)).toBe(true)
     expect(result.intruder).toMatchObject({ code: 'VERSION_MISMATCH', currentVersion: 0 })
+  })
+})
+
+const revision = (n: number, overrides: Partial<EncounterRevision> = {}): EncounterRevision => ({
+  encounterId: encounter(1).id,
+  revision: n,
+  note: { body: `<p>${n}판</p>` },
+  diagnoses: [],
+  prescriptionLines: [],
+  source: n === 1 ? 'COMPLETION' : 'AMENDMENT',
+  reason: n === 1 ? null : '정정',
+  recordedBy: 'usr_01JBQ000000000000000000001' as EncounterRevision['recordedBy'],
+  recordedAt: `2026-11-0${n}T00:00:00.000Z`,
+  ...overrides,
+})
+
+describe.each([
+  ['memory', () => PersistenceMemory()],
+  ['sqlite', () => PersistenceSqlite(':memory:')],
+] as const)('EncounterRepository revisions (%s)', (_, layer) => {
+  it('appends a revision with each save that carries one, oldest first, and hides other tenants', async () => {
+    const result = await run(
+      layer(),
+      Effect.gen(function* () {
+        const repository = yield* EncounterRepository
+        yield* repository.save(encounter(1), { expectedVersion: null })
+        yield* repository.save({ ...encounter(1), version: 2 }, { expectedVersion: 1, revision: revision(1) })
+        yield* repository.save({ ...encounter(1), version: 3 }, { expectedVersion: 2 })
+        yield* repository.save({ ...encounter(1), version: 4 }, { expectedVersion: 3, revision: revision(2) })
+        // 버전이 어긋나 거절한 저장은 판도 남기지 않습니다
+        yield* Effect.flip(
+          repository.save({ ...encounter(1), version: 9 }, { expectedVersion: 1, revision: revision(3) }),
+        )
+        return {
+          listed: yield* repository.listRevisions(TEST_TENANT.id, encounter(1).id),
+          hidden: yield* repository.listRevisions(OTHER_TENANT, encounter(1).id),
+        }
+      }),
+    )
+    expect(result.listed).toEqual([revision(1), revision(2)])
+    expect(result.hidden).toEqual([])
+  })
+})
+
+describe('EncounterRepository revisions (sqlite)', () => {
+  it('refuses to change or delete a stored revision', async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const repository = yield* EncounterRepository
+        const sql = yield* SqlClient.SqlClient
+        yield* repository.save(encounter(1), { expectedVersion: null, revision: revision(1) })
+        return {
+          update: yield* Effect.exit(sql`UPDATE encounter_revisions SET note_body = 'x'`),
+          remove: yield* Effect.exit(sql`DELETE FROM encounter_revisions`),
+          listed: yield* repository.listRevisions(TEST_TENANT.id, encounter(1).id),
+        }
+      }).pipe(Effect.provide(PersistenceSqlite(':memory:'))),
+    )
+    expect(Exit.isFailure(result.update)).toBe(true)
+    expect(Exit.isFailure(result.remove)).toBe(true)
+    expect(result.listed).toEqual([revision(1)])
+  })
+
+  it('moves encounters completed before 0010 into their first revision and retracts those of canceled visits', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'hemr-'))
+    const filename = join(dir, 'hemr.sqlite')
+    const canceled = testVisit({
+      status: 'CANCELED',
+      statusReason: '이중 접수',
+      statusChangedAt: '2026-11-01T02:00:00.000Z',
+    })
+    const upTo = (last: string) =>
+      SqliteMigrator.layer({
+        loader: SqliteMigrator.fromRecord(
+          Object.fromEntries(Object.entries(migrations).filter(([key]) => key <= last)),
+        ),
+      }).pipe(Layer.provideMerge(SqliteClient.layer({ filename })))
+    try {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const sql = yield* SqlClient.SqlClient
+          yield* sql`
+            INSERT INTO encounters (id, tenant_id, patient_id, visit_id, doctor_id, encounter_type, coverage, service_at,
+              note_body, diagnoses, benefit_flags, status, created_at, updated_at, version, completed_at)
+            VALUES
+              ('enc_1', ${TEST_TENANT.id}, 'pat_1', NULL, 'usr_1', 'OFFICE', 'SELF_PAY', '2026-11-01T00:00:00.000Z',
+               '<p>요통</p>', '[]', '{}', 'COMPLETED', '2026-11-01T00:00:00.000Z', '2026-11-01T01:00:00.000Z', 3,
+               '2026-11-01T01:00:00.000Z'),
+              ('enc_2', ${TEST_TENANT.id}, 'pat_1', NULL, NULL, 'OFFICE', 'SELF_PAY', '2026-11-01T00:00:00.000Z',
+               '', '[]', '{}', 'DRAFT', '2026-11-01T00:00:00.000Z', '2026-11-01T00:00:00.000Z', 1, NULL),
+              ('enc_3', ${TEST_TENANT.id}, 'pat_1', ${canceled.id}, NULL, 'OFFICE', 'SELF_PAY',
+               '2026-11-01T00:00:00.000Z', '', '[]', '{}', 'DRAFT', '2026-11-01T00:00:00.000Z',
+               '2026-11-01T00:00:00.000Z', 1, NULL)
+          `
+          yield* (yield* VisitRepository).save(canceled, { expectedVersion: null })
+        }).pipe(
+          Effect.provide(
+            VisitRepository.layerSql.pipe(
+              Layer.provideMerge(Outbox.layerSql),
+              Layer.provideMerge(upTo('0009_encounter_completion')),
+            ),
+          ),
+        ),
+      )
+      const result = await Effect.runPromise(
+        Effect.gen(function* () {
+          const sql = yield* SqlClient.SqlClient
+          return {
+            encounters: yield* sql<{ id: string; revision: number; status: string; retraction: string | null }>`
+              SELECT id, revision, status, retraction FROM encounters ORDER BY id
+            `,
+            revisions: yield* sql`SELECT encounter_id, revision, note_body, source, recorded_by, recorded_at
+              FROM encounter_revisions`,
+          }
+        }).pipe(Effect.provide(upTo('9999'))),
+      )
+      expect(
+        result.encounters.map(({ retraction, ...each }) => ({
+          ...each,
+          retraction: retraction && JSON.parse(retraction),
+        })),
+      ).toEqual([
+        { id: 'enc_1', revision: 1, status: 'COMPLETED', retraction: null },
+        { id: 'enc_2', revision: 0, status: 'DRAFT', retraction: null },
+        {
+          id: 'enc_3',
+          revision: 0,
+          status: 'ENTERED_IN_ERROR',
+          retraction: { reason: '이중 접수', retractedAt: '2026-11-01T02:00:00.000Z', retractedBy: null },
+        },
+      ])
+      expect(result.revisions).toEqual([
+        {
+          encounter_id: 'enc_1',
+          revision: 1,
+          note_body: '<p>요통</p>',
+          source: 'COMPLETION',
+          recorded_by: 'usr_1',
+          recorded_at: '2026-11-01T01:00:00.000Z',
+        },
+      ])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

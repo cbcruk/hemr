@@ -251,19 +251,23 @@ describe('encounters HTTP', () => {
     expect(await json(cancelCharted)).toMatchObject({ code: 'VISIT_HAS_CLINICAL_DATA' })
   })
 
-  it('treats an emptied editor note as no content and refuses to chart on a canceled visit', async () => {
+  it('treats an emptied editor note as no content and retracts the empty draft with the visit', async () => {
     const send = app()
     const { visit, encounterId } = await checkedIn(send)
     await send('PATCH', `/encounters/${encounterId}`, { ifMatch: '"1"', body: { note: { body: '<p><br></p>' } } })
     const canceled = await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
+    // 취소가 진료를 철회해 버전이 3입니다
     const late = await send('PATCH', `/encounters/${encounterId}`, {
-      ifMatch: '"2"',
+      ifMatch: '"3"',
       body: { note: { body: '<p>요통</p>' } },
     })
 
     expect(canceled.status).toBe(200)
     expect(late.status).toBe(409)
-    expect(await json(late)).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
+    expect(await json(late)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'ENTERED_IN_ERROR' })
+    expect((await json(await send('GET', `/encounters/${encounterId}`)))['retraction']).toMatchObject({
+      reason: '취소',
+    })
   })
 })
 
@@ -505,6 +509,25 @@ describe.each(['memory', 'sqlite'] as const)('encounter completion HTTP (%s)', (
   })
 })
 
+describe('encounter save and visit cancel HTTP (sqlite)', () => {
+  it('never leaves a charted encounter on a visit canceled at the same moment', async () => {
+    const send = app('sqlite')
+    for (let round = 0; round < 5; round++) {
+      const { visit, encounterId } = await checkedIn(send)
+      const [saved, canceled] = await Promise.all([
+        send('PATCH', `/encounters/${encounterId}`, { ifMatch: '"1"', body: { note: { body: '<p>요통</p>' } } }),
+        send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } }),
+      ])
+
+      // 먼저 들어간 쪽만 이깁니다. 저장이 먼저면 취소가 진료 내용을 보고(409), 취소가 먼저면 진료를 철회해 저장의
+      // 버전이 어긋납니다(412)
+      expect(
+        (saved.status === 200 && canceled.status === 409) || (canceled.status === 200 && saved.status === 412),
+      ).toBe(true)
+    }
+  })
+})
+
 describe('encounter completion HTTP (sqlite)', () => {
   it('never fails with 500 when the desk moves the visit at the same moment', async () => {
     const send = app('sqlite')
@@ -565,10 +588,11 @@ describe('encounter completion HTTP', () => {
     const send = app()
     const { visit, encounterId } = await checkedIn(send)
     await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
-    const completed = await send('POST', `/encounters/${encounterId}:complete`, { ifMatch: '"1"', body: {} })
+    const completed = await send('POST', `/encounters/${encounterId}:complete`, { ifMatch: '"2"', body: {} })
 
+    // 취소가 빈 진료를 함께 철회했습니다
     expect(completed.status).toBe(409)
-    expect(await json(completed)).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
+    expect(await json(completed)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'ENTERED_IN_ERROR' })
   })
 })
 
@@ -590,5 +614,204 @@ describe('encounter completion and the visit flow', () => {
 
     expect((await json(stay))['visit']).toMatchObject({ status: 'AWAITING_PAYMENT', version: 2 })
     expect((await json(back))['visit']).toMatchObject({ status: 'IN_TREATMENT', version: 3 })
+  })
+})
+
+/** 접수하고 기록해 완료한 진료(버전 3, 1판)를 만듭니다. */
+async function completed(send: ReturnType<typeof app>) {
+  const checked = await checkedIn(send)
+  await charted(send, checked.encounterId)
+  await send('POST', `/encounters/${checked.encounterId}:complete`, { ifMatch: '"2"', body: {} })
+  return checked
+}
+
+describe.each(['memory', 'sqlite'] as const)('encounter amendment HTTP (%s)', (store) => {
+  it('amends a completed encounter into a new revision and keeps every earlier revision', async () => {
+    const send = app(store)
+    const { encounterId } = await completed(send)
+    const amended = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"3"',
+      body: {
+        reason: '상병 정정',
+        changes: {
+          note: { body: '<p>요통 호전</p>' },
+          diagnoses: {
+            upsert: [
+              { code: 'U23.4', kind: 'PRIMARY' },
+              { code: 'M54.5', kind: 'SECONDARY' },
+            ],
+          },
+        },
+      },
+    })
+    const twice = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"4"',
+      body: { reason: '본문 정정', changes: { note: { body: '<p>요통 호전, 재진</p>' } } },
+    })
+    const revisions = await json(await send('GET', `/encounters/${encounterId}/versions`, { as: desk }))
+    const first = await json(await send('GET', `/encounters/${encounterId}/versions/1`, { as: desk }))
+    const missing = await send('GET', `/encounters/${encounterId}/versions/4`)
+
+    expect(amended.status).toBe(200)
+    expect(amended.headers.get('etag')).toBe('"4"')
+    expect((await json(amended))['encounter']).toMatchObject({ status: 'AMENDED', revision: 2, version: 4 })
+    expect((await json(twice))['encounter']).toMatchObject({ status: 'AMENDED', revision: 3, version: 5 })
+    expect((revisions['items'] as Body[]).map((each) => [each['revision'], each['source'], each['reason']])).toEqual([
+      [1, 'COMPLETION', null],
+      [2, 'AMENDMENT', '상병 정정'],
+      [3, 'AMENDMENT', '본문 정정'],
+    ])
+    expect(first).toMatchObject({
+      revision: 1,
+      note: { body: '' },
+      diagnoses: [{ code: 'U23.4' }],
+      prescriptionLines: [{ feeCode: '40011' }],
+      recordedBy: doctor.user.id,
+    })
+    expect(missing.status).toBe(404)
+    expect(await json(missing)).toMatchObject({ code: 'ENCOUNTER_REVISION_NOT_FOUND' })
+  })
+
+  it('locks a record against amendment and retraction until it is unlocked', async () => {
+    const send = app(store)
+    const { encounterId } = await completed(send)
+    const locked = await send('POST', `/encounters/${encounterId}:lock`, { ifMatch: '"3"' })
+    const again = await send('POST', `/encounters/${encounterId}:lock`, { ifMatch: '"4"' })
+    const amend = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"4"',
+      body: { reason: '정정', changes: { note: { body: 'x' } } },
+    })
+    const retract = await send('POST', `/encounters/${encounterId}:retract`, {
+      ifMatch: '"4"',
+      body: { reason: '오기' },
+    })
+    const unlocked = await send('POST', `/encounters/${encounterId}:unlock`, { ifMatch: '"4"' })
+    const afterUnlock = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"5"',
+      body: { reason: '정정', changes: { note: { body: 'x' } } },
+    })
+
+    expect(locked.status).toBe(200)
+    expect(await json(locked)).toMatchObject({ locked: true, version: 4 })
+    expect(again.headers.get('etag')).toBe('"4"')
+    expect(amend.status).toBe(409)
+    expect(await json(amend)).toMatchObject({ code: 'ENCOUNTER_LOCKED' })
+    expect(retract.status).toBe(409)
+    expect(await json(unlocked)).toMatchObject({ locked: false, version: 5 })
+    expect(afterUnlock.status).toBe(200)
+  })
+})
+
+describe('encounter amendment HTTP', () => {
+  it('runs the completion rules on the amended record and leaves a change with nothing new alone', async () => {
+    const send = app()
+    const { encounterId } = await completed(send)
+    const draft = await checkedIn(send)
+    const [primary] = (await json(await send('GET', `/encounters/${encounterId}`)))['diagnoses'] as Body[]
+    const rejected = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"3"',
+      body: { reason: '상병 삭제', changes: { diagnoses: { remove: [primary!.id] } } },
+    })
+    const unchanged = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"3"',
+      body: { reason: '정정', changes: { note: { body: '' } } },
+    })
+    const onDraft = await send('POST', `/encounters/${draft.encounterId}:amend`, {
+      ifMatch: '"1"',
+      body: { reason: '정정', changes: {} },
+    })
+
+    expect(rejected.status).toBe(422)
+    expect(await json(rejected)).toMatchObject({
+      code: 'ENCOUNTER_COMPLETION_REJECTED',
+      violations: [{ code: 'PRIMARY_DIAGNOSIS_MISSING' }],
+    })
+    expect(unchanged.status).toBe(200)
+    expect((await json(unchanged))['encounter']).toMatchObject({ status: 'COMPLETED', revision: 1, version: 3 })
+    expect(onDraft.status).toBe(409)
+    expect(await json(onDraft)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'DRAFT' })
+    expect((await json(await send('GET', `/encounters/${draft.encounterId}/versions`)))['items']).toEqual([])
+  })
+
+  it('needs encounter:amend, encounter:retract and the prescription permissions for lines', async () => {
+    const send = app()
+    const { encounterId } = await completed(send)
+    const byDesk = await send('POST', `/encounters/${encounterId}:amend`, {
+      as: desk,
+      ifMatch: '"3"',
+      body: { reason: '정정', changes: {} },
+    })
+    const lines = await send('POST', `/encounters/${encounterId}:amend`, {
+      as: noPrescribing,
+      ifMatch: '"3"',
+      body: { reason: '정정', changes: { prescriptionLines: { upsert: [acupuncture] } } },
+    })
+    const retractByDesk = await send('POST', `/encounters/${encounterId}:retract`, {
+      as: desk,
+      ifMatch: '"3"',
+      body: { reason: '오기' },
+    })
+    const lockByUnlicensed = await send('POST', `/encounters/${encounterId}:lock`, { as: unlicensed, ifMatch: '"3"' })
+    const noReason = await send('POST', `/encounters/${encounterId}:amend`, { ifMatch: '"3"', body: { changes: {} } })
+
+    expect(byDesk.status).toBe(403)
+    expect(await json(byDesk)).toMatchObject({ missing: ['encounter:amend'] })
+    expect(lines.status).toBe(403)
+    expect(await json(lines)).toMatchObject({ missing: ['prescription:write'] })
+    expect(retractByDesk.status).toBe(403)
+    expect(lockByUnlicensed.status).toBe(403)
+    expect(noReason.status).toBe(400)
+  })
+})
+
+describe.each(['memory', 'sqlite'] as const)('encounter retraction HTTP (%s)', (store) => {
+  it('retracts with a reason, keeps the record and refuses anything after', async () => {
+    const send = app(store)
+    const { encounterId } = await completed(send)
+    const retracted = await send('POST', `/encounters/${encounterId}:retract`, {
+      ifMatch: '"3"',
+      body: { reason: '다른 환자 기록' },
+    })
+    const again = await send('POST', `/encounters/${encounterId}:retract`, { ifMatch: '"4"', body: { reason: '오기' } })
+    const amend = await send('POST', `/encounters/${encounterId}:amend`, {
+      ifMatch: '"4"',
+      body: { reason: '정정', changes: { note: { body: 'x' } } },
+    })
+
+    expect(retracted.status).toBe(200)
+    expect(await json(retracted)).toMatchObject({
+      status: 'ENTERED_IN_ERROR',
+      retraction: { reason: '다른 환자 기록', retractedAt: expect.any(String), retractedBy: doctor.user.id },
+      diagnoses: [{ code: 'U23.4' }],
+      version: 4,
+    })
+    expect(again.status).toBe(409)
+    expect(await json(again)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'ENTERED_IN_ERROR' })
+    expect(amend.status).toBe(409)
+    expect(((await json(await send('GET', `/encounters/${encounterId}/versions`)))['items'] as Body[]).length).toBe(1)
+  })
+
+  it('lets the desk cancel a visit whose charted draft the doctor retracted', async () => {
+    const send = app(store)
+    const { visit, encounterId } = await checkedIn(send)
+    await send('PATCH', `/encounters/${encounterId}`, { ifMatch: '"1"', body: { note: { body: '<p>요통</p>' } } })
+    await send('POST', `/encounters/${encounterId}:retract`, { ifMatch: '"2"', body: { reason: '다른 환자' } })
+    const canceled = await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '재접수' } })
+    const encounter = await json(await send('GET', `/encounters/${encounterId}`))
+
+    expect(canceled.status).toBe(200)
+    // 이미 철회한 진료는 다시 철회하지 않아 처음 사유가 남습니다
+    expect(encounter).toMatchObject({ status: 'ENTERED_IN_ERROR', retraction: { reason: '다른 환자' }, version: 3 })
+  })
+
+  it('retracts the encounter of a visit canceled with cascade, even a locked one', async () => {
+    const send = app(store)
+    const { visit, encounterId } = await completed(send)
+    await send('POST', `/encounters/${encounterId}:lock`, { ifMatch: '"3"' })
+    const canceled = await send('POST', `/visits/${visit.id}:cancel`, { body: { reason: '이중 접수', cascade: true } })
+    const encounter = await json(await send('GET', `/encounters/${encounterId}`))
+
+    expect(canceled.status).toBe(200)
+    expect(encounter).toMatchObject({ status: 'ENTERED_IN_ERROR', retraction: { reason: '이중 접수' }, version: 5 })
   })
 })

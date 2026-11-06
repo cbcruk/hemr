@@ -6,7 +6,7 @@
 
 - **근거:** 의료법 제22조(진료기록부 등), 제23조(전자의무기록). 제23조제4항은 전자의무기록을 추가기재·수정하면 접속기록을 별도로 보관하도록 정하고, 추가기재·수정 전 원본도 함께 보존해야 한다고 알려져 있습니다
 - **설계 반영**
-  - 완료된 진료는 덮어쓰지 않고 버전을 쌓습니다 ([clinical.md](clinical.md#진료-encounter)의 `:amend`). 각 버전에 `amendedBy`, `amendedAt`, `reason`, `source`(`MANUAL`, `CLAIM_AUTOFIX`, `AI_ASSISTED`)를 남깁니다
+  - 완료된 진료는 덮어쓰지 않고 버전을 쌓습니다 ([clinical.md](clinical.md#진료-encounter)의 `:amend`). 완료할 때 1판, 정정할 때마다 다음 판에 그때 내용 전체와 `recordedBy`, `recordedAt`, `reason`, `source`(지금은 완료 `COMPLETION`·정정 `AMENDMENT`, 청구 자동수정 `CLAIM_AUTOFIX`·AI 보조 `AI_ASSISTED`는 그 기능이 생길 때)를 남깁니다. 판은 추가만 하고 DB 트리거가 수정·삭제를 막습니다 ([clinical.md](clinical.md#정정철회판고정-구현-결정))
   - 삭제 API는 두지 않고 `ENTERED_IN_ERROR` 상태로 대체합니다. 현행 `DELETE /record/{id}`는 복구할 수 없는 삭제였습니다
   - 추가기재·수정 접속기록은 일반 감사 로그와 분리된 저장소(추가만 가능, 수정 불가)에 둡니다
   - 2026년 보도에 따르면 단순 열람도 접속기록 대상으로 넓히는 개정이 추진 중입니다 (확인 필요). 재설계는 처음부터 조회도 기록합니다 ([conventions.md](conventions.md#감사와-열람-기록))
