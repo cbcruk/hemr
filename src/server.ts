@@ -11,6 +11,7 @@ import { AuthRepository } from './modules/identity/auth/auth-repository.ts'
 import { hashPassword } from './modules/identity/auth/password.ts'
 import type { Membership, Tenant, User } from './modules/identity/identity.ts'
 import { IdentityRepository } from './modules/identity/identity-repository.ts'
+import { PatientCrypto } from './modules/patients/patient-crypto.ts'
 import type { Visit } from './modules/front-desk/visits/visit.ts'
 import { PersistenceSqlite } from './persistence.ts'
 import { EventBus } from './shared/events/event-bus.ts'
@@ -125,6 +126,7 @@ HttpRouter.serve(AppLive).pipe(
   Layer.provide(Events),
   Layer.provide(NodeHttpServer.layer(createServer, { port })),
   Layer.provide(AuthConfig.layerFromEnv),
+  Layer.provide(PatientCrypto.layerFromEnv),
   Layer.provideMerge(Persistence),
   Layer.launch,
   NodeRuntime.runMain,

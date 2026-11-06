@@ -2,13 +2,16 @@ import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { afterAll, describe, expect, it } from 'vitest'
 import { TestAuthConfig } from './modules/identity/auth/auth-config.ts'
+import { TestPatientCrypto } from './modules/patients/patient-crypto.ts'
 import { AppLive } from './app.ts'
 import { PersistenceMemory } from './persistence.ts'
 
 const Defect = HttpRouter.add('GET', '/v1/defect', Effect.die(new Error('boom')))
 
 const app = HttpRouter.toWebHandler(
-  Layer.merge(AppLive, Defect).pipe(Layer.provide([PersistenceMemory(), HttpServer.layerServices, TestAuthConfig])),
+  Layer.merge(AppLive, Defect).pipe(
+    Layer.provide([PersistenceMemory(), HttpServer.layerServices, TestAuthConfig, TestPatientCrypto]),
+  ),
   {
     disableLogger: true,
   },

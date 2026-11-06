@@ -3,6 +3,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/http-api'
 import { Access } from './modules/identity/auth/access.ts'
 import { AuthApi, MeApi } from './modules/identity/auth/auth.api.ts'
 import { VisitsApi } from './modules/front-desk/visits/visits.api.ts'
+import { PatientsApi } from './modules/patients/patients.api.ts'
 import { RequestValidation } from './shared/problem/request-validation.ts'
 
 /** 로드 밸런서와 로컬 개발에서 쓰는 생존 확인입니다. */
@@ -24,6 +25,7 @@ export class Api extends HttpApi.make('hemr')
   .add(SystemApi)
   .add(AuthApi)
   .add(MeApi)
+  .add(PatientsApi)
   .add(VisitsApi)
   .prefix('/v1')
   .middleware(RequestValidation)

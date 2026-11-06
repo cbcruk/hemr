@@ -106,6 +106,32 @@ POST /patients/{id}/consents                { purpose, status, source, evidenceD
 GET  /patients/{id}/consents/history
 ```
 
+### 등록·조회·동의 구현 결정
+
+구현은 [src/modules/patients](../../src/modules/patients)에 있습니다 (#15).
+
+- **범위:** 신원(이름·주민번호·생년월일·음력 여부·성별), 차트번호, 연락처·주소, 메모(`notes`), 동의입니다. `POST/GET/PATCH /patients`, `GET /patients:next-chart-number`, `GET /patients/{id}/rrn`, `GET/POST /patients/{id}/consents`, `GET /patients/{id}/consents/history`를 엽니다
+  - 미룸: 가족, 메모(`memos`), 등급·내원경로·소개자·사진, `DELETE`, `:merge`·`:import`·`:export`, 타임라인, `?dryRun=true`, 차트번호 임대, `grade`·`lastVisitFrom` 필터, `firstVisitDate` 설정(내원 완료가 생길 때)
+- **차트번호:** 비우면 그 병원의 숫자 차트번호 중 가장 큰 값 + 1입니다(`chart_seq`). 숫자가 아닌 번호(`A-12`)는 채번에서 빠지고, `0041`은 41로 셉니다. 숫자로만 된 수동 번호는 12자리까지 받고 채번은 15자리까지 세어, 큰 수동 번호 하나 때문에 자동 채번이 계속 실패하지 않습니다. 채번과 쓰기를 한 트랜잭션에서 하고 `(tenant_id, chart_number)` 유일 제약이 마지막으로 막습니다. 겹치면 409 `CHART_NUMBER_TAKEN`입니다
+  - 대안: 병원별 채번 카운터 테이블. 수동 번호와 섞이면 카운터가 실제 최댓값과 어긋나 버렸습니다. 환자 수가 많아지면 `(tenant_id, chart_seq)` 색인으로 최댓값을 찾습니다
+- **주민등록번호 저장:** 원문 열이 없습니다. 세 값만 둡니다
+  - `rrn_sealed`: AES-256-GCM 암호문. 병원 + 환자 ID를 연관 데이터로 묶어 다른 행으로 옮겨 붙이면 풀리지 않습니다
+  - `rrn_index`: 병원별 키의 HMAC-SHA256. `(tenant_id, rrn_index)` 유일 제약으로 중복을 막고, 409 `PATIENT_DUPLICATE_RRN`에 기존 `patientId`를 줍니다. 병원마다 값이 달라 색인으로 병원 사이를 잇지 못합니다(compliance.md "테넌트별 솔트")
+  - `rrn_masked`: `900101-1******`. 읽을 때마다 복호화하지 않으려고 저장합니다. 화면 설정 "주민번호 뒷자리 표시"가 생기면 이 값 대신 설정에 맞춰 만듭니다
+  - 키는 `PATIENT_DATA_KEY`(base64, 32바이트 이상) 하나에서 HKDF로 나눕니다. 없으면 서버가 시작하지 않고, 로컬 개발 모드에서만 저장소에 있는 고정 개발 키를 씁니다. 개발 DB를 재시작 뒤에도 읽어야 해서 프로세스마다 만들지 않습니다. 키 교체(다시 암호화)는 미룹니다
+  - 검증: `900101-1234567` 또는 13자리, 실제 생년월일. 끝자리 검증식은 2020년 10월부터 맞지 않아 보지 않습니다
+- **생년월일·성별:** 등록 때 비어 있으면 주민번호에서 채웁니다. 주민번호와 함께 있으면 맞아야 하고(`RRN_MISMATCH`), 수정은 채우지 않고 검사만 합니다. 번호를 바꾸면 생년월일도 함께 보내야 합니다. 대표 연락처·주소는 하나까지입니다(`MULTIPLE_PRIMARY`)
+- **원문 조회:** `GET /patients/{id}/rrn`은 새 권한 `patient.rrn:read`(대표원장·봉직의·실장·데스크, 치료사 제외)와 `X-Access-Reason`이 필요합니다. 헤더는 ASCII만 실을 수 있어 한글 사유는 `encodeURIComponent`로 보내고, 풀고 나서 1–200자여야 합니다. 원문을 주기 전에 `access_logs`에 `READ_RRN`과 사유를 남깁니다. 기록이 실패하면 원문도 나가지 않습니다
+  - 대안: `patient:read`로 충분하게 하기. 치료사도 원문을 보게 돼 버렸습니다
+  - 미룸: 상세·목록 조회의 열람 기록(conventions.md는 조회도 남기라고 합니다), 열람 기록 조회 API, 기록의 IP·기기, 기록을 고칠 수 없게 막기(compliance.md)
+- **검색 `q`:** 숫자(하이픈 허용)면 차트번호 앞부분이나 전화번호 끝자리, 초성만이면 이름 초성, 그 밖이면 이름 일부(대소문자 무시)나 차트번호 앞부분입니다. 숫자 검색은 하이픈을 뺀 값과 입력 그대로를 함께 써서 `2024-001` 같은 차트번호도 찾습니다. 검색용 파생 열 `name_initials`·`name_folded`(JS로 소문자로 바꾼 이름. SQLite `lower()`는 ASCII만 바꿉니다)·`phone_digits`를 저장할 때 만듭니다. 정렬은 이름, ID이고 커서는 앞 쪽 마지막 환자의 ID입니다. 커서에 이름을 실으면 URL과 로그에 남아, 이름은 서버가 다시 읽습니다
+- **수정:** `PATCH`는 보낸 필드만 바꾸고 `null`은 지웁니다. 컬렉션은 통째로 바꿉니다. 바뀐 것이 없으면 버전을 올리지 않습니다. `If-Match`는 내원 커맨드처럼 선택이고, 없으면 다시 읽어 3번까지 되풀이합니다
+  - 대안: `If-Match` 필수(428). 이름·연락처 수정이 덮어써질 위험은 있지만 같은 API 안에서 규칙을 하나로 두려고 미뤘습니다. 동시 수정 사고가 보이면 필수로 바꿉니다
+- **동의:** 기록을 쌓기만 하고 목적별 마지막 기록이 현재 상태입니다. 환자 응답의 `consents`가 현재 상태라 CRM은 이것만 읽습니다. 직원 세션의 기록은 출처가 늘 `DESK`이고 본문으로 바꿀 수 없습니다. `TABLET`은 환자 본인의 기록이라 기기 토큰(`consent:sign`)이 생기면 그 입구에서만 쓰고, `PATIENT_080`·`IMPORT`는 연동·이관 작업이 저장소에 직접 씁니다. 마지막 080 거부(`DENIED`·`WITHDRAWN`) 뒤에 환자 본인의 `GRANTED`(`TABLET`·`PATIENT_080`)가 없으면 직원이 `GRANTED`를 기록할 수 없습니다(409 `CONSENT_LOCKED_BY_PATIENT`). 사이에 `UNDECIDED` 같은 기록을 끼워 넣어도 풀리지 않습니다. 동의는 환자 버전을 올리지 않습니다
+  - 확인과 쓰기 사이에 080 거부가 끼어들면 데스크 동의가 뒤에 쌓일 수 있습니다. 080 연동이 생길 때 한 트랜잭션으로 묶습니다
+- **이벤트:** `patient.created { patientId, chartNumber }`, `patient.updated { patientId, fields }`(바뀐 필드 이름만, 값은 없음), `consent.changed { patientId, purpose, status, source }`. 모두 `tenantId`·`actor`를 채우고 주민번호는 싣지 않습니다
+- **되돌릴 조건:** 병원이 수동 채번만 쓰면 자동 채번을 끄는 설정을 더합니다. 검색이 느려지면 SQLite FTS로 옮깁니다
+
 ### 문진·시술동의서 기록
 
 태블릿에서 받은 문진과 동의서는 [documents.md](documents.md#태블릿-문진동의서)의 `IntakeSubmission`으로 저장하고, 환자에서는 목록만 봅니다.

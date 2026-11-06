@@ -164,6 +164,69 @@ export const migrations = {
     `
     yield* sql`CREATE INDEX visits_tenant_date ON visits (tenant_id, date)`
   }),
+  '0005_patients': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 주민등록번호는 암호문(rrn_sealed), 병원별 HMAC 색인(rrn_index), 가린 번호(rrn_masked)로만 둡니다. 원문 열은 없습니다.
+    // chart_seq는 숫자 차트번호의 값으로 자동 채번에 씁니다. name_initials·name_folded·phone_digits는 검색용 파생 열입니다
+    yield* sql`
+      CREATE TABLE patients (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        chart_number TEXT NOT NULL,
+        chart_seq INTEGER,
+        name TEXT NOT NULL,
+        name_initials TEXT NOT NULL,
+        name_folded TEXT NOT NULL,
+        rrn_sealed TEXT,
+        rrn_index TEXT,
+        rrn_masked TEXT,
+        birth_date TEXT,
+        is_lunar_birthday INTEGER NOT NULL CHECK (is_lunar_birthday IN (0, 1)),
+        sex TEXT CHECK (sex IS NULL OR sex IN ('MALE', 'FEMALE')),
+        contacts TEXT NOT NULL CHECK (json_valid(contacts)),
+        phone_digits TEXT NOT NULL,
+        addresses TEXT NOT NULL CHECK (json_valid(addresses)),
+        notes TEXT,
+        first_visit_date TEXT,
+        status TEXT NOT NULL CHECK (status IN ('ACTIVE')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        CHECK ((rrn_sealed IS NULL) = (rrn_index IS NULL) AND (rrn_index IS NULL) = (rrn_masked IS NULL))
+      ) STRICT
+    `
+    yield* sql`CREATE UNIQUE INDEX patients_chart_number ON patients (tenant_id, chart_number)`
+    yield* sql`CREATE UNIQUE INDEX patients_rrn_index ON patients (tenant_id, rrn_index) WHERE rrn_index IS NOT NULL`
+    yield* sql`CREATE INDEX patients_name ON patients (tenant_id, name, id)`
+    yield* sql`CREATE INDEX patients_chart_seq ON patients (tenant_id, chart_seq)`
+    yield* sql`
+      CREATE TABLE patient_consents (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL REFERENCES patients (id),
+        purpose TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('GRANTED', 'DENIED', 'UNDECIDED', 'WITHDRAWN')),
+        source TEXT NOT NULL CHECK (source IN ('DESK', 'TABLET', 'PATIENT_080', 'IMPORT')),
+        decided_at TEXT NOT NULL,
+        decided_by TEXT,
+        evidence_document_id TEXT
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX patient_consents_patient ON patient_consents (tenant_id, patient_id, seq)`
+    // 열람 기록은 환자·사용자를 지워도 남아야 하므로 외래 키를 두지 않습니다
+    yield* sql`
+      CREATE TABLE access_logs (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        time TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        resource TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        reason TEXT
+      ) STRICT
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

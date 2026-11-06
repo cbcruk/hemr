@@ -4,12 +4,10 @@ import { isId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { problemType } from '../../../shared/problem/problem.ts'
 import { TenantId } from '../../identity/identity.ts'
+import { PatientId } from '../../patients/patient.ts'
 
 /** 내원 ID입니다. 예: `vis_01J...` */
 export const VisitId = Schema.String.pipe(Schema.refine((value): value is Id<'visit'> => isId('visit', value)))
-
-/** 환자 ID입니다. 예: `pat_01J...` */
-export const PatientId = Schema.String.pipe(Schema.refine((value): value is Id<'patient'> => isId('patient', value)))
 
 /** 진료 당일 접수 흐름에서 내원이 있는 단계입니다. */
 export const VisitStatus = Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT', 'COMPLETED', 'CANCELED'])
