@@ -37,7 +37,7 @@ export type Diagnosis = typeof Diagnosis.Type
 export const ClinicalNote = Schema.Struct({ body: Schema.String })
 export type ClinicalNote = typeof ClinicalNote.Type
 
-/** 진료가 있는 단계입니다 (clinical.md 진료 상태도). 지금은 초안 저장만 있어 `DRAFT`만 만들어집니다. */
+/** 진료가 있는 단계입니다 (clinical.md 진료 상태도). 지금은 초안 저장과 완료(`:complete`)가 있습니다. */
 export const EncounterStatus = Schema.Literals(['DRAFT', 'COMPLETED', 'AMENDED', 'ENTERED_IN_ERROR'])
 
 /** 진료 방식입니다. 지금은 내원 접수로 만드는 `OFFICE`만 있습니다. */
@@ -70,6 +70,8 @@ export const Encounter = Schema.Struct({
   /** 내원에서 복사한 표시입니다. */
   benefitFlags: BenefitFlags,
   status: EncounterStatus,
+  /** 처음 완료한 시각입니다. 완료 전에는 `null`입니다. */
+  completedAt: Schema.NullOr(Schema.String),
   createdAt: Schema.String,
   updatedAt: Schema.String,
   /** 낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. */
@@ -123,4 +125,25 @@ export class EncounterChangeInvalid extends HttpApiError.Problem<EncounterChange
   'EncounterChangeInvalid',
   { type: problemType('ENCOUNTER_CHANGE_INVALID'), status: 422, title: 'Encounter change is invalid' },
   { code: Schema.tag('ENCOUNTER_CHANGE_INVALID'), errors: Schema.Array(EncounterChangeError) },
+) {}
+
+/** 완료를 막는 이유입니다. `targets`는 문제가 있는 처방 라인 ID나, 진찰료가 겹치는 다른 진료 ID입니다. */
+export const CompletionViolation = Schema.Struct({
+  code: Schema.Literals([
+    'PRIMARY_DIAGNOSIS_MISSING',
+    'PRIMARY_DIAGNOSIS_MULTIPLE',
+    'COVERAGE_CATEGORY_MISMATCH',
+    'PILOT_HERBAL_NOT_APPROVED',
+    'DUPLICATE_CONSULTATION_FEE',
+  ]),
+  message: Schema.String,
+  targets: Schema.optionalKey(Schema.Array(Schema.String)),
+})
+export type CompletionViolation = typeof CompletionViolation.Type
+
+/** 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다. */
+export class EncounterCompletionRejected extends HttpApiError.Problem<EncounterCompletionRejected>()(
+  'EncounterCompletionRejected',
+  { type: problemType('ENCOUNTER_COMPLETION_REJECTED'), status: 422, title: 'Encounter completion rejected' },
+  { code: Schema.tag('ENCOUNTER_COMPLETION_REJECTED'), violations: Schema.Array(CompletionViolation) },
 ) {}

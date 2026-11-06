@@ -85,6 +85,7 @@ export class EncounterRepository extends Context.Service<
         prescriptionLines: string
         benefitFlags: string
         status: Encounter['status']
+        completedAt: string | null
         createdAt: string
         updatedAt: string
         version: number
@@ -104,6 +105,7 @@ export class EncounterRepository extends Context.Service<
         prescriptionLines: JSON.parse(row.prescriptionLines) as Encounter['prescriptionLines'],
         benefitFlags: JSON.parse(row.benefitFlags) as Encounter['benefitFlags'],
         status: row.status,
+        completedAt: row.completedAt,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         version: row.version,
@@ -112,7 +114,7 @@ export class EncounterRepository extends Context.Service<
       const columns = sql`
         id, tenant_id AS tenantId, patient_id AS patientId, visit_id AS visitId, doctor_id AS doctorId,
         encounter_type AS encounterType, coverage, service_at AS serviceAt, note_body AS noteBody, diagnoses,
-        prescription_lines AS prescriptionLines, benefit_flags AS benefitFlags, status, created_at AS createdAt, updated_at AS updatedAt, version
+        prescription_lines AS prescriptionLines, benefit_flags AS benefitFlags, status, completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt, version
       `
 
       const currentVersion = (tenantId: string, id: string) =>
@@ -129,6 +131,7 @@ export class EncounterRepository extends Context.Service<
           prescription_lines: JSON.stringify(encounter.prescriptionLines),
           benefit_flags: JSON.stringify(encounter.benefitFlags),
           status: encounter.status,
+          completed_at: encounter.completedAt,
           updated_at: encounter.updatedAt,
           version: encounter.version,
         }

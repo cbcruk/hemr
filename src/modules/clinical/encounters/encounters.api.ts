@@ -5,6 +5,7 @@ import { Access } from '../../identity/auth/access.ts'
 import { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
 import { PatientId, PatientNotFound } from '../../patients/patient.ts'
+import { Visit } from '../../front-desk/visits/visit.ts'
 import {
   ClinicalNote,
   DiagnosisCode,
@@ -12,6 +13,7 @@ import {
   DiagnosisKind,
   Encounter,
   EncounterChangeInvalid,
+  EncounterCompletionRejected,
   EncounterId,
   EncounterNotEditable,
   EncounterNotFound,
@@ -62,11 +64,23 @@ const UpdatePayload = Schema.Struct({
   ),
 })
 
+/** 진료 완료 본문입니다 (clinical.md 완료 커맨드). */
+const CompletePayload = Schema.Struct({
+  /** 완료한 뒤 내원을 보낼 상태입니다. 없으면 `IN_TREATMENT`(치료실로 보냄)입니다. */
+  nextVisitStatus: Schema.optionalKey(Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT'])),
+  /** 확인하고 넘길 위반입니다. */
+  acknowledge: Schema.optionalKey(
+    Schema.Array(Schema.Literals(['DUPLICATE_CONSULTATION_FEE'])).check(Schema.isMaxLength(10)),
+  ),
+})
+
 /**
- * 진료 조회와 초안 저장입니다. 조회는 `encounter:read`, 저장은 면허 권한 `encounter:write`가 필요합니다. 처방 라인을
+ * 진료 조회, 초안 저장, 완료입니다. 조회는 `encounter:read`, 저장은 면허 권한 `encounter:write`가 필요합니다. 처방 라인을
  * 보내면 `prescription:write`(PRN 라인은 `prescription:write_prn`도)가 더 필요합니다.
  *
- * 저장은 `If-Match`가 필수입니다. 여러 진료실 단말이나 한의사가 함께 고칠 때 마지막 저장이 이기지 않게 합니다. 빠지면 400입니다.
+ * 완료(`:complete`)도 면허 권한 `encounter:write`이고, 내원을 옮기는 권한(`visit:update`)은 따로 보지 않습니다.
+ *
+ * 저장과 완료는 `If-Match`가 필수입니다. 여러 진료실 단말이나 한의사가 함께 고칠 때 마지막 저장이 이기지 않게 합니다. 빠지면 400입니다.
  * 활력징후처럼 아직 받지 않는 필드는 조용히 버리지 않고 400으로 알립니다.
  */
 export class EncountersApi extends HttpApiGroup.make('encounters')
@@ -101,6 +115,23 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
         EncounterChangeInvalid,
         VersionMismatch,
         PermissionDenied,
+      ],
+    })
+      .annotate(Access, Access.requires('encounter:write'))
+      .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
+    HttpApiEndpoint.post('complete', '/encounters/:id::complete', {
+      params: { id: EncounterId },
+      headers: { 'if-match': Schema.String },
+      payload: CompletePayload,
+      success: HttpApiSchema.WithHeaders(Schema.Struct({ encounter: Encounter, visit: Schema.NullOr(Visit) }), {
+        etag: Schema.String,
+      }),
+      error: [
+        EncounterNotFound,
+        EncounterNotEditable,
+        EncounterVisitCanceled,
+        EncounterCompletionRejected,
+        VersionMismatch,
       ],
     })
       .annotate(Access, Access.requires('encounter:write'))

@@ -4,7 +4,7 @@ import { Api } from '../../../api.ts'
 import { expectedVersion, withEtag } from '../../../shared/http/etag.ts'
 import { Encounters } from './encounters.ts'
 
-/** 진료 조회와 초안 저장 핸들러입니다. */
+/** 진료 조회, 초안 저장, 완료 핸들러입니다. */
 export const EncountersHttpLive = HttpApiBuilder.group(
   Api,
   'encounters',
@@ -21,6 +21,17 @@ export const EncountersHttpLive = HttpApiBuilder.group(
           .pipe(
             Effect.map((saved) =>
               HttpApiSchema.withHeaders({ body: saved, headers: { etag: `"${saved.encounter.version}"` } }),
+            ),
+          ),
+      complete: ({ params, headers, payload }) =>
+        encounters
+          .complete(params.id, {
+            ...payload,
+            expectedVersion: expectedVersion(headers['if-match']).expectedVersion ?? NaN,
+          })
+          .pipe(
+            Effect.map((completed) =>
+              HttpApiSchema.withHeaders({ body: completed, headers: { etag: `"${completed.encounter.version}"` } }),
             ),
           ),
     })

@@ -294,6 +294,11 @@ export const migrations = {
         CHECK (json_valid(prescription_lines))
     `
   }),
+  '0009_encounter_completion': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 이 전에 만든 진료는 모두 초안이라 완료 시각이 없습니다
+    yield* sql`ALTER TABLE encounters ADD COLUMN completed_at TEXT`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */
