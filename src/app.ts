@@ -6,6 +6,8 @@ import { Auth } from './modules/identity/auth/auth.ts'
 import { AuthHttpLive, MeHttpLive } from './modules/identity/auth/auth.http.ts'
 import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
 import { AuthorizationLive, accessCheck } from './modules/identity/auth/authorization.ts'
+import { EncountersHttpLive } from './modules/clinical/encounters/encounters.http.ts'
+import { Encounters } from './modules/clinical/encounters/encounters.ts'
 import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
 import { Visits } from './modules/front-desk/visits/visits.ts'
 import { PatientsHttpLive } from './modules/patients/patients.http.ts'
@@ -46,11 +48,13 @@ const SecurityLive = Layer.mergeAll(AuthenticationLive, AuthorizationLive).pipe(
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
   Layer.provide(Layer.mergeAll(AuthHttpLive, MeHttpLive)),
-  // 접수(`Visits`)가 환자를 읽으므로 두 모듈이 같은 `Patients`를 씁니다
+  // 접수(`Visits`)와 진료(`Encounters`)가 환자를 읽으므로 세 모듈이 같은 `Patients`를 씁니다
   Layer.provide(
-    Layer.mergeAll(PatientsHttpLive, VisitsHttpLive.pipe(Layer.provide(Visits.layer))).pipe(
-      Layer.provide(Patients.layer),
-    ),
+    Layer.mergeAll(
+      PatientsHttpLive,
+      VisitsHttpLive.pipe(Layer.provide(Visits.layer)),
+      EncountersHttpLive.pipe(Layer.provide(Encounters.layer)),
+    ).pipe(Layer.provide(Patients.layer)),
   ),
   Layer.provide(SecurityLive),
   Layer.provide(RequestValidationLive),

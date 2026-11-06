@@ -122,6 +122,7 @@ export class VisitRepository extends Context.Service<
         isFirstVisit: number
         eligibility: string
         benefitFlags: string
+        encounterId: string | null
         status: Visit['status']
         statusChangedAt: string
         statusReason: string | null
@@ -139,6 +140,7 @@ export class VisitRepository extends Context.Service<
         isFirstVisit: row.isFirstVisit === 1,
         eligibility: JSON.parse(row.eligibility) as Visit['eligibility'],
         benefitFlags: JSON.parse(row.benefitFlags) as Visit['benefitFlags'],
+        encounterId: row.encounterId as Visit['encounterId'],
         status: row.status,
         statusChangedAt: row.statusChangedAt,
         ...(row.statusReason === null ? {} : { statusReason: row.statusReason }),
@@ -160,6 +162,7 @@ export class VisitRepository extends Context.Service<
           is_first_visit: visit.isFirstVisit ? 1 : 0,
           eligibility: JSON.stringify(visit.eligibility),
           benefit_flags: JSON.stringify(visit.benefitFlags),
+          encounter_id: visit.encounterId,
           status: visit.status,
           status_changed_at: visit.statusChangedAt,
           status_reason: visit.statusReason ?? null,
@@ -182,7 +185,7 @@ export class VisitRepository extends Context.Service<
 
       const columns = sql`
         id, tenant_id AS tenantId, patient_id AS patientId, date, checked_in_at AS checkedInAt, coverage,
-        is_first_visit AS isFirstVisit, eligibility, benefit_flags AS benefitFlags, status,
+        is_first_visit AS isFirstVisit, eligibility, benefit_flags AS benefitFlags, encounter_id AS encounterId, status,
         status_changed_at AS statusChangedAt, status_reason AS statusReason, has_clinical_data AS hasClinicalData, version
       `
 

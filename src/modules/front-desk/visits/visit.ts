@@ -3,6 +3,7 @@ import { HttpApiError } from 'effect/http-api'
 import { isId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { problemType } from '../../../shared/problem/problem.ts'
+import { EncounterId } from '../../clinical/encounters/encounter-id.ts'
 import { TenantId } from '../../identity/identity.ts'
 import { LocalDate, PatientId } from '../../patients/patient.ts'
 import type { CheckInErrorCode } from './check-in-validation.types.ts'
@@ -68,8 +69,7 @@ export type BenefitFlags = typeof BenefitFlags.Type
 /**
  * 진료 당일 환자의 내원입니다.
  *
- * 지금은 접수와 상태 커맨드에 필요한 필드만 두었습니다. 진료의·진료항목·진료(encounter)·예약은 그 모듈이 생길 때
- * 더합니다. 전체 리소스는 `docs/design/front-desk.md`를 보세요.
+ * 지금은 접수와 상태 커맨드에 필요한 필드만 두었습니다. 진료의·진료항목·예약은 그 모듈이 생길 때 더합니다. 전체 리소스는 `docs/design/front-desk.md`를 보세요.
  */
 export const Visit = Schema.Struct({
   id: VisitId,
@@ -85,6 +85,8 @@ export const Visit = Schema.Struct({
   isFirstVisit: Schema.Boolean,
   eligibility: VisitEligibility,
   benefitFlags: BenefitFlags,
+  /** 접수 때 함께 만든 진료입니다. 진료가 생기기 전(마이그레이션 `0007` 전)에 접수한 내원은 `null`입니다. */
+  encounterId: Schema.NullOr(EncounterId),
   status: VisitStatus,
   statusChangedAt: Schema.String,
   /** 마지막 `:reopen` 또는 `:cancel`에서 받은 사유입니다. */
@@ -92,7 +94,8 @@ export const Visit = Schema.Struct({
   /**
    * 진료 내용이나 수납 기록이 있는지 여부입니다. 있으면 `cascade` 없이 취소할 수 없습니다.
    *
-   * 진료·수납 모듈이 생기기 전까지 저장된 값으로 둡니다. 그 뒤에는 두 모듈에서 파생합니다.
+   * 수납 모듈이 생기기 전까지 저장된 값으로 둡니다. 진료 내용은 상태 커맨드가 진료에서 따로 읽어 더합니다
+   * (`Visits.apply`). 수납이 생기면 두 모듈에서 파생합니다.
    */
   hasClinicalData: Schema.Boolean,
   /** 낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. */

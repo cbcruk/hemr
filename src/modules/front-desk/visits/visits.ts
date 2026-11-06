@@ -1,9 +1,12 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
+import { Transaction } from '../../../shared/db/transaction.ts'
 import { domainEvent } from '../../../shared/events/domain-event.ts'
 import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
+import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
+import { draftEncounter, hasClinicalContent } from '../../clinical/encounters/encounters.ts'
 import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
 import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
@@ -93,6 +96,8 @@ export class Visits extends Context.Service<
      * 정해지므로 여기서 `visit:cancel`·`receipt:void`·`encounter:retract`를 모두 확인합니다(D3). 내원을 읽기 전에
      * 확인해, 권한이 없으면 내원 상태와 상관없이 403 `PERMISSION_DENIED`입니다. 함께 무효로 할 진료·수납 기록 처리는
      * 그 모듈이 생길 때 더합니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다.
+     *
+     * 진료에 본문이나 상병이 있으면 저장된 `hasClinicalData`와 상관없이 진료 내용이 있는 내원으로 판정합니다.
      */
     apply(
       id: Id<'visit'>,
@@ -106,8 +111,9 @@ export class Visits extends Context.Service<
      * 접수 검증(`validateCheckIn`)이 막으면 422 `CHECK_IN_REJECTED`로 모든 이유를 돌려줍니다. 본인확인 판정의 첫
      * 내원·마지막 확인일은 취소하지 않은 이전 내원에서 셉니다. 요양기관기호는 병원 설정입니다.
      *
-     * 내원과 `visit.checked_in` 이벤트를 한 트랜잭션에서 씁니다. 바로 진료로 들어가도(`initialStatus: IN_TREATMENT`)
-     * 이벤트는 접수 하나입니다. 진료(encounter)·예약·제주 지원 스냅샷은 그 모듈이 생길 때 같은 트랜잭션에 더합니다.
+     * 내원, 빈 초안 진료(`draftEncounter`), `visit.checked_in`·`encounter.created` 이벤트를 한 트랜잭션에서 씁니다.
+     * 바로 진료로 들어가도(`initialStatus: IN_TREATMENT`) 내원 이벤트는 접수 하나입니다. 예약·제주 지원 스냅샷은 그
+     * 모듈이 생길 때 같은 트랜잭션에 더합니다.
      */
     checkIn(input: CheckInInput): Effect.Effect<Visit, CheckInError, CurrentAccess>
 
@@ -122,6 +128,16 @@ export class Visits extends Context.Service<
     Visits,
     Effect.gen(function* () {
       const repository = yield* VisitRepository
+      const encounters = yield* EncounterRepository
+      const transaction = yield* Transaction
+
+      /** 저장된 값이나 진료 내용으로 판정합니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 저장된 값만 봅니다. */
+      const hasClinicalData = (visit: Visit) =>
+        visit.hasClinicalData || visit.encounterId === null
+          ? Effect.succeed(visit.hasClinicalData)
+          : encounters
+              .findById(visit.tenantId, visit.encounterId)
+              .pipe(Effect.map(Option.match({ onNone: () => false, onSome: hasClinicalContent })))
 
       const attempt = Effect.fn('Visits.apply')(function* (
         id: Id<'visit'>,
@@ -146,7 +162,7 @@ export class Visits extends Context.Service<
 
         const now = yield* DateTime.now
         const options = {
-          hasClinicalData: visit.hasClinicalData,
+          hasClinicalData: yield* hasClinicalData(visit),
           isPastDate: visit.date < clinicDate(DateTime.toEpochMillis(now)),
           ...(input.cascade === undefined ? {} : { cascade: input.cascade }),
         }
@@ -233,7 +249,8 @@ export class Visits extends Context.Service<
 
         const national = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
         const checkedInAt = DateTime.formatIso(now)
-        const visit: Visit = {
+        const encounterId = newId('encounter', DateTime.toEpochMillis(now))
+        const visit: Visit & { encounterId: Id<'encounter'> } = {
           id: input.id ?? newId('visit'),
           tenantId: access.tenantId,
           patientId: patient.id,
@@ -251,11 +268,13 @@ export class Visits extends Context.Service<
             selectedInstitutionCode: national ? validation.selectedInstitutionCode : null,
           },
           benefitFlags: flags,
+          encounterId,
           status: input.initialStatus ?? 'WAITING',
           statusChangedAt: checkedInAt,
           hasClinicalData: false,
           version: 1,
         }
+        const context = { tenantId: access.tenantId, actor: { kind: 'USER' as const, id: access.userId } }
         const event = domainEvent(
           'visit.checked_in',
           visit.id,
@@ -268,12 +287,20 @@ export class Visits extends Context.Service<
             isFirstVisit: visit.isFirstVisit,
             status: visit.status,
           },
-          { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+          context,
         )
-        // 같은 ID가 이미 있으면 저장소가 `VersionMismatch`로 거절합니다. 새로 만드는 것이라 412가 아니라 409입니다
-        yield* repository
-          .save(visit, { expectedVersion: null, events: [event] })
-          .pipe(Effect.catchTag('VersionMismatch', () => Effect.fail(new VisitAlreadyExists({}))))
+        const draft = draftEncounter(visit, context)
+        yield* transaction.run(
+          Effect.gen(function* () {
+            // 같은 ID가 이미 있으면 저장소가 `VersionMismatch`로 거절합니다. 새로 만드는 것이라 412가 아니라 409입니다.
+            // 실패할 수 있는 내원을 먼저 써, 되돌리지 못하는 메모리 저장소에서도 진료만 남지 않습니다
+            yield* repository
+              .save(visit, { expectedVersion: null, events: [event] })
+              .pipe(Effect.catchTag('VersionMismatch', () => Effect.fail(new VisitAlreadyExists({}))))
+            // 진료 ID는 서버가 방금 만들어 겹치지 않습니다. 겹치면 결함입니다
+            yield* encounters.save(draft.encounter, { expectedVersion: null, events: [draft.event] }).pipe(Effect.orDie)
+          }),
+        )
         return visit
       })
 

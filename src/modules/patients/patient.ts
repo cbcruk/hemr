@@ -3,14 +3,11 @@ import { HttpApiError } from 'effect/http-api'
 import { isId } from '../../shared/ids/ids.ts'
 import type { Id } from '../../shared/ids/ids.types.ts'
 import { problemType } from '../../shared/problem/problem.ts'
-import { TenantId } from '../identity/identity.ts'
+import { TenantId, UserId } from '../identity/identity.ts'
 import { normalizeRrn } from './rrn.ts'
 
 /** 환자 ID입니다. 예: `pat_01J...` */
 export const PatientId = Schema.String.pipe(Schema.refine((value): value is Id<'patient'> => isId('patient', value)))
-
-/** 사용자 ID입니다. 동의를 기록한 직원에 씁니다. */
-const UserId = Schema.String.pipe(Schema.refine((value): value is Id<'user'> => isId('user', value)))
 
 /** 차트번호입니다. 병원 안에서 유일하고 영문·숫자·`-` 20자까지입니다. 예: `1024` */
 export const ChartNumber = Schema.String.check(Schema.isPattern(/^[0-9A-Za-z-]{1,20}$/))

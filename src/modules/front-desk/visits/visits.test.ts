@@ -1,8 +1,10 @@
 import { Effect, Exit, Layer, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import { Transaction } from '../../../shared/db/transaction.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
+import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import { TEST_TENANT, testMember } from '../../identity/auth/testing.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
@@ -20,16 +22,20 @@ const visit = testVisit({ status: 'COMPLETED' })
 const owner = testMember()
 
 /**
- * `persistence`의 내원 저장소·outbox로 `Visits`를 만듭니다. 접수가 읽는 환자·병원 저장소는 따로 메모리에 둡니다.
+ * `persistence`의 내원 저장소·outbox로 `Visits`를 만듭니다. 접수가 읽는 환자·병원·진료 저장소는 따로 메모리에 둡니다.
  */
 const visitsWith = (persistence: Layer.Layer<VisitRepository | Outbox, unknown>) =>
   Visits.layer.pipe(
     Layer.provide(Patients.layer),
     Layer.provideMerge(persistence),
     Layer.provide(
-      Layer.mergeAll(IdentityRepository.layerMemory, PatientRepository.layerMemory, AccessLog.layerMemory).pipe(
-        Layer.provide(Outbox.layerMemory),
-      ),
+      Layer.mergeAll(
+        IdentityRepository.layerMemory,
+        PatientRepository.layerMemory,
+        AccessLog.layerMemory,
+        EncounterRepository.layerMemory,
+        Transaction.layerMemory,
+      ).pipe(Layer.provide(Outbox.layerMemory)),
     ),
     Layer.provide(TestPatientCrypto),
   )
