@@ -38,7 +38,9 @@ export const VisitsHttpLive = HttpApiBuilder.group(
   'visits',
   Effect.fn(function* (handlers) {
     const visits = yield* Visits
-    const noCascade = cannotFail('VisitHasClinicalData')
+    // 연쇄 취소 오류와 그 권한 확인은 취소에서만 생깁니다
+    const noCascade = <A, E extends { readonly _tag: string }, R>(effect: Effect.Effect<A, E, R>) =>
+      effect.pipe(cannotFail('VisitHasClinicalData'), cannotFail('PermissionDenied'))
 
     return handlers.handleAll({
       startTreatment: ({ params, headers }) =>

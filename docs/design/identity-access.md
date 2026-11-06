@@ -85,6 +85,26 @@ erDiagram
 - 현행 `treatment_write`는 이름과 달리 "진료기록생성수정삭제"입니다 (`docs/reference/permissions.md`). `encounter:write/amend/retract`로 옮기고, 치료실 시술 권한 `procedure:write`는 새로 정의합니다
 - 화면 코드(`treatment_rooms`, `ocs`, `bi` …)는 권한이 아닙니다. 화면이 쓰는 리소스의 `read` 권한으로 판정합니다
 
+### 권한 강제 구현 결정
+
+구현은 [access.ts](../../src/modules/identity/auth/access.ts)와 [authorization.ts](../../src/modules/identity/auth/authorization.ts)에 있습니다.
+
+- **선언:** 엔드포인트마다 `Access` annotation으로 규칙 하나를 붙입니다. `Access.public`(상태 확인·로그인·refresh·로그아웃), `Access.signedIn`(`/me`·병원 전환처럼 병원을 고르기 전에 쓰는 곳), `Access.requires('visit:update', ...)`(병원 업무)입니다. 병원 업무에 권한 없는 규칙은 두지 않습니다
+- **부팅 검사:** `accessCheck(Api)`가 앱 Layer에 들어 있어, 규칙이 없거나 규칙과 미들웨어가 맞지 않는 엔드포인트가 있으면 서버가 뜨지 않습니다. 규칙만 붙이고 검사할 미들웨어를 빠뜨려도 아무도 검사하지 않으므로, `PERMISSIONS`는 `Authorization`이, `SIGNED_IN`은 `Authentication`만 있어야 하고(`Authorization`은 권한 목록이 필요합니다) `PUBLIC`에는 둘 다 없어야 합니다. 테스트가 실제 API와 일부러 틀린 API로 이를 확인합니다
+  - 대안: 테스트만으로 잡기. 이슈는 테스트를 요구했지만 설계는 부팅 실패였고, 둘 다 해도 비용이 거의 없어 둘 다 합니다
+- **`Authorization` 미들웨어:** access token(세션 폐기 포함)을 확인하고, 토큰이 가리키는 병원의 오늘 소속으로 권한을 계산해 `CurrentAccess`(사용자·세션·병원·권한·범위·면허)를 넣습니다. 요청마다 세션·소속·사용자 조회가 듭니다
+  - 401 `UNAUTHENTICATED`: 토큰이 없거나 틀림
+  - 403 `TENANT_NOT_SELECTED`: 토큰에 병원이 없음. 병원 전환을 먼저 해야 합니다
+  - 403 `TENANT_ACCESS_DENIED`: 그 병원 소속이 오늘 유효하지 않음(퇴사·비활성)
+  - 403 `PERMISSION_DENIED` + `missing`: 선언한 권한 중 빠진 것. 클라이언트가 `/me`로 자기 권한을 이미 알아 이름을 알려 줘도 새로 드러나는 것이 없습니다
+- **본문에 따라 달라지는 권한:** 연쇄 취소처럼 본문을 봐야 정해지는 권한은 서비스가 `requirePermissions`로 확인합니다. 내원 취소는 엔드포인트가 `visit:cancel`을, `cascade: true`면 `Visits.apply`가 `visit:cancel`·`receipt:void`·`encounter:retract`를 모두 확인합니다(D3). 내원을 읽기 전에 확인해 내원 상태보다 403이 먼저입니다. `encounter:retract`는 면허 권한이라 면허 없는 대표원장도 연쇄 취소를 못 합니다
+  - 대안: 커맨드 권한을 모두 서비스에서도 다시 확인하기. 같은 규칙이 두 곳에 생겨 어긋날 수 있어, 서비스는 엔드포인트 선언으로 정할 수 없는 것만 봅니다. HTTP가 아닌 호출(MCP·오프라인 동기화)이 생기면 그 입구가 같은 선언을 따르게 합니다
+- **병원 격리:** 내원은 `tenantId`를 가지고, 저장소는 고른 병원의 내원만 찾습니다. 다른 병원의 내원은 403이 아니라 404 `VISIT_NOT_FOUND`라 존재가 드러나지 않습니다. 같은 ID로 다른 병원의 내원을 덮어쓰려 하면 버전을 알려 주지 않고 `currentVersion: 0`으로 거절합니다. `visits.tenant_id`는 Identity의 `tenants`에 외래 키를 걸지 않습니다. 모듈 사이는 ID로만 잇습니다
+  - 마이그레이션 `0004`는 `visits`를 새로 만듭니다. 접수 엔드포인트가 없어 있던 내원은 병원 없는 개발용 샘플뿐이라 옮기지 않습니다
+- **도메인 이벤트:** 병원 업무 이벤트는 `tenantId`와 `actor: { kind: 'USER', id }`를 채웁니다
+- **미룬 것:** 담당 환자 범위(`scope: OWN`)는 환자–담당자 관계가 생길 때 저장소 조회에 더합니다. 권한 거절은 아직 `security_events`에 남기지 않습니다
+- **되돌릴 조건:** 요청마다 드는 조회가 병목이면 소속·권한을 짧게 캐시하고, 권한 변경 때 캐시를 비웁니다
+
 ## 인증
 
 ### 로그인과 세션

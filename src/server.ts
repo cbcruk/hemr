@@ -22,29 +22,6 @@ const port = Number(process.env['PORT'] ?? 3000)
 const databaseFile = process.env['DATABASE_FILE'] ?? 'data/hemr.sqlite'
 if (databaseFile !== ':memory:') mkdirSync(dirname(databaseFile), { recursive: true })
 
-/** 접수 기능이 생기기 전까지 로컬에서 상태 커맨드를 시험해 볼 샘플 내원입니다. 진료일은 처음 넣은 날입니다. */
-const today = clinicDate(Date.now())
-const devVisits: Visit[] = [
-  {
-    id: 'vis_01JBQ000000000000000000001' as Visit['id'],
-    patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
-    date: today,
-    status: 'WAITING',
-    statusChangedAt: new Date().toISOString(),
-    hasClinicalData: false,
-    version: 1,
-  },
-  {
-    id: 'vis_01JBQ000000000000000000002' as Visit['id'],
-    patientId: 'pat_01JBQ000000000000000000002' as Visit['patientId'],
-    date: today,
-    status: 'IN_TREATMENT',
-    statusChangedAt: new Date().toISOString(),
-    hasClinicalData: true,
-    version: 1,
-  },
-]
-
 /** 사용자 관리 API가 생기기 전까지 로컬에서 로그인해 볼 병원과 대표원장입니다. 비밀번호는 `DEV_PASSWORD`입니다. */
 const devTenant: Tenant = {
   id: 'ten_01JBQ000000000000000000001' as Tenant['id'],
@@ -54,6 +31,34 @@ const devTenant: Tenant = {
   products: ['EMR'],
   features: [],
 }
+/**
+ * 접수 기능이 생기기 전까지 로컬에서 상태 커맨드를 시험해 볼 샘플 내원입니다. 진료일은 처음 넣은 날입니다. 병원은 위
+ * 개발 한의원입니다.
+ */
+const today = clinicDate(Date.now())
+const devVisits: Visit[] = [
+  {
+    id: 'vis_01JBQ000000000000000000001' as Visit['id'],
+    tenantId: devTenant.id,
+    patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
+    date: today,
+    status: 'WAITING',
+    statusChangedAt: new Date().toISOString(),
+    hasClinicalData: false,
+    version: 1,
+  },
+  {
+    id: 'vis_01JBQ000000000000000000002' as Visit['id'],
+    tenantId: devTenant.id,
+    patientId: 'pat_01JBQ000000000000000000002' as Visit['patientId'],
+    date: today,
+    status: 'IN_TREATMENT',
+    statusChangedAt: new Date().toISOString(),
+    hasClinicalData: true,
+    version: 1,
+  },
+]
+
 const devOwner: User = {
   id: 'usr_01JBQ000000000000000000001' as User['id'],
   loginId: 'owner',

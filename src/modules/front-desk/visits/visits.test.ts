@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
+import { CurrentAccess } from '../../identity/auth/access.ts'
+import { TEST_TENANT, testMember } from '../../identity/auth/testing.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
 import { Visits } from './visits.ts'
 
 const visit: Visit = {
   id: 'vis_01JBQ000000000000000000001' as Visit['id'],
+  tenantId: TEST_TENANT.id,
   patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
   date: clinicDate(Date.now()),
   status: 'COMPLETED',
@@ -17,8 +20,15 @@ const visit: Visit = {
   version: 1,
 }
 
-const run = <A, E>(program: Effect.Effect<A, E, Visits | Outbox>) =>
-  Effect.runPromise(program.pipe(Effect.provide(Visits.layer.pipe(Layer.provideMerge(PersistenceMemory([visit]))))))
+const owner = testMember()
+
+const run = <A, E>(program: Effect.Effect<A, E, Visits | Outbox | CurrentAccess>, access = owner.access) =>
+  Effect.runPromise(
+    program.pipe(
+      Effect.provideService(CurrentAccess, access),
+      Effect.provide(Visits.layer.pipe(Layer.provideMerge(PersistenceMemory([visit])))),
+    ),
+  )
 
 describe('Visits.apply', () => {
   it('writes one status_changed event from the first to the last status', async () => {
@@ -35,6 +45,55 @@ describe('Visits.apply', () => {
         { visitId: visit.id, patientId: visit.patientId, from: 'COMPLETED', to: 'WAITING' },
       ],
     ])
+  })
+
+  it('records the tenant and the user on the event', async () => {
+    const pending = await run(
+      Effect.gen(function* () {
+        yield* (yield* Visits).apply(visit.id, 'REOPEN', { reason: '재수납' })
+        return yield* (yield* Outbox).pending(10)
+      }),
+    )
+    expect(pending.map((row) => [row.event.tenantId, row.event.actor])).toEqual([
+      [TEST_TENANT.id, { kind: 'USER', id: owner.user.id }],
+    ])
+  })
+
+  it('does not find a visit of another tenant', async () => {
+    const other = testMember({ tenant: { ...TEST_TENANT, id: 'ten_01JBQ000000000000000000002' as Visit['tenantId'] } })
+    const error = await run(
+      Effect.gen(function* () {
+        return yield* Effect.flip((yield* Visits).apply(visit.id, 'REOPEN', { reason: '재수납' }))
+      }),
+      other.access,
+    )
+    expect(error).toMatchObject({ code: 'VISIT_NOT_FOUND' })
+  })
+
+  it('needs visit:cancel, receipt:void and encounter:retract for a cascade cancel (D3)', async () => {
+    const desk = testMember({ role: 'FRONT_DESK' })
+    const result = await run(
+      Effect.gen(function* () {
+        const visits = yield* Visits
+        return {
+          cascade: yield* Effect.flip(visits.apply(visit.id, 'CANCEL', { reason: '취소', cascade: true })),
+          pending: yield* (yield* Outbox).pending(10),
+        }
+      }),
+      desk.access,
+    )
+    expect(result.cascade).toMatchObject({ code: 'PERMISSION_DENIED', missing: ['encounter:retract'] })
+    expect(result.pending).toEqual([])
+  })
+
+  it('checks all three cascade permissions itself, not only those the endpoint declares', async () => {
+    const error = await run(
+      Effect.gen(function* () {
+        return yield* Effect.flip((yield* Visits).apply(visit.id, 'CANCEL', { reason: '취소', cascade: true }))
+      }),
+      testMember({ role: 'THERAPIST' }).access,
+    )
+    expect(error).toMatchObject({ missing: ['visit:cancel', 'receipt:void', 'encounter:retract'] })
   })
 
   it('writes no event when the command is rejected', async () => {
@@ -65,7 +124,7 @@ describe('Visits.apply under concurrency', () => {
             Effect.gen(function* () {
               if (!raced) {
                 raced = true
-                const current = Option.getOrThrow(yield* repository.findById(next.id))
+                const current = Option.getOrThrow(yield* repository.findById(next.tenantId, next.id))
                 yield* repository.save(
                   { ...current, version: current.version + 1 },
                   { expectedVersion: current.version },
@@ -80,8 +139,14 @@ describe('Visits.apply under concurrency', () => {
 
   const runWith = <A, E>(
     layer: Layer.Layer<VisitRepository | Outbox, unknown>,
-    program: Effect.Effect<A, E, Visits | Outbox>,
-  ) => Effect.runPromise(program.pipe(Effect.provide(Visits.layer.pipe(Layer.provideMerge(layer)))))
+    program: Effect.Effect<A, E, Visits | Outbox | CurrentAccess>,
+  ) =>
+    Effect.runPromise(
+      program.pipe(
+        Effect.provideService(CurrentAccess, owner.access),
+        Effect.provide(Visits.layer.pipe(Layer.provideMerge(layer))),
+      ),
+    )
 
   it('retries a lost race when the client sent no version', async () => {
     const result = await runWith(

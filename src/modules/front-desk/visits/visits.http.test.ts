@@ -2,6 +2,7 @@ import { Effect, Layer } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { describe, expect, it } from 'vitest'
 import { TestAuthConfig } from '../../identity/auth/auth-config.ts'
+import { TEST_TENANT, testMember } from '../../identity/auth/testing.ts'
 import { AppLive } from '../../../app.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import type { Visit } from './visit.ts'
@@ -14,6 +15,7 @@ const PAST_DATE = '2000-01-01'
 function visit(status: Visit['status'], overrides: Partial<Visit> = {}): Visit {
   return {
     id: VISIT_ID as Visit['id'],
+    tenantId: TEST_TENANT.id,
     patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
     date: clinicDate(Date.now()),
     status,
@@ -29,6 +31,10 @@ interface SendOptions {
   ifMatch?: string
   /** 저장소 구현입니다. 기본은 메모리입니다. */
   store?: 'memory' | 'sqlite'
+  /** 요청을 보내는 구성원입니다. 기본은 대표원장이고, `null`이면 토큰 없이 보냅니다. */
+  member?: ReturnType<typeof testMember> | null
+  /** 구성원의 토큰 대신 보낼 토큰입니다. */
+  token?: string
 }
 
 /** 빈 인메모리 SQLite에 `seed`를 넣은 저장소입니다. */
@@ -40,12 +46,14 @@ const sqliteWith = (seed: Visit[]) =>
     }),
   ).pipe(Layer.provideMerge(PersistenceSqlite(':memory:')))
 
-/** 저장소에 `seed`만 있는 새 앱에 커맨드 하나를 보냅니다. */
+/** 저장소에 `seed`와 구성원만 있는 새 앱에 커맨드 하나를 보냅니다. */
 async function send(seed: Visit[], path: string, options: SendOptions = {}): Promise<Response> {
+  const member = options.member === undefined ? testMember() : options.member
+  const persistence = options.store === 'sqlite' ? sqliteWith(seed) : PersistenceMemory(seed)
   const app = HttpRouter.toWebHandler(
     AppLive.pipe(
       Layer.provide([
-        options.store === 'sqlite' ? sqliteWith(seed) : PersistenceMemory(seed),
+        member === null ? persistence : member.seed.pipe(Layer.provideMerge(persistence)),
         HttpServer.layerServices,
         TestAuthConfig,
       ]),
@@ -54,6 +62,8 @@ async function send(seed: Visit[], path: string, options: SendOptions = {}): Pro
   )
   try {
     const headers: Record<string, string> = {}
+    const token = options.token ?? member?.token
+    if (token !== undefined) headers['authorization'] = `Bearer ${token}`
     if (options.body !== undefined) headers['content-type'] = 'application/json'
     if (options.ifMatch !== undefined) headers['if-match'] = options.ifMatch
     const init: RequestInit = { method: 'POST', headers }
@@ -247,6 +257,102 @@ describe('POST /v1/visits/{id}:{command}', () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toMatchObject({ violations: [{ field: 'id', code: 'INVALID_VALUE' }] })
+  })
+
+  describe('permissions', () => {
+    it('needs a signed-in user', async () => {
+      const response = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { member: null })
+
+      expect(response.status).toBe(401)
+      expect(await response.json()).toMatchObject({ code: 'UNAUTHENTICATED' })
+    })
+
+    it('answers 401 before looking at an invalid body', async () => {
+      const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, { member: null, body: { reason: '' } })
+
+      expect(response.status).toBe(401)
+    })
+
+    it('lets the front desk move a visit and cancel it without cascade', async () => {
+      const desk = testMember({ role: 'FRONT_DESK' })
+      const moved = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { member: desk })
+      const canceled = await send([visit('WAITING')], `${VISIT_ID}:cancel`, {
+        member: desk,
+        body: { reason: '환자 요청' },
+      })
+
+      expect(moved.status).toBe(200)
+      expect(canceled.status).toBe(200)
+    })
+
+    it('refuses a cancel to a therapist, who lacks visit:cancel', async () => {
+      const response = await send([visit('WAITING')], `${VISIT_ID}:cancel`, {
+        member: testMember({ role: 'THERAPIST' }),
+        body: { reason: '환자 요청' },
+      })
+
+      expect(response.status).toBe(403)
+      expect(response.headers.get('content-type')).toBe('application/problem+json')
+      expect(await response.json()).toEqual({
+        type: 'urn:hemr:problem:permission-denied',
+        title: 'Permission denied',
+        status: 403,
+        code: 'PERMISSION_DENIED',
+        missing: ['visit:cancel'],
+      })
+    })
+
+    it('refuses a cascade cancel without encounter:retract, before looking at the visit (D3)', async () => {
+      const response = await send([visit('IN_TREATMENT', { hasClinicalData: true })], `${VISIT_ID}:cancel`, {
+        member: testMember({ role: 'FRONT_DESK' }),
+        body: { reason: '환자 요청', cascade: true },
+      })
+
+      expect(response.status).toBe(403)
+      expect(await response.json()).toMatchObject({ code: 'PERMISSION_DENIED', missing: ['encounter:retract'] })
+    })
+
+    it('refuses a cascade cancel to a doctor without a license, since encounter:retract needs one', async () => {
+      const response = await send([visit('IN_TREATMENT', { hasClinicalData: true })], `${VISIT_ID}:cancel`, {
+        member: testMember({ role: 'OWNER_DOCTOR', licenseType: null }),
+        body: { reason: '환자 요청', cascade: true },
+      })
+
+      expect(response.status).toBe(403)
+      expect(await response.json()).toMatchObject({ missing: ['encounter:retract'] })
+    })
+
+    it('applies a revoked permission on the next request', async () => {
+      const response = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, {
+        member: testMember({ role: 'FRONT_DESK', grants: [{ permission: 'visit:update', effect: 'REVOKE' }] }),
+      })
+
+      expect(response.status).toBe(403)
+      expect(await response.json()).toMatchObject({ missing: ['visit:update'] })
+    })
+
+    it('answers 404 for a visit of another tenant', async () => {
+      const other = testMember({
+        tenant: { ...TEST_TENANT, id: 'ten_01JBQ000000000000000000002' as Visit['tenantId'] },
+      })
+      const memory = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { member: other })
+      const sqlite = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { member: other, store: 'sqlite' })
+
+      expect(memory.status).toBe(404)
+      expect(sqlite.status).toBe(404)
+    })
+
+    it('asks to select a tenant first, and refuses a membership that is no longer active', async () => {
+      const unselected = testMember({ selectTenant: false })
+      const noTenant = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { member: unselected })
+      const left = testMember({ membership: { status: 'DEACTIVATED' } })
+      const deactivated = await send([visit('WAITING')], `${VISIT_ID}:start-treatment`, { member: left })
+
+      expect(noTenant.status).toBe(403)
+      expect(await noTenant.json()).toMatchObject({ code: 'TENANT_NOT_SELECTED' })
+      expect(deactivated.status).toBe(403)
+      expect(await deactivated.json()).toMatchObject({ code: 'TENANT_ACCESS_DENIED' })
+    })
   })
 
   describe('on SQLite', () => {

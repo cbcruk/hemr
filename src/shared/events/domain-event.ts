@@ -4,8 +4,8 @@ import type { Id } from '../ids/ids.types.ts'
 /**
  * 도메인 이벤트 envelope입니다 (`docs/design/events.md`). 필드 이름은 CloudEvents를 따릅니다.
  *
- * `seq`는 outbox에 쓸 때 저장소가 붙이므로 여기에는 없습니다. 테넌트와 행위자는 인증이 생기기 전까지 비어 있을 수
- * 있습니다.
+ * `seq`는 outbox에 쓸 때 저장소가 붙이므로 여기에는 없습니다. 병원 업무의 이벤트는 테넌트와 행위자를 채웁니다.
+ * 테스트용 이벤트처럼 둘 다 없는 이벤트도 있어 선택 필드로 둡니다.
  */
 export interface DomainEvent {
   id: Id<'event'>
@@ -27,6 +27,12 @@ export interface RecordedEvent extends DomainEvent {
 }
 
 /** 새 이벤트를 만듭니다. ID는 발생 시각의 ULID입니다. */
-export function domainEvent(type: string, subject: string, time: string, data: Record<string, unknown>): DomainEvent {
-  return { id: newId('event', Date.parse(time)), type, time, subject, data }
+export function domainEvent(
+  type: string,
+  subject: string,
+  time: string,
+  data: Record<string, unknown>,
+  context: Pick<DomainEvent, 'tenantId' | 'actor'> = {},
+): DomainEvent {
+  return { id: newId('event', Date.parse(time)), type, time, subject, ...context, data }
 }

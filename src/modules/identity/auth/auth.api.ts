@@ -1,12 +1,9 @@
 import { Schema } from 'effect'
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from 'effect/http-api'
-import { isId } from '../../../shared/ids/ids.ts'
-import type { Id } from '../../../shared/ids/ids.types.ts'
+import { TenantId } from '../identity.ts'
+import { Access } from './access.ts'
 import { AccountLocked, InvalidCredentials, TenantAccessDenied, Unauthenticated } from './auth-errors.ts'
 import { Authentication } from './authentication.ts'
-
-/** 병원 ID입니다. 예: `ten_01J...` */
-export const TenantId = Schema.String.pipe(Schema.refine((value): value is Id<'tenant'> => isId('tenant', value)))
 
 const AccessToken = {
   accessToken: Schema.String,
@@ -65,23 +62,31 @@ export class AuthApi extends HttpApiGroup.make('auth')
       }),
       success: LoginResponse,
       error: [InvalidCredentials, AccountLocked],
-    }),
+    }).annotate(Access, Access.public),
     HttpApiEndpoint.post('refresh', '/sessions::refresh', {
       /** 탭이 보고 있던 병원(`?tenantId=`)입니다. 다른 탭이 병원을 바꿔도 이 탭은 그대로 둡니다. */
       query: { tenantId: Schema.optionalKey(TenantId) },
       success: Schema.Struct({ ...AccessToken, tenantId: Schema.NullOr(Schema.String) }),
       error: Unauthenticated,
-    }),
-    HttpApiEndpoint.delete('logout', '/sessions/current', { success: HttpApiSchema.NoContent }),
+    }).annotate(Access, Access.public),
+    /** 로그인하지 않아도 부릅니다. 쿠키나 access token이 가리키는 세션이 있으면 폐기합니다. */
+    HttpApiEndpoint.delete('logout', '/sessions/current', { success: HttpApiSchema.NoContent }).annotate(
+      Access,
+      Access.public,
+    ),
     HttpApiEndpoint.post('switchTenant', '/sessions::switch-tenant', {
       payload: Schema.Struct({ tenantId: TenantId }),
       success: Schema.Struct(AccessToken),
       error: TenantAccessDenied,
-    }).middleware(Authentication),
+    })
+      .middleware(Authentication)
+      .annotate(Access, Access.signedIn),
   )
   .prefix('/auth') {}
 
 /** 로그인한 사용자 자신입니다. 앱 시작 시 한 번 받고 저장하지 않습니다. */
 export class MeApi extends HttpApiGroup.make('me').add(
-  HttpApiEndpoint.get('me', '/me', { success: MeResponse }).middleware(Authentication),
+  HttpApiEndpoint.get('me', '/me', { success: MeResponse })
+    .middleware(Authentication)
+    .annotate(Access, Access.signedIn),
 ) {}

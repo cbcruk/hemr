@@ -23,9 +23,26 @@ export class Unauthenticated extends HttpApiError.Problem<Unauthenticated>()(
   { code: Schema.tag('UNAUTHENTICATED') },
 ) {}
 
-/** 유효한 소속이 없는 병원으로 전환하려 했습니다. */
+/** 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. */
 export class TenantAccessDenied extends HttpApiError.Problem<TenantAccessDenied>()(
   'TenantAccessDenied',
   { type: problemType('TENANT_ACCESS_DENIED'), status: 403, title: 'No active membership in this tenant' },
   { code: Schema.tag('TENANT_ACCESS_DENIED') },
+) {}
+
+/** 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. */
+export class TenantNotSelected extends HttpApiError.Problem<TenantNotSelected>()(
+  'TenantNotSelected',
+  { type: problemType('TENANT_NOT_SELECTED'), status: 403, title: 'Select a tenant first' },
+  { code: Schema.tag('TENANT_NOT_SELECTED') },
+) {}
+
+/**
+ * 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한입니다. 클라이언트도 `/me`로 자기 권한을 알고 있어, 이름을
+ * 알려 줘도 새로 드러나는 것이 없습니다.
+ */
+export class PermissionDenied extends HttpApiError.Problem<PermissionDenied>()(
+  'PermissionDenied',
+  { type: problemType('PERMISSION_DENIED'), status: 403, title: 'Permission denied' },
+  { code: Schema.tag('PERMISSION_DENIED'), missing: Schema.Array(Schema.String) },
 ) {}

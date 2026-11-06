@@ -10,8 +10,12 @@ import { Outbox } from '../../../shared/events/outbox.ts'
 import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
 
+const TENANT = 'ten_01JBQ000000000000000000001' as Visit['tenantId']
+const OTHER_TENANT = 'ten_01JBQ000000000000000000002' as Visit['tenantId']
+
 const visit: Visit = {
   id: 'vis_01JBQ000000000000000000001' as Visit['id'],
+  tenantId: TENANT,
   patientId: 'pat_01JBQ000000000000000000001' as Visit['patientId'],
   date: '2026-11-05',
   status: 'WAITING',
@@ -43,12 +47,12 @@ describe.each([
       layer(),
       Effect.gen(function* () {
         const repository = yield* VisitRepository
-        const missing = yield* repository.findById(visit.id)
+        const missing = yield* repository.findById(TENANT, visit.id)
         yield* repository.save(visit, { expectedVersion: null })
         const next = changed(visit, 'IN_TREATMENT')
         yield* repository.save(next, { expectedVersion: 1, events: [event(next.statusChangedAt)] })
         const pending = yield* (yield* Outbox).pending(10)
-        return { missing, found: yield* repository.findById(visit.id), pending }
+        return { missing, found: yield* repository.findById(TENANT, visit.id), pending }
       }),
     )
     expect(Option.isNone(result.missing)).toBe(true)
@@ -71,7 +75,7 @@ describe.each([
         return {
           stale,
           duplicate,
-          found: yield* repository.findById(visit.id),
+          found: yield* repository.findById(TENANT, visit.id),
           pending: yield* (yield* Outbox).pending(10),
         }
       }),
@@ -82,13 +86,39 @@ describe.each([
     expect(result.pending).toEqual([])
   })
 
+  it('hides and protects a visit of another tenant', async () => {
+    const result = await run(
+      layer(),
+      Effect.gen(function* () {
+        const repository = yield* VisitRepository
+        yield* repository.save(visit, { expectedVersion: null })
+        const intruder = { ...changed(visit, 'CANCELED'), tenantId: OTHER_TENANT }
+        return {
+          found: yield* repository.findById(OTHER_TENANT, visit.id),
+          update: yield* Effect.flip(
+            repository.save(intruder, { expectedVersion: 1, events: [event(visit.statusChangedAt)] }),
+          ),
+          insert: yield* Effect.flip(repository.save({ ...visit, tenantId: OTHER_TENANT }, { expectedVersion: null })),
+          own: yield* repository.findById(TENANT, visit.id),
+          pending: yield* (yield* Outbox).pending(10),
+        }
+      }),
+    )
+    expect(Option.isNone(result.found)).toBe(true)
+    // 다른 병원 내원의 버전(1)이 드러나지 않게 없는 내원처럼 0으로 답합니다
+    expect(result.update).toMatchObject({ code: 'VERSION_MISMATCH', currentVersion: 0 })
+    expect(result.insert).toMatchObject({ code: 'VERSION_MISMATCH', currentVersion: 0 })
+    expect(result.own).toEqual(Option.some(visit))
+    expect(result.pending).toEqual([])
+  })
+
   it('keeps the optional reason absent when it was never set', async () => {
     const found = await run(
       layer(),
       Effect.gen(function* () {
         const repository = yield* VisitRepository
         yield* repository.save(visit, { expectedVersion: null })
-        return yield* repository.findById(visit.id)
+        return yield* repository.findById(TENANT, visit.id)
       }),
     )
     expect(Option.getOrThrow(found)).not.toHaveProperty('statusReason')
@@ -107,7 +137,7 @@ describe('VisitRepository (sqlite) transaction', () => {
         const exit = yield* Effect.exit(
           repository.save(changed(visit, 'IN_TREATMENT'), { expectedVersion: 1, events: [duplicateEvent] }),
         )
-        return { exit, found: yield* repository.findById(visit.id) }
+        return { exit, found: yield* repository.findById(TENANT, visit.id) }
       }),
     )
     expect(Exit.isFailure(result.exit)).toBe(true)
@@ -121,7 +151,7 @@ describe('VisitRepository (sqlite) transaction', () => {
         return yield* sql<{ name: string }>`SELECT name FROM effect_sql_migrations`
       }).pipe(Effect.provide(PersistenceSqlite(':memory:'))),
     )
-    expect(applied.map((row) => row.name)).toEqual(['visits_and_outbox', 'identity', 'auth'])
+    expect(applied.map((row) => row.name)).toEqual(['visits_and_outbox', 'identity', 'auth', 'visit_tenant'])
   })
 
   it('applies migrations once across restarts of the same file', async () => {
@@ -135,7 +165,7 @@ describe('VisitRepository (sqlite) transaction', () => {
       )
     try {
       await names()
-      expect((await names()).map((row) => row.name)).toEqual(['visits_and_outbox', 'identity', 'auth'])
+      expect((await names()).map((row) => row.name)).toEqual(['visits_and_outbox', 'identity', 'auth', 'visit_tenant'])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
