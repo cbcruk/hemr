@@ -51,5 +51,8 @@ export class AuthConfig extends Context.Service<AuthConfig, AuthSettings>()('hem
   )
 }
 
+/** 테스트용 서명 키입니다. 테스트가 로그인 없이 access token을 만들 때(`testMember`) 씁니다. */
+export const TEST_AUTH_SECRET = Redacted.make('test-secret-test-secret-test-secret')
+
 /** 고정 키를 쓰는 테스트용 설정입니다. */
-export const TestAuthConfig = AuthConfig.layer({ secret: Redacted.make('test-secret-test-secret-test-secret') })
+export const TestAuthConfig = AuthConfig.layer({ secret: TEST_AUTH_SECRET })

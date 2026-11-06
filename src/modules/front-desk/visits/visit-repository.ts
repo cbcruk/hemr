@@ -21,12 +21,16 @@ export interface SaveVisitOptions {
 /**
  * 내원 저장소입니다. 환경마다 다른 Layer를 넣어 구현을 바꿉니다.
  *
+ * 내원은 병원(`tenantId`)에 속합니다. `findById`는 그 병원의 내원만 찾고, `save`는 다른 병원의 같은 ID를 덮어쓰지
+ * 않고 거절하되, 그 버전은 감추고 `currentVersion` 0의 `VersionMismatch`로 답합니다. ID는 서버가 만드는 ULID라 실제로
+ * 겹칠 일은 없고, 겹쳐도 다른 병원 내원의 버전이 드러나지 않게 하려는 것입니다.
+ *
  * `save`는 버전 비교, 내원 쓰기, outbox 쓰기를 한 번에 합니다. 하나라도 실패하면 아무것도 남지 않습니다.
  */
 export class VisitRepository extends Context.Service<
   VisitRepository,
   {
-    findById(id: Id<'visit'>): Effect.Effect<Option.Option<Visit>>
+    findById(tenantId: Id<'tenant'>, id: Id<'visit'>): Effect.Effect<Option.Option<Visit>>
     save(visit: Visit, options: SaveVisitOptions): Effect.Effect<void, VersionMismatch>
   }
 >()('hemr/front-desk/VisitRepository') {
@@ -39,12 +43,18 @@ export class VisitRepository extends Context.Service<
         const outbox = yield* Outbox
 
         return VisitRepository.of({
-          findById: (id) => Ref.get(store).pipe(Effect.map((visits) => Option.fromNullishOr(visits.get(id)))),
+          findById: (tenantId, id) =>
+            Ref.get(store).pipe(
+              Effect.map((visits) =>
+                Option.filter(Option.fromNullishOr(visits.get(id)), (each) => each.tenantId === tenantId),
+              ),
+            ),
           save: (visit, options) =>
             Effect.gen(function* () {
               // 비교와 쓰기를 `Ref.modify` 한 번에 해, 동시에 저장해도 SQL 구현처럼 하나만 통과합니다
               const mismatch = yield* Ref.modify(store, (visits) => {
                 const current = visits.get(visit.id)
+                if (current !== undefined && current.tenantId !== visit.tenantId) return [0, visits]
                 return (current?.version ?? null) === options.expectedVersion
                   ? [null, new Map(visits).set(visit.id, visit)]
                   : [current?.version ?? 0, visits]
@@ -65,6 +75,7 @@ export class VisitRepository extends Context.Service<
 
       interface Row {
         id: string
+        tenantId: string
         patientId: string
         date: string
         status: Visit['status']
@@ -76,6 +87,7 @@ export class VisitRepository extends Context.Service<
 
       const toVisit = (row: Row): Visit => ({
         id: row.id as Visit['id'],
+        tenantId: row.tenantId as Visit['tenantId'],
         patientId: row.patientId as Visit['patientId'],
         date: row.date,
         status: row.status,
@@ -85,8 +97,8 @@ export class VisitRepository extends Context.Service<
         version: row.version,
       })
 
-      const currentVersion = (id: string) =>
-        sql<{ version: number }>`SELECT version FROM visits WHERE id = ${id}`.pipe(
+      const currentVersion = (tenantId: string, id: string) =>
+        sql<{ version: number }>`SELECT version FROM visits WHERE id = ${id} AND tenant_id = ${tenantId}`.pipe(
           Effect.map((rows) => rows[0]?.version ?? 0),
         )
 
@@ -103,23 +115,23 @@ export class VisitRepository extends Context.Service<
         // 버전 비교와 쓰기를 한 문장으로 해, 읽은 뒤 다른 요청이 먼저 저장해도 덮어쓰지 않습니다
         return expectedVersion === null
           ? sql<{ id: string }>`
-              INSERT INTO visits ${sql.insert({ id: visit.id, ...values })}
+              INSERT INTO visits ${sql.insert({ id: visit.id, tenant_id: visit.tenantId, ...values })}
               ON CONFLICT (id) DO NOTHING
               RETURNING id
             `
           : sql<{ id: string }>`
               UPDATE visits SET ${sql.update(values)}
-              WHERE id = ${visit.id} AND version = ${expectedVersion}
+              WHERE id = ${visit.id} AND tenant_id = ${visit.tenantId} AND version = ${expectedVersion}
               RETURNING id
             `
       }
 
       return VisitRepository.of({
-        findById: (id) =>
+        findById: (tenantId, id) =>
           sql<Row>`
-            SELECT id, patient_id AS patientId, date, status, status_changed_at AS statusChangedAt,
+            SELECT id, tenant_id AS tenantId, patient_id AS patientId, date, status, status_changed_at AS statusChangedAt,
               status_reason AS statusReason, has_clinical_data AS hasClinicalData, version
-            FROM visits WHERE id = ${id}
+            FROM visits WHERE id = ${id} AND tenant_id = ${tenantId}
           `.pipe(
             Effect.map((rows) => Option.map(Option.fromNullishOr(rows[0]), toVisit)),
             Effect.orDie,
@@ -128,7 +140,7 @@ export class VisitRepository extends Context.Service<
           Effect.gen(function* () {
             const written = yield* write(visit, options.expectedVersion)
             if (written.length === 0) {
-              return yield* new VersionMismatch({ currentVersion: yield* currentVersion(visit.id) })
+              return yield* new VersionMismatch({ currentVersion: yield* currentVersion(visit.tenantId, visit.id) })
             }
             yield* outbox.append(options.events ?? [])
           }).pipe(sql.withTransaction, Effect.catchTag('SqlError', Effect.die)),

@@ -5,6 +5,7 @@ import { Api } from './api.ts'
 import { Auth } from './modules/identity/auth/auth.ts'
 import { AuthHttpLive, MeHttpLive } from './modules/identity/auth/auth.http.ts'
 import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
+import { AuthorizationLive, accessCheck } from './modules/identity/auth/authorization.ts'
 import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
 import { Visits } from './modules/front-desk/visits/visits.ts'
 import { Internal, NotFound } from './shared/problem/problem.ts'
@@ -32,6 +33,9 @@ function isRouteNotFound(error: unknown): boolean {
   return error instanceof HttpServerError.HttpServerError && error.reason._tag === 'RouteNotFound'
 }
 
+/** 인증·권한 미들웨어입니다. 둘 다 같은 `Auth`를 씁니다. */
+const SecurityLive = Layer.mergeAll(AuthenticationLive, AuthorizationLive).pipe(Layer.provideMerge(Auth.layer))
+
 /**
  * HTTP 서버에 올릴 수 있는 API 전체 경로입니다.
  *
@@ -39,10 +43,10 @@ function isRouteNotFound(error: unknown): boolean {
  */
 export const AppLive = HttpApiBuilder.layer(Api).pipe(
   Layer.provide(SystemLive),
-  Layer.provide(
-    Layer.mergeAll(AuthHttpLive, MeHttpLive).pipe(Layer.provideMerge(AuthenticationLive), Layer.provide(Auth.layer)),
-  ),
+  Layer.provide(Layer.mergeAll(AuthHttpLive, MeHttpLive)),
   Layer.provide(VisitsHttpLive.pipe(Layer.provide(Visits.layer))),
+  Layer.provide(SecurityLive),
   Layer.provide(RequestValidationLive),
+  Layer.provide(accessCheck(Api)),
   Layer.merge(ProblemFallback),
 )

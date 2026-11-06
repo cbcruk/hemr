@@ -1,6 +1,11 @@
+import { Schema } from 'effect'
+import { isId } from '../../shared/ids/ids.ts'
 import type { Id } from '../../shared/ids/ids.types.ts'
 import { DOCTOR_ROLES, effectivePermissions } from './permissions.ts'
 import type { AccessGrant, LicenseType, PatientScope, PermissionGrant, Role } from './permissions.ts'
+
+/** 병원 ID입니다. 예: `ten_01J...` */
+export const TenantId = Schema.String.pipe(Schema.refine((value): value is Id<'tenant'> => isId('tenant', value)))
 
 /** 테넌트가 쓰는 제품입니다 (현행 `서비스연동`). */
 export type Product = 'EMR' | 'SOO' | 'INSURANCE' | 'CRM' | 'MEMBERS'

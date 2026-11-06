@@ -8,7 +8,14 @@ import { IdentityRepository } from '../identity-repository.ts'
 import type { LicenseType, PatientScope, Permission, Role } from '../permissions.ts'
 import { signAccessToken, verifyAccessToken } from './access-token.ts'
 import { AuthConfig } from './auth-config.ts'
-import { AccountLocked, InvalidCredentials, TenantAccessDenied, Unauthenticated } from './auth-errors.ts'
+import type { CurrentAccess } from './access.ts'
+import {
+  AccountLocked,
+  InvalidCredentials,
+  TenantAccessDenied,
+  TenantNotSelected,
+  Unauthenticated,
+} from './auth-errors.ts'
 import { AuthRepository } from './auth-repository.ts'
 import { DUMMY_PASSWORD_HASH, verifyPassword } from './password.ts'
 import { newRefreshToken, refreshTokenHash } from './refresh-token.ts'
@@ -97,6 +104,10 @@ export class Auth extends Context.Service<
       tenantId: Id<'tenant'>,
     ): Effect.Effect<IssuedAccessToken, TenantAccessDenied>
     me(session: CurrentSession['Service']): Effect.Effect<Me, Unauthenticated>
+    /** 세션이 고른 병원에서의 오늘 권한입니다. 권한 미들웨어(`Authorization`)가 요청마다 부릅니다. */
+    access(
+      session: CurrentSession['Service'],
+    ): Effect.Effect<CurrentAccess['Service'], Unauthenticated | TenantNotSelected | TenantAccessDenied>
   }
 >()('hemr/identity/Auth') {
   static readonly layer = Layer.effect(
@@ -350,7 +361,22 @@ export class Auth extends Context.Service<
         }
       })
 
-      return Auth.of({ login, refresh, logout, authenticate, switchTenant, me })
+      const access = Effect.fn('Auth.access')(function* (current: CurrentSession['Service']) {
+        const tenantId = current.tenantId
+        if (tenantId === null) return yield* new TenantNotSelected({})
+        const today = clinicDate(yield* Clock.currentTimeMillis)
+        // 사용자가 없어졌으면 `/me`처럼 401이고, 병원이 없어졌거나 소속이 유효하지 않으면 403입니다
+        const user = yield* identity.findUser(current.userId)
+        if (Option.isNone(user)) return yield* new Unauthenticated({})
+        const membership = yield* identity.findMembership(tenantId, current.userId)
+        const tenant = yield* identity.findTenant(tenantId)
+        const grant =
+          Option.isSome(membership) && Option.isSome(tenant) ? accessGrant(membership.value, user.value, today) : null
+        if (grant === null) return yield* new TenantAccessDenied({})
+        return { ...grant, userId: current.userId, sessionId: current.sessionId, tenantId }
+      })
+
+      return Auth.of({ login, refresh, logout, authenticate, switchTenant, me, access })
     }),
   )
 }

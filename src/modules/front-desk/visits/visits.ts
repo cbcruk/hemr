@@ -3,6 +3,8 @@ import { domainEvent } from '../../../shared/events/domain-event.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
+import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
+import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { transitionVisit } from './visit-status.ts'
 import type { VisitCommand, VisitStatus, VisitTransitionErrorCode } from './visit-status.types.ts'
 import { VisitDatePast, VisitHasClinicalData, VisitNotFound, VisitTransitionInvalid } from './visit.ts'
@@ -23,7 +25,7 @@ export interface VisitCommandInput {
 
 /** 상태 커맨드가 실패할 수 있는 오류입니다. */
 export type VisitCommandError =
-  VisitNotFound | VisitTransitionInvalid | VisitHasClinicalData | VisitDatePast | VersionMismatch
+  VisitNotFound | VisitTransitionInvalid | VisitHasClinicalData | VisitDatePast | VersionMismatch | PermissionDenied
 
 /** `:reopen {then}`의 목표 상태로 가는 커맨드입니다. */
 const THEN_COMMANDS: Record<NonNullable<VisitCommandInput['then']>, VisitCommand> = {
@@ -43,9 +45,19 @@ export class Visits extends Context.Service<
      * `expectedVersion`을 받으면 읽은 뒤 다른 요청이 먼저 저장했을 때 412 `VERSION_MISMATCH`입니다. 받지 않았으면
      * 클라이언트가 잠금을 요청하지 않은 것이라, 새 상태로 다시 읽어 판정하고 저장하기를 3번까지 되풀이합니다.
      *
-     * 권한 확인과, 연쇄 취소 때 함께 무효로 할 기록 처리는 아직 없습니다.
+     * 현재 사용자(`CurrentAccess`)가 고른 병원의 내원만 찾습니다. 다른 병원의 내원은 404 `VISIT_NOT_FOUND`입니다.
+     * 이벤트에는 그 병원과 사용자를 적습니다.
+     *
+     * 커맨드 자체의 권한(`visit:update`·`visit:cancel`)은 엔드포인트 선언이 확인합니다. 연쇄 취소는 본문에 따라
+     * 정해지므로 여기서 `visit:cancel`·`receipt:void`·`encounter:retract`를 모두 확인합니다(D3). 내원을 읽기 전에
+     * 확인해, 권한이 없으면 내원 상태와 상관없이 403 `PERMISSION_DENIED`입니다. 함께 무효로 할 진료·수납 기록 처리는
+     * 그 모듈이 생길 때 더합니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다.
      */
-    apply(id: Id<'visit'>, command: VisitCommand, input?: VisitCommandInput): Effect.Effect<Visit, VisitCommandError>
+    apply(
+      id: Id<'visit'>,
+      command: VisitCommand,
+      input?: VisitCommandInput,
+    ): Effect.Effect<Visit, VisitCommandError, CurrentAccess>
   }
 >()('hemr/front-desk/Visits') {
   static readonly layer = Layer.effect(
@@ -58,7 +70,11 @@ export class Visits extends Context.Service<
         command: VisitCommand,
         input: VisitCommandInput = {},
       ) {
-        const visit = yield* repository.findById(id).pipe(
+        const access = yield* CurrentAccess
+        if (command === 'CANCEL' && input.cascade === true) {
+          yield* requirePermissions('visit:cancel', 'receipt:void', 'encounter:retract')
+        }
+        const visit = yield* repository.findById(access.tenantId, id).pipe(
           Effect.flatMap(
             Option.match({
               onNone: () => Effect.fail(new VisitNotFound({})),
@@ -95,12 +111,13 @@ export class Visits extends Context.Service<
           version: visit.version + 1,
           ...(input.reason === undefined ? {} : { statusReason: input.reason }),
         }
-        const event = domainEvent('visit.status_changed', visit.id, next.statusChangedAt, {
-          visitId: visit.id,
-          patientId: visit.patientId,
-          from: visit.status,
-          to: status,
-        })
+        const event = domainEvent(
+          'visit.status_changed',
+          visit.id,
+          next.statusChangedAt,
+          { visitId: visit.id, patientId: visit.patientId, from: visit.status, to: status },
+          { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+        )
         // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
         yield* repository.save(next, { expectedVersion: visit.version, events: [event] })
         return next

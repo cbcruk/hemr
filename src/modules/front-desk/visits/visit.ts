@@ -3,6 +3,7 @@ import { HttpApiError } from 'effect/http-api'
 import { isId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { problemType } from '../../../shared/problem/problem.ts'
+import { TenantId } from '../../identity/identity.ts'
 
 /** 내원 ID입니다. 예: `vis_01J...` */
 export const VisitId = Schema.String.pipe(Schema.refine((value): value is Id<'visit'> => isId('visit', value)))
@@ -31,6 +32,8 @@ export const VisitCommand = Schema.Literals([
  */
 export const Visit = Schema.Struct({
   id: VisitId,
+  /** 내원을 받은 병원입니다. 다른 병원의 내원은 없는 것과 같이 다룹니다(404). */
+  tenantId: TenantId,
   patientId: PatientId,
   /** 진료일입니다. 형식은 `YYYY-MM-DD`입니다. */
   date: Schema.String,

@@ -141,6 +141,29 @@ export const migrations = {
       ) STRICT
     `
   }),
+  '0004_visit_tenant': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // SQLite는 NOT NULL 열을 기본값 없이 더할 수 없어 테이블을 새로 만듭니다. 접수 엔드포인트가 생기기 전이라 있는
+    // 내원은 병원이 없는 개발용 샘플뿐이므로 옮기지 않습니다. 개발 서버는 뜰 때 샘플을 다시 넣습니다. 그 내원의 이전
+    // outbox 이벤트는 병원 없이 남습니다. 실제 데이터가 생긴 뒤라면 이렇게 지우지 않고 옮겨야 합니다
+    yield* sql`DROP TABLE visits`
+    // 병원은 Identity 모듈의 테이블이라 외래 키를 걸지 않습니다. 모듈 사이는 ID로만 이어집니다
+    yield* sql`
+      CREATE TABLE visits (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        status TEXT NOT NULL
+          CHECK (status IN ('WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT', 'COMPLETED', 'CANCELED')),
+        status_changed_at TEXT NOT NULL,
+        status_reason TEXT,
+        has_clinical_data INTEGER NOT NULL CHECK (has_clinical_data IN (0, 1)),
+        version INTEGER NOT NULL CHECK (version >= 1)
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX visits_tenant_date ON visits (tenant_id, date)`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */
