@@ -7,16 +7,18 @@ import { TenantId, UserId } from '../../identity/identity.ts'
 import { LocalDate } from '../../patients/patient.ts'
 import { Won } from '../receipts/receipt.ts'
 
-export const ExpenseId = Schema.String.pipe(Schema.refine((value): value is Id<'expense'> => isId('expense', value)))
-export const ExpenseCategoryId = Schema.String.pipe(
+// 설명은 `refine` 앞에 답니다. 뒤에 달면 OpenAPI 문서에서 빠집니다
+export const ExpenseId = Schema.String.annotate({ description: '지출 ID입니다.' }).pipe(
+  Schema.refine((value): value is Id<'expense'> => isId('expense', value)),
+)
+export const ExpenseCategoryId = Schema.String.annotate({ description: '지출 분류 ID입니다.' }).pipe(
   Schema.refine((value): value is Id<'expenseCategory'> => isId('expenseCategory', value)),
 )
 
-/**
- * 달력에 있는 날짜입니다. `LocalDate`는 형식만 봐 `2026-02-30`도 받는데, 시재는 날짜로 하루 범위를 계산하므로 실제
- * 날짜만 받습니다.
- */
-export const CalendarDate = LocalDate.check(
+// `LocalDate`는 형식만 봐 `2026-02-30`도 받는데, 시재는 날짜로 하루 범위를 계산하므로 실제 날짜만 받습니다
+export const CalendarDate = LocalDate.annotate({
+  description: '날짜입니다. 형식은 `YYYY-MM-DD`이고 달력에 있는 날짜만 받습니다(`2026-02-30`은 400).',
+}).check(
   Schema.makeFilter(
     (value: string) => {
       const time = Date.parse(`${value}T00:00:00Z`)
@@ -26,19 +28,24 @@ export const CalendarDate = LocalDate.check(
   ),
 )
 
-export const CashDrawerStatus = Schema.Literals(['NOT_OPENED', 'OPEN', 'CLOSED', 'REOPENED'])
-export const CashDrawerCommand = Schema.Literals(['OPEN', 'CLOSE', 'REOPEN'])
+export const CashDrawerStatus = Schema.Literals(['NOT_OPENED', 'OPEN', 'CLOSED', 'REOPENED']).annotate({
+  identifier: 'CashDrawerStatus',
+  title: '시재 상태',
+  description:
+    '열지 않음(`NOT_OPENED`), 열림(`OPEN`), 마감(`CLOSED`), 다시 열림(`REOPENED`)입니다. 마감 뒤 그날 현금 기록이 바뀌어도 `REOPENED`가 됩니다.',
+})
+export const CashDrawerCommand = Schema.Literals(['OPEN', 'CLOSE', 'REOPEN']).annotate({
+  identifier: 'CashDrawerCommand',
+  description: '시재 커맨드입니다. 개시(`OPEN`), 마감(`CLOSE`), 다시 열기(`REOPEN`)입니다.',
+})
 
-/** 마감 기록입니다. 다시 마감하면 새 기록으로 바꿉니다. */
 const Closing = Schema.Struct({
-  countedAmount: Won,
-  /** 마감할 때의 예상 마감 금액입니다. */
-  expectedClosing: Schema.Int,
-  /** `countedAmount − expectedClosing`입니다. */
-  difference: Schema.Int,
+  countedAmount: Won.annotate({ description: '실사 금액입니다. 마감할 때 돈통에서 센 현금입니다.' }),
+  expectedClosing: Schema.Int.annotate({ description: '마감할 때의 예상 마감 금액입니다.' }),
+  difference: Schema.Int.annotate({ description: '차액입니다. `countedAmount − expectedClosing`입니다.' }),
   closedAt: Schema.String,
   closedBy: UserId,
-})
+}).annotate({ description: '마감 기록입니다. 다시 마감하면 새 기록으로 바꾸고 지난 기록은 남기지 않습니다.' })
 
 /**
  * 저장하는 시재입니다. 병원·날짜마다 하나입니다. 현금 흐름은 저장하지 않고 읽을 때 결제·환불·지출에서 계산합니다.
@@ -58,26 +65,24 @@ export interface CashDrawerRecord {
   version: number
 }
 
-/** 시재입니다 (front-desk.md 시재와 지출). 현금 흐름과 상태는 서버가 계산합니다. */
+// 선수금 현금 충전은 환자 원장이 생기면 `cashIn`에 더합니다
 export const CashDrawer = Schema.Struct({
   date: LocalDate,
   status: CashDrawerStatus,
-  /** 시작 금액입니다. 열지 않았으면 `null`입니다. */
-  openingAmount: Schema.NullOr(Won),
-  /** 시작 금액을 앞 시재의 마감 금액에서 이어받았는지입니다. */
-  carriedOver: Schema.Boolean,
-  /** 현금 수납의 합입니다. 선수금 현금 충전도 여기에 들어갑니다(충전 기능이 생기면). */
-  cashIn: Schema.Int,
-  cashRefunds: Schema.Int,
-  expenses: Schema.Int,
-  /** `시작 + 현금 수납 − 지출 − 현금 환불`입니다. 열지 않았으면 `null`입니다. */
-  expectedClosing: Schema.NullOr(Schema.Int),
-  opened: Schema.NullOr(Schema.Struct({ at: Schema.String, by: UserId })),
+  openingAmount: Schema.NullOr(Won).annotate({ description: '시작 금액입니다. 열지 않았으면 `null`입니다.' }),
+  carriedOver: Schema.Boolean.annotate({ description: '시작 금액을 앞 시재의 마감 금액에서 이어받았는지입니다.' }),
+  cashIn: Schema.Int.annotate({ description: '그날 현금 수납의 합입니다.' }),
+  cashRefunds: Schema.Int.annotate({
+    description: '그날 현금 환불의 합입니다. 현금 결제를 취소한 영수증의 남은 금액도 취소한 날의 환불로 셉니다.',
+  }),
+  expenses: Schema.Int.annotate({ description: '그날 지출의 합입니다.' }),
+  expectedClosing: Schema.NullOr(Schema.Int).annotate({
+    description: '예상 마감 금액입니다. `시작 + 현금 수납 − 지출 − 현금 환불`이고, 열지 않았으면 `null`입니다.',
+  }),
+  opened: Schema.NullOr(Schema.Struct({ at: Schema.String, by: UserId })).annotate({
+    description: '개시 기록입니다. 열지 않았으면 `null`입니다.',
+  }),
   closing: Schema.NullOr(Closing),
-  /**
-   * 마지막 마감 뒤 다시 열린 이유입니다. `MANUAL`은 `:reopen`이고, `CHANGED_AFTER_CLOSE`는 마감 뒤 그날 현금
-   * 원장이 바뀐 것입니다(이때 `reason`·`at`·`by`는 `null`). 둘 다면 `MANUAL`입니다.
-   */
   reopened: Schema.NullOr(
     Schema.Struct({
       cause: Schema.Literals(['MANUAL', 'CHANGED_AFTER_CLOSE']),
@@ -85,36 +90,48 @@ export const CashDrawer = Schema.Struct({
       at: Schema.NullOr(Schema.String),
       by: Schema.NullOr(UserId),
     }),
-  ),
-  /** 저장한 버전입니다. 열지 않았으면 0입니다. */
-  version: Schema.Int,
+  ).annotate({
+    description:
+      '마지막 마감 뒤 다시 열린 이유입니다. `MANUAL`은 `:reopen`이고, `CHANGED_AFTER_CLOSE`는 마감 뒤 그날 현금 원장이 바뀐 것입니다(이때 `reason`·`at`·`by`는 `null`). 둘 다면 `MANUAL`입니다. 다시 마감하면 `null`입니다.',
+  }),
+  version: Schema.Int.annotate({ description: '저장한 버전입니다. 열지 않았으면 0입니다.' }),
+}).annotate({
+  identifier: 'CashDrawer',
+  title: '시재',
+  description:
+    '그날 시재입니다. 병원·날짜마다 하나이고, 현금 흐름은 저장하지 않고 읽을 때 그날(병원 시간대) 결제·환불·지출에서 계산합니다. 돈이 오간 날로 셉니다.',
 })
 export type CashDrawer = typeof CashDrawer.Type
 
-/** 지출 항목입니다(현행 출금 사유). */
+// 현행 출금 사유입니다
 export const ExpenseCategory = Schema.Struct({
   id: ExpenseCategoryId,
   tenantId: TenantId,
-  name: Schema.String,
+  name: Schema.String.annotate({ description: '분류 이름입니다. 병원 안에서 겹치지 않습니다.' }),
   createdAt: Schema.String,
+}).annotate({
+  identifier: 'ExpenseCategory',
+  title: '지출 분류',
+  description: '지출 분류(항목)입니다. 병원 설정입니다.',
 })
 export type ExpenseCategory = typeof ExpenseCategory.Type
 
-/** 지출입니다. 시재에서 나간 현금입니다. 지우면 기록을 남기고(`deleted`) 목록과 시재에서 뺍니다. */
 export const Expense = Schema.Struct({
   id: ExpenseId,
   tenantId: TenantId,
-  /** 현금이 나간 날입니다. 그날 시재에 들어갑니다. */
-  date: LocalDate,
+  date: LocalDate.annotate({ description: '현금이 나간 날입니다. 그날 시재에 들어갑니다.' }),
   amount: Won,
-  /** 기록할 때의 지출 항목입니다. 항목을 지워도 남습니다. */
-  category: Schema.Struct({ id: ExpenseCategoryId, name: Schema.String }),
+  category: Schema.Struct({ id: ExpenseCategoryId, name: Schema.String }).annotate({
+    description: '기록할 때의 지출 분류입니다. 분류를 지워도 이름이 남습니다.',
+  }),
   memo: Schema.String,
   recordedBy: UserId,
   createdAt: Schema.String,
-  deleted: Schema.NullOr(Schema.Struct({ at: Schema.String, by: UserId })),
+  deleted: Schema.NullOr(Schema.Struct({ at: Schema.String, by: UserId })).annotate({
+    description: '지운 기록입니다. 지운 지출은 목록과 시재에서 빠지므로 응답에서는 늘 `null`입니다.',
+  }),
   version: Schema.Int,
-})
+}).annotate({ identifier: 'Expense', title: '지출', description: '지출입니다. 시재에서 나간 현금입니다.' })
 export type Expense = typeof Expense.Type
 
 /** 시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다. */

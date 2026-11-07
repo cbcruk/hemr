@@ -8,22 +8,31 @@ import { TenantId, UserId } from '../../identity/identity.ts'
 import { PatientId } from '../../patients/patient.ts'
 import { VisitId } from '../visits/visit.ts'
 
-/** 영수증(수납) ID입니다. 예: `rcp_01J...` */
-export const ReceiptId = Schema.String.pipe(Schema.refine((value): value is Id<'receipt'> => isId('receipt', value)))
+// 설명은 `refine` 앞에 답니다. 뒤에 달면 OpenAPI 문서에서 빠집니다
+export const ReceiptId = Schema.String.annotate({ description: '영수증(수납) ID입니다. 예: `rcp_01J...`' }).pipe(
+  Schema.refine((value): value is Id<'receipt'> => isId('receipt', value)),
+)
 
-/** 결제 ID입니다. 예: `pay_01J...` */
-export const PaymentId = Schema.String.pipe(Schema.refine((value): value is Id<'payment'> => isId('payment', value)))
+export const PaymentId = Schema.String.annotate({ description: '결제 ID입니다. 예: `pay_01J...`' }).pipe(
+  Schema.refine((value): value is Id<'payment'> => isId('payment', value)),
+)
 
-/** 견적 ID입니다. 견적 금액에서 계산하므로 금액이 같으면 같은 ID입니다. 예: `qt_...` */
-export const QuoteId = Schema.String.pipe(Schema.refine((value): value is Id<'quote'> => isId('quote', value)))
+export const QuoteId = Schema.String.annotate({
+  description: '견적 ID입니다. 저장하지 않고 견적 금액에서 계산하므로 금액이 같으면 같은 ID입니다. 예: `qt_...`',
+}).pipe(Schema.refine((value): value is Id<'quote'> => isId('quote', value)))
 
-/** 0 이상 정수 금액(원)입니다. */
-export const Won = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(10_000_000_000))
+export const Won = Schema.Int.check(
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(10_000_000_000),
+).annotate({ description: '원 단위 금액입니다. 0 이상 정수입니다.' })
 
-/** 과세·비과세로 나눈 금액입니다. 수납이 계산한 값은 처방 수정으로 한쪽이 음수일 수 있어 부호를 막지 않습니다. */
-export const SplitAmount = Schema.Struct({ taxable: Schema.Int, taxExempt: Schema.Int })
+// 수납이 계산한 값은 처방 수정으로 한쪽이 음수일 수 있어 부호를 막지 않습니다
+export const SplitAmount = Schema.Struct({
+  taxable: Schema.Int.annotate({ description: '과세 금액(원)입니다.' }),
+  taxExempt: Schema.Int.annotate({ description: '비과세 금액(원)입니다.' }),
+}).annotate({ identifier: 'SplitAmount', description: '과세·비과세로 나눈 금액입니다.' })
 
-/** 결제 수단입니다 (`checkout-settlement.types.ts`의 `PaymentMethod`). */
+// `checkout-settlement.types.ts`의 `PaymentMethod`와 같습니다
 export const PaymentMethod = Schema.Literals([
   'CARD',
   'CASH',
@@ -35,28 +44,38 @@ export const PaymentMethod = Schema.Literals([
   'OVERPAID_CREDIT',
   'JEJU_SUBSIDY',
   'PACKAGE',
-])
+]).annotate({
+  identifier: 'PaymentMethod',
+  description:
+    '결제 수단입니다. 카드(`CARD`), 현금(`CASH`), 계좌이체(`BANK_TRANSFER`), 카카오페이(`KAKAO_PAY`), 지역화폐(`LOCAL_CURRENCY`), 제로페이(`ZERO_PAY`), 선수금(`PREPAID`), 과수납금(`OVERPAID_CREDIT`), 제주 지원금(`JEJU_SUBSIDY`), 패키지(`PACKAGE`)입니다. 과수납금·제주 지원금·패키지는 서버가 만듭니다.',
+})
 
-export const PrepaidKind = Schema.Literals(['CASH_LIKE', 'CARD_LIKE'])
+export const PrepaidKind = Schema.Literals(['CASH_LIKE', 'CARD_LIKE']).annotate({
+  identifier: 'PrepaidKind',
+  description: '선수금 계열입니다. 현금 계열(`CASH_LIKE`)과 카드 계열(`CARD_LIKE`)의 잔액을 따로 셉니다.',
+})
 
-/**
- * 카드 단말·간편결제처럼 수납 전에 밖에서 승인되는 결제 수단입니다. `POST /payments`로 먼저 남기고 수납의
- * `paymentIds`로 적용합니다.
- */
-export const ExternalPaymentMethod = Schema.Literals(['CARD', 'KAKAO_PAY', 'LOCAL_CURRENCY', 'ZERO_PAY'])
+export const ExternalPaymentMethod = Schema.Literals(['CARD', 'KAKAO_PAY', 'LOCAL_CURRENCY', 'ZERO_PAY']).annotate({
+  identifier: 'ExternalPaymentMethod',
+  description:
+    '카드 단말·간편결제처럼 수납 전에 밖에서 승인되는 결제 수단입니다. `POST /payments`로 먼저 남기고 수납의 `paymentIds`로 적용합니다.',
+})
 export type ExternalPaymentMethod = typeof ExternalPaymentMethod.Type
 
-/**
- * 결제 상태입니다. 환불하면 `PARTIALLY_REFUNDED`·`REFUNDED`, 영수증을 취소해 받지 않은 것으로 하면 `VOIDED`입니다.
- * 미적용 결제는 전액 환불만 받아 `UNAPPLIED`에서 바로 `REFUNDED`가 됩니다.
- */
-export const PaymentStatus = Schema.Literals(['UNAPPLIED', 'CAPTURED', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED'])
+export const PaymentStatus = Schema.Literals([
+  'UNAPPLIED',
+  'CAPTURED',
+  'PARTIALLY_REFUNDED',
+  'REFUNDED',
+  'VOIDED',
+]).annotate({
+  identifier: 'PaymentStatus',
+  title: '결제 상태',
+  description:
+    '수납 전(`UNAPPLIED`), 수납에 적용함(`CAPTURED`), 일부 환불(`PARTIALLY_REFUNDED`), 전액 환불(`REFUNDED`), 영수증 취소로 받지 않은 것으로 함(`VOIDED`)입니다. 수납 전 결제는 전액 환불만 받아 `UNAPPLIED`에서 바로 `REFUNDED`가 됩니다.',
+})
 export type PaymentStatus = typeof PaymentStatus.Type
 
-/**
- * 환불 수단입니다 (front-desk.md 환불 수단 제약). `CARD_CANCEL`은 카드 승인 취소, 간편결제·지역화폐·제로페이는 같은
- * 수단의 취소입니다.
- */
 export const RefundMethod = Schema.Literals([
   'CARD_CANCEL',
   'KAKAO_PAY',
@@ -66,52 +85,60 @@ export const RefundMethod = Schema.Literals([
   'BANK_TRANSFER',
   'OVERPAID_CREDIT',
   'PREPAID',
-])
+]).annotate({
+  identifier: 'RefundMethod',
+  description:
+    '환불 수단입니다. `CARD_CANCEL`은 카드 승인 취소, 카카오페이·지역화폐·제로페이는 같은 수단의 취소입니다. 결제에 쓸 수 있는 수단은 결제 수단마다 다릅니다(어긋나면 422 `REFUND_REJECTED`의 `allowedMethods`).',
+})
 export type RefundMethod = typeof RefundMethod.Type
 
-/** 결제 하나의 환불 기록입니다. 환불은 고치지 않고 덧붙입니다. */
 export const Refund = Schema.Struct({
   amount: SplitAmount,
   method: RefundMethod,
   reason: Schema.String,
-  /**
-   * 이 환불로 미수 대신 손비로 둔 금액입니다. 요청의 `writeOff`가 참이어도 과수납을 돌려준 부분은 손비가 아니라 0일 수
-   * 있습니다.
-   */
-  writtenOff: Schema.Int,
+  writtenOff: Schema.Int.annotate({
+    description:
+      '이 환불로 미수 대신 손비로 둔 금액입니다. 요청의 `writeOff`가 참이어도 과수납을 돌려준 부분은 손비가 아니라 0일 수 있습니다.',
+  }),
   at: Schema.String,
   by: UserId,
+}).annotate({
+  identifier: 'Refund',
+  title: '환불',
+  description: '결제 하나의 환불 기록입니다. 환불은 원 결제를 고치지 않고 덧붙입니다.',
 })
 export type Refund = typeof Refund.Type
 
-/**
- * 결제입니다. 외부 승인 결제는 `POST /payments`로 영수증 없이(`UNAPPLIED`) 먼저 남고, 수납이 적용하면 `CAPTURED`가
- * 됩니다. 현금·계좌이체처럼 수납 요청 안에서 받는 결제는 처음부터 `CAPTURED`입니다.
- */
 export const Payment = Schema.Struct({
   id: PaymentId,
+  // 다른 병원의 결제는 없는 것과 같이 다룹니다(404)
   tenantId: TenantId,
   patientId: PatientId,
-  /** 결제를 받은 내원입니다. 기록할 때 정했으면 그 내원의 수납에만 적용하고, 없으면 적용한 수납의 내원이 됩니다. */
-  visitId: Schema.NullOr(VisitId),
-  /** 적용한 영수증입니다. `UNAPPLIED`이면 없습니다. */
-  receiptId: Schema.NullOr(ReceiptId),
+  visitId: Schema.NullOr(VisitId).annotate({
+    description:
+      '결제를 받은 내원입니다. 기록할 때 정했으면 그 내원의 수납에만 적용하고, 없으면 적용한 수납의 내원이 됩니다.',
+  }),
+  receiptId: Schema.NullOr(ReceiptId).annotate({ description: '적용한 영수증입니다. `UNAPPLIED`이면 `null`입니다.' }),
   method: PaymentMethod,
-  prepaidKind: Schema.NullOr(PrepaidKind),
+  prepaidKind: Schema.NullOr(PrepaidKind).annotate({ description: '선수금 계열입니다. 선수금이 아니면 `null`입니다.' }),
   amount: SplitAmount,
-  /** 카드 승인번호처럼 밖에서 받은 참조입니다. */
-  processorRef: Schema.NullOr(Schema.String),
+  processorRef: Schema.NullOr(Schema.String).annotate({
+    description: '카드 승인번호처럼 밖에서 받은 참조입니다.',
+  }),
   status: PaymentStatus,
-  /** 환불 기록입니다. 시각 순서입니다. */
-  refunds: Schema.Array(Refund),
+  refunds: Schema.Array(Refund).annotate({ description: '환불 기록입니다. 시각 순서입니다.' }),
   recordedBy: UserId,
   createdAt: Schema.String,
   updatedAt: Schema.String,
   version: Schema.Int,
+}).annotate({
+  identifier: 'Payment',
+  title: '결제',
+  description:
+    '결제입니다. 외부 승인 결제는 `POST /payments`로 영수증 없이(`UNAPPLIED`) 먼저 남고, 수납이 적용하면 `CAPTURED`가 됩니다. 현금·계좌이체처럼 수납 요청 안에서 받는 결제는 처음부터 `CAPTURED`입니다.',
 })
 export type Payment = typeof Payment.Type
 
-/** 영수증에 적용한 결제입니다. 환불 기록 전체는 `GET /payments/{id}`입니다. */
 export const ReceiptPayment = Schema.Struct({
   id: PaymentId,
   method: PaymentMethod,
@@ -119,8 +146,11 @@ export const ReceiptPayment = Schema.Struct({
   amount: SplitAmount,
   processorRef: Schema.NullOr(Schema.String),
   status: Schema.Literals(['CAPTURED', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED']),
-  /** 지금까지 환불한 금액입니다. */
   refunded: SplitAmount,
+}).annotate({
+  identifier: 'ReceiptPayment',
+  description:
+    '영수증에 적용한 결제입니다. `refunded`는 지금까지 환불한 금액이고, 환불 기록 전체는 `GET /payments/{id}`입니다.',
 })
 export type ReceiptPayment = typeof ReceiptPayment.Type
 
@@ -128,69 +158,82 @@ export type ReceiptPayment = typeof ReceiptPayment.Type
 export const byRecorded = (a: { createdAt: string; id: string }, b: { createdAt: string; id: string }) =>
   a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 
-/** 서버가 계산한 청구 금액입니다. 패키지 판매·할인은 그 기능이 생길 때 더합니다. */
+// 패키지 판매·할인은 그 기능이 생길 때 더합니다
 export const ReceiptCharges = Schema.Struct({
-  /** 급여 본인부담입니다. 비과세에 들어갑니다. */
-  insuredCopay: Schema.Int,
+  insuredCopay: Schema.Int.annotate({ description: '급여 본인부담입니다. 비과세에 들어갑니다.' }),
   nonbenefit: SplitAmount,
-  total: Schema.Int,
-})
+  total: Schema.Int.annotate({ description: '청구 합계(급여 본인부담 + 비급여)입니다.' }),
+}).annotate({ identifier: 'ReceiptCharges', description: '서버가 계산한 청구 금액입니다.' })
 export type ReceiptCharges = typeof ReceiptCharges.Type
 
-export const SettlementResult = Schema.Literals(['PAID', 'OUTSTANDING', 'OVERPAID', 'WRITTEN_OFF'])
+export const SettlementResult = Schema.Literals(['PAID', 'OUTSTANDING', 'OVERPAID', 'WRITTEN_OFF']).annotate({
+  identifier: 'SettlementResult',
+  title: '결산 결과',
+  description: '완납(`PAID`), 미수(`OUTSTANDING`), 과수납(`OVERPAID`), 손비(`WRITTEN_OFF`)입니다.',
+})
 
-/** 결산 결과입니다 (`settleCheckout`). `due − received`가 남은 금액입니다. */
+// 판정은 `settleCheckout`입니다
 export const ReceiptSettlement = Schema.Struct({
   due: SplitAmount,
   received: SplitAmount,
   result: SettlementResult,
-  outstanding: Schema.Int,
-  overpaid: Schema.Int,
-  writtenOff: Schema.Int,
-  /** 확인을 받고 넘어간 경고입니다. */
-  acknowledged: Schema.Array(Schema.Literals(['OUTSTANDING'])),
+  outstanding: Schema.Int.annotate({ description: '미수 금액입니다.' }),
+  overpaid: Schema.Int.annotate({ description: '과수납 금액입니다.' }),
+  writtenOff: Schema.Int.annotate({ description: '손비로 둔 금액입니다.' }),
+  acknowledged: Schema.Array(Schema.Literals(['OUTSTANDING'])).annotate({
+    description: '확인을 받고 넘어간 경고입니다.',
+  }),
+}).annotate({
+  identifier: 'ReceiptSettlement',
+  description:
+    '결산입니다. 받을 금액(`due`)과 받은 금액(`received`)이고, `due − received`가 남은 금액입니다. 받은 금액에는 제주 지원금·과수납금 결제도 들어갑니다.',
 })
 export type ReceiptSettlement = typeof ReceiptSettlement.Type
 
-/** 영수증 취소 기록입니다. */
 export const ReceiptVoid = Schema.Struct({
   at: Schema.String,
   by: UserId,
   reason: Schema.String,
-  /** 정정(`:correct`)으로 취소했으면 새 영수증입니다. */
-  correctedBy: Schema.NullOr(ReceiptId),
-})
+  correctedBy: Schema.NullOr(ReceiptId).annotate({
+    description: '정정(`:correct`)으로 취소했으면 새 영수증입니다.',
+  }),
+}).annotate({ identifier: 'ReceiptVoid', description: '영수증 취소 기록입니다.' })
 
-/**
- * 영수증(수납)입니다. 한 내원의 진료를 한 번에 수납한 기록입니다. 돈 기록이라 지우지 않고, 잘못 입력했으면 취소해
- * `VOIDED`로 남깁니다.
- *
- * 내원 없는 수납은 그 기능이 생길 때 더합니다. 전체 리소스는 `docs/design/front-desk.md`의 수납을 보세요.
- */
+// 내원 없는 수납은 그 기능이 생길 때 더합니다
 export const Receipt = Schema.Struct({
   id: ReceiptId,
+  // 다른 병원의 영수증은 없는 것과 같이 다룹니다(404)
   tenantId: TenantId,
   visitId: VisitId,
   patientId: PatientId,
-  /** 수납한 날(병원 시간대)입니다. 시재가 이 날의 현금으로 셉니다. */
-  date: Schema.String,
+  date: Schema.String.annotate({
+    description: '수납한 날(병원 시간대)입니다. 내원일이 아닙니다. 시재가 이 날의 현금으로 셉니다.',
+  }),
   cashierId: UserId,
   memo: Schema.String,
-  encounterIds: Schema.Array(EncounterId),
-  /** 이 영수증을 만든 견적입니다. */
+  encounterIds: Schema.Array(EncounterId).annotate({ description: '수납한 진료입니다.' }),
   quoteId: QuoteId,
   charges: ReceiptCharges,
-  payments: Schema.Array(ReceiptPayment),
+  payments: Schema.Array(ReceiptPayment).annotate({
+    description: '적용한 결제입니다. 받은 시각, 같으면 ID 순서입니다. 정정으로 옮긴 결제는 새 영수증에 있습니다.',
+  }),
   settlement: ReceiptSettlement,
-  flags: Schema.Struct({ excludeFromTaxDeduction: Schema.Boolean }),
-  status: Schema.Literals(['ACTIVE', 'VOIDED']),
-  /** 취소했으면 그 기록입니다. */
-  voided: Schema.NullOr(ReceiptVoid),
-  /** 정정으로 만든 영수증이면 취소한 앞 영수증입니다. */
-  correctionOf: Schema.NullOr(ReceiptId),
+  flags: Schema.Struct({
+    excludeFromTaxDeduction: Schema.Boolean.annotate({ description: '연말정산 의료비 공제에서 뺍니다.' }),
+  }),
+  status: Schema.Literals(['ACTIVE', 'VOIDED']).annotate({ description: '유효(`ACTIVE`)와 취소(`VOIDED`)입니다.' }),
+  voided: Schema.NullOr(ReceiptVoid).annotate({ description: '취소했으면 그 기록입니다. 유효하면 `null`입니다.' }),
+  correctionOf: Schema.NullOr(ReceiptId).annotate({
+    description: '정정으로 만든 영수증이면 취소한 앞 영수증입니다.',
+  }),
   createdAt: Schema.String,
   updatedAt: Schema.String,
   version: Schema.Int,
+}).annotate({
+  identifier: 'Receipt',
+  title: '수납',
+  description:
+    '영수증(수납)입니다. 한 내원의 진료를 한 번에 수납한 기록입니다. 돈 기록이라 지우지 않고, 잘못 입력했으면 취소해 `VOIDED`로 남깁니다. 전체 리소스는 `docs/design/front-desk.md`의 수납을 보세요.',
 })
 export type Receipt = typeof Receipt.Type
 
@@ -200,13 +243,17 @@ export type ReceiptRecord = Omit<Receipt, 'payments'>
 /** 영수증에서 저장하는 부분입니다. */
 export const recordOf = ({ payments: _, ...record }: Receipt): ReceiptRecord => record
 
-/** 결산 오류 코드입니다 (`checkout-settlement.types.ts`의 `CheckoutErrorCode`). */
+// `checkout-settlement.types.ts`의 `CheckoutErrorCode`와 같습니다
 export const CheckoutErrorCode = Schema.Literals([
   'PAYMENT_METHOD_NOT_ALLOWED',
   'PREPAID_KIND_REQUIRED',
   'PREPAID_BALANCE_INSUFFICIENT',
   'WRITE_OFF_OVERPAID',
-])
+]).annotate({
+  identifier: 'CheckoutErrorCode',
+  description:
+    '결산 오류입니다. 받을 수 없는 결제 수단, 선수금 계열 없음, 선수금 잔액 부족, 과수납인데 손비 처리입니다.',
+})
 
 /** 결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다. */
 export class CheckoutRejected extends HttpApiError.Problem<CheckoutRejected>()(
@@ -308,8 +355,13 @@ export class PaymentNotRefundable extends HttpApiError.Problem<PaymentNotRefunda
   { code: Schema.tag('PAYMENT_NOT_REFUNDABLE'), paymentStatus: PaymentStatus },
 ) {}
 
-/** 환불 요청이 결제와 맞지 않습니다. 이유를 모두 담습니다. */
-export const RefundErrorCode = Schema.Literals(['METHOD_NOT_ALLOWED', 'AMOUNT_EXCEEDED', 'PARTIAL_UNAPPLIED'])
+export const RefundErrorCode = Schema.Literals(['METHOD_NOT_ALLOWED', 'AMOUNT_EXCEEDED', 'PARTIAL_UNAPPLIED']).annotate(
+  {
+    identifier: 'RefundErrorCode',
+    description:
+      '환불 요청이 결제와 맞지 않는 이유입니다. 쓸 수 없는 환불 수단, 남은 금액 초과, 수납 전 결제의 일부 환불입니다.',
+  },
+)
 export type RefundErrorCode = typeof RefundErrorCode.Type
 
 export class RefundRejected extends HttpApiError.Problem<RefundRejected>()(
