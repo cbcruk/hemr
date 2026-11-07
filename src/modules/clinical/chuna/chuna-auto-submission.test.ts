@@ -41,8 +41,8 @@ function payload(overrides: Partial<ChunaPayloadInput> = {}) {
   })
 }
 
-describe('chunaAutoSubmission', () => {
-  it('skips while a same-day submission is active but not when it was canceled', () => {
+describe('추나 자동 제출 판정 (chunaAutoSubmission)', () => {
+  it('같은 날 취소되지 않은 제출이 있으면 건너뛰고 취소된 제출만 있으면 제출합니다', () => {
     expect(decision({ sameDaySubmissions: ['FAILED'] })).toEqual({ action: 'SKIP', reason: 'SAME_DAY' })
     expect(decision({ sameDaySubmissions: ['CANCELED'] })).toEqual({ action: 'QUEUE', lineId: 'rx1' })
     expect(decision({ sameDaySubmissions: ['CANCELED', 'REJECTED'] })).toEqual({ action: 'SKIP', reason: 'SAME_DAY' })
@@ -50,22 +50,22 @@ describe('chunaAutoSubmission', () => {
     expect(decision({ sameDaySubmissions: ['QUEUED'] })).toEqual({ action: 'SKIP', reason: 'SAME_DAY' })
   })
 
-  it('skips coverages HIRA does not take chuna for', () => {
+  it('심평원에 추나를 내지 않는 보험구분은 건너뜁니다', () => {
     for (const coverage of ['INDUSTRIAL_ACCIDENT', 'SELF_PAY'] as const) {
       expect(decision({ coverage })).toEqual({ action: 'SKIP', reason: 'COVERAGE_NOT_SUBMITTABLE' })
     }
   })
 
-  it('keeps submitting 자보 past the limit', () => {
+  it('건보는 한도를 다 쓰면 건너뛰고 자보는 한도를 넘어도 제출합니다', () => {
     expect(decision({ coverage: 'NHIS', hiraUsage: EXHAUSTED })).toEqual({ action: 'SKIP', reason: 'ANNUAL_LIMIT' })
     expect(decision({ coverage: 'AUTO_INSURANCE', hiraUsage: EXHAUSTED })).toEqual({ action: 'QUEUE', lineId: 'rx1' })
   })
 
-  it('does not skip on the limit when the usage list was truncated', () => {
+  it('사용량 목록이 잘렸으면 한도로 건너뛰지 않습니다', () => {
     expect(decision({ hiraUsage: { ...EXHAUSTED, complete: false } })).toEqual({ action: 'QUEUE', lineId: 'rx1' })
   })
 
-  it('submits the first unapproved chuna line only', () => {
+  it('승인되지 않은 첫 추나 줄만 제출합니다', () => {
     const lines = [
       { ...LINE, approved: true },
       { ...LINE, lineId: 'rx2' },
@@ -75,7 +75,7 @@ describe('chunaAutoSubmission', () => {
   })
 })
 
-describe('chunaSubmissionPayload', () => {
+describe('추나 제출 페이로드 (chunaSubmissionPayload)', () => {
   const eligibility = (overrides: object) => ({
     eligibility: {
       qualification: '4',
@@ -87,7 +87,7 @@ describe('chunaSubmissionPayload', () => {
   })
   const category = (result: ReturnType<typeof payload>) => ('payload' in result ? result.payload.benefitCategory : null)
 
-  it('derives the benefit category from near-poverty and rare-disease support periods', () => {
+  it('공상구분코드는 차상위와 희귀난치 지원 기간으로 정합니다', () => {
     expect(category(payload(eligibility({ nearPoverty: 'E00120260101        1', disabled: true })))).toBe('F')
     expect(category(payload(eligibility({ nearPoverty: 'E00120260101        1' })))).toBe('E')
     expect(category(payload(eligibility({ nearPoverty: 'E0012026010120260131 1' })))).toBe('0')
@@ -99,7 +99,7 @@ describe('chunaSubmissionPayload', () => {
     expect(category(payload({ ...eligibility(expired), rareDiseaseSupport: true }))).toBe('H')
   })
 
-  it('maps qualification 8 to medical aid type 2 and rejects coverages HIRA does not take', () => {
+  it('자격여부 8은 의료급여종별 2이고 심평원에 내지 않는 보험구분은 거부합니다', () => {
     const aid = payload({ coverage: 'MEDICAL_AID', ...eligibility({ qualification: '8' }) })
     expect('payload' in aid && [aid.payload.insurerType, aid.payload.medicalAidType]).toEqual(['5', '2'])
     const empty = payload({ coverage: 'MEDICAL_AID', ...eligibility({ qualification: '' }) })
@@ -110,8 +110,8 @@ describe('chunaSubmissionPayload', () => {
   })
 })
 
-describe('existingSubmissionOutcome', () => {
-  it('syncs without a performer when no doctor has the submitted license', () => {
+describe('기제출 건 결과 (existingSubmissionOutcome)', () => {
+  it('기제출 면허번호의 의사가 없으면 시술자 없이 승인 상태로 맞춥니다', () => {
     const doctors = [{ doctorId: 'd1', licenseNumber: null }]
     expect(existingSubmissionOutcome({ diagnosisCodes: 'M5450', licenseNumber: null }, ['M5450'], doctors)).toEqual({
       status: 'APPROVED',
@@ -119,12 +119,12 @@ describe('existingSubmissionOutcome', () => {
     })
   })
 
-  it('does not submit when the pre-check lookup failed', () => {
+  it('기제출 조회가 실패하면 제출하지 않고 기제출 건이 없으면 새로 제출합니다', () => {
     expect(precheckOutcome('UNAVAILABLE', ['M5450'], [])).toEqual({ status: 'FAILED', reason: 'PRECHECK_UNAVAILABLE' })
     expect(precheckOutcome(null, ['M5450'], [])).toBeNull()
   })
 
-  it('treats an existing submission without diagnoses as a mismatch', () => {
+  it('상병이 비어 있는 기제출 건은 상병 불일치입니다', () => {
     expect(existingSubmissionOutcome({ diagnosisCodes: ' , ', licenseNumber: null }, ['M5450'], [])).toEqual({
       status: 'FAILED',
       reason: 'DIAGNOSIS_MISMATCH',
@@ -132,10 +132,10 @@ describe('existingSubmissionOutcome', () => {
   })
 })
 
-describe('submissionResultOutcome', () => {
+describe('새 제출 결과 (submissionResultOutcome)', () => {
   const performer = { doctorId: 'd1', licenseNumber: 'L-111' }
 
-  it('keeps a transport failure unknown because HIRA may have received it', () => {
+  it('통신 실패는 심평원이 받았을 수 있어 결과 미상으로 두고 거부는 거부로 남깁니다', () => {
     expect(submissionResultOutcome({ ok: false, kind: 'TRANSPORT', reason: 'timeout' }, performer)).toEqual({
       status: 'OUTCOME_UNKNOWN',
       reason: 'timeout',

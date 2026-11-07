@@ -235,13 +235,13 @@ const CHANGED: Record<string, unknown> = {
   },
 }
 
-describe('procedure-timer fixture', () => {
+describe('시술 타이머 픽스처 (procedure-timer)', () => {
   it.each(fixture.cases.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
     const run = RUN[input['check']]!
     expect(run.server(input)).toEqual(name in CHANGED ? CHANGED[name] : run.legacy(expected, input))
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했고 바뀐 결과 목록은 있는 케이스만 가리킵니다', () => {
     expect(fixture.cases.filter((c) => !(c.input['check'] in RUN)).map((c) => c.name)).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
   })

@@ -90,14 +90,14 @@ const NOT_PORTED: Record<string, string> = {
     '첩약 시범사업 처방의 질환 코드는 요청 스키마의 필수 값이라 빈 값이 없습니다',
 }
 
-describe('pilot-herbal-doctor-limit fixture', () => {
+describe('첩약 의사별 한도 픽스처 (pilot-herbal-doctor-limit)', () => {
   const ported = fixture.cases.filter((testCase) => !(testCase.name in NOT_PORTED))
 
   it.each(ported.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
     expect(RUN[input['function']]!(input)).toEqual(name in CHANGED ? CHANGED[name] : expected['returned'])
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스의 함수를 실행하고 예외 목록은 있는 케이스만 가리킵니다', () => {
     expect(fixture.cases.filter((c) => !(c.input['function'] in RUN)).map((c) => c.name)).toEqual([])
     expect(Object.keys(NOT_PORTED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])

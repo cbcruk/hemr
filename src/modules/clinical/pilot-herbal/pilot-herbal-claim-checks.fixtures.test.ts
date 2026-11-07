@@ -144,8 +144,8 @@ function cases(predicate: (input: Record<string, any>) => boolean): FixtureCase[
   return fixture.cases.filter((testCase) => predicate(testCase.input) && !(testCase.name in NOT_PORTED))
 }
 
-describe('pilot-herbal-claim-checks fixture', () => {
-  describe('individual checks (C0001–C0012, 결정 2–10·12)', () => {
+describe('첩약 시범사업 청구 검사 픽스처 (pilot-herbal-claim-checks)', () => {
+  describe('개별 검사 (C0001–C0012, 결정 2–10·12)', () => {
     it.each(cases((input) => CHECK_CODES.includes(input['check'])).map((c) => [c.name, c] as const))(
       '%s',
       (name, { input, expected }) => {
@@ -157,7 +157,7 @@ describe('pilot-herbal-claim-checks fixture', () => {
     )
   })
 
-  describe('all checks (tBt, 결정 1)', () => {
+  describe('전체 검사 (tBt, 결정 1)', () => {
     it.each(cases((input) => input['check'] === 'tBt').map((c) => [c.name, c] as const))(
       '%s',
       (name, { input, expected }) => {
@@ -168,7 +168,7 @@ describe('pilot-herbal-claim-checks fixture', () => {
     )
   })
 
-  it('HFt: tBt not called for 자보 or when 한방첩약시범사업 is empty (결정 11)', () => {
+  it('HFt: 자보이거나 한방첩약시범사업이 비어 있으면 검사하지 않습니다 (결정 11)', () => {
     const testCase = fixture.cases.find(
       (c) => c.name === 'HFt: tBt not called for 자보 or when 한방첩약시범사업 is empty',
     )!
@@ -179,7 +179,7 @@ describe('pilot-herbal-claim-checks fixture', () => {
     expect(pilotHerbalClaimIssues({ ...base, coverage: 'AUTO_INSURANCE' })).toEqual([])
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했거나 이식하지 않은 이유를 적었고 예외 목록은 있는 케이스만 가리킵니다', () => {
     const ported = new Set([...CHECK_CODES, 'tBt'])
     const unaccounted = fixture.cases.filter(
       (testCase) =>

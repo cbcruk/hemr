@@ -1,11 +1,11 @@
 /** 첩약 시범사업 질환 코드의 공통처방입니다. 다른 질환 개수에 세지 않습니다. */
-const COMMON_PRESCRIPTION = '00'
+const 공통처방코드 = '00'
 
 /** 질환별 급여 투약일수 초기값입니다. 참조데이터 `regulatory-limits`에 유효기간과 함께 둘 값입니다 (결정 2). */
 export const DEFAULT_PILOT_HERBAL_DAY_LIMIT = 20
 
 /** 한 회계연도에 급여로 처방받을 수 있는 질환 수입니다. 공통처방은 세지 않습니다. */
-const DISEASE_LIMIT = 2
+const 질환수한도 = 2
 
 /**
  * `herbal-applicable-diseases` 참조데이터의 초기값입니다. 이름은 문구에 쓰는 공백 없는 질환명입니다 (결정 9).
@@ -44,18 +44,18 @@ export interface RawPilotHerbalHistoryRow {
 
 /** 원본 행을 읽습니다. 누적 투약일수가 숫자가 아니거나 음수면 현행처럼 0일입니다. */
 export function pilotHerbalHistoryRow(raw: RawPilotHerbalHistoryRow): PilotHerbalHistoryRow {
-  const days = Number(raw.cumulativeDays)
+  const 누적투약일수 = Number(raw.cumulativeDays)
   return {
     diseaseCode: raw.diseaseCode,
     registration: hiraRegistration(raw.registration),
-    cumulativeDays: Number.isFinite(days) && days > 0 ? days : 0,
+    cumulativeDays: Number.isFinite(누적투약일수) && 누적투약일수 > 0 ? 누적투약일수 : 0,
   }
 }
 
 /** 심평원 등록 여부 값을 읽습니다 (결정 6). */
 export function hiraRegistration(value: string | null | undefined): HiraRegistration {
-  const flag = (value ?? '').trim().toUpperCase()
-  return flag === 'Y' ? 'THIS_CLINIC' : flag === 'N' ? 'OTHER_CLINIC' : 'UNKNOWN'
+  const 등록여부 = (value ?? '').trim().toUpperCase()
+  return 등록여부 === 'Y' ? 'THIS_CLINIC' : 등록여부 === 'N' ? 'OTHER_CLINIC' : 'UNKNOWN'
 }
 
 /**
@@ -64,14 +64,14 @@ export function hiraRegistration(value: string | null | undefined): HiraRegistra
  * 다른 질환이 2개 이상이면 참입니다.
  */
 export function hasTwoOtherDiseases(history: readonly PilotHerbalHistoryRow[], diseaseCode: string): boolean {
-  const others = history.filter(
+  const 다른질환이력 = history.filter(
     (row) =>
-      row.diseaseCode !== COMMON_PRESCRIPTION &&
+      row.diseaseCode !== 공통처방코드 &&
       row.diseaseCode !== diseaseCode &&
       row.registration === 'THIS_CLINIC' &&
       row.cumulativeDays > 0,
   )
-  return new Set(others.map((row) => row.diseaseCode)).size >= DISEASE_LIMIT
+  return new Set(다른질환이력.map((row) => row.diseaseCode)).size >= 질환수한도
 }
 
 /** 선택 질환 이력을 등록 여부별로 합친 값입니다. */
@@ -91,23 +91,23 @@ export function mergeDiseaseHistory(
   history: readonly PilotHerbalHistoryRow[],
   diseaseCode: string,
 ): MergedDiseaseHistory | null {
-  const rows = history.filter((row) => row.diseaseCode === diseaseCode)
-  if (rows.length === 0) return null
-  const maxDays = (registration?: HiraRegistration) =>
+  const 선택질환행 = history.filter((row) => row.diseaseCode === diseaseCode)
+  if (선택질환행.length === 0) return null
+  const 최대누적일수 = (등록여부?: HiraRegistration) =>
     Math.max(
       0,
-      ...rows
-        .filter((row) => registration === undefined || row.registration === registration)
+      ...선택질환행
+        .filter((row) => 등록여부 === undefined || row.registration === 등록여부)
         .map((row) => (Number.isFinite(row.cumulativeDays) ? row.cumulativeDays : 0)),
     )
-  if (rows.some((row) => row.registration === 'THIS_CLINIC')) {
-    return { thisClinic: true, thisClinicDays: maxDays(), otherClinicDays: 0, unknownDays: 0 }
+  if (선택질환행.some((row) => row.registration === 'THIS_CLINIC')) {
+    return { thisClinic: true, thisClinicDays: 최대누적일수(), otherClinicDays: 0, unknownDays: 0 }
   }
   return {
     thisClinic: false,
     thisClinicDays: 0,
-    otherClinicDays: maxDays('OTHER_CLINIC'),
-    unknownDays: maxDays('UNKNOWN'),
+    otherClinicDays: 최대누적일수('OTHER_CLINIC'),
+    unknownDays: 최대누적일수('UNKNOWN'),
   }
 }
 
@@ -179,56 +179,67 @@ export type PilotHerbalDiagnosisResult = PilotHerbalDiagnosisJudgement | { error
  * 7. 그 밖에는 `G`이고 전액부담도 고를 수 있습니다
  */
 export function judgePilotHerbalDiagnosis(input: PilotHerbalDiagnosisInput): PilotHerbalDiagnosisResult {
-  const diseases = input.diseases ?? DEFAULT_PILOT_HERBAL_DISEASES
-  const diseaseName = diseases.get(input.diseaseCode)
-  if (diseaseName === undefined) return { error: 'HERBAL_DISEASE_NOT_APPLICABLE' }
-  const lineIds = [...input.lineIds]
-  const unset = (warning: PilotHerbalDiagnosisIssue): PilotHerbalDiagnosisJudgement => ({
+  const 질환표 = input.diseases ?? DEFAULT_PILOT_HERBAL_DISEASES
+  const 질환명 = 질환표.get(input.diseaseCode)
+  if (질환명 === undefined) return { error: 'HERBAL_DISEASE_NOT_APPLICABLE' }
+  const 첩약줄Ids = [...input.lineIds]
+  const 코드미정 = (경고: PilotHerbalDiagnosisIssue): PilotHerbalDiagnosisJudgement => ({
     copayCode: null,
     fullPayOptional: false,
-    warnings: [warning],
-    accepted: !warning.blocksCompletion,
+    warnings: [경고],
+    accepted: !경고.blocksCompletion,
   })
-  if (input.history === null) return unset({ code: 'PILOT_HERBAL_HISTORY_UNKNOWN', lineIds, blocksCompletion: false })
+  if (input.history === null) {
+    return 코드미정({ code: 'PILOT_HERBAL_HISTORY_UNKNOWN', lineIds: 첩약줄Ids, blocksCompletion: false })
+  }
 
-  const limit = (reason: PilotHerbalDiagnosisLimit['reason'], cumulativeDays: number): PilotHerbalDiagnosisLimit => ({
+  const 질환이력한도경고 = (
+    사유: PilotHerbalDiagnosisLimit['reason'],
+    누적일수: number,
+  ): PilotHerbalDiagnosisLimit => ({
     code: 'PILOT_HERBAL_DIAGNOSIS_LIMIT',
-    reason,
-    diseaseName,
-    cumulativeDays,
-    lineIds,
-    blocksCompletion: reason !== 'DAY_LIMIT',
+    reason: 사유,
+    diseaseName: 질환명,
+    cumulativeDays: 누적일수,
+    lineIds: 첩약줄Ids,
+    blocksCompletion: 사유 !== 'DAY_LIMIT',
   })
-  if (hasTwoOtherDiseases(input.history, input.diseaseCode)) return unset(limit('TWO_OTHER_DISEASES', 0))
+  if (hasTwoOtherDiseases(input.history, input.diseaseCode)) return 코드미정(질환이력한도경고('TWO_OTHER_DISEASES', 0))
 
-  const partial: PilotHerbalDiagnosisJudgement = { copayCode: 'G', fullPayOptional: true, warnings: [], accepted: true }
-  const merged = mergeDiseaseHistory(input.history, input.diseaseCode)
-  if (merged === null) return partial
-  if (merged.thisClinic) {
-    if (merged.thisClinicDays < (input.dayLimit ?? DEFAULT_PILOT_HERBAL_DAY_LIMIT)) return partial
+  const 일부부담: PilotHerbalDiagnosisJudgement = {
+    copayCode: 'G',
+    fullPayOptional: true,
+    warnings: [],
+    accepted: true,
+  }
+  const 선택질환이력 = mergeDiseaseHistory(input.history, input.diseaseCode)
+  if (선택질환이력 === null) return 일부부담
+  if (선택질환이력.thisClinic) {
+    if (선택질환이력.thisClinicDays < (input.dayLimit ?? DEFAULT_PILOT_HERBAL_DAY_LIMIT)) return 일부부담
     return {
       copayCode: 'U',
       fullPayOptional: false,
-      warnings: [limit('DAY_LIMIT', merged.thisClinicDays)],
+      warnings: [질환이력한도경고('DAY_LIMIT', 선택질환이력.thisClinicDays)],
       accepted: true,
     }
   }
-  if (merged.otherClinicDays > 0) return unset(limit('OTHER_CLINIC', merged.otherClinicDays))
-  if (merged.unknownDays > 0)
-    return unset({ code: 'PILOT_HERBAL_HISTORY_UNVERIFIED', lineIds, blocksCompletion: false })
-  return partial
+  if (선택질환이력.otherClinicDays > 0) return 코드미정(질환이력한도경고('OTHER_CLINIC', 선택질환이력.otherClinicDays))
+  if (선택질환이력.unknownDays > 0) {
+    return 코드미정({ code: 'PILOT_HERBAL_HISTORY_UNVERIFIED', lineIds: 첩약줄Ids, blocksCompletion: false })
+  }
+  return 일부부담
 }
 
 /** 위반 문구입니다. 질환명 받침에 따라 `로`/`으로`를 고릅니다 (결정 7). */
 export function pilotHerbalDiagnosisMessage(issue: PilotHerbalDiagnosisLimit): string {
-  const withParticle = issue.diseaseName + directionalParticle(issue.diseaseName)
+  const 조사붙인질환명 = issue.diseaseName + directionalParticle(issue.diseaseName)
   switch (issue.reason) {
     case 'TWO_OTHER_DISEASES':
-      return `환자가 이미 다른 ${DISEASE_LIMIT}개 질환으로 처방받았습니다.`
+      return `환자가 이미 다른 ${질환수한도}개 질환으로 처방받았습니다.`
     case 'OTHER_CLINIC':
-      return `환자가 타원에서 ${withParticle} 처방받았습니다.`
+      return `환자가 타원에서 ${조사붙인질환명} 처방받았습니다.`
     case 'DAY_LIMIT':
-      return `환자가 ${withParticle} ${issue.cumulativeDays}일 처방받았습니다.`
+      return `환자가 ${조사붙인질환명} ${issue.cumulativeDays}일 처방받았습니다.`
   }
 }
 

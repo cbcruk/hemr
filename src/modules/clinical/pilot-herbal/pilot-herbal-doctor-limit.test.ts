@@ -17,8 +17,8 @@ const encounter = (
   copayCode: PilotHerbalDoctorEncounter['copayCode'] = 'G',
 ): PilotHerbalDoctorEncounter => ({ encounterId, serviceAt: at(date, time), copayCode })
 
-describe('pilotHerbalDoctorCounts', () => {
-  it('counts the current encounter as the next in line', () => {
+describe('의사별 처방 순번 (pilotHerbalDoctorCounts)', () => {
+  it('현재 진료를 다음 순번 1건으로 셉니다', () => {
     expect(pilotHerbalDoctorCounts({ encounterId: 'cur', serviceAt: at('2026-03-15') }, [])).toEqual({
       day: 1,
       month: 1,
@@ -26,7 +26,7 @@ describe('pilotHerbalDoctorCounts', () => {
     })
   })
 
-  it('counts only earlier partial-pay encounters in the same calendar day, month and year', () => {
+  it('같은 달력 날짜·월·연에서 앞선 일부부담 진료만 셉니다', () => {
     const encounters = [
       encounter('a', '2026-03-15', '09:00'),
       encounter('b', '2026-03-15', '11:00'), // 현재 진료보다 뒤라 세지 않습니다
@@ -43,12 +43,12 @@ describe('pilotHerbalDoctorCounts', () => {
     })
   })
 
-  it('skips encounters without a copay code', () => {
+  it('본인부담률 코드가 없는 진료는 세지 않습니다', () => {
     const encounters = [encounter('a', '2026-03-15', '09:00', null)]
     expect(pilotHerbalDoctorCounts({ encounterId: 'cur', serviceAt: at('2026-03-15') }, encounters).day).toBe(1)
   })
 
-  it('makes the 9th partial-pay encounter of the day exceed the limit', () => {
+  it('하루 9번째 일부부담 진료부터 한도 초과이고 쓴 건수 8건은 초과가 아닙니다', () => {
     const encounters = Array.from({ length: 8 }, (_, index) => encounter(`p${index}`, '2026-03-15', `0${index + 1}:00`))
     const counts = pilotHerbalDoctorCounts({ encounterId: 'cur', serviceAt: at('2026-03-15', '12:00') }, encounters)
     expect(counts.day).toBe(9)
@@ -59,7 +59,7 @@ describe('pilotHerbalDoctorCounts', () => {
     expect(exceededPilotHerbalDoctorPeriod(usage)).toBeNull()
   })
 
-  it('counts the month window across days', () => {
+  it('월 구간은 여러 날에 걸쳐 셉니다', () => {
     const encounters = Array.from({ length: 60 }, (_, index) =>
       encounter(`p${index}`, `2026-03-${String((index % 14) + 1).padStart(2, '0')}`),
     )
@@ -68,13 +68,13 @@ describe('pilotHerbalDoctorCounts', () => {
     expect(exceededPilotHerbalDoctorPeriod(counts)).toBe('MONTH')
   })
 
-  it('orders encounters at the same time by encounter id', () => {
+  it('같은 시각의 진료는 진료 ID 순으로 앞뒤를 정합니다', () => {
     const encounters = [encounter('a', '2026-03-15'), encounter('z', '2026-03-15')]
     expect(pilotHerbalDoctorCounts({ encounterId: 'm', serviceAt: at('2026-03-15') }, encounters).day).toBe(2)
   })
 })
 
-describe('applyPilotHerbalDoctorLimit', () => {
+describe('의사별 한도 적용 (applyPilotHerbalDoctorLimit)', () => {
   const blocked: PilotHerbalDiagnosisJudgement = {
     copayCode: null,
     fullPayOptional: false,
@@ -91,7 +91,7 @@ describe('applyPilotHerbalDoctorLimit', () => {
     accepted: false,
   }
 
-  it('forces U and keeps completion as the diagnosis judgement decided', () => {
+  it('한도를 넘으면 U로 정하고 완료 여부는 질환 이력 판정대로 둡니다', () => {
     const result = applyPilotHerbalDoctorLimit(blocked, ['h1'], { counts: { day: 9, month: 61, year: 601 } })
     expect(result).toEqual({
       copayCode: 'U',
@@ -111,11 +111,11 @@ describe('applyPilotHerbalDoctorLimit', () => {
     })
   })
 
-  it('leaves the judgement unchanged within the limit', () => {
+  it('한도 이내면 판정을 그대로 돌려줍니다', () => {
     expect(applyPilotHerbalDoctorLimit(blocked, ['h1'], { counts: { day: 8, month: 60, year: 600 } })).toBe(blocked)
   })
 
-  it('forces U alongside the diagnosis warnings and keeps completion allowed', () => {
+  it('질환 이력 경고와 함께 U로 정하고 완료는 허용한 채로 둡니다', () => {
     const unknown = judgePilotHerbalDiagnosis({ diseaseCode: '01', lineIds: ['h1'], history: null })
     if ('error' in unknown) throw new Error('unexpected error')
     const result = applyPilotHerbalDoctorLimit(unknown, ['h1'], { counts: { day: 1, month: 1, year: 601 } })
@@ -128,7 +128,7 @@ describe('applyPilotHerbalDoctorLimit', () => {
     expect(result.warnings[1]).toMatchObject({ period: 'YEAR', count: 601, limit: 600 })
   })
 
-  it('uses injected limits', () => {
+  it('넘겨받은 한도를 씁니다', () => {
     const limits = { day: 1, month: 60, year: 600 }
     const result = applyPilotHerbalDoctorLimit(blocked, ['h1'], { counts: { day: 2, month: 2, year: 2 }, limits })
     expect(result.warnings.at(-1)).toMatchObject({ period: 'DAY', count: 2, limit: 1 })

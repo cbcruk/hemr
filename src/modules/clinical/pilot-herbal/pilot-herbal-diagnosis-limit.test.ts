@@ -16,8 +16,8 @@ function judge(diseaseCode: string, history: PilotHerbalHistoryRow[] | null, day
   return judgePilotHerbalDiagnosis({ diseaseCode, lineIds: ['h1'], history, ...limit })
 }
 
-describe('judgePilotHerbalDiagnosis', () => {
-  it('blocks on another clinic even when unknown rows exist, and warns when only unknown rows have days', () => {
+describe('첩약 질환 이력 판정 (judgePilotHerbalDiagnosis)', () => {
+  it('등록 여부를 모르는 행이 있어도 타원 이력이면 막고, 모르는 행에만 일수가 있으면 경고만 합니다', () => {
     const mixed = judge('01', [row('01', 'N', 3), row('01', '', 30)])
     expect(mixed).toMatchObject({ copayCode: null, accepted: false })
     const unknown = judge('01', [row('01', 'N', 0), row('01', '', 30)])
@@ -29,7 +29,7 @@ describe('judgePilotHerbalDiagnosis', () => {
     })
   })
 
-  it('counts a disease missing from the reference toward the two-disease limit', () => {
+  it('참조데이터에 없는 질환도 다른 2개 질환 수에 셉니다', () => {
     const history = [row('02', 'Y', 3), row('99', 'Y', 1)]
     expect(judge('01', history)).toMatchObject({
       warnings: [{ reason: 'TWO_OTHER_DISEASES' }],
@@ -37,7 +37,7 @@ describe('judgePilotHerbalDiagnosis', () => {
     })
   })
 
-  it('reads the day limit from the reference value', () => {
+  it('넘겨받은 참조값의 투약일수 한도에 이르면 전액부담(U)입니다', () => {
     const history = [row('01', 'Y', 15)]
     expect(judge('01', history, 15)).toMatchObject({
       copayCode: 'U',
@@ -46,8 +46,8 @@ describe('judgePilotHerbalDiagnosis', () => {
   })
 })
 
-describe('history edge cases', () => {
-  it('does not set a copay code before the history arrives', () => {
+describe('질환 이력의 경계 경우', () => {
+  it('이력을 받기 전에는 본인부담률 코드를 정하지 않고 경고합니다', () => {
     expect(judge('01', null)).toEqual({
       copayCode: null,
       fullPayOptional: false,
@@ -56,7 +56,7 @@ describe('history edge cases', () => {
     })
   })
 
-  it('blocks the common prescription too when two other diseases exist, as R0e does', () => {
+  it('다른 2개 질환 이력이 있으면 현행 R0e처럼 공통처방도 막습니다', () => {
     expect(judge('00', [row('02', 'Y', 3), row('04', 'Y', 1)])).toMatchObject({
       copayCode: null,
       warnings: [{ reason: 'TWO_OTHER_DISEASES' }],
@@ -64,7 +64,7 @@ describe('history edge cases', () => {
     })
   })
 
-  it('reads non-numeric and negative days as zero', () => {
+  it('숫자가 아니거나 음수인 누적 투약일수는 0일로 읽습니다', () => {
     const raw = { diseaseCode: '01', registration: ' y ' }
     expect(pilotHerbalHistoryRow({ ...raw, cumulativeDays: 'abc' })).toEqual(row('01', 'Y', 0))
     expect(pilotHerbalHistoryRow({ ...raw, cumulativeDays: -3 })).toEqual(row('01', 'Y', 0))
@@ -72,7 +72,7 @@ describe('history edge cases', () => {
   })
 })
 
-describe('pilotHerbalDiagnosisMessage', () => {
+describe('질환 이력 위반 문구 (pilotHerbalDiagnosisMessage)', () => {
   const issue = (diseaseName: string): PilotHerbalDiagnosisLimit => ({
     code: 'PILOT_HERBAL_DIAGNOSIS_LIMIT',
     reason: 'OTHER_CLINIC',
@@ -82,7 +82,7 @@ describe('pilotHerbalDiagnosisMessage', () => {
     blocksCompletion: true,
   })
 
-  it('picks 로 after no final consonant or ㄹ and 으로 otherwise', () => {
+  it('받침이 없거나 ㄹ 받침이면 로, 그 밖의 받침이면 으로를 붙입니다', () => {
     expect(pilotHerbalDiagnosisMessage(issue('안면신경마비'))).toBe('환자가 타원에서 안면신경마비로 처방받았습니다.')
     expect(pilotHerbalDiagnosisMessage(issue('기능성소화불량'))).toBe(
       '환자가 타원에서 기능성소화불량으로 처방받았습니다.',

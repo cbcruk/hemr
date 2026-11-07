@@ -53,7 +53,7 @@ export interface SpecialCaseMismatch {
   reason: SpecialCaseMismatchReason
 }
 
-const CATEGORY_BY_PREFIX: Readonly<Record<string, RegistrationCategory>> = {
+const 앞자리별등록구분: Readonly<Record<string, RegistrationCategory>> = {
   '01': 'CANCER',
   '05': 'RARE_INTRACTABLE',
   '07': 'TUBERCULOSIS',
@@ -72,18 +72,18 @@ const CATEGORY_BY_PREFIX: Readonly<Record<string, RegistrationCategory>> = {
  * 특정기호를 적어야 하는 등록 구분입니다. 극희귀(11)·상세불명희귀(13)는 고시를 확인할 때까지 빼 둡니다 (결정 2, 임시).
  * 참조데이터로 옮기면 목록만 고칩니다.
  */
-const SPECIFIC_CODE_CATEGORIES: ReadonlySet<RegistrationCategory> = new Set([
+const 특정기호필요등록구분: ReadonlySet<RegistrationCategory> = new Set([
   'RARE_INTRACTABLE',
   'CHROMOSOMAL_ABNORMALITY',
   'RARE',
   'SEVERE_INTRACTABLE',
 ])
 
-const SPECIFIC_CODE_FORMAT = /^V[0-9A-Z]{3}$/
+const 특정기호형식 = /^V[0-9A-Z]{3}$/
 
 /** 등록번호 앞 두 자리의 등록 구분입니다. 모르는 값이면 `null`입니다. */
 export function registrationCategory(prefix: string): RegistrationCategory | null {
-  return prefix.length === 2 ? (CATEGORY_BY_PREFIX[prefix] ?? null) : null
+  return prefix.length === 2 ? (앞자리별등록구분[prefix] ?? null) : null
 }
 
 /** 특정기호를 정규화합니다. 앞뒤 공백을 지우고 대문자로 바꿉니다. 빈 값은 `null`입니다 (결정 3). */
@@ -100,8 +100,8 @@ export function normalizeSpecificCode(value: string | null): string | null {
  */
 export function requiresSpecificCode(claim: SpecialCaseClaim): boolean {
   if (claim.coverage !== 'NHIS' || claim.rareDiseaseSupport) return false
-  const category = registrationCategory((claim.registrationNumber ?? '').trim().slice(0, 2))
-  return category !== null && SPECIFIC_CODE_CATEGORIES.has(category)
+  const 등록구분 = registrationCategory((claim.registrationNumber ?? '').trim().slice(0, 2))
+  return 등록구분 !== null && 특정기호필요등록구분.has(등록구분)
 }
 
 /**
@@ -117,31 +117,31 @@ export function specialCaseMismatch(input: {
   diagnosisCodes: readonly string[]
   rareDiseases: readonly RareDiseaseRow[]
 }): SpecialCaseMismatch | null {
-  const reason = formatMismatch(input.claim) ?? diagnosisMismatch(input)
-  return reason === null ? null : { code: 'SPECIAL_CASE_CODE_MISMATCH', reason }
+  const 위반사유 = formatMismatch(input.claim) ?? 연계상병불일치(input)
+  return 위반사유 === null ? null : { code: 'SPECIAL_CASE_CODE_MISMATCH', reason: 위반사유 }
 }
 
 /** 상병 일치를 빼고 특정기호 형식만 검사합니다. 현행 저장·완료 검사(`validateSpecialCaseCode`) 자리를 대신합니다. */
 export function formatMismatch(claim: SpecialCaseClaim): SpecialCaseMismatchReason | null {
   if (!requiresSpecificCode(claim)) return null
-  const code = normalizeSpecificCode(claim.specificCode)
-  if (code === null) return 'SPECIFIC_CODE_MISSING'
-  return SPECIFIC_CODE_FORMAT.test(code) ? null : 'SPECIFIC_CODE_INVALID'
+  const 특정기호 = normalizeSpecificCode(claim.specificCode)
+  if (특정기호 === null) return 'SPECIFIC_CODE_MISSING'
+  return 특정기호형식.test(특정기호) ? null : 'SPECIFIC_CODE_INVALID'
 }
 
-function diagnosisMismatch(input: {
+function 연계상병불일치(input: {
   claim: SpecialCaseClaim
   diagnosisCodes: readonly string[]
   rareDiseases: readonly RareDiseaseRow[]
 }): SpecialCaseMismatchReason | null {
   if (!requiresSpecificCode(input.claim)) return null
-  const code = normalizeSpecificCode(input.claim.specificCode)
-  const rows = input.rareDiseases.filter((row) => row.specificCode.trim().toUpperCase() === code)
-  if (rows.length === 0) return 'NOT_IN_REFERENCE'
-  const matched = rows.some((row) =>
-    input.diagnosisCodes.some((diagnosis) => matchesLinkedDiagnoses(row.linkedDiagnoses, diagnosis)),
+  const 특정기호 = normalizeSpecificCode(input.claim.specificCode)
+  const 기준자료행 = input.rareDiseases.filter((row) => row.specificCode.trim().toUpperCase() === 특정기호)
+  if (기준자료행.length === 0) return 'NOT_IN_REFERENCE'
+  const 연계상병일치 = 기준자료행.some((row) =>
+    input.diagnosisCodes.some((상병코드) => matchesLinkedDiagnoses(row.linkedDiagnoses, 상병코드)),
   )
-  return matched ? null : 'LINKED_DIAGNOSIS_MISMATCH'
+  return 연계상병일치 ? null : 'LINKED_DIAGNOSIS_MISMATCH'
 }
 
 /**
@@ -152,18 +152,18 @@ function diagnosisMismatch(input: {
  *   (`Q00-R99`)도 같은 규칙입니다 (결정 5). 3자보다 짧은 상병코드는 맞지 않습니다
  */
 export function matchesLinkedDiagnoses(linked: string, diagnosisCode: string): boolean {
-  const code = normalizeDiagnosis(diagnosisCode)
+  const 상병코드 = normalizeDiagnosis(diagnosisCode)
   return linked
     .split(',')
     .map((entry) => entry.trim())
     .filter((entry) => entry !== '')
     .some((entry) => {
       const parts = entry.split('-').map(normalizeDiagnosis)
-      if (parts.length === 1) return parts[0] !== '' && code.startsWith(parts[0]!)
+      if (parts.length === 1) return parts[0] !== '' && 상병코드.startsWith(parts[0]!)
       // `-B`, `A-`, `A-B-C`처럼 양 끝이 둘이 아닌 범위는 잘못된 기준자료라 맞지 않는 것으로 봅니다
       const [start, end] = parts
-      if (parts.length !== 2 || start === '' || end === '' || code.length < 3) return false
-      const head = code.slice(0, 3)
+      if (parts.length !== 2 || start === '' || end === '' || 상병코드.length < 3) return false
+      const head = 상병코드.slice(0, 3)
       return start!.slice(0, 3) <= head && head <= end!.slice(0, 3)
     })
 }
@@ -183,32 +183,31 @@ export function specialCaseCandidates(input: {
   rareDiseases: readonly RareDiseaseRow[]
   diagnosisCode: string
 }): { activeSpecificCode: string | null; candidates: { specificCode: string; diseaseName: string }[] } {
-  const { claim } = input
-  const written = normalizeSpecificCode(claim.specificCode)
-  const activeSpecificCode = written !== null && written.startsWith('V') && written.length >= 2 ? written : null
-  const registrationNumber = (claim.registrationNumber ?? '').trim()
-  const registered = (claim.coverage === 'NHIS' ? input.registrations : [])
-    .filter(
-      (registration) => registrationNumber === '' || registration.registrationNumber.trim() === registrationNumber,
-    )
-    .map((registration) => registration.specificCode.trim().toUpperCase())
+  const 특정내역 = input.claim
+  const 적은특정기호 = normalizeSpecificCode(특정내역.specificCode)
+  const 활성특정기호 =
+    적은특정기호 !== null && 적은특정기호.startsWith('V') && 적은특정기호.length >= 2 ? 적은특정기호 : null
+  const 등록번호 = (특정내역.registrationNumber ?? '').trim()
+  const 자격조회특정기호 = (특정내역.coverage === 'NHIS' ? input.registrations : [])
+    .filter((등록) => 등록번호 === '' || 등록.registrationNumber.trim() === 등록번호)
+    .map((등록) => 등록.specificCode.trim().toUpperCase())
     .filter((code) => code.startsWith('V'))
 
-  const rowsOf = (codes: readonly string[]) =>
-    input.rareDiseases.filter((row) => codes.includes(row.specificCode.trim().toUpperCase()))
-  const registeredRows = rowsOf(registered)
-  const pool =
-    registeredRows.length > 0
-      ? registeredRows
-      : rowsOf([...(activeSpecificCode ? [activeSpecificCode] : []), ...registered])
+  const 특정기호행 = (특정기호목록: readonly string[]) =>
+    input.rareDiseases.filter((row) => 특정기호목록.includes(row.specificCode.trim().toUpperCase()))
+  const 자격조회등록행 = 특정기호행(자격조회특정기호)
+  const 후보행 =
+    자격조회등록행.length > 0
+      ? 자격조회등록행
+      : 특정기호행([...(활성특정기호 ? [활성특정기호] : []), ...자격조회특정기호])
 
-  const candidates: { specificCode: string; diseaseName: string }[] = []
-  for (const row of pool) {
+  const 후보: { specificCode: string; diseaseName: string }[] = []
+  for (const row of 후보행) {
     if (!matchesLinkedDiagnoses(row.linkedDiagnoses, input.diagnosisCode)) continue
-    if (candidates.some((candidate) => candidate.specificCode === row.specificCode)) continue
-    candidates.push({ specificCode: row.specificCode, diseaseName: row.diseaseName })
+    if (후보.some((항목) => 항목.specificCode === row.specificCode)) continue
+    후보.push({ specificCode: row.specificCode, diseaseName: row.diseaseName })
   }
-  return { activeSpecificCode, candidates }
+  return { activeSpecificCode: 활성특정기호, candidates: 후보 }
 }
 
 function normalizeDiagnosis(code: string): string {

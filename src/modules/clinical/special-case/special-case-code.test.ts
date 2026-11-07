@@ -19,14 +19,14 @@ const RARE_DISEASES: RareDiseaseRow[] = [
   { specificCode: 'V101', linkedDiagnoses: 'E70-E72', diseaseName: 'synthetic-A2' },
 ]
 
-describe('specialCaseMismatch (결정 1)', () => {
-  it('passes when any diagnosis matches any row of the code', () => {
+describe('특정기호 위반 (specialCaseMismatch, 결정 1)', () => {
+  it('진료 상병 하나가 특정기호의 어느 행에든 맞으면 통과합니다', () => {
     expect(specialCaseMismatch({ claim: CLAIM, diagnosisCodes: ['I10', 'E71.5'], rareDiseases: RARE_DISEASES })).toBe(
       null,
     )
   })
 
-  it('reports a diagnosis mismatch when no diagnosis matches', () => {
+  it('맞는 상병이 없으면 연계상병 불일치입니다', () => {
     expect(specialCaseMismatch({ claim: CLAIM, diagnosisCodes: ['I10'], rareDiseases: RARE_DISEASES })).toEqual({
       code: 'SPECIAL_CASE_CODE_MISMATCH',
       reason: 'LINKED_DIAGNOSIS_MISMATCH',
@@ -36,14 +36,14 @@ describe('specialCaseMismatch (결정 1)', () => {
     )
   })
 
-  it('reports a code missing from the reference data (결정 4)', () => {
+  it('기준자료에 없는 특정기호는 위반입니다 (결정 4)', () => {
     const claim = { ...CLAIM, specificCode: 'V999' }
     expect(specialCaseMismatch({ claim, diagnosisCodes: ['G12.2'], rareDiseases: RARE_DISEASES })?.reason).toBe(
       'NOT_IN_REFERENCE',
     )
   })
 
-  it('reports the format before matching and normalizes the code', () => {
+  it('상병 일치보다 형식을 먼저 보고 특정기호를 정규화해 비교합니다', () => {
     const missing = { ...CLAIM, specificCode: '  ' }
     expect(specialCaseMismatch({ claim: missing, diagnosisCodes: [], rareDiseases: [] })?.reason).toBe(
       'SPECIFIC_CODE_MISSING',
@@ -52,7 +52,7 @@ describe('specialCaseMismatch (결정 1)', () => {
     expect(specialCaseMismatch({ claim: lower, diagnosisCodes: ['G122'], rareDiseases: RARE_DISEASES })).toBeNull()
   })
 
-  it('skips encounters that do not need a specific code', () => {
+  it('특정기호를 적지 않아도 되는 진료는 검사하지 않습니다', () => {
     const cancer = { ...CLAIM, specificCode: null, registrationNumber: '01000123' }
     expect(specialCaseMismatch({ claim: cancer, diagnosisCodes: [], rareDiseases: [] })).toBeNull()
     const aid = { ...CLAIM, coverage: 'MEDICAL_AID' as const, specificCode: null }
@@ -60,21 +60,21 @@ describe('specialCaseMismatch (결정 1)', () => {
   })
 })
 
-describe('matchesLinkedDiagnoses', () => {
-  it('matches nothing for a range without exactly two non-empty ends', () => {
+describe('연계상병 일치 (matchesLinkedDiagnoses)', () => {
+  it('양 끝이 비지 않은 둘이 아닌 범위는 아무것도 맞지 않습니다', () => {
     expect(matchesLinkedDiagnoses('-B99', 'A00')).toBe(false)
     expect(matchesLinkedDiagnoses('A00-', 'A50')).toBe(false)
     expect(matchesLinkedDiagnoses('A00-B99-C00', 'A55')).toBe(false)
   })
 
-  it('ignores spaces around entries and empty entries', () => {
+  it('항목 앞뒤 공백과 빈 항목은 무시합니다', () => {
     expect(matchesLinkedDiagnoses(' M05 , ,M06 ', 'm06.1')).toBe(true)
     expect(matchesLinkedDiagnoses(',', 'A00')).toBe(false)
   })
 })
 
-describe('specialCaseCandidates', () => {
-  it('trims registration numbers and reference codes like the current client', () => {
+describe('특정기호 후보 (specialCaseCandidates)', () => {
+  it('현행처럼 등록번호와 기준자료 특정기호의 공백을 지우고 비교합니다', () => {
     const result = specialCaseCandidates({
       claim: { ...CLAIM, specificCode: null },
       registrations: [{ specificCode: 'V101', registrationNumber: ' 21000123 ' }],
@@ -85,8 +85,8 @@ describe('specialCaseCandidates', () => {
   })
 })
 
-describe('normalizeSpecificCode', () => {
-  it('trims and uppercases', () => {
+describe('특정기호 정규화 (normalizeSpecificCode)', () => {
+  it('앞뒤 공백을 지우고 대문자로 바꾸며 없으면 null입니다', () => {
     expect(normalizeSpecificCode(' v101 ')).toBe('V101')
     expect(normalizeSpecificCode(null)).toBeNull()
   })

@@ -111,8 +111,8 @@ const TRACED: Record<string, (input: Record<string, any>, expected: any) => void
   },
 }
 
-describe('pilot-herbal-approval-required fixture', () => {
-  describe('finish check (결정 1·5)', () => {
+describe('첩약 승인 필수 픽스처 (pilot-herbal-approval-required)', () => {
+  describe('완료 검사 (결정 1·5)', () => {
     it.each(
       fixture.cases.filter((c) => c.input['function'] === 'finishApprovalCheck').map((c) => [c.name, c] as const),
     )('%s', (_name, { input, expected }) => {
@@ -120,7 +120,7 @@ describe('pilot-herbal-approval-required fixture', () => {
     })
   })
 
-  describe('claim check C0005 (결정 3)', () => {
+  describe('청구 검사 C0005 (결정 3)', () => {
     it.each(fixture.cases.filter((c) => c.input['function'] === 'claimCheckC0005').map((c) => [c.name, c] as const))(
       '%s',
       (name, { input, expected }) => {
@@ -133,14 +133,14 @@ describe('pilot-herbal-approval-required fixture', () => {
     )
   })
 
-  describe('finish flow (traced, 결정 2·4)', () => {
+  describe('완료 흐름 (추적, 결정 2·4)', () => {
     it.each(Object.keys(TRACED).map((name) => [name] as const))('%s', (name) => {
       const testCase = fixture.cases.find((c) => c.name === name)!
       TRACED[name]!(testCase.input, testCase.expected)
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했거나 추적했고 예외 목록은 있는 케이스만 가리킵니다', () => {
     const unaccounted = fixture.cases.filter(
       (c) => !['finishApprovalCheck', 'claimCheckC0005'].includes(c.input['function']) && !(c.name in TRACED),
     )

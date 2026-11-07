@@ -93,8 +93,8 @@ const CHANGED: Record<string, unknown> = {
   "연계상병 'Q00-R99' matches 'R50'": { matches: true },
 }
 
-describe('special-case-code-match fixture', () => {
-  describe('save and complete gate (validateSpecialCaseCode, 결정 2·3)', () => {
+describe('산정특례 특정기호 픽스처 (special-case-code-match)', () => {
+  describe('저장·완료 검사 (validateSpecialCaseCode, 결정 2·3)', () => {
     it.each(cases('validateSpecialCaseCode').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const claim = toClaim(input['진료내용'])
       expect({ valid: formatMismatch(claim) === null, requiresSpecificCode: requiresSpecificCode(claim) }).toEqual(
@@ -103,7 +103,7 @@ describe('special-case-code-match fixture', () => {
     })
   })
 
-  describe('registration category (dE/din, 결정 2)', () => {
+  describe('등록 구분 (dE/din, 결정 2)', () => {
     it.each(cases('dE/din').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       // 픽스처의 앞자리는 모두 두 자리라, 등록번호를 만들어 `requiresSpecificCode`의 앞 두 자리 판정까지 함께 검사합니다
       const category = registrationCategory(input['prefix'])
@@ -120,7 +120,7 @@ describe('special-case-code-match fixture', () => {
     })
   })
 
-  describe('linked diagnosis matcher (ce, 결정 5)', () => {
+  describe('연계상병 일치 (ce, 결정 5)', () => {
     it.each(cases('ce').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       expect({ matches: matchesLinkedDiagnoses(input['연계상병'], input['상병코드']) }).toEqual(
         CHANGED[name] ?? expected,
@@ -128,7 +128,7 @@ describe('special-case-code-match fixture', () => {
     })
   })
 
-  describe('candidates (resolveSpecialCaseCandidates, 결정 4)', () => {
+  describe('특정기호 후보 (resolveSpecialCaseCandidates, 결정 4)', () => {
     it.each(cases('resolveSpecialCaseCandidates').map((c) => [c.name, c] as const))(
       '%s',
       (name, { input, expected }) => {
@@ -149,7 +149,7 @@ describe('special-case-code-match fixture', () => {
     )
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했고 바뀐 결과 목록은 있는 케이스만 가리킵니다', () => {
     const ported = new Set(['validateSpecialCaseCode', 'dE/din', 'ce', 'resolveSpecialCaseCandidates'])
     expect(fixture.cases.filter((c) => !ported.has(c.input['fn'])).map((c) => c.name)).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])

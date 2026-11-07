@@ -34,15 +34,15 @@ function input(overrides: Partial<PilotHerbalClaimInput> = {}): PilotHerbalClaim
 const codes = (overrides: Partial<PilotHerbalClaimInput>) =>
   pilotHerbalClaimIssues(input(overrides)).map((each) => each.code)
 
-describe('pilotHerbalClaimIssues', () => {
-  it('proposes removing the dispensing fee together with the herbal medicine (C0003)', () => {
+describe('첩약 시범사업 청구 검사 (pilotHerbalClaimIssues)', () => {
+  it('한방보험약을 지울 때 한방조제료도 함께 지우게 제안합니다 (C0003)', () => {
     const lines = [line('m1', '34001001'), line('m2', '34002001')]
     expect(pilotHerbalClaimIssues(input({ lines }))).toEqual([
       { code: 'C0003', lineIds: ['m1'], fixRemovesLineIds: ['m1', 'm2'] },
     ])
   })
 
-  it('flags every unapproved herbal line (C0005)', () => {
+  it('승인되지 않은 첩약 줄을 모두 가리킵니다 (C0005)', () => {
     const lines = [
       line('h1', '35001001', { hiraApproval: { status: 'PENDING' } }),
       line('h2', '35001001', { hiraApproval: null }),
@@ -50,7 +50,7 @@ describe('pilotHerbalClaimIssues', () => {
     expect(pilotHerbalClaimIssues(input({ lines }))).toEqual([{ code: 'C0005', lineIds: ['h1', 'h2'] }])
   })
 
-  it('compares C0004 with every nearby record, not just the latest', () => {
+  it('C0004는 최신 기록만이 아니라 앞뒤 10일 안의 모든 기록과 비교합니다', () => {
     const deep = line('d1', '35003001', { feeCode: '90401' })
     const other = (encounterId: string, date: string) => ({
       encounterId,
@@ -62,32 +62,32 @@ describe('pilotHerbalClaimIssues', () => {
     expect(codes({ lines: [deep], others })).toEqual(['C0004'])
   })
 
-  it('runs only for NHIS or medical aid pilot encounters', () => {
+  it('건보·의료급여의 첩약 시범사업 내원만 검사합니다', () => {
     const lines = [line('a', 'x', { feeCode: '40400' })]
     expect(codes({ lines, coverage: 'MEDICAL_AID' })).toEqual(['C0001'])
     expect(codes({ lines, coverage: 'SELF_PAY' })).toEqual([])
     expect(codes({ lines, pilotHerbal: null })).toEqual([])
   })
 
-  it('keeps other checks when one check has no input (C0002, C0008)', () => {
+  it('한 검사의 입력이 없어도 다른 검사 결과는 남습니다 (C0002, C0008)', () => {
     const lines = [line('h1', '35001001'), line('a', 'x', { feeCode: '20010' })]
     expect(codes({ lines, diagnoses: [] })).toEqual(['C0001', 'C0008'])
   })
 
-  it('compares dotted diagnosis codes with the undotted prefixes (C0008, C0009)', () => {
+  it('점이 있는 상병코드를 점 없는 접두어와 비교합니다 (C0008, C0009)', () => {
     expect(codes({ diagnoses: [{ code: 'N94.4', kind: 'PRIMARY' }] })).toEqual([])
     const sequelae = { pilotHerbal: { diseaseCode: '03' } }
     expect(codes({ ...sequelae, diagnoses: [{ code: 'u23.4', kind: 'SECONDARY' }] })).toEqual([])
     expect(codes({ ...sequelae, diagnoses: [{ code: 'R51', kind: 'SECONDARY' }] })).toEqual(['C0009'])
   })
 
-  it('skips diagnosis checks for diseases missing from the table and ignores empty prefixes', () => {
+  it('표에 없는 질환은 상병 검사를 건너뛰고 빈 접두어는 버립니다', () => {
     const table = new Map([['01', ['']]])
     expect(codes({ pilotHerbal: { diseaseCode: '03' }, diseaseDiagnoses: table, diagnoses: [] })).toEqual([])
     expect(codes({ diseaseDiagnoses: table, diagnoses: [{ code: 'M5110', kind: 'PRIMARY' }] })).toEqual(['C0008'])
   })
 
-  it('treats an unknown checklist status as not submitted (C0006)', () => {
+  it('체크리스트 제출 여부를 모르면 미제출로 봅니다 (C0006)', () => {
     const details = (checklistSubmitted: boolean | null) => ({ targetDisease: null, checklistSubmitted })
     const lines = [
       line('h1', '35001001', { herbalDetails: details(null) }),
@@ -97,13 +97,13 @@ describe('pilotHerbalClaimIssues', () => {
     expect(pilotHerbalClaimIssues(input({ lines }))).toEqual([{ code: 'C0006', lineIds: ['h1'] }])
   })
 
-  it('points C0011 at the excluded prescriptions', () => {
+  it('C0011은 처방할 수 없는 처방 줄을 가리킵니다', () => {
     const lines = [line('h1', '35001001', { name: '보폐원탕' }), line('h2', '35001001', { name: '반하사심탕' })]
     const issues = pilotHerbalClaimIssues(input({ lines, pilotHerbal: { diseaseCode: '06' }, diagnoses: [] }))
     expect(issues.filter((each) => each.code === 'C0011')).toEqual([{ code: 'C0011', lineIds: ['h1'] }])
   })
 
-  it('flags the doctor treating themself (C0012)', () => {
+  it('진료 의사 본인에게 처방하면 경고하고 주민번호를 다 모르면 경고하지 않습니다 (C0012)', () => {
     const rrn = { front: '800101', back: '1234567' }
     expect(codes({ patientRrn: rrn, doctorRrn: rrn })).toEqual(['C0012'])
     expect(codes({ patientRrn: rrn, doctorRrn: null })).toEqual([])

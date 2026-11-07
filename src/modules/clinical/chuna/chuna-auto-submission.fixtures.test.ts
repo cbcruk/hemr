@@ -252,15 +252,15 @@ const submissionCases = fixture.cases.filter(
   (testCase) => testCase.input['kind'] === undefined && !(testCase.name in NOT_PORTED),
 )
 
-describe('chuna-auto-approval fixture', () => {
-  describe('auto submission (autoApproveChuna, 결정 1·2·3·4·5)', () => {
+describe('추나 자동 승인 픽스처 (chuna-auto-approval)', () => {
+  describe('자동 제출 (autoApproveChuna, 결정 1·2·3·4·5)', () => {
     it.each(submissionCases.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const want = CHANGED[name]?.() ?? legacyResult(name, expected['actions'])
       expect(run(input)).toEqual(want)
     })
   })
 
-  describe('existing submission match (B)', () => {
+  describe('기제출 건 매칭 (B)', () => {
     const matchCases = fixture.cases.filter((testCase) => testCase.input['kind'] === 'matchSubmission')
     it.each(matchCases.map((c) => [c.name, c] as const))('%s', (_name, { input, expected }) => {
       const key = input['key']
@@ -276,7 +276,7 @@ describe('chuna-auto-approval fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했거나 이식하지 않은 이유를 적었고 예외 목록은 있는 케이스만 가리킵니다', () => {
     const unaccounted = fixture.cases.filter(
       (testCase) =>
         !(testCase.name in NOT_PORTED) &&

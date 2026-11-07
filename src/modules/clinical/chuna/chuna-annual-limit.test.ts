@@ -25,8 +25,8 @@ function input(overrides: Partial<ChunaAnnualLimitInput> = {}): ChunaAnnualLimit
   }
 }
 
-describe('chunaUsageSummary', () => {
-  it('gives the same answer for the 20th session before and after its own submission is counted', () => {
+describe('추나 사용량 요약 (chunaUsageSummary)', () => {
+  it('20회째 시행은 자기 제출분이 누적에 들어가기 전과 뒤에 이전 시행 수가 같습니다', () => {
     const context = { serviceAt: AT, limit: 20 }
     const before = chunaUsageSummary({ rows: rows(19), cumulativeCount: null, complete: true }, context)
     const today = { serviceDate: AT.date, deleted: false, ownClinic: true }
@@ -36,13 +36,13 @@ describe('chunaUsageSummary', () => {
     expect(after.exhausted).toBe(false)
   })
 
-  it('does not count later sessions when a past encounter is reopened', () => {
+  it('과거 진료를 다시 열면 진료일과 그 뒤의 시행은 세지 않습니다', () => {
     const tenth = { date: rows(10)[9]!.serviceDate, time: '10:00' }
     const usage = { rows: rows(25), cumulativeCount: 25, complete: true }
     expect(chunaUsageSummary(usage, { serviceAt: tenth, limit: 20 })).toMatchObject({ priorCount: 9, exhausted: false })
   })
 
-  it('judges the same day by the service date, not the real today', () => {
+  it('당일 시행 여부는 실제 오늘이 아니라 진료일로 판정합니다', () => {
     const usage = { rows: rows(3), cumulativeCount: null, complete: true }
     const past = { date: '2026-01-02', time: '10:00' }
     expect(chunaUsageSummary(usage, { serviceAt: past, limit: 20 }).sameDay).toBe(true)
@@ -50,8 +50,8 @@ describe('chunaUsageSummary', () => {
   })
 })
 
-describe('judgeChunaAnnualLimit', () => {
-  it('allows the 20th session and blocks the 21st', () => {
+describe('추나 한도 판정 (judgeChunaAnnualLimit)', () => {
+  it('20회째는 통과하고 21회째는 완료를 막습니다', () => {
     expect(judgeChunaAnnualLimit(input())).toEqual({ warnings: [], accepted: true })
     const usage = { rows: rows(20), cumulativeCount: null, complete: true }
     expect(judgeChunaAnnualLimit(input({ hiraUsage: usage }))).toEqual({
@@ -60,7 +60,7 @@ describe('judgeChunaAnnualLimit', () => {
     })
   })
 
-  it('does not judge a truncated usage list', () => {
+  it('잘린 사용량 목록은 판정하지 않고 사용량 미확인 경고만 냅니다', () => {
     const usage = { rows: rows(25), cumulativeCount: null, complete: false }
     expect(judgeChunaAnnualLimit(input({ hiraUsage: usage }))).toEqual({
       warnings: [{ code: 'CHUNA_USAGE_UNKNOWN', lineIds: ['c1'], blocksCompletion: false }],
@@ -68,13 +68,13 @@ describe('judgeChunaAnnualLimit', () => {
     })
   })
 
-  it('skips self-pay and encounters without chuna', () => {
+  it('일반 진료와 추나 줄이 없는 진료는 판정하지 않습니다', () => {
     expect(judgeChunaAnnualLimit(input({ coverage: 'SELF_PAY', hiraUsage: null })).warnings).toEqual([])
     const acupuncture = { lineId: 'a1', feeCode: '40011', category: '33001001' }
     expect(judgeChunaAnnualLimit(input({ lines: [acupuncture], hiraUsage: null })).warnings).toEqual([])
   })
 
-  it('blocks the 21st industrial accident session day', () => {
+  it('산재는 21번째 시행일에 완료를 막습니다', () => {
     const others: ChunaEncounter[] = rows(20).map((row, index) => ({
       encounterId: `old${index}`,
       coverage: 'INDUSTRIAL_ACCIDENT',
@@ -89,8 +89,8 @@ describe('judgeChunaAnnualLimit', () => {
   })
 })
 
-describe('industrialAccidentPriorDays', () => {
-  it('counts a day once and skips the current service date and later days', () => {
+describe('산재 이전 시행 일수 (industrialAccidentPriorDays)', () => {
+  it('한 날은 한 번만 세고 현재 진료일과 그 뒤 날짜는 세지 않습니다', () => {
     const encounter = (encounterId: string, date: string): ChunaEncounter => ({
       encounterId,
       coverage: 'INDUSTRIAL_ACCIDENT',
