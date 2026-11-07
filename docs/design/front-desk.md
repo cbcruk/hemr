@@ -24,6 +24,7 @@
 | 내원 다시 열기 (수납 뒤) | `:reopen`. 시재 다시 열기·시술 다시 열기와 다릅니다 |
 | 연쇄 취소 | `cascade` |
 | 자격 (접수 때 판정) | `eligibility` (`status`, `nhis`, `identityVerified`, `benefitRestricted`, `copayCode`) |
+| 선택의료기관 기호 (직원이 고름 / 저장 / 우리 기관) | `chosenInstitutionCode` / `eligibility.selectedInstitutionCode` / `clinicInstitutionCode` |
 | 자격여부 / 급여제한여부 / 본인부담여부 (공단 조회) | `eligibility.nhis.qualificationCode` / `.benefitRestrictionCode` / `.copayCode` (원래 값) |
 | 진료항목 (예약 단위) | `visitType` |
 | 보험구분 | `coverage`: `NHIS`(건보), `MEDICAL_AID`(의료급여), `AUTO_INSURANCE`(자보), `INDUSTRIAL_ACCIDENT`(산재), `SELF_PAY`(일반) |

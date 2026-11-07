@@ -11,17 +11,17 @@ import type {
 export { ageOn }
 
 /** 접수를 막는 급여제한 코드입니다. 무자격·사망·국외이민은 자격 상실과 같습니다. */
-const BLOCKING_RESTRICTIONS: ReadonlySet<string> = new Set(['01', '04', '05'])
+const 접수불가급여제한코드: ReadonlySet<string> = new Set(['01', '04', '05'])
 /** 접수는 받되 급여제한 표시를 남기는 체납 코드입니다. */
-const ARREARS_RESTRICTIONS: ReadonlySet<string> = new Set(['02', '03'])
+const 체납급여제한코드: ReadonlySet<string> = new Set(['02', '03'])
 /** 선택의료기관 적용자의 본인부담여부입니다. */
-const SELECTED_INSTITUTION_ENROLLEES: ReadonlySet<string> = new Set(['M001', 'M002', 'B001', 'B002'])
+const 선택의료기관적용자코드: ReadonlySet<string> = new Set(['M001', 'M002', 'B001', 'B002'])
 /** 다른 기관 의뢰를 뜻해 선택의료기관을 함께 적어야 하는 본인부담여부입니다. */
-const REFERRAL_COPAY_CODES: ReadonlySet<string> = new Set(['B005', 'B006', 'B008'])
+const 의뢰본인부담여부코드: ReadonlySet<string> = new Set(['B005', 'B006', 'B008'])
 /** 본인확인이 유효한 기간(개월)입니다. */
-const IDENTITY_VALID_MONTHS = 6
-/** 이 나이 미만은 본인확인 예외입니다. */
-const IDENTITY_EXEMPT_UNDER_AGE = 19
+const 본인확인유효개월 = 6
+/** 이 나이(만 나이)부터 본인확인이 필요합니다. 그 아래는 예외입니다. */
+const 본인확인필요나이 = 19
 
 /**
  * 접수 요청을 검증합니다.
@@ -33,14 +33,14 @@ const IDENTITY_EXEMPT_UNDER_AGE = 19
 export function validateCheckIn(input: CheckInInput): CheckInValidation {
   assertDates(input)
   const errors: CheckInErrorCode[] = []
-  const national = isNationalCoverage(input.coverage)
-  const kind = eligibilityKind(input.eligibility?.qualificationCode)
-  const restriction = normalizedRestriction(input.eligibility?.benefitRestrictionCode)
+  const 공단조회대상 = 공단자격조회대상(input.coverage)
+  const 자격종류 = eligibilityKind(input.eligibility?.qualificationCode)
+  const 급여제한코드 = 두자리급여제한코드(input.eligibility?.benefitRestrictionCode)
 
-  if (national) {
-    if (kind === null) errors.push('NHIS_NOT_ELIGIBLE')
-    else if (BLOCKING_RESTRICTIONS.has(restriction)) errors.push('NHIS_BENEFIT_RESTRICTED')
-    if (needsSelectedInstitution(input, kind)) errors.push('SELECTED_INSTITUTION_REQUIRED')
+  if (공단조회대상) {
+    if (자격종류 === null) errors.push('NHIS_NOT_ELIGIBLE')
+    else if (접수불가급여제한코드.has(급여제한코드)) errors.push('NHIS_BENEFIT_RESTRICTED')
+    if (선택의료기관누락(input, 자격종류)) errors.push('SELECTED_INSTITUTION_REQUIRED')
     if (identityVerificationBlocks(input, input.patient)) errors.push('IDENTITY_VERIFICATION_REQUIRED')
   }
   if (input.coverage === 'AUTO_INSURANCE' && input.autoInsurance) {
@@ -54,8 +54,8 @@ export function validateCheckIn(input: CheckInInput): CheckInValidation {
 
   return {
     errors,
-    benefitRestricted: national && ARREARS_RESTRICTIONS.has(restriction),
-    selectedInstitutionCode: normalizedInstitution(input, kind),
+    benefitRestricted: 공단조회대상 && 체납급여제한코드.has(급여제한코드),
+    selectedInstitutionCode: 저장할선택의료기관기호(input, 자격종류),
   }
 }
 
@@ -84,13 +84,13 @@ function assertDates(input: CheckInInput): void {
 }
 
 /** 급여제한 코드를 두 자리로 맞춥니다. 이관 데이터에 `1`처럼 앞의 0이 빠진 값이 있을 수 있습니다. */
-function normalizedRestriction(code: string | null | undefined): string {
+function 두자리급여제한코드(code: string | null | undefined): string {
   const trimmed = (code ?? '').trim()
   return trimmed === '' ? '' : trimmed.padStart(2, '0')
 }
 
 /** 공단 자격 조회로 판정하는 보험구분입니다. 현행 화면의 `건보` 탭(건보·의료급여)과 같습니다. */
-function isNationalCoverage(coverage: Coverage): boolean {
+function 공단자격조회대상(coverage: Coverage): boolean {
   return coverage === 'NHIS' || coverage === 'MEDICAL_AID'
 }
 
@@ -109,22 +109,22 @@ export function eligibilityKind(qualificationCode: string | null | undefined): E
  * `B005` + 의뢰기관만 받습니다. `B006`/`B008`은 공단 코드표를 확인할 때까지 현행처럼 막습니다
  * (임시 결정). 적용자가 아니어도 의뢰 코드를 골랐으면 기관이 있어야 합니다.
  */
-function needsSelectedInstitution(input: CheckInInput, kind: EligibilityKind | null): boolean {
-  const chosen = input.chosenCopayCode ?? ''
-  const hasInstitution = isInstitutionGiven(input.chosenInstitutionCode)
-  if (REFERRAL_COPAY_CODES.has(chosen) && !hasInstitution) return true
+function 선택의료기관누락(input: CheckInInput, 자격종류: EligibilityKind | null): boolean {
+  const 고른본인부담여부 = input.chosenCopayCode ?? ''
+  const 기관있음 = 기관기호있음(input.chosenInstitutionCode)
+  if (의뢰본인부담여부코드.has(고른본인부담여부) && !기관있음) return true
 
-  const clinic = input.clinicInstitutionCode ?? ''
-  const enrollee =
-    kind === 'MEDICAL_AID' &&
-    SELECTED_INSTITUTION_ENROLLEES.has((input.eligibility?.copayCode ?? '').trim()) &&
-    clinic !== '' &&
-    !(input.eligibility?.selectedInstitutionCodes ?? []).includes(clinic)
-  if (!enrollee) return false
-  return !(chosen === 'U001' || (chosen === 'B005' && hasInstitution))
+  const 우리기관기호 = input.clinicInstitutionCode ?? ''
+  const 다른기관선택적용자 =
+    자격종류 === 'MEDICAL_AID' &&
+    선택의료기관적용자코드.has((input.eligibility?.copayCode ?? '').trim()) &&
+    우리기관기호 !== '' &&
+    !(input.eligibility?.selectedInstitutionCodes ?? []).includes(우리기관기호)
+  if (!다른기관선택적용자) return false
+  return !(고른본인부담여부 === 'U001' || (고른본인부담여부 === 'B005' && 기관있음))
 }
 
-function isInstitutionGiven(code: string | null | undefined): boolean {
+function 기관기호있음(code: string | null | undefined): boolean {
   return code !== undefined && code !== null && code !== '' && code !== '없음'
 }
 
@@ -134,11 +134,11 @@ function isInstitutionGiven(code: string | null | undefined): boolean {
  * 의료급여에서 의뢰 코드가 아니면 남은 기관 값을 지웁니다(현행은 `"없음"`을 보냈습니다).
  * 다만 `해당없음`을 고르고 기관을 적었으면 현행처럼 그 기관을 남깁니다.
  */
-function normalizedInstitution(input: CheckInInput, kind: EligibilityKind | null): string | null {
-  const institution = isInstitutionGiven(input.chosenInstitutionCode) ? input.chosenInstitutionCode! : null
-  const chosen = input.chosenCopayCode ?? ''
-  if (kind === 'MEDICAL_AID' && !REFERRAL_COPAY_CODES.has(chosen) && chosen !== '해당없음') return null
-  return institution
+function 저장할선택의료기관기호(input: CheckInInput, 자격종류: EligibilityKind | null): string | null {
+  const 기관기호 = 기관기호있음(input.chosenInstitutionCode) ? input.chosenInstitutionCode! : null
+  const 고른본인부담여부 = input.chosenCopayCode ?? ''
+  if (자격종류 !== 'MEDICAL_AID') return 기관기호
+  return 의뢰본인부담여부코드.has(고른본인부담여부) || 고른본인부담여부 === '해당없음' ? 기관기호 : null
 }
 
 /**
@@ -150,20 +150,20 @@ function normalizedInstitution(input: CheckInInput, kind: EligibilityKind | null
  */
 export function identityVerificationBlocks(input: CheckInInput, patient: IdentityPatient | undefined): boolean {
   if (input.identityVerified === true) return false
-  const validFrom = subtractMonths(input.date, IDENTITY_VALID_MONTHS)
-  const required =
+  const 유효시작일 = subtractMonths(input.date, 본인확인유효개월)
+  const 확인필요 =
     patient === undefined ||
     !patient.firstVisitDate ||
     !patient.lastIdentityVerifiedOn ||
-    patient.lastIdentityVerifiedOn < validFrom
-  if (!required) return false
-  const exempt =
+    patient.lastIdentityVerifiedOn < 유효시작일
+  if (!확인필요) return false
+  const 예외 =
     input.eligibility?.identityExempt === true ||
     input.fullSelfPay === true ||
     (patient !== undefined &&
-      ((patient.birthDate !== null && ageOn(patient.birthDate, input.date) < IDENTITY_EXEMPT_UNDER_AGE) ||
+      ((patient.birthDate !== null && ageOn(patient.birthDate, input.date) < 본인확인필요나이) ||
         patient.pregnant === true))
-  return !exempt
+  return !예외
 }
 
 /** 날짜에서 개월 수를 뺍니다. 그 달에 같은 날이 없으면 말일로 맞춥니다(8월 31일 − 6개월 = 2월 28일). */
