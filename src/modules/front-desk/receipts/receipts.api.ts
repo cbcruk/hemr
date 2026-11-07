@@ -215,7 +215,6 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
         CheckoutCoverageUnsupported,
         CheckoutPaymentInvalid,
         CheckoutRejected,
-        CheckoutWarningCode,
         IdempotencyKeyReused,
       ],
     })

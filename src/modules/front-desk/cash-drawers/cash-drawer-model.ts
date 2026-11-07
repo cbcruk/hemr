@@ -140,7 +140,6 @@ export const Expense = Schema.Struct({
 }).annotate({ identifier: 'Expense', title: '지출', description: '지출입니다. 시재에서 나간 현금입니다.' })
 export type Expense = typeof Expense.Type
 
-/** 시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다. */
 export class CashDrawerTransitionInvalid extends HttpApiError.Problem<CashDrawerTransitionInvalid>()(
   'CashDrawerTransitionInvalid',
   {
@@ -149,23 +148,23 @@ export class CashDrawerTransitionInvalid extends HttpApiError.Problem<CashDrawer
     title: 'Cash drawer status does not allow this command',
   },
   { code: Schema.tag('CASH_DRAWER_TRANSITION_INVALID'), currentStatus: CashDrawerStatus, command: CashDrawerCommand },
+  { description: '시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.' },
 ) {}
 
-/** 지출은 그날 시재가 열려 있을 때(`OPEN`·`REOPENED`)만 기록하거나 지웁니다. */
 export class CashDrawerNotOpen extends HttpApiError.Problem<CashDrawerNotOpen>()(
   'CashDrawerNotOpen',
   { type: problemType('CASH_DRAWER_NOT_OPEN'), status: 409, title: 'Cash drawer of the date is not open' },
   { code: Schema.tag('CASH_DRAWER_NOT_OPEN'), date: LocalDate, currentStatus: CashDrawerStatus },
+  { description: '지출은 그날 시재가 열려 있을 때(`OPEN`·`REOPENED`)만 기록하거나 지웁니다.' },
 ) {}
 
-/** 아직 오지 않은 날의 시재는 열 수 없습니다. */
 export class CashDrawerDateInFuture extends HttpApiError.Problem<CashDrawerDateInFuture>()(
   'CashDrawerDateInFuture',
   { type: problemType('CASH_DRAWER_DATE_IN_FUTURE'), status: 422, title: 'Cash drawer date is in the future' },
   { code: Schema.tag('CASH_DRAWER_DATE_IN_FUTURE') },
+  { description: '미래 날짜의 시재는 열 수 없습니다. 오늘과 지난 날짜는 열 수 있습니다.' },
 ) {}
 
-/** 이어받을 앞 시재의 마감 금액이 없습니다. */
 export class CashDrawerCarryOverUnavailable extends HttpApiError.Problem<CashDrawerCarryOverUnavailable>()(
   'CashDrawerCarryOverUnavailable',
   {
@@ -174,29 +173,36 @@ export class CashDrawerCarryOverUnavailable extends HttpApiError.Problem<CashDra
     title: 'No earlier closed cash drawer to carry over',
   },
   { code: Schema.tag('CASH_DRAWER_CARRY_OVER_UNAVAILABLE') },
+  {
+    description:
+      '이어받을 앞 시재가 없습니다. 앞서 마감한 시재가 없거나, 가장 늦은 시재가 다시 열려 실사 금액을 믿을 수 없습니다.',
+  },
 ) {}
 
 export class ExpenseNotFound extends HttpApiError.Problem<ExpenseNotFound>()(
   'ExpenseNotFound',
   { type: problemType('EXPENSE_NOT_FOUND'), status: 404, title: 'Expense not found' },
   { code: Schema.tag('EXPENSE_NOT_FOUND') },
+  { description: '요청한 ID의 지출이 없습니다. 이미 지운 지출과 다른 병원의 지출도 없는 것과 같습니다.' },
 ) {}
 
-/** 지출에 고른 항목이 없습니다. */
 export class ExpenseCategoryInvalid extends HttpApiError.Problem<ExpenseCategoryInvalid>()(
   'ExpenseCategoryInvalid',
   { type: problemType('EXPENSE_CATEGORY_INVALID'), status: 422, title: 'Expense category does not exist' },
   { code: Schema.tag('EXPENSE_CATEGORY_INVALID') },
+  { description: '지출에 고른 지출 분류가 없습니다.' },
 ) {}
 
 export class ExpenseCategoryNotFound extends HttpApiError.Problem<ExpenseCategoryNotFound>()(
   'ExpenseCategoryNotFound',
   { type: problemType('EXPENSE_CATEGORY_NOT_FOUND'), status: 404, title: 'Expense category not found' },
   { code: Schema.tag('EXPENSE_CATEGORY_NOT_FOUND') },
+  { description: '요청한 ID의 지출 분류가 없습니다.' },
 ) {}
 
 export class ExpenseCategoryNameTaken extends HttpApiError.Problem<ExpenseCategoryNameTaken>()(
   'ExpenseCategoryNameTaken',
   { type: problemType('EXPENSE_CATEGORY_NAME_TAKEN'), status: 409, title: 'Expense category name is already taken' },
   { code: Schema.tag('EXPENSE_CATEGORY_NAME_TAKEN') },
+  { description: '병원에 같은 이름의 지출 분류가 이미 있습니다.' },
 ) {}

@@ -52,6 +52,22 @@ describe('OpenAPI 문서', () => {
     expect(names.filter((name) => /_\d+$/.test(name))).toEqual([])
   })
 
+  it('오류 응답은 모두 문제 응답(`application/problem+json`)입니다', () => {
+    // 문제 클래스가 아닌 Schema가 `error`에 들어가면 500 `application/json`으로 문서에 섞입니다
+    const strays = Object.entries(openApiDocument().paths).flatMap(([path, item]) =>
+      Object.entries(item as Record<string, { responses?: Record<string, { content?: object }> }>).flatMap(
+        ([method, operation]) =>
+          Object.entries(operation.responses ?? {})
+            .filter(([status, response]) => Number(status) >= 400 && response.content !== undefined)
+            .filter(([, response]) =>
+              Object.keys(response.content!).some((type) => type !== 'application/problem+json'),
+            )
+            .map(([status]) => `${method} ${path} ${status}`),
+      ),
+    )
+    expect(strays).toEqual([])
+  })
+
   it('Schema의 title은 그 이름을 키로 둔 용어 표 행의 업무 용어입니다', () => {
     const pairs = termPairs()
     const schemas = openApiDocument().components.schemas as Record<string, { title?: string }>
