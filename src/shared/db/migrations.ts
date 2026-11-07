@@ -475,6 +475,53 @@ export const migrations = {
     yield* sql`CREATE INDEX receipts_tenant_created ON receipts (tenant_id, created_at, id)`
     yield* sql`CREATE INDEX payments_tenant_created ON payments (tenant_id, created_at, id)`
   }),
+  '0015_cash_drawers': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 시재는 병원·날짜마다 하나입니다. 현금 흐름은 결제·지출에서 계산해 저장하지 않습니다. 마감·다시 열기 기록은 함께만
+    // 읽어 JSON으로 둡니다
+    yield* sql`
+      CREATE TABLE cash_drawers (
+        tenant_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        opening_amount INTEGER NOT NULL CHECK (opening_amount >= 0),
+        carried_over INTEGER NOT NULL CHECK (carried_over IN (0, 1)),
+        opened_at TEXT NOT NULL,
+        opened_by TEXT NOT NULL,
+        closing TEXT,
+        reopened TEXT,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        PRIMARY KEY (tenant_id, date)
+      ) STRICT
+    `
+    // 지출은 지워도 행을 남깁니다(deleted). 항목 이름을 함께 남겨 항목을 지워도 기록이 그대로입니다
+    yield* sql`
+      CREATE TABLE expenses (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        amount INTEGER NOT NULL CHECK (amount >= 1),
+        category_id TEXT NOT NULL,
+        category_name TEXT NOT NULL,
+        memo TEXT NOT NULL,
+        recorded_by TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        deleted TEXT,
+        version INTEGER NOT NULL CHECK (version >= 1)
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX expenses_tenant_date ON expenses (tenant_id, date, created_at, id)`
+    yield* sql`
+      CREATE TABLE expense_categories (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE (tenant_id, name)
+      ) STRICT
+    `
+    // 시재가 그날 받았거나 바뀐 결제를 찾습니다(created_at < 다음 날, updated_at >= 그날)
+    yield* sql`CREATE INDEX payments_tenant_updated ON payments (tenant_id, updated_at)`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

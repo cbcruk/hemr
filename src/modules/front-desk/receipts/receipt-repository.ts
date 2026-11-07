@@ -69,6 +69,11 @@ export class ReceiptRepository extends Context.Service<
     paymentsOf(tenantId: Id<'tenant'>, receiptId: Id<'receipt'>): Effect.Effect<ReadonlyArray<Payment>>
     /** 결제 목록입니다. 받은 시각, ID 순서로 `limit`개까지 줍니다. */
     searchPayments(tenantId: Id<'tenant'>, query: PaymentQuery): Effect.Effect<ReadonlyArray<Payment>>
+    /**
+     * `[from, to)` 사이에 받았거나 바뀐 결제입니다. `to` 전에 만들었고 마지막으로 바꾼 시각이 `from` 이후인 결제라,
+     * 그 사이에 받거나 환불하거나 취소한 결제가 모두 들어갑니다. 시재가 그날 오간 현금을 셀 때 씁니다.
+     */
+    paymentsTouched(tenantId: Id<'tenant'>, range: { from: string; to: string }): Effect.Effect<ReadonlyArray<Payment>>
     /** 영수증·결제 변경과 이벤트를 한 번에 씁니다. */
     commit(changes: ReceiptChanges): Effect.Effect<void>
   }
@@ -159,6 +164,16 @@ export class ReceiptRepository extends Context.Service<
                 )
                 .sort(byRecorded)
                 .slice(0, query.limit),
+            ),
+          ),
+        paymentsTouched: (tenantId, range) =>
+          Ref.get(store).pipe(
+            Effect.map((all) =>
+              [...all.payments.values()]
+                .filter(
+                  (each) => each.tenantId === tenantId && each.createdAt < range.to && each.updatedAt >= range.from,
+                )
+                .sort(byRecorded),
             ),
           ),
         commit: (changes) =>
@@ -420,6 +435,15 @@ export class ReceiptRepository extends Context.Service<
               AND ${query.patientId === undefined ? sql`1 = 1` : sql`patient_id = ${query.patientId}`}
               AND ${afterClause(query.after)}
             ORDER BY created_at, id LIMIT ${query.limit}
+          `.pipe(
+            Effect.map((rows) => rows.map(toPayment)),
+            Effect.orDie,
+          ),
+        paymentsTouched: (tenantId, range) =>
+          sql<PaymentRow>`
+            SELECT ${paymentColumns} FROM payments
+            WHERE tenant_id = ${tenantId} AND created_at < ${range.to} AND updated_at >= ${range.from}
+            ORDER BY created_at, id
           `.pipe(
             Effect.map((rows) => rows.map(toPayment)),
             Effect.orDie,
