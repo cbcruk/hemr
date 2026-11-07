@@ -222,7 +222,7 @@ describe.each(['memory', 'sqlite'] as const)('receipts HTTP (%s)', (store) => {
     expect(await json(again)).toMatchObject({ code: 'RECEIPT_ALREADY_EXISTS', receiptId })
   })
 
-  it('locks the billed prescription, cascade cancel and the quote of a checked-out visit', async () => {
+  it('locks the billed prescription and the quote, then voids the receipt with a cascade cancel', async () => {
     const send = app(store)
     const { visit, encounterId } = await charted(send, 10_000)
     const quote = await json(await send('POST', `/visits/${visit.id}:quote-checkout`, { body: {} }))
@@ -253,11 +253,11 @@ describe.each(['memory', 'sqlite'] as const)('receipts HTTP (%s)', (store) => {
       ifMatch: '"3"',
       body: { reason: '잘못 기록' },
     })
+    const requote = await send('POST', `/visits/${visit.id}:quote-checkout`, { body: {} })
     const cascade = await send('POST', `/visits/${visit.id}:cancel`, {
       as: doctor,
       body: { reason: '잘못 접수', cascade: true },
     })
-    const requote = await send('POST', `/visits/${visit.id}:quote-checkout`, { body: {} })
 
     expect((checkedOut['receipt'] as Body)['payments']).toHaveLength(1)
     expect(lines.status).toBe(409)
@@ -265,10 +265,16 @@ describe.each(['memory', 'sqlite'] as const)('receipts HTTP (%s)', (store) => {
     expect(note.status).toBe(200)
     expect(retract.status).toBe(409)
     expect(await json(retract)).toMatchObject({ code: 'ENCOUNTER_BILLED', receiptId })
-    expect(cascade.status).toBe(409)
-    expect(await json(cascade)).toMatchObject({ code: 'VISIT_HAS_RECEIPT', receiptId })
     expect(requote.status).toBe(409)
     expect(await json(requote)).toMatchObject({ code: 'VISIT_TRANSITION_INVALID', currentStatus: 'COMPLETED' })
+    // 현금 결제만 있어 연쇄 취소가 영수증과 결제를 함께 취소합니다
+    expect(cascade.status).toBe(200)
+    expect(await json(cascade)).toMatchObject({ status: 'CANCELED' })
+    expect(await json(await send('GET', `/receipts/${receiptId}`))).toMatchObject({
+      status: 'VOIDED',
+      voided: { reason: '잘못 접수', by: doctor.user.id, correctedBy: null },
+      payments: [{ method: 'CASH', status: 'VOIDED' }],
+    })
   })
 
   it('records a terminal payment first and applies it at checkout', async () => {
@@ -444,6 +450,345 @@ describe.each(['memory', 'sqlite'] as const)('receipts HTTP (%s)', (store) => {
     expect(extra.status).toBe(400)
     expect(payment).toMatchObject({ visitId: null, status: 'UNAPPLIED' })
     expect(therapistRead.status).toBe(403)
+  })
+
+  /** 카드 결제를 먼저 기록하고 현금과 함께 수납해, 영수증·카드 결제 ID를 돌려줍니다. */
+  async function paidWithCard(
+    send: ReturnType<typeof app>,
+    card: number,
+    cashAmount: number,
+    extra: Record<string, unknown> = {},
+  ) {
+    const charted_ = await charted(send, card + cashAmount)
+    const { visit } = charted_
+    const payment = await json(
+      await send('POST', '/payments', {
+        key: `card-${visit.id}`,
+        body: {
+          patientId: visit['patientId'],
+          visitId: visit.id,
+          method: 'CARD',
+          amount: { taxable: 0, taxExempt: card },
+          processorRef: '1',
+        },
+      }),
+    )
+    const body = { paymentIds: [payment.id], payments: cashAmount === 0 ? [] : [cash(cashAmount)] }
+    const quote = await json(await send('POST', `/visits/${visit.id}:quote-checkout`, { body }))
+    const checkedOut = await send('POST', `/visits/${visit.id}:checkout`, {
+      key: `checkout-${visit.id}`,
+      body: { ...body, ...extra, quoteId: quote['quoteId'] },
+    })
+    expect(checkedOut.status).toBe(200)
+    return { ...charted_, cardId: payment.id, receipt: (await json(checkedOut))['receipt'] as Body }
+  }
+
+  it('lists receipts by date and patient a page at a time', async () => {
+    const send = app(store)
+    const first = await paidWithCard(send, 1_000, 0)
+    const second = await paidWithCard(send, 2_000, 0)
+    const date = first.receipt['date'] as string
+
+    const page = await json(await send('GET', `/receipts?date=${date}&limit=1`))
+    const next = await json(await send('GET', `/receipts?date=${date}&limit=1&cursor=${page['nextCursor'] as string}`))
+    const byPatient = await json(await send('GET', `/receipts?patientId=${second.visit['patientId'] as string}`))
+    const otherDay = await json(await send('GET', '/receipts?date=2000-01-01'))
+    const badCursor = await send('GET', '/receipts?cursor=rcp_01JBQ000000000000000000099')
+    const one = await json(await send('GET', `/receipts/${first.receipt.id}`))
+    const foreign = await send('GET', `/receipts/${first.receipt.id}`, { as: elsewhere })
+    const therapistList = await send('GET', '/receipts', { as: therapist })
+
+    expect((page['items'] as Body[]).map((each) => each.id)).toEqual([first.receipt.id])
+    expect((next['items'] as Body[]).map((each) => each.id)).toEqual([second.receipt.id])
+    expect(next['nextCursor']).toBeNull()
+    expect((byPatient['items'] as Body[]).map((each) => each.id)).toEqual([second.receipt.id])
+    expect(otherDay['items']).toEqual([])
+    expect(badCursor.status).toBe(400)
+    expect(one).toEqual(first.receipt)
+    expect(foreign.status).toBe(404)
+    expect(await json(foreign)).toMatchObject({ code: 'RECEIPT_NOT_FOUND' })
+    expect(therapistList.status).toBe(403)
+  })
+
+  it('refunds a payment within its method and amount and settles the receipt again', async () => {
+    const send = app(store)
+    const { receipt, cardId } = await paidWithCard(send, 20_000, 0)
+    const refund = (key: string, body: Record<string, unknown>) =>
+      send('POST', `/payments/${cardId}:refund`, { key, body: { reason: '환불', ...body } })
+
+    const wrongMethod = await refund('a', { amount: { taxable: 0, taxExempt: 1_000 }, refundMethod: 'CASH' })
+    const tooMuch = await refund('b', { amount: { taxable: 1, taxExempt: 0 }, refundMethod: 'CARD_CANCEL' })
+    const partial = await json(
+      await refund('c', { amount: { taxable: 0, taxExempt: 5_000 }, refundMethod: 'CARD_CANCEL' }),
+    )
+    const replayed = await json(
+      await refund('c', { amount: { taxable: 0, taxExempt: 5_000 }, refundMethod: 'CARD_CANCEL' }),
+    )
+    const afterPartial = await json(await send('GET', `/receipts/${receipt.id}`))
+    const rest = await json(
+      await refund('d', { amount: { taxable: 0, taxExempt: 15_000 }, refundMethod: 'CARD_CANCEL', writeOff: true }),
+    )
+    const afterRest = await json(await send('GET', `/receipts/${receipt.id}`))
+    const again = await refund('e', { amount: { taxable: 0, taxExempt: 1 }, refundMethod: 'CARD_CANCEL' })
+
+    expect(wrongMethod.status).toBe(422)
+    expect(await json(wrongMethod)).toMatchObject({
+      code: 'REFUND_REJECTED',
+      errors: ['METHOD_NOT_ALLOWED'],
+      allowedMethods: ['CARD_CANCEL'],
+      refundable: { taxable: 0, taxExempt: 20_000 },
+    })
+    expect(tooMuch.status).toBe(422)
+    expect(await json(tooMuch)).toMatchObject({ errors: ['AMOUNT_EXCEEDED'] })
+    expect(partial).toMatchObject({
+      status: 'PARTIALLY_REFUNDED',
+      refunds: [{ amount: { taxable: 0, taxExempt: 5_000 }, method: 'CARD_CANCEL', writtenOff: 0, by: desk.user.id }],
+      version: 3,
+    })
+    expect(replayed).toEqual(partial)
+    expect(afterPartial).toMatchObject({
+      payments: [{ id: cardId, status: 'PARTIALLY_REFUNDED', refunded: { taxable: 0, taxExempt: 5_000 } }],
+      settlement: { received: { taxable: 0, taxExempt: 15_000 }, result: 'OUTSTANDING', outstanding: 5_000 },
+      version: 2,
+    })
+    expect(rest).toMatchObject({ status: 'REFUNDED' })
+    // 손비 환불은 늘어난 남은 금액을 미수 대신 손비로 둡니다
+    expect(afterRest).toMatchObject({
+      settlement: { result: 'OUTSTANDING', outstanding: 5_000, writtenOff: 15_000 },
+    })
+    expect(again.status).toBe(409)
+    expect(await json(again)).toMatchObject({ code: 'PAYMENT_NOT_REFUNDABLE', paymentStatus: 'REFUNDED' })
+  })
+
+  it('refunds an unapplied payment only in full and lists unapplied payments', async () => {
+    const send = app(store)
+    const { visit } = await charted(send, 1_000)
+    const record = async (key: string) =>
+      json(
+        await send('POST', '/payments', {
+          key,
+          body: {
+            patientId: visit['patientId'],
+            method: 'KAKAO_PAY',
+            amount: { taxable: 0, taxExempt: 3_000 },
+            processorRef: key,
+          },
+        }),
+      )
+    const kept = await record('kept')
+    const returned = await record('returned')
+
+    const partial = await send('POST', `/payments/${returned.id}:refund`, {
+      key: 'p',
+      body: { amount: { taxable: 0, taxExempt: 1_000 }, refundMethod: 'KAKAO_PAY', reason: '취소' },
+    })
+    const full = await json(
+      await send('POST', `/payments/${returned.id}:refund`, {
+        key: 'f',
+        body: { amount: { taxable: 0, taxExempt: 3_000 }, refundMethod: 'CASH', reason: '취소', writeOff: true },
+      }),
+    )
+    const unapplied = await json(
+      await send('GET', `/payments?status=UNAPPLIED&patientId=${visit['patientId'] as string}`),
+    )
+    const apply = await send('POST', `/visits/${visit.id}:quote-checkout`, { body: { paymentIds: [returned.id] } })
+
+    expect(partial.status).toBe(422)
+    expect(await json(partial)).toMatchObject({ errors: ['PARTIAL_UNAPPLIED'] })
+    // 미적용 결제는 영수증이 없어 손비가 뜻이 없습니다
+    expect(full).toMatchObject({ status: 'REFUNDED', receiptId: null, refunds: [{ method: 'CASH', writtenOff: 0 }] })
+    expect((unapplied['items'] as Body[]).map((each) => each.id)).toEqual([kept.id])
+    expect(apply.status).toBe(422)
+    expect(await json(apply)).toMatchObject({ code: 'CHECKOUT_PAYMENT_INVALID' })
+  })
+
+  it('voids a receipt only after terminal payments are refunded, then checks out again', async () => {
+    const send = app(store)
+    const { visit, encounterId, receipt, cardId } = await paidWithCard(send, 4_000, 6_000)
+
+    const blocked = await send('POST', `/receipts/${receipt.id}:void`, { body: { reason: '잘못 입력' } })
+    const cascade = await send('POST', `/visits/${visit.id}:cancel`, {
+      as: doctor,
+      body: { reason: '잘못 접수', cascade: true },
+    })
+    await send('POST', `/payments/${cardId}:refund`, {
+      key: 'r',
+      body: { amount: { taxable: 0, taxExempt: 4_000 }, refundMethod: 'CARD_CANCEL', reason: '잘못 입력' },
+    })
+    const voided = await send('POST', `/receipts/${receipt.id}:void`, { body: { reason: '잘못 입력' } })
+    const twice = await send('POST', `/receipts/${receipt.id}:void`, { body: { reason: '잘못 입력' } })
+    const lines = await send('PATCH', `/encounters/${encounterId}`, {
+      as: doctor,
+      ifMatch: '"2"',
+      body: { prescriptionLines: { upsert: [nonbenefit(1_000)] } },
+    })
+    await send('POST', `/visits/${visit.id}:reopen`, { body: { reason: '다시 수납' } })
+    const quote = await json(await send('POST', `/visits/${visit.id}:quote-checkout`, { body: {} }))
+    const again = await send('POST', `/visits/${visit.id}:checkout`, {
+      key: 'again',
+      body: { quoteId: quote['quoteId'], payments: [cash(11_000)] },
+    })
+
+    expect(blocked.status).toBe(409)
+    expect(await json(blocked)).toMatchObject({
+      code: 'PAYMENT_REFUND_REQUIRED',
+      receiptId: receipt.id,
+      paymentIds: [cardId],
+    })
+    expect(cascade.status).toBe(409)
+    expect(await json(cascade)).toMatchObject({ code: 'PAYMENT_REFUND_REQUIRED', paymentIds: [cardId] })
+    expect(voided.status).toBe(200)
+    expect(await json(voided)).toMatchObject({
+      status: 'VOIDED',
+      voided: { reason: '잘못 입력', by: desk.user.id, correctedBy: null },
+      payments: [
+        { id: cardId, status: 'REFUNDED' },
+        { method: 'CASH', status: 'VOIDED' },
+      ],
+      // 카드 환불이 결산을 다시 써 한 번, 취소가 한 번 올렸습니다
+      version: 3,
+    })
+    expect(twice.status).toBe(409)
+    expect(await json(twice)).toMatchObject({ code: 'RECEIPT_VOIDED' })
+    // 취소한 영수증은 처방을 잠그지 않습니다
+    expect(lines.status).toBe(200)
+    expect(again.status).toBe(200)
+  })
+
+  it('corrects a receipt by moving terminal payments and taking in-server payments again', async () => {
+    const send = app(store)
+    const { visit, receipt, cardId } = await paidWithCard(send, 4_000, 6_000)
+    const body = {
+      payments: [{ method: 'BANK_TRANSFER', amount: { taxable: 0, taxExempt: 6_000 } }],
+      reason: '수단 정정',
+    }
+
+    const corrected = await send('POST', `/receipts/${receipt.id}:correct`, { key: 'c', body })
+    const replacement = await json(corrected)
+    const replayed = await json(await send('POST', `/receipts/${receipt.id}:correct`, { key: 'c', body }))
+    const old = await json(await send('GET', `/receipts/${receipt.id}`))
+    const card = await json(await send('GET', `/payments/${cardId}`))
+    const visitNow = await json(await send('GET', `/visits/${visit.id}`))
+    const twice = await send('POST', `/receipts/${receipt.id}:correct`, { key: 'c2', body })
+    const short = await send('POST', `/receipts/${replacement.id}:correct`, {
+      key: 's',
+      body: { reason: '현금 빼기' },
+    })
+
+    expect(corrected.status).toBe(200)
+    expect(replacement).toMatchObject({
+      id: expect.stringMatching(/^rcp_/),
+      visitId: visit.id,
+      correctionOf: receipt.id,
+      encounterIds: receipt['encounterIds'],
+      charges: receipt['charges'],
+      payments: [
+        { id: cardId, method: 'CARD', status: 'CAPTURED' },
+        { method: 'BANK_TRANSFER', status: 'CAPTURED', amount: { taxable: 0, taxExempt: 6_000 } },
+      ],
+      settlement: { result: 'PAID' },
+      status: 'ACTIVE',
+      voided: null,
+    })
+    expect(replayed).toEqual(replacement)
+    expect(old).toMatchObject({
+      status: 'VOIDED',
+      voided: { reason: '수단 정정', correctedBy: replacement.id },
+      payments: [{ method: 'CASH', status: 'VOIDED' }],
+    })
+    expect(card).toMatchObject({ receiptId: replacement.id, status: 'CAPTURED' })
+    expect(visitNow).toMatchObject({ status: 'COMPLETED' })
+    expect(twice.status).toBe(409)
+    expect(await json(twice)).toMatchObject({ code: 'RECEIPT_VOIDED' })
+    // 옮긴 카드 결제가 있어 미수 확인 없이 미수로 남습니다
+    expect(short.status).toBe(200)
+    expect(await json(short)).toMatchObject({ settlement: { result: 'OUTSTANDING', outstanding: 6_000 } })
+  })
+
+  it('corrects a partially refunded card at its net amount and keeps memo and flags unless changed', async () => {
+    const send = app(store)
+    const { receipt, cardId } = await paidWithCard(send, 6_000, 4_000, { memo: '메모', excludeFromTaxDeduction: true })
+    await send('POST', `/payments/${cardId}:refund`, {
+      key: 'r1',
+      body: { amount: { taxable: 0, taxExempt: 2_000 }, refundMethod: 'CARD_CANCEL', reason: '일부 취소' },
+    })
+    const external = await send('POST', `/receipts/${receipt.id}:correct`, {
+      key: 'x',
+      body: { reason: '정정', payments: [{ method: 'CARD', amount: { taxable: 0, taxExempt: 6_000 } }] },
+    })
+    const replacement = await json(
+      await send('POST', `/receipts/${receipt.id}:correct`, {
+        key: 'c',
+        body: { reason: '정정', payments: [{ method: 'BANK_TRANSFER', amount: { taxable: 0, taxExempt: 6_000 } }] },
+      }),
+    )
+    const later = await json(
+      await send('POST', `/payments/${cardId}:refund`, {
+        key: 'r2',
+        body: { amount: { taxable: 0, taxExempt: 4_000 }, refundMethod: 'CARD_CANCEL', reason: '나머지 취소' },
+      }),
+    )
+    const afterLater = await json(await send('GET', `/receipts/${replacement.id}`))
+    const changed = await json(
+      await send('POST', `/receipts/${replacement.id}:correct`, {
+        key: 'c2',
+        body: { reason: '공제 포함', memo: '', excludeFromTaxDeduction: false, acknowledge: ['OUTSTANDING'] },
+      }),
+    )
+
+    expect(external.status).toBe(422)
+    expect(await json(external)).toMatchObject({ code: 'CHECKOUT_REJECTED', errors: ['PAYMENT_METHOD_NOT_ALLOWED'] })
+    // 카드는 환불하고 남은 4,000원으로 결산에 들어갑니다
+    expect(replacement).toMatchObject({
+      memo: '메모',
+      flags: { excludeFromTaxDeduction: true },
+      payments: [
+        { id: cardId, status: 'PARTIALLY_REFUNDED', refunded: { taxable: 0, taxExempt: 2_000 } },
+        { method: 'BANK_TRANSFER' },
+      ],
+      settlement: { received: { taxable: 0, taxExempt: 10_000 }, result: 'PAID' },
+    })
+    expect(later).toMatchObject({ status: 'REFUNDED', receiptId: replacement.id })
+    expect(afterLater).toMatchObject({
+      settlement: { received: { taxable: 0, taxExempt: 6_000 }, result: 'OUTSTANDING', outstanding: 4_000 },
+    })
+    expect(changed).toMatchObject({ memo: '', flags: { excludeFromTaxDeduction: false } })
+  })
+
+  it('checks permissions of refund, void and correct and writes nothing when a cascade cancel is blocked', async () => {
+    const send = app(store)
+    const { visit, receipt, cardId } = await paidWithCard(send, 1_000, 0)
+    const refund = await send('POST', `/payments/${cardId}:refund`, {
+      as: therapist,
+      key: 'r',
+      body: { amount: { taxable: 0, taxExempt: 1 }, refundMethod: 'CARD_CANCEL', reason: '환불' },
+    })
+    const voided = await send('POST', `/receipts/${receipt.id}:void`, { as: therapist, body: { reason: '취소' } })
+    const corrected = await send('POST', `/receipts/${receipt.id}:correct`, {
+      as: therapist,
+      key: 'c',
+      body: { reason: '정정' },
+    })
+    const reused = await send('POST', `/payments/${cardId}:refund`, {
+      key: 'same',
+      body: { amount: { taxable: 0, taxExempt: 1 }, refundMethod: 'CARD_CANCEL', reason: '환불' },
+    })
+    const reusedDifferent = await send('POST', `/payments/${cardId}:refund`, {
+      key: 'same',
+      body: { amount: { taxable: 0, taxExempt: 2 }, refundMethod: 'CARD_CANCEL', reason: '환불' },
+    })
+    const cascade = await send('POST', `/visits/${visit.id}:cancel`, {
+      as: doctor,
+      body: { reason: '잘못 접수', cascade: true },
+    })
+
+    expect([refund.status, voided.status, corrected.status]).toEqual([403, 403, 403])
+    expect(reused.status).toBe(200)
+    expect(reusedDifferent.status).toBe(422)
+    expect(await json(reusedDifferent)).toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' })
+    expect(cascade.status).toBe(409)
+    expect(await json(await send('GET', `/visits/${visit.id}`))).toMatchObject({ status: 'COMPLETED' })
+    expect(await json(await send('GET', `/receipts/${receipt.id}`))).toMatchObject({ status: 'ACTIVE' })
   })
 
   it('checks permissions, headers, payloads, encounters and tenants', async () => {

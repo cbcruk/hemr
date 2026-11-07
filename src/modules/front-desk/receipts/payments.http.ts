@@ -12,7 +12,10 @@ export const PaymentsHttpLive = HttpApiBuilder.group(
 
     return handlers.handleAll({
       record: ({ headers, payload }) => payments.record({ ...payload, idempotencyKey: headers['idempotency-key'] }),
+      list: ({ query }) => payments.list({ ...query, limit: query.limit ?? 50 }),
       get: ({ params }) => payments.get(params.id),
+      refund: ({ params, headers, payload }) =>
+        payments.refund(params.id, { ...payload, idempotencyKey: headers['idempotency-key'] }),
     })
   }),
 )

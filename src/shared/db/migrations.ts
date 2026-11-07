@@ -465,6 +465,16 @@ export const migrations = {
     `
     yield* sql`ALTER TABLE receipts DROP COLUMN payments`
   }),
+  '0014_receipt_adjustments': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 영수증 취소·정정 기록과 결제 환불 기록입니다. 기록은 덧붙이기만 하고 따로 찾지 않아 JSON으로 둡니다
+    yield* sql`ALTER TABLE receipts ADD COLUMN voided TEXT`
+    yield* sql`ALTER TABLE receipts ADD COLUMN correction_of TEXT`
+    yield* sql`ALTER TABLE payments ADD COLUMN refunds TEXT NOT NULL DEFAULT '[]'`
+    // 목록(GET /receipts, GET /payments)은 만든 시각, ID 순서입니다
+    yield* sql`CREATE INDEX receipts_tenant_created ON receipts (tenant_id, created_at, id)`
+    yield* sql`CREATE INDEX payments_tenant_created ON payments (tenant_id, created_at, id)`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

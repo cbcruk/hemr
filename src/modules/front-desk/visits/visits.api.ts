@@ -5,6 +5,7 @@ import { Access } from '../../identity/auth/access.ts'
 import { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
 import { LocalDate, PatientId, PatientNotFound } from '../../patients/patient.ts'
+import { PaymentRefundRequired } from '../receipts/receipt.ts'
 import {
   CheckInRejected,
   Coverage,
@@ -12,7 +13,6 @@ import {
   VisitAlreadyExists,
   VisitDatePast,
   VisitHasClinicalData,
-  VisitHasReceipt,
   VisitId,
   VisitNotFound,
   VisitStatus,
@@ -134,7 +134,7 @@ export class VisitsApi extends HttpApiGroup.make('visits')
       headers,
       payload: Schema.Struct({ reason: Schema.NonEmptyString, cascade: Schema.optionalKey(Schema.Boolean) }),
       success,
-      error: [...errors, VisitHasClinicalData, VisitHasReceipt, PermissionDenied],
+      error: [...errors, VisitHasClinicalData, PaymentRefundRequired, PermissionDenied],
     }).annotate(Access, Access.requires('visit:cancel')),
   )
   .middleware(Authorization) {}

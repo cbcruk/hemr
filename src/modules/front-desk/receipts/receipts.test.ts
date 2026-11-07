@@ -171,7 +171,7 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
     ])
   })
 
-  it('writes nothing when a payment to apply is no longer unapplied', async () => {
+  it('writes nothing when one change of a commit is stale', async () => {
     const result = await run(
       Effect.gen(function* () {
         const visit = yield* checkedIn
@@ -184,26 +184,37 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
           idempotencyKey: 'k',
         })
         const repository = yield* ReceiptRepository
-        const cash = receipt.payments[0]!
+        const cash = Option.getOrThrow(yield* repository.findPayment(visit.tenantId, receipt.payments[0]!.id))
+        const { payments: _, ...record } = receipt
         const other = {
-          ...receipt,
+          ...record,
           id: 'rcp_01JBQ000000000000000000077' as Id<'receipt'>,
           visitId: 'vis_01JBQ000000000000000000077' as Id<'visit'>,
-          payments: [cash, { ...cash, id: 'pay_01JBQ000000000000000000077' as Id<'payment'> }],
         }
-        const exit = yield* Effect.exit(repository.insert(other, [], [cash.id]))
+        const fresh = { ...cash, id: 'pay_01JBQ000000000000000000077' as Id<'payment'>, receiptId: other.id }
+        const exit = yield* Effect.exit(
+          repository.commit({
+            updateReceipts: [{ receipt: { ...record, memo: '바뀜', version: 2 }, expectedVersion: 1 }],
+            insertReceipts: [other],
+            // 읽은 버전이 저장된 버전과 달라 전체가 취소됩니다
+            updatePayments: [{ payment: { ...cash, status: 'VOIDED', version: 3 }, expectedVersion: 2 }],
+            insertPayments: [fresh],
+          }),
+        )
         return {
           exit,
-          found: yield* repository.findById(visit.tenantId, other.id),
-          fresh: yield* repository.findPayment(visit.tenantId, 'pay_01JBQ000000000000000000077' as Id<'payment'>),
+          receipt: Option.getOrThrow(yield* repository.findById(visit.tenantId, receipt.id)),
+          other: yield* repository.findById(visit.tenantId, other.id),
+          fresh: yield* repository.findPayment(visit.tenantId, fresh.id),
           cash: Option.getOrThrow(yield* repository.findPayment(visit.tenantId, cash.id)),
         }
       }),
       store,
     )
     expect(Exit.isFailure(result.exit)).toBe(true)
-    expect(result.found).toEqual(Option.none())
+    expect(result.receipt).toMatchObject({ memo: '', version: 1 })
+    expect(result.other).toEqual(Option.none())
     expect(result.fresh).toEqual(Option.none())
-    expect(result.cash).toMatchObject({ receiptId: expect.stringMatching(/^rcp_/), version: 1 })
+    expect(result.cash).toMatchObject({ status: 'CAPTURED', version: 1 })
   })
 })

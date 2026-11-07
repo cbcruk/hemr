@@ -14,6 +14,11 @@ export const ReceiptsHttpLive = HttpApiBuilder.group(
       quoteCheckout: ({ params, payload }) => receipts.quote(params.id, payload),
       checkout: ({ params, headers, payload }) =>
         receipts.checkout(params.id, { ...payload, idempotencyKey: headers['idempotency-key'] }),
+      list: ({ query }) => receipts.list({ ...query, limit: query.limit ?? 50 }),
+      get: ({ params }) => receipts.get(params.id),
+      void: ({ params, payload }) => receipts.void(params.id, payload.reason),
+      correct: ({ params, headers, payload }) =>
+        receipts.correct(params.id, { ...payload, idempotencyKey: headers['idempotency-key'] }),
     })
   }),
 )

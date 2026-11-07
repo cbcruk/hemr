@@ -46,8 +46,43 @@ export const PrepaidKind = Schema.Literals(['CASH_LIKE', 'CARD_LIKE'])
 export const ExternalPaymentMethod = Schema.Literals(['CARD', 'KAKAO_PAY', 'LOCAL_CURRENCY', 'ZERO_PAY'])
 export type ExternalPaymentMethod = typeof ExternalPaymentMethod.Type
 
-/** 결제 상태입니다. 환불·취소(`REFUNDED`·`PARTIALLY_REFUNDED`·`VOIDED`)는 #35에서 더합니다. */
-export const PaymentStatus = Schema.Literals(['UNAPPLIED', 'CAPTURED'])
+/**
+ * 결제 상태입니다. 환불하면 `PARTIALLY_REFUNDED`·`REFUNDED`, 영수증을 취소해 받지 않은 것으로 하면 `VOIDED`입니다.
+ * 미적용 결제는 전액 환불만 받아 `UNAPPLIED`에서 바로 `REFUNDED`가 됩니다.
+ */
+export const PaymentStatus = Schema.Literals(['UNAPPLIED', 'CAPTURED', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED'])
+export type PaymentStatus = typeof PaymentStatus.Type
+
+/**
+ * 환불 수단입니다 (front-desk.md 환불 수단 제약). `CARD_CANCEL`은 카드 승인 취소, 간편결제·지역화폐·제로페이는 같은
+ * 수단의 취소입니다.
+ */
+export const RefundMethod = Schema.Literals([
+  'CARD_CANCEL',
+  'KAKAO_PAY',
+  'LOCAL_CURRENCY',
+  'ZERO_PAY',
+  'CASH',
+  'BANK_TRANSFER',
+  'OVERPAID_CREDIT',
+  'PREPAID',
+])
+export type RefundMethod = typeof RefundMethod.Type
+
+/** 결제 하나의 환불 기록입니다. 환불은 고치지 않고 덧붙입니다. */
+export const Refund = Schema.Struct({
+  amount: SplitAmount,
+  method: RefundMethod,
+  reason: Schema.String,
+  /**
+   * 이 환불로 미수 대신 손비로 둔 금액입니다. 요청의 `writeOff`가 참이어도 과수납을 돌려준 부분은 손비가 아니라 0일 수
+   * 있습니다.
+   */
+  writtenOff: Schema.Int,
+  at: Schema.String,
+  by: UserId,
+})
+export type Refund = typeof Refund.Type
 
 /**
  * 결제입니다. 외부 승인 결제는 `POST /payments`로 영수증 없이(`UNAPPLIED`) 먼저 남고, 수납이 적용하면 `CAPTURED`가
@@ -67,6 +102,8 @@ export const Payment = Schema.Struct({
   /** 카드 승인번호처럼 밖에서 받은 참조입니다. */
   processorRef: Schema.NullOr(Schema.String),
   status: PaymentStatus,
+  /** 환불 기록입니다. 시각 순서입니다. */
+  refunds: Schema.Array(Refund),
   recordedBy: UserId,
   createdAt: Schema.String,
   updatedAt: Schema.String,
@@ -74,14 +111,16 @@ export const Payment = Schema.Struct({
 })
 export type Payment = typeof Payment.Type
 
-/** 영수증에 적용한 결제입니다. 전체는 `GET /payments/{id}`입니다. */
+/** 영수증에 적용한 결제입니다. 환불 기록 전체는 `GET /payments/{id}`입니다. */
 export const ReceiptPayment = Schema.Struct({
   id: PaymentId,
   method: PaymentMethod,
   prepaidKind: Schema.NullOr(PrepaidKind),
   amount: SplitAmount,
   processorRef: Schema.NullOr(Schema.String),
-  status: Schema.Literals(['CAPTURED']),
+  status: Schema.Literals(['CAPTURED', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED']),
+  /** 지금까지 환불한 금액입니다. */
+  refunded: SplitAmount,
 })
 export type ReceiptPayment = typeof ReceiptPayment.Type
 
@@ -113,11 +152,20 @@ export const ReceiptSettlement = Schema.Struct({
 })
 export type ReceiptSettlement = typeof ReceiptSettlement.Type
 
+/** 영수증 취소 기록입니다. */
+export const ReceiptVoid = Schema.Struct({
+  at: Schema.String,
+  by: UserId,
+  reason: Schema.String,
+  /** 정정(`:correct`)으로 취소했으면 새 영수증입니다. */
+  correctedBy: Schema.NullOr(ReceiptId),
+})
+
 /**
- * 영수증(수납)입니다. 한 내원의 진료를 한 번에 수납한 기록입니다.
+ * 영수증(수납)입니다. 한 내원의 진료를 한 번에 수납한 기록입니다. 돈 기록이라 지우지 않고, 잘못 입력했으면 취소해
+ * `VOIDED`로 남깁니다.
  *
- * 내원 없는 수납, 환불·취소(`VOIDED`)는 그 기능이 생길 때 더합니다. 전체 리소스는
- * `docs/design/front-desk.md`의 수납을 보세요.
+ * 내원 없는 수납은 그 기능이 생길 때 더합니다. 전체 리소스는 `docs/design/front-desk.md`의 수납을 보세요.
  */
 export const Receipt = Schema.Struct({
   id: ReceiptId,
@@ -135,12 +183,22 @@ export const Receipt = Schema.Struct({
   payments: Schema.Array(ReceiptPayment),
   settlement: ReceiptSettlement,
   flags: Schema.Struct({ excludeFromTaxDeduction: Schema.Boolean }),
-  status: Schema.Literals(['ACTIVE']),
+  status: Schema.Literals(['ACTIVE', 'VOIDED']),
+  /** 취소했으면 그 기록입니다. */
+  voided: Schema.NullOr(ReceiptVoid),
+  /** 정정으로 만든 영수증이면 취소한 앞 영수증입니다. */
+  correctionOf: Schema.NullOr(ReceiptId),
   createdAt: Schema.String,
   updatedAt: Schema.String,
   version: Schema.Int,
 })
 export type Receipt = typeof Receipt.Type
+
+/** 저장하는 영수증입니다. 결제는 따로 저장하고 읽을 때 붙입니다. */
+export type ReceiptRecord = Omit<Receipt, 'payments'>
+
+/** 영수증에서 저장하는 부분입니다. */
+export const recordOf = ({ payments: _, ...record }: Receipt): ReceiptRecord => record
 
 /** 결산 오류 코드입니다 (`checkout-settlement.types.ts`의 `CheckoutErrorCode`). */
 export const CheckoutErrorCode = Schema.Literals([
@@ -169,8 +227,8 @@ export class QuoteStale extends HttpApiError.Problem<QuoteStale>()(
 ) {}
 
 /**
- * 내원에 이미 유효한 영수증이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소하거나
- * 정정합니다(#35).
+ * 내원에 이미 유효한 영수증이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다
+ * (`:void`). 결제만 고치려면 `:correct`입니다.
  */
 export class ReceiptAlreadyExists extends HttpApiError.Problem<ReceiptAlreadyExists>()(
   'ReceiptAlreadyExists',
@@ -215,4 +273,51 @@ export class PaymentVisitMismatch extends HttpApiError.Problem<PaymentVisitMisma
   'PaymentVisitMismatch',
   { type: problemType('PAYMENT_VISIT_MISMATCH'), status: 422, title: 'Visit belongs to another patient' },
   { code: Schema.tag('PAYMENT_VISIT_MISMATCH') },
+) {}
+
+/** 요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다. */
+export class ReceiptNotFound extends HttpApiError.Problem<ReceiptNotFound>()(
+  'ReceiptNotFound',
+  { type: problemType('RECEIPT_NOT_FOUND'), status: 404, title: 'Receipt not found' },
+  { code: Schema.tag('RECEIPT_NOT_FOUND') },
+) {}
+
+/** 이미 취소한 영수증입니다. 취소·정정할 수 없습니다. */
+export class ReceiptVoided extends HttpApiError.Problem<ReceiptVoided>()(
+  'ReceiptVoided',
+  { type: problemType('RECEIPT_VOIDED'), status: 409, title: 'Receipt is already voided' },
+  { code: Schema.tag('RECEIPT_VOIDED') },
+) {}
+
+/**
+ * 밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. 먼저 `:refund`로 전액 환불합니다.
+ */
+export class PaymentRefundRequired extends HttpApiError.Problem<PaymentRefundRequired>()(
+  'PaymentRefundRequired',
+  { type: problemType('PAYMENT_REFUND_REQUIRED'), status: 409, title: 'Payments must be refunded first' },
+  { code: Schema.tag('PAYMENT_REFUND_REQUIRED'), receiptId: ReceiptId, paymentIds: Schema.Array(PaymentId) },
+) {}
+
+/** 이 결제는 지금 환불할 수 없습니다(이미 전액 환불했거나 취소함). 서버가 만든 수단은 422 `REFUND_REJECTED`입니다. */
+export class PaymentNotRefundable extends HttpApiError.Problem<PaymentNotRefundable>()(
+  'PaymentNotRefundable',
+  { type: problemType('PAYMENT_NOT_REFUNDABLE'), status: 409, title: 'Payment cannot be refunded' },
+  { code: Schema.tag('PAYMENT_NOT_REFUNDABLE'), paymentStatus: PaymentStatus },
+) {}
+
+/** 환불 요청이 결제와 맞지 않습니다. 이유를 모두 담습니다. */
+export const RefundErrorCode = Schema.Literals(['METHOD_NOT_ALLOWED', 'AMOUNT_EXCEEDED', 'PARTIAL_UNAPPLIED'])
+export type RefundErrorCode = typeof RefundErrorCode.Type
+
+export class RefundRejected extends HttpApiError.Problem<RefundRejected>()(
+  'RefundRejected',
+  { type: problemType('REFUND_REJECTED'), status: 422, title: 'Refund rejected' },
+  {
+    code: Schema.tag('REFUND_REJECTED'),
+    errors: Schema.Array(RefundErrorCode),
+    /** 이 결제에 쓸 수 있는 환불 수단입니다. */
+    allowedMethods: Schema.Array(RefundMethod),
+    /** 더 환불할 수 있는 금액입니다. */
+    refundable: SplitAmount,
+  },
 ) {}
