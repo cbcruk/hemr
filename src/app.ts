@@ -1,4 +1,4 @@
-import { Effect, Layer } from 'effect'
+import { Cause, Effect, Layer } from 'effect'
 import { HttpRouter, HttpServerError, HttpServerRespondable } from 'effect/http'
 import { HttpApiBuilder } from 'effect/http-api'
 import { Api } from './api.ts'
@@ -22,8 +22,9 @@ import { VisitsHttpLive } from './modules/front-desk/visits/visits.http.ts'
 import { Visits } from './modules/front-desk/visits/visits.ts'
 import { PatientsHttpLive } from './modules/patients/patients.http.ts'
 import { Patients } from './modules/patients/patients.ts'
-import { Internal, NotFound } from './shared/problem/problem.ts'
+import { NotFound } from './shared/problem/problem.ts'
 import { RequestValidationLive } from './shared/problem/request-validation.ts'
+import { respondUnexpected } from './shared/problem/unexpected-error.ts'
 
 const SystemLive = HttpApiBuilder.group(Api, 'system', (handlers) =>
   handlers.handle('health', () => Effect.succeed({ status: 'ok' as const })),
@@ -32,13 +33,14 @@ const SystemLive = HttpApiBuilder.group(Api, 'system', (handlers) =>
 /**
  * 일치하는 경로가 없거나 예상하지 못한 오류(defect)가 나면 Problem Details로 응답합니다.
  *
- * 엔드포인트에 선언한 오류는 여기까지 오지 않고, 해당 경로가 직접 응답으로 바꿉니다.
+ * 엔드포인트에 선언한 오류는 여기까지 오지 않고, 해당 경로가 직접 응답으로 바꿉니다. 예상 밖 오류는 원인을 로그와
+ * 오류 보고자에 남깁니다.
  */
 const ProblemFallback = HttpRouter.middleware(
   (httpEffect) =>
     httpEffect.pipe(
       Effect.catchIf(isRouteNotFound, () => HttpServerRespondable.toResponse(new NotFound({}))),
-      Effect.catchDefect(() => HttpServerRespondable.toResponse(new Internal({}))),
+      Effect.catchCauseIf(Cause.hasDies, respondUnexpected),
     ),
   { global: true },
 )
