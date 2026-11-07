@@ -1,9 +1,9 @@
-import { Cause, Effect, ErrorReporter, SchemaIssue } from 'effect'
-import { HttpServerRespondable } from 'effect/http'
+import { Cause, Effect, SchemaIssue } from 'effect'
 import { HttpApiMiddleware } from 'effect/http-api'
 import type { HttpApiError } from 'effect/http-api'
 import { Internal, ValidationFailed } from './problem.ts'
 import type { Violation } from './problem.types.ts'
+import { respondUnexpected } from './unexpected-error.ts'
 
 /**
  * 요청 디코딩 실패를 hemr 형식의 `VALIDATION_FAILED` 문제로 응답하는 미들웨어입니다.
@@ -19,7 +19,7 @@ export class RequestValidation extends HttpApiMiddleware.Service<RequestValidati
 export const RequestValidationLive = HttpApiMiddleware.layerSchemaErrorTransform(RequestValidation, (error) => {
   // `Body`와 `ResponseHeaders`는 응답 인코딩 실패라 클라이언트 잘못이 아닙니다.
   if (error.kind === 'Body' || error.kind === 'ResponseHeaders') {
-    return Effect.andThen(ErrorReporter.report(Cause.fail(error)), HttpServerRespondable.toResponse(new Internal({})))
+    return respondUnexpected(Cause.fail(error))
   }
   return Effect.fail(new ValidationFailed({ violations: toViolations(error.cause.issue, SLOT_NAMES[error.kind]) }))
 })

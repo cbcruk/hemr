@@ -85,6 +85,7 @@ envelope 없이 리소스 자체를 돌려줍니다. 현행 `data.results` / `da
   - `field`는 JSON 경로(`payments[1].amount`)입니다. 값 전체가 잘못됐으면 요청 부분 이름(`path`, `query`, `headers`, `body`)을 씁니다
   - `code`는 `REQUIRED`(빠짐), `INVALID_TYPE`(타입이 다름), `INVALID_VALUE`(형식·범위·허용값이 아님), `UNKNOWN_FIELD`(정의되지 않은 필드) 중 하나입니다. 지금은 정의되지 않은 필드를 무시하므로 `UNKNOWN_FIELD`는 나오지 않습니다
   - 형식은 맞지만 업무 규칙에 어긋나는 요청은 409/422와 도메인 `code`로 구분합니다
+- **예상 밖 오류는 500 `INTERNAL`이고 원인은 응답에 싣지 않습니다.** 대신 원인(Cause)을 오류 로그와 오류 보고자(`ErrorReporter`)에 남깁니다(`shared/problem/unexpected-error.ts`). 응답으로 바꾼 오류는 Effect HTTP 서버의 기본 보고·로그에 잡히지 않기 때문입니다. 오류 보고자는 아직 등록하지 않았으므로, 지금은 로그가 유일한 기록입니다. 모니터링을 붙일 때 `server.ts`에서 `ErrorReporter.layer`로 등록합니다
 - **검증 전용 엔드포인트를 두지 않습니다.** 현행 `/auth/check-username`, `/settings/nonbenefits/validate`, `/desk/chart-numbers/{no}/validations`는 생성 요청의 409/422로 대체합니다
   - 입력 중 즉시 피드백이 필요한 곳(아이디 중복)은 `?dryRun=true`로 같은 생성 엔드포인트를 부릅니다. 검증 로직이 한 곳에만 있게 됩니다
 
