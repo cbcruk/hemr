@@ -1,6 +1,6 @@
 import type { VisitCommand, VisitStatus, VisitTransitionOptions, VisitTransitionResult } from './visit-status.types.ts'
 
-const TRANSITIONS: Record<VisitStatus, Partial<Record<VisitCommand, VisitStatus>>> = {
+const 상태전이표: Record<VisitStatus, Partial<Record<VisitCommand, VisitStatus>>> = {
   WAITING: {
     START_TREATMENT: 'IN_TREATMENT',
     SEND_TO_CHECKOUT: 'AWAITING_PAYMENT',
@@ -31,7 +31,7 @@ const TRANSITIONS: Record<VisitStatus, Partial<Record<VisitCommand, VisitStatus>
  *
  * 수납·다시 열기·취소는 지난 내원을 정리하는 데 필요해서 여기에 넣지 않습니다.
  */
-const FLOW_COMMANDS: ReadonlySet<VisitCommand> = new Set(['START_TREATMENT', 'RETURN_TO_WAITING', 'SEND_TO_CHECKOUT'])
+const 진료흐름커맨드: ReadonlySet<VisitCommand> = new Set(['START_TREATMENT', 'RETURN_TO_WAITING', 'SEND_TO_CHECKOUT'])
 
 /**
  * 현재 상태에 내원 커맨드를 적용해 다음 상태를 돌려줍니다.
@@ -55,13 +55,13 @@ export function transitionVisit(
   command: VisitCommand,
   options: VisitTransitionOptions = {},
 ): VisitTransitionResult {
-  const to = TRANSITIONS[from][command]
-  if (to === undefined) return { ok: false, code: 'VISIT_TRANSITION_INVALID' }
-  if (options.isPastDate === true && FLOW_COMMANDS.has(command)) return { ok: false, code: 'VISIT_DATE_PAST' }
+  const 다음상태 = 상태전이표[from][command]
+  if (다음상태 === undefined) return { ok: false, code: 'VISIT_TRANSITION_INVALID' }
+  if (options.isPastDate === true && 진료흐름커맨드.has(command)) return { ok: false, code: 'VISIT_DATE_PAST' }
   if (command === 'CANCEL' && options.hasClinicalData === true && options.cascade !== true) {
     return { ok: false, code: 'VISIT_HAS_CLINICAL_DATA' }
   }
-  return { ok: true, to }
+  return { ok: true, to: 다음상태 }
 }
 
 /**
@@ -74,6 +74,6 @@ export function allowedVisitCommands(
   status: VisitStatus,
   options: Pick<VisitTransitionOptions, 'isPastDate'> = {},
 ): VisitCommand[] {
-  const commands = Object.keys(TRANSITIONS[status]) as VisitCommand[]
-  return options.isPastDate === true ? commands.filter((command) => !FLOW_COMMANDS.has(command)) : commands
+  const 커맨드목록 = Object.keys(상태전이표[status]) as VisitCommand[]
+  return options.isPastDate === true ? 커맨드목록.filter((커맨드) => !진료흐름커맨드.has(커맨드)) : 커맨드목록
 }

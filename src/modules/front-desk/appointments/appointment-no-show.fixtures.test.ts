@@ -42,8 +42,8 @@ const NOT_PORTED: Record<string, string> = {
     '이력 문구는 displayStatus와 함께 예약 이력을 만들 때 옮깁니다',
 }
 
-describe('appointment-no-show fixture', () => {
-  describe('settings migration (결정 4: 10/30/60이 아니면 올림)', () => {
+describe('예약 부도 처리 시점 픽스처', () => {
+  describe('설정 이관 (결정 4: 10/30/60이 아니면 올림)', () => {
     /** 현행 화면에서 활성 버튼이 없던 옛 값은 이관 뒤 올린 값이 됩니다. */
     const MIGRATED: Record<string, { noShowAfterMinutes: number; noShowAtClinicClose: boolean }> = {
       'settings view: {"부도처리시점":45,"진료마감부도처리여부":false}': {
@@ -72,12 +72,12 @@ describe('appointment-no-show fixture', () => {
       if (!settings.noShowAtClinicClose) expect(active?.label).toBe(`${settings.noShowAfterMinutes}분 후`)
     })
 
-    it('covers every migrated case', () => {
+    it('이관 값을 바꾼 사례는 모두 픽스처에 있습니다', () => {
       expect(Object.keys(MIGRATED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
     })
   })
 
-  describe('settings patch (진료 마감 모드를 켜도 분 값은 남김)', () => {
+  describe('설정 변경 (진료 마감 모드를 켜도 분 값은 남김)', () => {
     it.each(cases('settingsPatch').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const { settings: current } = migrateNoShowSettings(
         input['settings']['부도처리시점'],
@@ -90,7 +90,7 @@ describe('appointment-no-show fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처 사례마다 옮겼거나 옮기지 않은 이유를 적었고 따로 적은 사례 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set(['settingsView', 'settingsPatch'])
     const unaccounted = fixture.cases.filter(
       (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['check']),

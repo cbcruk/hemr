@@ -182,8 +182,8 @@ const NOT_PORTED: Record<string, string> = {
     '중복 예약(409)의 기준은 예약 저장소를 만들 때 정합니다. 화면 문구입니다',
 }
 
-describe('appointment-acceptance fixture', () => {
-  describe('cell capacity (결정 2·3·8: 같은 집합으로 세고 exclusive가 있으면 한도 1)', () => {
+describe('예약 수용 판정 픽스처', () => {
+  describe('셀 수용 한도 (결정 2·3·8: 같은 집합으로 세고 exclusive가 있으면 한도 1)', () => {
     it.each(cases('plannerCellCapacity').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const want = (CHANGED[name] ?? expected) as Record<string, unknown>
       const { capacity, booked } = slotCapacity(toCell(input['cell']))
@@ -192,13 +192,13 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('past slot (결정 4)', () => {
+  describe('과거 슬롯 (결정 4)', () => {
     it.each(cases('isPastDateTime').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       expect(isPastSlot(isoDate(input['date']), input['time'], NOW)).toBe(CHANGED[name] ?? expected)
     })
   })
 
-  describe('doctor off (결정 5)', () => {
+  describe('의사 휴진 (결정 5)', () => {
     it.each(cases('isDoctorOffDay').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const off = input['휴진일태그'] ? DOCTOR_OFF[input['휴진일태그']] : null
       expect(isDoctorOff(off, input['appointmentTime'], undefined, range(input['점심휴게시간']))).toBe(
@@ -206,7 +206,7 @@ describe('appointment-acceptance fixture', () => {
       )
     })
 
-    it('splits half days by the doctor schedule periods first', () => {
+    it('반나절 휴진은 진료의 근무 일정의 시간대 구분으로 먼저 나눕니다', () => {
       const periods = { MORNING: { start: '09:00', end: '13:30' }, AFTERNOON: { start: '14:30', end: '18:00' } }
       const lunch = { start: '12:00', end: '13:00' }
       expect(isDoctorOff('MORNING', '13:00', periods, lunch)).toBe(true)
@@ -214,13 +214,13 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('break time', () => {
+  describe('휴게 시간', () => {
     it.each(cases('isBreakTime').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       expect(isBreakTime(input['time'], { lunch: range(input['점심휴게시간']) })).toBe(expected)
     })
   })
 
-  describe('clinic slot times', () => {
+  describe('진료시간 슬롯', () => {
     it.each(cases('availableTimes').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const days = input['treatmentDays'] as Record<string, any>
       const weekday = weekdayOf(isoDate(input['dateString']))
@@ -233,7 +233,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('drop order (현행 검사 순서, 결정 1·7: 차단과 한도 초과는 확인을 받아야 저장)', () => {
+  describe('드래그 이동 검사 순서 (현행 검사 순서, 결정 1·7: 차단과 한도 초과는 확인을 받아야 저장)', () => {
     it.each(cases('validateDrop').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const flags = input['flags']
       const facts = {
@@ -260,7 +260,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('side panel slot info (결정 8: 진료항목 단위 exclusive)', () => {
+  describe('예약 사이드 패널 슬롯 정보 (결정 8: 진료항목 단위 exclusive)', () => {
     it.each(cases('sidePanelSlotInfo').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const toItemBooking = (booking: Record<string, any>): SlotBooking => ({
         status: booking['취소여부'] ? 'CANCELED' : booking['부도여부'] ? 'NO_SHOW' : 'BOOKED',
@@ -290,7 +290,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('side panel capacity tone (결정 3: 새 예약을 더하면 넘는지)', () => {
+  describe('예약 사이드 패널 한도 표시 (결정 3: 새 예약을 더하면 넘는지)', () => {
     it.each(cases('sidePanelCell').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const slot = input['slot']
       const count = input['displayCount'] ?? { 예약건수: 0, 점유건수: 0 }
@@ -310,7 +310,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('duration (결정 9: 단위의 배수, 120분 이하)', () => {
+  describe('예약 길이 (결정 9: 단위의 배수, 120분 이하)', () => {
     it.each(cases('maxSlotCount').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const unit = input['unitMinutes']
       expect(isValidDuration(expected * unit, unit)).toBe(true)
@@ -318,7 +318,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('blocked times (결정 7: 휴게는 막고 차단은 확인 후 허용)', () => {
+  describe('차단 시간 (결정 7: 휴게는 막고 차단은 확인 후 허용)', () => {
     it.each(cases('blockedTimes').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const day = input['day']
       const date = input['date']
@@ -339,7 +339,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('today cutoff (결정 4)', () => {
+  describe('오늘 지난 슬롯 숨김 (결정 4)', () => {
     it.each(cases('sidePanelSections').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       if (name === SPECIAL.doctorOffWarning) {
         // 결정 6: 경고만 하던 의사 휴진을 생성에서도 막습니다
@@ -359,7 +359,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('closed day', () => {
+  describe('병원 휴진일', () => {
     it.each(cases('checkOffDay').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       if (name === SPECIAL.closedDayGrid) {
         const judgement = checkAppointmentSlot(slotInput({ closedDates: ['2026-11-02'] }))
@@ -373,7 +373,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  describe('over capacity submit (결정 1)', () => {
+  describe('한도 초과 저장 (결정 1)', () => {
     it.each(cases('serverConflict').map((c) => [c.name, c] as const))('%s', () => {
       const full: SlotCell = { bookings: [{ status: 'BOOKED', exclusive: true }], occupancies: [], capacityPerSlot: 3 }
       const input = slotInput({ cellAt: () => full })
@@ -386,7 +386,7 @@ describe('appointment-acceptance fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처 사례마다 옮겼거나 옮기지 않은 이유를 적었고 따로 적은 사례 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set([
       'plannerCellCapacity',
       'isPastDateTime',

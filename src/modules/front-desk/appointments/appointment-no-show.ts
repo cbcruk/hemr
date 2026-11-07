@@ -36,7 +36,7 @@ export interface CloseTimeSources {
 }
 
 /** 하루의 끝입니다. 휴진일 예약은 이 시각(다음 날 0시)에 부도 처리합니다 (결정 2). */
-const END_OF_DAY = '24:00'
+const 하루끝시각 = '24:00'
 
 /**
  * 그날의 진료 마감 시각입니다 (결정 2).
@@ -46,17 +46,17 @@ const END_OF_DAY = '24:00'
  * 처음 쓸 일정이 휴진이거나 쓸 일정이 없으면 `24:00`입니다.
  */
 export function clinicCloseTime(sources: CloseTimeSources): ClockTime {
-  const days = [sources.doctorByDate, sources.doctorByWeekday, sources.clinicByDate, sources.clinicByWeekday]
-  const day = days.find((candidate) => candidate !== undefined && (candidate.closed || hasPeriods(candidate)))
-  if (day === undefined || day.closed) return END_OF_DAY
-  return Object.values(day.periods)
+  const 우선순위일정 = [sources.doctorByDate, sources.doctorByWeekday, sources.clinicByDate, sources.clinicByWeekday]
+  const 쓸일정 = 우선순위일정.find((일정) => 일정 !== undefined && (일정.closed || 진료구간있음(일정)))
+  if (쓸일정 === undefined || 쓸일정.closed) return 하루끝시각
+  return Object.values(쓸일정.periods)
     .map((range) => range.end)
     .sort()
     .at(-1)!
 }
 
-function hasPeriods(day: ClinicDay): boolean {
-  return Object.keys(day.periods).length > 0
+function 진료구간있음(일정: ClinicDay): boolean {
+  return Object.keys(일정.periods).length > 0
 }
 
 /**
@@ -67,14 +67,14 @@ function hasPeriods(day: ClinicDay): boolean {
  * 늦은 쪽입니다. 시작하기도 전에 부도가 되는 일을 막으려는 것입니다.
  */
 export function noShowDueTime(appointment: NoShowCandidate, settings: NoShowSettings, closeTime: ClockTime): ClockTime {
-  return fromMinutes(dueMinutes(appointment, settings, closeTime))
+  return fromMinutes(부도처리시각분(appointment, settings, closeTime))
 }
 
-function dueMinutes(appointment: NoShowCandidate, settings: NoShowSettings, closeTime: ClockTime): number {
-  const close = toMinutes(closeTime)
-  if (appointment.startTime === null) return close
-  const afterStart = toMinutes(appointment.startTime) + settings.noShowAfterMinutes
-  return settings.noShowAtClinicClose ? Math.max(close, afterStart) : afterStart
+function 부도처리시각분(예약: NoShowCandidate, 설정: NoShowSettings, 진료마감시각: ClockTime): number {
+  const 진료마감분 = toMinutes(진료마감시각)
+  if (예약.startTime === null) return 진료마감분
+  const 시작N분후 = toMinutes(예약.startTime) + 설정.noShowAfterMinutes
+  return 설정.noShowAtClinicClose ? Math.max(진료마감분, 시작N분후) : 시작N분후
 }
 
 /**
@@ -89,9 +89,9 @@ export function isNoShowDue(
   now: ClinicNow,
 ): boolean {
   if (appointment.status !== 'BOOKED') return false
-  const due = dueMinutes(appointment, settings, closeTime)
-  const elapsed = daysBetween(appointment.date, now.date) * MINUTES_PER_DAY + toMinutes(now.time)
-  return elapsed >= due
+  const 처리시각분 = 부도처리시각분(appointment, settings, closeTime)
+  const 경과분 = daysBetween(appointment.date, now.date) * MINUTES_PER_DAY + toMinutes(now.time)
+  return 경과분 >= 처리시각분
 }
 
 /**
@@ -105,12 +105,12 @@ export function migrateNoShowSettings(
   minutes: number | null,
   noShowAtClinicClose: boolean,
 ): { settings: NoShowSettings; adjusted: boolean } {
-  const value = minutes ?? 0
-  if (!Number.isFinite(value)) throw new RangeError(`Expected a finite no-show minute value, got ${value}`)
-  const raised = NO_SHOW_MINUTES.find((option) => option >= value)
+  const 분값 = minutes ?? 0
+  if (!Number.isFinite(분값)) throw new RangeError(`Expected a finite no-show minute value, got ${분값}`)
+  const 올린분값 = NO_SHOW_MINUTES.find((option) => option >= 분값)
   const settings = {
-    noShowAfterMinutes: raised ?? NO_SHOW_MINUTES.at(-1)!,
-    noShowAtClinicClose: noShowAtClinicClose || raised === undefined,
+    noShowAfterMinutes: 올린분값 ?? NO_SHOW_MINUTES.at(-1)!,
+    noShowAtClinicClose: noShowAtClinicClose || 올린분값 === undefined,
   }
   const adjusted = settings.noShowAfterMinutes !== minutes || settings.noShowAtClinicClose !== noShowAtClinicClose
   return { settings, adjusted }

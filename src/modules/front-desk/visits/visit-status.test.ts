@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { allowedVisitCommands, transitionVisit } from './visit-status.ts'
 import type { VisitCommand, VisitStatus } from './visit-status.types.ts'
 
-describe('transitionVisit', () => {
+describe('내원 상태 전이 (transitionVisit)', () => {
   const allowed: [VisitStatus, VisitCommand, VisitStatus][] = [
     ['WAITING', 'START_TREATMENT', 'IN_TREATMENT'],
     ['IN_TREATMENT', 'RETURN_TO_WAITING', 'WAITING'],
@@ -22,20 +22,20 @@ describe('transitionVisit', () => {
     expect(transitionVisit(from, command)).toEqual({ ok: true, to })
   })
 
-  it('refuses a completed visit going straight back to waiting', () => {
+  it('수납완료 내원은 바로 대기로 돌아갈 수 없습니다', () => {
     expect(transitionVisit('COMPLETED', 'RETURN_TO_WAITING')).toEqual({
       ok: false,
       code: 'VISIT_TRANSITION_INVALID',
     })
   })
 
-  it('refuses any command on a canceled visit', () => {
+  it('취소된 내원에는 어떤 커맨드도 보낼 수 없습니다', () => {
     expect(allowedVisitCommands('CANCELED')).toEqual([])
     expect(transitionVisit('CANCELED', 'CHECKOUT').ok).toBe(false)
   })
 
   it.each<VisitStatus>(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT', 'COMPLETED'])(
-    'requires cascade to cancel from %s only when the visit has clinical data',
+    '%s 내원 취소는 진료 데이터가 있을 때만 연쇄 취소가 필요합니다',
     (from) => {
       expect(transitionVisit(from, 'CANCEL')).toEqual({ ok: true, to: 'CANCELED' })
       expect(transitionVisit(from, 'CANCEL', { hasClinicalData: true })).toEqual({
@@ -50,12 +50,12 @@ describe('transitionVisit', () => {
   )
 })
 
-describe('transitionVisit on a past date', () => {
+describe('내원 상태 전이: 지난 날짜', () => {
   it.each<[VisitStatus, VisitCommand]>([
     ['WAITING', 'START_TREATMENT'],
     ['IN_TREATMENT', 'RETURN_TO_WAITING'],
     ['IN_TREATMENT', 'SEND_TO_CHECKOUT'],
-  ])('refuses %s --%s-->', (from, command) => {
+  ])('진료 흐름 커맨드 %s --%s-->는 막습니다', (from, command) => {
     expect(transitionVisit(from, command, { isPastDate: true })).toEqual({ ok: false, code: 'VISIT_DATE_PAST' })
   })
 
@@ -63,18 +63,18 @@ describe('transitionVisit on a past date', () => {
     ['AWAITING_PAYMENT', 'CHECKOUT', 'COMPLETED'],
     ['COMPLETED', 'REOPEN', 'AWAITING_PAYMENT'],
     ['AWAITING_PAYMENT', 'CANCEL', 'CANCELED'],
-  ])('still allows clean-up %s --%s--> %s', (from, command, to) => {
+  ])('정리 커맨드 %s --%s--> %s는 그대로 허용합니다', (from, command, to) => {
     expect(transitionVisit(from, command, { isPastDate: true })).toEqual({ ok: true, to })
   })
 
-  it('reports an invalid transition before the past date', () => {
+  it('지난 날짜보다 잘못된 전이를 먼저 알립니다', () => {
     expect(transitionVisit('COMPLETED', 'START_TREATMENT', { isPastDate: true })).toEqual({
       ok: false,
       code: 'VISIT_TRANSITION_INVALID',
     })
   })
 
-  it('leaves only clean-up commands in allowed actions', () => {
+  it('보낼 수 있는 커맨드에는 정리 커맨드만 남깁니다', () => {
     expect(allowedVisitCommands('IN_TREATMENT', { isPastDate: true })).toEqual(['CHECKOUT', 'CANCEL'])
   })
 })

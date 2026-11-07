@@ -85,7 +85,7 @@ const NOT_PORTED: Record<string, string> = {
     'visit-status.test.ts의 지난 날짜 테스트가 결정 5를 검사합니다',
 }
 
-describe('visit-status-transitions fixture', () => {
+describe('내원 상태 전이 픽스처', () => {
   it.each(drops.map((testCase) => [testCase.name, testCase] as const))('%s', (_, testCase) => {
     const from = COLUMN_STATUS[testCase.input['from'] as string]!
     const to = COLUMN_STATUS[testCase.input['to'] as string]!
@@ -93,7 +93,7 @@ describe('visit-status-transitions fixture', () => {
     expect(run(from, commandsForDrop(from, to))).toBe(to)
   })
 
-  it('accounts for every case that is not ported', () => {
+  it('옮기지 않은 사례와 이유를 적은 사례가 같습니다', () => {
     const ported = new Set(drops.map((testCase) => testCase.name))
     const rest = fixture.cases.map((testCase) => testCase.name).filter((name) => !ported.has(name))
 
