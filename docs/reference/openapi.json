@@ -8121,7 +8121,7 @@
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991,
-                          "description": "서버가 만드는 제주 지원금 결제(비과세)입니다."
+                          "description": "서버가 만드는 제주 지원금 결제(비과세)입니다. 지금은 늘 0입니다."
                         },
                         "overpaidCreditApplied": {
                           "$ref": "#/components/schemas/SplitAmount"
@@ -8141,7 +8141,7 @@
                         "overpaidCreditApplied"
                       ],
                       "additionalProperties": false,
-                      "description": "결산 미리보기입니다. `due`는 고른 진료의 받을 금액, `effectiveDue`는 제주 지원금·과수납금(`overpaidCreditApplied`)을 뺀 금액, `entered`는 입력 결제의 합, `received`는 입력 결제에 제주 지원금·과수납금을 더한 받은 금액입니다."
+                      "description": "결산 미리보기입니다. `due`는 고른 진료의 받을 금액, `effectiveDue`는 제주 지원금·과수납금(`overpaidCreditApplied`)을 뺀 금액, `entered`는 결제(`paymentIds`의 남은 금액과 `payments`)의 합, `received`는 그 합에 제주 지원금·과수납금을 더한 받은 금액입니다."
                     },
                     "errors": {
                       "type": "array",
@@ -8152,15 +8152,7 @@
                     "warnings": {
                       "type": "array",
                       "items": {
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "enum": [
-                              "OUTSTANDING"
-                            ]
-                          }
-                        ],
-                        "description": "결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다."
+                        "$ref": "#/components/schemas/CheckoutWarningCode"
                       },
                       "description": "확인을 받지 않은 경고입니다. 있으면 수납이 422입니다."
                     }
@@ -8342,7 +8334,7 @@
                         "amount"
                       ],
                       "additionalProperties": false,
-                      "description": "수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요합니다. 0원 결제는 받되 기록하지 않습니다."
+                      "description": "수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요하고, 지금은 선수금 잔액이 없어 0원이 아니면 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 받되 기록하지 않습니다."
                     },
                     "maxItems": 20
                   },
@@ -8359,7 +8351,7 @@
                         "type": "null"
                       }
                     ],
-                    "description": "과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다."
+                    "description": "과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다. 지금은 과수납 잔액이 없어 효과가 없습니다."
                   },
                   "writeOffRemainder": {
                     "type": "boolean",
@@ -8368,18 +8360,10 @@
                   "acknowledge": {
                     "type": "array",
                     "items": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "OUTSTANDING"
-                          ]
-                        }
-                      ],
-                      "description": "결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다."
+                      "$ref": "#/components/schemas/CheckoutWarningCode"
                     },
                     "maxItems": 1,
-                    "description": "확인하고 넘길 경고입니다. 입력 결제 없이 미수로 남길 때 보냅니다."
+                    "description": "확인하고 넘길 경고입니다. 결제(`paymentIds`·`payments`, 0원 제외) 없이 남은 금액을 미수로 남길 때 보냅니다."
                   }
                 },
                 "additionalProperties": false
@@ -8619,7 +8603,7 @@
                         "amount"
                       ],
                       "additionalProperties": false,
-                      "description": "수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요합니다. 0원 결제는 받되 기록하지 않습니다."
+                      "description": "수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요하고, 지금은 선수금 잔액이 없어 0원이 아니면 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 받되 기록하지 않습니다."
                     },
                     "maxItems": 20
                   },
@@ -8636,7 +8620,7 @@
                         "type": "null"
                       }
                     ],
-                    "description": "과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다."
+                    "description": "과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다. 지금은 과수납 잔액이 없어 효과가 없습니다."
                   },
                   "writeOffRemainder": {
                     "type": "boolean",
@@ -8645,18 +8629,10 @@
                   "acknowledge": {
                     "type": "array",
                     "items": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "OUTSTANDING"
-                          ]
-                        }
-                      ],
-                      "description": "결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다."
+                      "$ref": "#/components/schemas/CheckoutWarningCode"
                     },
                     "maxItems": 1,
-                    "description": "확인하고 넘길 경고입니다. 입력 결제 없이 미수로 남길 때 보냅니다."
+                    "description": "확인하고 넘길 경고입니다. 결제(`paymentIds`·`payments`, 0원 제외) 없이 남은 금액을 미수로 남길 때 보냅니다."
                   },
                   "quoteId": {
                     "type": "string",
@@ -9045,7 +9021,8 @@
                 "required": [
                   "reason"
                 ],
-                "additionalProperties": false
+                "additionalProperties": false,
+                "description": "수납 취소 본문입니다. 현금·계좌이체처럼 서버 안에서 받은 결제는 받지 않은 것으로 `VOIDED`가 됩니다. 내원 상태는 바꾸지 않으므로, 다시 수납하려면 처방을 고친 뒤 내원을 다시 열고(`:reopen`) 수납합니다."
               }
             }
           },
@@ -9184,8 +9161,13 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다. | Internal server error",
             "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutWarningCode"
+                }
+              },
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/InternalEncoded"
@@ -9249,7 +9231,7 @@
                         "amount"
                       ],
                       "additionalProperties": false,
-                      "description": "수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요합니다. 0원 결제는 받되 기록하지 않습니다."
+                      "description": "수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요하고, 지금은 선수금 잔액이 없어 0원이 아니면 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 받되 기록하지 않습니다."
                     },
                     "maxItems": 20
                   },
@@ -9266,7 +9248,7 @@
                         "type": "null"
                       }
                     ],
-                    "description": "과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다."
+                    "description": "과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다. 지금은 과수납 잔액이 없어 효과가 없습니다."
                   },
                   "writeOffRemainder": {
                     "type": "boolean",
@@ -9275,18 +9257,10 @@
                   "acknowledge": {
                     "type": "array",
                     "items": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "OUTSTANDING"
-                          ]
-                        }
-                      ],
-                      "description": "결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다."
+                      "$ref": "#/components/schemas/CheckoutWarningCode"
                     },
                     "maxItems": 1,
-                    "description": "확인하고 넘길 경고입니다. 입력 결제 없이 미수로 남길 때 보냅니다."
+                    "description": "확인하고 넘길 경고입니다. 결제(`paymentIds`·`payments`, 0원 제외) 없이 남은 금액을 미수로 남길 때 보냅니다."
                   },
                   "excludeFromTaxDeduction": {
                     "type": "boolean",
@@ -9307,7 +9281,7 @@
                   "reason"
                 ],
                 "additionalProperties": false,
-                "description": "수납 정정 본문입니다. 진료는 앞 영수증 그대로이고 결제만 다시 받습니다. 보내지 않은 `memo`·`excludeFromTaxDeduction`은 앞 영수증 것을 이어받습니다."
+                "description": "수납 정정 본문입니다. 앞 영수증을 취소하고 같은 진료로 새 영수증을 만듭니다. 카드·간편결제처럼 밖에서 승인한 결제는 환불하지 않고 남은 금액으로 새 영수증에 옮기고, 현금·계좌이체처럼 서버 안에서 받은 결제는 `VOIDED`가 되므로 `payments`로 다시 보냅니다. 청구 금액이 바뀌지 않아 `quoteId`는 받지 않습니다. 새 영수증의 수납일은 정정한 날입니다. 보내지 않은 `memo`·`excludeFromTaxDeduction`은 앞 영수증 것을 이어받습니다."
               }
             }
           },
@@ -9491,7 +9465,7 @@
                   "processorRef"
                 ],
                 "additionalProperties": false,
-                "description": "외부 승인 결제 본문입니다. 내원을 정하면 그 환자의 내원이어야 하고(아니면 422 `PAYMENT_VISIT_MISMATCH`), 그 내원의 수납에만 적용합니다."
+                "description": "외부 승인 결제 본문입니다. 없는 환자·내원은 404입니다. 내원을 정하면 그 환자의 내원이어야 하고(아니면 422 `PAYMENT_VISIT_MISMATCH`), 그 내원의 수납에만 적용합니다. 내원 상태는 보지 않아 수납했거나 취소한 내원의 결제도 남깁니다. 돈은 이미 오갔기 때문입니다. 취소한 내원에 묶인 결제는 다른 내원에 적용할 수 없어 환불합니다."
               }
             }
           },
@@ -9891,7 +9865,7 @@
                       "taxExempt"
                     ],
                     "additionalProperties": false,
-                    "description": "환불 금액입니다. 과세·비과세 각각 남은 금액까지입니다."
+                    "description": "환불 금액입니다. 과세·비과세 합이 0보다 커야 하고(400), 각각 남은 금액을 넘으면 422 `REFUND_REJECTED`(`AMOUNT_EXCEEDED`)입니다."
                   },
                   "refundMethod": {
                     "$ref": "#/components/schemas/RefundMethod"
@@ -10137,7 +10111,7 @@
                   }
                 },
                 "additionalProperties": false,
-                "description": "시재 개시 본문입니다. `openingAmount`와 `carryOver` 중 하나만 보냅니다(400)."
+                "description": "시재 개시 본문입니다. 시작 금액(`openingAmount`)이나 `carryOver: true` 중 하나만 보냅니다. 둘 다 보내거나 둘 다 없으면(`carryOver: false`만 보내도) 400입니다."
               }
             }
           },
@@ -10487,7 +10461,8 @@
             }
           }
         },
-        "summary": "지출 목록 (from–to 포함, 31일까지)"
+        "description": "`from`부터 `to`까지(둘 다 포함) 날짜의 지우지 않은 지출입니다. 31일을 넘거나 `from`이 `to`보다 늦으면 400입니다.",
+        "summary": "지출 목록 (`from`–`to` 포함, 31일까지)"
       },
       "post": {
         "tags": [
@@ -10614,15 +10589,9 @@
                   },
                   "amount": {
                     "type": "integer",
-                    "minimum": 0,
+                    "minimum": 1,
                     "maximum": 10000000000,
-                    "description": "원 단위 금액입니다. 0 이상 정수입니다.",
-                    "allOf": [
-                      {
-                        "minimum": 1,
-                        "description": "지출 금액(원)입니다. 1원 이상입니다."
-                      }
-                    ]
+                    "description": "지출 금액(원)입니다. 1원 이상입니다."
                   },
                   "categoryId": {
                     "type": "string",
@@ -10640,7 +10609,7 @@
                   "categoryId"
                 ],
                 "additionalProperties": false,
-                "description": "지출 본문입니다. 그날 시재가 열려 있어야 합니다(`OPEN`·`REOPENED`, 아니면 409 `CASH_DRAWER_NOT_OPEN`)."
+                "description": "지출 본문입니다. `date`는 현금이 나간 날이고, 그날 시재가 열려 있어야 합니다(`OPEN`·`REOPENED`, 아니면 409 `CASH_DRAWER_NOT_OPEN`)."
               }
             }
           },
@@ -11768,19 +11737,19 @@
           },
           "carriedOver": {
             "type": "boolean",
-            "description": "시작 금액을 앞 시재의 마감 금액에서 이어받았는지입니다."
+            "description": "시작 금액을 앞 시재의 실사 금액에서 이어받았는지입니다."
           },
           "cashIn": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "그날 현금 수납의 합입니다."
+            "description": "그날 현금 수납의 합입니다. 받은 날 취소한 결제의 남은 금액은 오가지 않은 돈이라 넣지 않습니다."
           },
           "cashRefunds": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "그날 현금 환불의 합입니다. 현금 결제를 취소한 영수증의 남은 금액도 취소한 날의 환불로 셉니다."
+            "description": "그날 현금 환불의 합입니다. 지난 날 받은 현금 결제를 영수증 취소로 `VOIDED`하면 남은 금액을 취소한 날의 환불로 셉니다. 받은 날 취소하면 수납·환불 어느 쪽에도 넣지 않습니다."
           },
           "expenses": {
             "type": "integer",
@@ -11863,7 +11832,7 @@
                   "closedBy"
                 ],
                 "additionalProperties": false,
-                "description": "마감 기록입니다. 다시 마감하면 새 기록으로 바꾸고 지난 기록은 남기지 않습니다."
+                "description": "마감 기록입니다. 처음 마감하기 전에는 `null`이고, 다시 열린(`REOPENED`) 동안에도 마지막 마감 기록이 남습니다. 다시 마감하면 새 기록으로 바꾸고 지난 기록은 남기지 않습니다."
               },
               {
                 "type": "null"
@@ -12125,7 +12094,7 @@
           "OVERPAID_CREDIT",
           "PREPAID"
         ],
-        "description": "환불 수단입니다. `CARD_CANCEL`은 카드 승인 취소, 카카오페이·지역화폐·제로페이는 같은 수단의 취소입니다. 결제에 쓸 수 있는 수단은 결제 수단마다 다릅니다(어긋나면 422 `REFUND_REJECTED`의 `allowedMethods`)."
+        "description": "환불 수단입니다. `CARD_CANCEL`은 카드 승인 취소, 카카오페이·지역화폐·제로페이는 같은 수단의 취소입니다. 원 결제 수단마다 쓸 수 있는 환불 수단이 다릅니다. 카드는 `CARD_CANCEL`, 카카오페이·지역화폐·제로페이는 같은 수단 취소·`BANK_TRANSFER`·`CASH`, 현금·계좌이체는 `BANK_TRANSFER`·`CASH`, 과수납금은 `OVERPAID_CREDIT`, 선수금은 같은 계열 `PREPAID`이고, 제주 지원금·패키지는 환불할 수 없습니다. 어긋나면 422 `REFUND_REJECTED`의 `allowedMethods`가 쓸 수 있는 수단입니다."
       },
       "RefundErrorCode": {
         "type": "string",
@@ -12269,7 +12238,7 @@
                 "type": "null"
               }
             ],
-            "description": "적용한 영수증입니다. `UNAPPLIED`이면 `null`입니다."
+            "description": "적용한 영수증입니다. 수납에 적용하지 않은 결제(`UNAPPLIED`, 수납 전에 환불한 `REFUNDED`)는 `null`입니다."
           },
           "method": {
             "$ref": "#/components/schemas/PaymentMethod"
@@ -12297,7 +12266,7 @@
                 "type": "null"
               }
             ],
-            "description": "카드 승인번호처럼 밖에서 받은 참조입니다."
+            "description": "카드 승인번호처럼 밖에서 받은 참조입니다. 수납 요청 안에서 받은 현금·계좌이체는 `null`입니다."
           },
           "status": {
             "$ref": "#/components/schemas/PaymentStatus"
@@ -12404,7 +12373,7 @@
           "JEJU_SUBSIDY",
           "PACKAGE"
         ],
-        "description": "결제 수단입니다. 카드(`CARD`), 현금(`CASH`), 계좌이체(`BANK_TRANSFER`), 카카오페이(`KAKAO_PAY`), 지역화폐(`LOCAL_CURRENCY`), 제로페이(`ZERO_PAY`), 선수금(`PREPAID`), 과수납금(`OVERPAID_CREDIT`), 제주 지원금(`JEJU_SUBSIDY`), 패키지(`PACKAGE`)입니다. 과수납금·제주 지원금·패키지는 서버가 만듭니다."
+        "description": "결제 수단입니다. 카드(`CARD`), 현금(`CASH`), 계좌이체(`BANK_TRANSFER`), 카카오페이(`KAKAO_PAY`), 지역화폐(`LOCAL_CURRENCY`), 제로페이(`ZERO_PAY`), 선수금(`PREPAID`), 과수납금(`OVERPAID_CREDIT`), 제주 지원금(`JEJU_SUBSIDY`), 패키지(`PACKAGE`)입니다. 과수납금·제주 지원금·패키지는 서버가 만드는 수단이고, 지금은 과수납 잔액·제주 지원금·패키지가 없어 만들지 않습니다."
       },
       "PaymentVisitMismatchEncoded": {
         "type": "object",
@@ -12536,6 +12505,17 @@
         ],
         "description": "카드 단말·간편결제처럼 수납 전에 밖에서 승인되는 결제 수단입니다. `POST /payments`로 먼저 남기고 수납의 `paymentIds`로 적용합니다."
       },
+      "CheckoutWarningCode": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "OUTSTANDING"
+            ]
+          }
+        ],
+        "description": "결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다."
+      },
       "CheckoutRejectedEncoded": {
         "type": "object",
         "properties": {
@@ -12560,14 +12540,7 @@
           "warnings": {
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "OUTSTANDING"
-                  ]
-                }
-              ]
+              "$ref": "#/components/schemas/CheckoutWarningCode"
             }
           },
           "type": {
@@ -13031,14 +13004,7 @@
           "acknowledged": {
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "OUTSTANDING"
-                  ]
-                }
-              ]
+              "$ref": "#/components/schemas/CheckoutWarningCode"
             },
             "description": "확인을 받고 넘어간 경고입니다."
           }
@@ -13053,7 +13019,7 @@
           "acknowledged"
         ],
         "additionalProperties": false,
-        "description": "결산입니다. 받을 금액(`due`)과 받은 금액(`received`)이고, `due − received`가 남은 금액입니다. 받은 금액에는 제주 지원금·과수납금 결제도 들어갑니다."
+        "description": "결산입니다. 받을 금액(`due`)과 받은 금액(`received`)이고, `due − received`가 남은 금액입니다. 받은 금액에는 제주 지원금·과수납금 결제도 들어갑니다(지금은 둘 다 0입니다)."
       },
       "SettlementResult": {
         "type": "string",
@@ -15809,7 +15775,7 @@
     },
     {
       "name": "cashDrawers",
-      "description": "시재와 지출입니다. 시재는 병원·날짜마다 하나이고 개시(`:open`), 마감(`:close`), 다시 열기(`:reopen`)로 옮깁니다. 현금 흐름은 읽을 때 그날 결제·환불·지출에서 계산하고, 마감 뒤 그날 현금 기록이 바뀌면 다시 열립니다(`REOPENED`). 오늘 이후 날짜는 열 수 없고(422) 지난 날짜는 열 수 있습니다. 수납은 시재를 보지 않습니다. 지출은 그날 시재가 열려 있을 때만 기록하거나 지우고, 지출 기록은 `Idempotency-Key`가 필수입니다. 지출 분류는 병원 설정입니다."
+      "description": "시재와 지출입니다. 시재는 병원·날짜마다 하나이고 개시(`:open`), 마감(`:close`), 다시 열기(`:reopen`)로 옮깁니다. 현금 흐름은 읽을 때 그날 결제·환불·지출에서 계산하고, 마감 뒤 그날 현금 기록이 바뀌면 다시 열립니다(`REOPENED`). 미래 날짜는 열 수 없고(422) 오늘과 지난 날짜는 열 수 있습니다. 수납은 시재를 보지 않습니다. 지출은 그날 시재가 열려 있을 때만 기록하거나 지우고, 지출 기록은 `Idempotency-Key`가 필수입니다. 지출 분류는 병원 설정입니다."
     }
   ]
 }

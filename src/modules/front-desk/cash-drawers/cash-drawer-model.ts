@@ -45,7 +45,10 @@ const Closing = Schema.Struct({
   difference: Schema.Int.annotate({ description: '차액입니다. `countedAmount − expectedClosing`입니다.' }),
   closedAt: Schema.String,
   closedBy: UserId,
-}).annotate({ description: '마감 기록입니다. 다시 마감하면 새 기록으로 바꾸고 지난 기록은 남기지 않습니다.' })
+}).annotate({
+  description:
+    '마감 기록입니다. 처음 마감하기 전에는 `null`이고, 다시 열린(`REOPENED`) 동안에도 마지막 마감 기록이 남습니다. 다시 마감하면 새 기록으로 바꾸고 지난 기록은 남기지 않습니다.',
+})
 
 /**
  * 저장하는 시재입니다. 병원·날짜마다 하나입니다. 현금 흐름은 저장하지 않고 읽을 때 결제·환불·지출에서 계산합니다.
@@ -70,10 +73,13 @@ export const CashDrawer = Schema.Struct({
   date: LocalDate,
   status: CashDrawerStatus,
   openingAmount: Schema.NullOr(Won).annotate({ description: '시작 금액입니다. 열지 않았으면 `null`입니다.' }),
-  carriedOver: Schema.Boolean.annotate({ description: '시작 금액을 앞 시재의 마감 금액에서 이어받았는지입니다.' }),
-  cashIn: Schema.Int.annotate({ description: '그날 현금 수납의 합입니다.' }),
+  carriedOver: Schema.Boolean.annotate({ description: '시작 금액을 앞 시재의 실사 금액에서 이어받았는지입니다.' }),
+  cashIn: Schema.Int.annotate({
+    description: '그날 현금 수납의 합입니다. 받은 날 취소한 결제의 남은 금액은 오가지 않은 돈이라 넣지 않습니다.',
+  }),
   cashRefunds: Schema.Int.annotate({
-    description: '그날 현금 환불의 합입니다. 현금 결제를 취소한 영수증의 남은 금액도 취소한 날의 환불로 셉니다.',
+    description:
+      '그날 현금 환불의 합입니다. 지난 날 받은 현금 결제를 영수증 취소로 `VOIDED`하면 남은 금액을 취소한 날의 환불로 셉니다. 받은 날 취소하면 수납·환불 어느 쪽에도 넣지 않습니다.',
   }),
   expenses: Schema.Int.annotate({ description: '그날 지출의 합입니다.' }),
   expectedClosing: Schema.NullOr(Schema.Int).annotate({

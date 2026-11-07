@@ -51,7 +51,10 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
               '앞서 마감한 시재 중 가장 늦은 날의 실사 금액을 시작 금액으로 이어받습니다. 그 시재가 없거나 다시 열렸으면 422 `CASH_DRAWER_CARRY_OVER_UNAVAILABLE`입니다.',
           }),
         ),
-      }).annotate({ description: '시재 개시 본문입니다. `openingAmount`와 `carryOver` 중 하나만 보냅니다(400).' }),
+      }).annotate({
+        description:
+          '시재 개시 본문입니다. 시작 금액(`openingAmount`)이나 `carryOver: true` 중 하나만 보냅니다. 둘 다 보내거나 둘 다 없으면(`carryOver: false`만 보내도) 400입니다.',
+      }),
       success: CashDrawer,
       error: [CashDrawerTransitionInvalid, CashDrawerDateInFuture, CashDrawerCarryOverUnavailable, ValidationFailed],
     })
@@ -81,27 +84,32 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
       .annotate(OpenApi.Summary, '시재 다시 열기 (마감 뒤)')
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.get('listExpenses', '/expenses', {
-      // `from`–`to`는 둘 다 포함하고 31일까지입니다(넘으면 400)
       query: { from: CalendarDate, to: CalendarDate },
       success: Schema.Struct({ items: Schema.Array(Expense) }),
       error: ValidationFailed,
     })
       .annotate(Access, Access.requires('cash_drawer:read'))
-      .annotate(OpenApi.Summary, '지출 목록 (from–to 포함, 31일까지)'),
+      .annotate(OpenApi.Summary, '지출 목록 (`from`–`to` 포함, 31일까지)')
+      .annotate(
+        OpenApi.Description,
+        '`from`부터 `to`까지(둘 다 포함) 날짜의 지우지 않은 지출입니다. 31일을 넘거나 `from`이 `to`보다 늦으면 400입니다.',
+      ),
     HttpApiEndpoint.post('recordExpense', '/expenses', {
       headers: { 'idempotency-key': IdempotencyKey },
       payload: Schema.Struct({
         date: CalendarDate,
-        amount: Won.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
-          description: '지출 금액(원)입니다. 1원 이상입니다.',
-        }),
+        // 이름 없는 공용 Schema(`Won`)를 좁히면 그 설명이 위에 남으므로, 설명을 먼저 달고 검사합니다
+        amount: Schema.Int.annotate({ description: '지출 금액(원)입니다. 1원 이상입니다.' }).check(
+          Schema.isGreaterThanOrEqualTo(1),
+          Schema.isLessThanOrEqualTo(10_000_000_000),
+        ),
         categoryId: ExpenseCategoryId,
         memo: Schema.optionalKey(
           Schema.String.check(Schema.isMaxLength(500)).annotate({ description: '메모입니다. 500자까지입니다.' }),
         ),
       }).annotate({
         description:
-          '지출 본문입니다. 그날 시재가 열려 있어야 합니다(`OPEN`·`REOPENED`, 아니면 409 `CASH_DRAWER_NOT_OPEN`).',
+          '지출 본문입니다. `date`는 현금이 나간 날이고, 그날 시재가 열려 있어야 합니다(`OPEN`·`REOPENED`, 아니면 409 `CASH_DRAWER_NOT_OPEN`).',
       }),
       success: Expense.pipe(HttpApiSchema.status(201)),
       error: [CashDrawerNotOpen, ExpenseCategoryInvalid, IdempotencyKeyReused],
@@ -143,6 +151,6 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
   )
   .annotate(
     OpenApi.Description,
-    '시재와 지출입니다. 시재는 병원·날짜마다 하나이고 개시(`:open`), 마감(`:close`), 다시 열기(`:reopen`)로 옮깁니다. 현금 흐름은 읽을 때 그날 결제·환불·지출에서 계산하고, 마감 뒤 그날 현금 기록이 바뀌면 다시 열립니다(`REOPENED`). 오늘 이후 날짜는 열 수 없고(422) 지난 날짜는 열 수 있습니다. 수납은 시재를 보지 않습니다. 지출은 그날 시재가 열려 있을 때만 기록하거나 지우고, 지출 기록은 `Idempotency-Key`가 필수입니다. 지출 분류는 병원 설정입니다.',
+    '시재와 지출입니다. 시재는 병원·날짜마다 하나이고 개시(`:open`), 마감(`:close`), 다시 열기(`:reopen`)로 옮깁니다. 현금 흐름은 읽을 때 그날 결제·환불·지출에서 계산하고, 마감 뒤 그날 현금 기록이 바뀌면 다시 열립니다(`REOPENED`). 미래 날짜는 열 수 없고(422) 오늘과 지난 날짜는 열 수 있습니다. 수납은 시재를 보지 않습니다. 지출은 그날 시재가 열려 있을 때만 기록하거나 지우고, 지출 기록은 `Idempotency-Key`가 필수입니다. 지출 분류는 병원 설정입니다.',
   )
   .middleware(Authorization) {}
