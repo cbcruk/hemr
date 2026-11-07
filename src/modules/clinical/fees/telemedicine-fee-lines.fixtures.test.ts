@@ -156,8 +156,8 @@ const NOT_PORTED: Record<string, string> = {
   'qh non-telemedicine line -> false': '`qh`는 갱신 여부만 보는 화면 최적화입니다. watcher 케이스가 결과를 검사합니다',
 }
 
-describe('telemedicine-fee-lines fixture', () => {
-  describe('fee line (Pd+Ed, 결정 1·2)', () => {
+describe('비대면 관리료 줄 픽스처 (telemedicine-fee-lines)', () => {
+  describe('새 관리료 줄 (Pd+Ed, 결정 1·2)', () => {
     it.each(cases('Pd+Ed').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const at = serviceAt(input['기준일시'])
       const line = telemedicineFeeLine(at, holidays(input['holidays']), feeMaster(at.date))
@@ -166,13 +166,13 @@ describe('telemedicine-fee-lines fixture', () => {
     })
   })
 
-  describe('fee line code (xo, 결정 6)', () => {
+  describe('관리료 줄 판정 (xo, 결정 6)', () => {
     it.each(cases('xo').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       expect(isTelemedicineFeeCode(input['수가코드'])).toBe(expected['isTelemedicineFeeLine'])
     })
   })
 
-  describe('toggle availability (jh, 결정 8)', () => {
+  describe('비대면 토글 표시 (jh, 결정 8)', () => {
     it.each(cases('jh').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const coverage: Record<string, Coverage> = {
         건보: 'NHIS',
@@ -190,7 +190,7 @@ describe('telemedicine-fee-lines fixture', () => {
     })
   })
 
-  describe('toggle rebuild (Wh, 결정 3·4·5)', () => {
+  describe('토글할 때 다시 계산 (Wh, 결정 3·4·5)', () => {
     it.each(cases('Wh').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const at = serviceAt(input['기준일시'])
       const result = reconcileTelemedicineLines({
@@ -209,7 +209,7 @@ describe('telemedicine-fee-lines fixture', () => {
     })
   })
 
-  describe('save-time recalculation (Uv watcher, 결정 3·7)', () => {
+  describe('저장할 때 다시 계산 (Uv watcher, 결정 3·7)', () => {
     it.each(cases('Uv (watcher)').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       // 단계를 모두 적용한 마지막 상태입니다. 서버는 저장 요청마다 이 상태로 한 번 계산합니다
       const state = (input['steps'] as any[]).reduce(
@@ -245,7 +245,7 @@ describe('telemedicine-fee-lines fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처의 모든 케이스를 옮겼거나 옮기지 않은 이유를 적었고 예외 목록의 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set(['Pd+Ed', 'xo', 'jh', 'Wh', 'Uv (watcher)'])
     const unaccounted = fixture.cases.filter((c) => !(c.name in NOT_PORTED) && !ported.has(c.input['fn']))
     expect(unaccounted.map((c) => c.name)).toEqual([])

@@ -64,21 +64,21 @@ export interface ProcedureFeeLines<L extends PrescriptionFeeLine = PrescriptionF
 }
 
 /** 이 규칙이 산정코드를 붙이는 코드 종류(앞 두 자리)입니다. 투약·조제 `30`과 시술 `40`입니다. */
-const MODIFIABLE_KINDS: ReadonlySet<string> = new Set(['30', '40'])
+const 산정코드대상종류: ReadonlySet<string> = new Set(['30', '40'])
 
-const ACUPUNCTURE_CATEGORY = '33001001'
-const NEONATE_MAX_DAYS = 28
+const 침술카테고리 = '33001001'
+const 신생아최대생후일수 = 28
 /** 침법 자리를 붙이는 경혈침술(`40011`)·경혈침술 이체(`40012`)입니다. */
-const ACUPOINT_CODES: ReadonlySet<string> = new Set(['40011', '40012'])
+const 경혈침술코드: ReadonlySet<string> = new Set(['40011', '40012'])
 
 /**
  * 시간대 자리를 붙일 수 있는 코드 종류(앞 두 자리)입니다 (결정 3). 진찰료 `10`과 시술 `40`입니다.
  * 고시가 바뀌면 참조데이터 속성으로 고칩니다. 진찰료는 consultation-fee-code가 계산하므로 여기서는 시술만 해당합니다.
  */
-const TIME_SURCHARGE_KINDS: ReadonlySet<string> = new Set(['10', '40'])
+const 시간대가산코드종류: ReadonlySet<string> = new Set(['10', '40'])
 
-const METHOD_DIGIT: Record<AcupunctureMethod, string> = { PRICKING: '2', CONSTITUTIONAL: '4', WARMING: '6' }
-const TIME_DIGIT: Record<TimeSurcharge, string> = { SATURDAY_DAYTIME: '3', NIGHT: '1', HOLIDAY: '5' }
+const 침법자리값: Record<AcupunctureMethod, string> = { PRICKING: '2', CONSTITUTIONAL: '4', WARMING: '6' }
+const 시간대자리값: Record<TimeSurcharge, string> = { SATURDAY_DAYTIME: '3', NIGHT: '1', HOLIDAY: '5' }
 
 /**
  * 시술·투약 줄의 산정코드입니다. 바꿀 코드가 없으면 `null`입니다.
@@ -94,21 +94,22 @@ const TIME_DIGIT: Record<TimeSurcharge, string> = { SATURDAY_DAYTIME: '3', NIGHT
  * 5. 세 자리가 모두 `0`이면 5자리 기본코드입니다. 원래 코드와 같으면 `null`입니다
  */
 export function procedureFeeCode(line: ProcedureLine, context: ProcedureContext): string | null {
-  const code = line.feeCode
-  if (!MODIFIABLE_KINDS.has(code.slice(0, 2)) || (code.length === 8 && line.feeCodeComputed !== true)) return null
-  const base = code.slice(0, 5)
+  const 수가코드 = line.feeCode
+  const 사용자지정코드 = 수가코드.length === 8 && line.feeCodeComputed !== true
+  if (!산정코드대상종류.has(수가코드.slice(0, 2)) || 사용자지정코드) return null
+  const 기본코드 = 수가코드.slice(0, 5)
 
-  const digits = [ageDigit(base, line.category, context), '0', '0']
-  if (line.timeSurcharge !== undefined && TIME_SURCHARGE_KINDS.has(base.slice(0, 2))) {
-    digits[1] = TIME_DIGIT[line.timeSurcharge]
+  const 산정코드자리 = [연령자리(기본코드, line.category, context), '0', '0']
+  if (line.timeSurcharge !== undefined && 시간대가산코드종류.has(기본코드.slice(0, 2))) {
+    산정코드자리[1] = 시간대자리값[line.timeSurcharge]
   }
-  if (line.acupunctureMethod !== undefined && ACUPOINT_CODES.has(base)) {
-    digits[2] = METHOD_DIGIT[line.acupunctureMethod]
+  if (line.acupunctureMethod !== undefined && 경혈침술코드.has(기본코드)) {
+    산정코드자리[2] = 침법자리값[line.acupunctureMethod]
   }
 
-  const suffix = digits.join('')
-  const next = suffix === '000' ? base : base + suffix
-  return next === code ? null : next
+  const 산정코드 = 산정코드자리.join('')
+  const 새수가코드 = 산정코드 === '000' ? 기본코드 : 기본코드 + 산정코드
+  return 새수가코드 === 수가코드 ? null : 새수가코드
 }
 
 /**
@@ -122,25 +123,28 @@ export function procedureFeeLines<L extends PrescriptionFeeLine>(
   input: ProcedureFeeLinesInput<L>,
 ): ProcedureFeeLines<L> {
   if (input.telemedicine === true) return { lines: [...input.lines], warnings: [] }
-  const missing: string[] = []
-  const lines = input.lines.map((line): L => {
-    const feeCode = procedureFeeCode(line, input)
-    if (feeCode === null) return line
-    const row = input.feeMaster.get(feeCode)
-    if (row === undefined) {
-      if (!missing.includes(feeCode)) missing.push(feeCode)
+  const 마스터누락코드: string[] = []
+  const 처방줄 = input.lines.map((line): L => {
+    const 새수가코드 = procedureFeeCode(line, input)
+    if (새수가코드 === null) return line
+    const 마스터행 = input.feeMaster.get(새수가코드)
+    if (마스터행 === undefined) {
+      if (!마스터누락코드.includes(새수가코드)) 마스터누락코드.push(새수가코드)
       return line
     }
     return {
       ...line,
-      feeCode,
-      feeCodeComputed: feeCode.length === 8,
-      name: row.claimName || row.name,
-      unitPrice: row.unitPrice,
-      amount: lineAmount(row.unitPrice, line.dailyDose, line.days),
+      feeCode: 새수가코드,
+      feeCodeComputed: 새수가코드.length === 8,
+      name: 마스터행.claimName || 마스터행.name,
+      unitPrice: 마스터행.unitPrice,
+      amount: lineAmount(마스터행.unitPrice, line.dailyDose, line.days),
     }
   })
-  return { lines, warnings: missing.length > 0 ? [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: missing }] : [] }
+  return {
+    lines: 처방줄,
+    warnings: 마스터누락코드.length > 0 ? [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: 마스터누락코드 }] : [],
+  }
 }
 
 /**
@@ -151,19 +155,20 @@ export function lineAmount(unitPrice: number, dailyDose: number, days: number): 
   for (const value of [unitPrice, days]) {
     if (!Number.isInteger(value) || value < 0) throw new RangeError(`Expected a non-negative integer, got ${value}`)
   }
-  const dose = decimalFraction(dailyDose)
-  return divideHalfUp(unitPrice * dose.numerator * days, dose.denominator)
+  const 투여량분수 = decimalFraction(dailyDose)
+  return divideHalfUp(unitPrice * 투여량분수.numerator * days, 투여량분수.denominator)
 }
 
-function ageDigit(base: string, category: string, context: ProcedureContext): string {
+function 연령자리(기본코드: string, category: string, context: ProcedureContext): string {
   const { birthDate } = context
-  const date = context.serviceAt.date
+  const 진료일 = context.serviceAt.date
   // 진료일보다 늦은 생년월일은 잘못된 값이라 나이를 모르는 것으로 봅니다
-  if (!context.ageSurcharge || birthDate === null || birthDate > date) return '0'
-  const age = ageOn(birthDate, date)
-  if (base.startsWith('30')) return age < 1 ? '1' : age < 6 ? '6' : '0'
-  if (!base.startsWith('40') || base === PATTERN_DIAGNOSIS_FEE.feeCode) return '0'
-  if (age >= 6) return '0'
-  if (age >= 1) return '6'
-  return category === ACUPUNCTURE_CATEGORY && daysBetween(birthDate, date) <= NEONATE_MAX_DAYS ? '1' : '3'
+  if (!context.ageSurcharge || birthDate === null || birthDate > 진료일) return '0'
+  const 나이 = ageOn(birthDate, 진료일)
+  if (기본코드.startsWith('30')) return 나이 < 1 ? '1' : 나이 < 6 ? '6' : '0'
+  if (!기본코드.startsWith('40') || 기본코드 === PATTERN_DIAGNOSIS_FEE.feeCode) return '0'
+  if (나이 >= 6) return '0'
+  if (나이 >= 1) return '6'
+  const 신생아침술 = category === 침술카테고리 && daysBetween(birthDate, 진료일) <= 신생아최대생후일수
+  return 신생아침술 ? '1' : '3'
 }

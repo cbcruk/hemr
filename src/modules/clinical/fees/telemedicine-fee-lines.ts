@@ -9,7 +9,7 @@ import type { FeeMasterRow } from './procedure-fee-modifiers.ts'
 /** 비대면 관리료 수가코드입니다. 주간·야간·심야·공휴입니다. */
 export type TelemedicineFeeCode = '91001' | '91002' | '91003' | '91004'
 
-const TELEMEDICINE_FEE_CODES: ReadonlySet<string> = new Set(['91001', '91002', '91003', '91004'])
+const 비대면관리료코드: ReadonlySet<string> = new Set(['91001', '91002', '91003', '91004'])
 
 /**
  * 관리료 시간대 경계(`HH:mm`)입니다. 병원 설정이 아니라 고시 시간대입니다 (결정 2). 참조데이터 `regulatory-limits`에
@@ -36,7 +36,7 @@ export const DEFAULT_TELEMEDICINE_FEE_HOURS: TelemedicineFeeHours = {
 
 /** 비대면 관리료 줄인지입니다. `91000…` 코드는 관리료가 아닙니다 (결정 6). */
 export function isTelemedicineFeeCode(feeCode: string | null): boolean {
-  return feeCode !== null && TELEMEDICINE_FEE_CODES.has(feeCode)
+  return feeCode !== null && 비대면관리료코드.has(feeCode)
 }
 
 /** 진료 시각의 관리료 수가코드입니다. 공휴일이나 일요일이면 공휴 `91004`입니다. */
@@ -45,13 +45,13 @@ export function telemedicineFeeCode(
   publicHolidays: ReadonlySet<string>,
   hours: TelemedicineFeeHours = DEFAULT_TELEMEDICINE_FEE_HOURS,
 ): TelemedicineFeeCode {
-  const weekday = weekdayIndex(serviceAt.date)
-  if (publicHolidays.has(serviceAt.date) || weekday === 0) return '91004'
+  const 요일 = weekdayIndex(serviceAt.date)
+  if (publicHolidays.has(serviceAt.date) || 요일 === 0) return '91004'
   const time = serviceAt.time
-  const daytimeEnd = weekday === 6 ? hours.saturdayDaytimeEnd : hours.daytimeEnd
+  const 주간종료 = 요일 === 6 ? hours.saturdayDaytimeEnd : hours.daytimeEnd
   if (time < hours.lateNightEnd) return '91003'
   if (time < hours.daytimeStart) return '91002'
-  if (time < daytimeEnd) return '91001'
+  if (time < 주간종료) return '91001'
   if (time < hours.nightEnd) return '91002'
   return '91003'
 }
@@ -66,9 +66,9 @@ export function telemedicineFeeLine(
   feeMaster: ReadonlyMap<string, FeeMasterRow>,
   hours: TelemedicineFeeHours = DEFAULT_TELEMEDICINE_FEE_HOURS,
 ): TelemedicineLine | null {
-  const feeCode = telemedicineFeeCode(serviceAt, publicHolidays, hours)
-  const row = feeMaster.get(feeCode)
-  return row === undefined ? null : priced(newLine(feeCode), feeCode, row)
+  const 관리료코드 = telemedicineFeeCode(serviceAt, publicHolidays, hours)
+  const 마스터행 = feeMaster.get(관리료코드)
+  return 마스터행 === undefined ? null : 마스터값반영(새처방줄(관리료코드), 관리료코드, 마스터행)
 }
 
 /** 비대면 진료 토글에 쓰는 내원 정보입니다. */
@@ -89,8 +89,8 @@ export interface TelemedicineEligibility {
  * 수 있게 합니다. 서버는 조건 밖에서 켜는 요청을 422로 거부하고, 끄는 요청은 늘 받습니다.
  */
 export function telemedicineToggleAvailable(input: TelemedicineEligibility): boolean {
-  const national = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
-  return national && (input.telemedicine || (!input.herbalPilot && !input.homeVisit))
+  const 건보의료급여 = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
+  return 건보의료급여 && (input.telemedicine || (!input.herbalPilot && !input.homeVisit))
 }
 
 /** 비대면 지정을 바꾸는 요청이 허용되는지입니다. 끄는 요청은 늘 허용합니다 (결정 8). */
@@ -152,59 +152,65 @@ export type TelemedicineLinesResult =
  */
 export function reconcileTelemedicineLines(input: TelemedicineLinesInput): TelemedicineLinesResult {
   if (input.autoInsuranceSecondVisit) return { lines: [...input.lines], warnings: [] }
-  const consultations = input.lines.filter((line) => isConsultationFee(line.feeCode))
-  const feeLines = input.lines.filter((line) => isTelemedicineFeeCode(line.feeCode))
-  const others = input.lines.filter((line) => !consultations.includes(line) && !feeLines.includes(line))
-  if (consultations.length === 0) return { lines: others, warnings: [] }
+  const 진찰료줄 = input.lines.filter((line) => isConsultationFee(line.feeCode))
+  const 관리료줄 = input.lines.filter((line) => isTelemedicineFeeCode(line.feeCode))
+  const 나머지줄 = input.lines.filter((line) => !진찰료줄.includes(line) && !관리료줄.includes(line))
+  if (진찰료줄.length === 0) return { lines: 나머지줄, warnings: [] }
 
-  const base = consultations.some((line) => line.feeCode.startsWith('10100')) ? '10100' : '10200'
-  const codes = consultationFeeCodes(base, input)
-  const feeCode = input.telemedicine ? telemedicineFeeCode(input.serviceAt, input.publicHolidays, input.hours) : null
-  const missing = [...codes, ...(feeCode === null ? [] : [feeCode])].filter((code) => !input.feeMaster.has(code))
-  if (missing.length > 0 && input.telemedicine) return { error: 'REFERENCE_DATA_UNAVAILABLE', feeCodes: missing }
-  if (missing.length > 0) {
-    return { lines: [...consultations, ...others], warnings: [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: missing }] }
+  const 기본코드 = 진찰료줄.some((line) => line.feeCode.startsWith('10100')) ? '10100' : '10200'
+  const 진찰료코드 = consultationFeeCodes(기본코드, input)
+  const 관리료코드 = input.telemedicine ? telemedicineFeeCode(input.serviceAt, input.publicHolidays, input.hours) : null
+  const 계산한코드 = [...진찰료코드, ...(관리료코드 === null ? [] : [관리료코드])]
+  const 마스터누락코드 = 계산한코드.filter((수가코드) => !input.feeMaster.has(수가코드))
+  if (마스터누락코드.length > 0 && input.telemedicine) {
+    return { error: 'REFERENCE_DATA_UNAVAILABLE', feeCodes: 마스터누락코드 }
+  }
+  if (마스터누락코드.length > 0) {
+    return {
+      lines: [...진찰료줄, ...나머지줄],
+      warnings: [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: 마스터누락코드 }],
+    }
   }
 
-  const rebuilt = codes.map((code, index) => {
-    const existing = consultations[index]?.feeCode === code ? consultations[index] : undefined
-    const line = priced(existing ?? newLine(code), code, input.feeMaster.get(code)!)
+  const 새진찰료줄 = 진찰료코드.map((수가코드, index) => {
+    const 기존줄 = 진찰료줄[index]?.feeCode === 수가코드 ? 진찰료줄[index] : undefined
+    const line = 마스터값반영(기존줄 ?? 새처방줄(수가코드), 수가코드, input.feeMaster.get(수가코드)!)
     // 야간 특정내역 `JS010`만 다시 정하고 다른 특정내역은 남깁니다
-    const details = (line.lineDetails ?? []).filter((detail) => detail.kind !== 'JS010')
-    if (index === 0 && decodeFeeCode(code).night) {
-      details.unshift({ kind: 'JS010', content: claimTimestamp(input.serviceAt) })
+    const 특정내역 = (line.lineDetails ?? []).filter((detail) => detail.kind !== 'JS010')
+    if (index === 0 && decodeFeeCode(수가코드).night) {
+      특정내역.unshift({ kind: 'JS010', content: claimTimestamp(input.serviceAt) })
     }
-    if (details.length > 0) line.lineDetails = details
+    if (특정내역.length > 0) line.lineDetails = 특정내역
     else delete line.lineDetails
     return line
   })
-  if (feeCode === null) return { lines: [...rebuilt, ...others], warnings: [] }
+  if (관리료코드 === null) return { lines: [...새진찰료줄, ...나머지줄], warnings: [] }
 
-  const current = feeLines[0]
-  const row = input.feeMaster.get(feeCode)!
+  const 기존관리료줄 = 관리료줄[0]
+  const 마스터행 = input.feeMaster.get(관리료코드)!
   // 첫 관리료 줄의 코드·단가·금액만 새 값으로 바꿉니다. 이름은 사용자가 고쳤을 수 있어 그대로 둡니다
-  const feeLine =
-    current === undefined
-      ? priced(newLine(feeCode), feeCode, row)
+  const 새관리료줄 =
+    기존관리료줄 === undefined
+      ? 마스터값반영(새처방줄(관리료코드), 관리료코드, 마스터행)
       : {
-          ...current,
-          feeCode,
-          unitPrice: row.unitPrice,
-          amount: lineAmount(row.unitPrice, current.dailyDose, current.days),
+          ...기존관리료줄,
+          feeCode: 관리료코드,
+          unitPrice: 마스터행.unitPrice,
+          amount: lineAmount(마스터행.unitPrice, 기존관리료줄.dailyDose, 기존관리료줄.days),
         }
-  return { lines: [...rebuilt, ...others, feeLine], warnings: [] }
+  return { lines: [...새진찰료줄, ...나머지줄, 새관리료줄], warnings: [] }
 }
 
-function newLine(feeCode: string): TelemedicineLine {
+function 새처방줄(feeCode: string): TelemedicineLine {
   return { feeCode, category: CONSULTATION_CATEGORY, name: '', unitPrice: 0, amount: 0, dailyDose: 1, days: 1 }
 }
 
-function priced(line: TelemedicineLine, feeCode: string, row: FeeMasterRow): TelemedicineLine {
+function 마스터값반영(line: TelemedicineLine, feeCode: string, 마스터행: FeeMasterRow): TelemedicineLine {
   return {
     ...line,
     feeCode,
-    name: row.claimName || row.name,
-    unitPrice: row.unitPrice,
-    amount: lineAmount(row.unitPrice, line.dailyDose, line.days),
+    name: 마스터행.claimName || 마스터행.name,
+    unitPrice: 마스터행.unitPrice,
+    amount: lineAmount(마스터행.unitPrice, line.dailyDose, line.days),
   }
 }

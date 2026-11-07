@@ -65,8 +65,8 @@ const NOT_PORTED: Record<string, string> = {
   'missing 기준일시 -> no dialog': '현재 진료의 `serviceAt`은 필수라 없는 상태가 없습니다',
 }
 
-describe('duplicate-consultation-fee fixture', () => {
-  describe('save guard (Uh + validate, 결정 1·2·3·5)', () => {
+describe('동일일자 진찰료 중복 픽스처 (duplicate-consultation-fee)', () => {
+  describe('저장 확인 (Uh + validate, 결정 1·2·3·5)', () => {
     it.each(cases('saveGuard').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const paidIds = new Set<string>(
         (input['waitingPatientsData'] as any[]).filter((row) => row['상태'] === '수납완료').map((row) => row['진료Id']),
@@ -94,7 +94,7 @@ describe('duplicate-consultation-fee fixture', () => {
     })
   })
 
-  describe('telemedicine claim issue (ZBt T0004, 결정 4)', () => {
+  describe('비대면 청구 이슈 (ZBt T0004, 결정 4)', () => {
     it.each(cases('telemedicineClaimWarning').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const lines = input['현재진료']['진료처방'] as any[]
       const sameDay = { date: '2026-11-01', time: '09:00' }
@@ -124,7 +124,7 @@ describe('duplicate-consultation-fee fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처의 모든 케이스를 옮겼거나 옮기지 않은 이유를 적었고 예외 목록의 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set(['saveGuard', 'telemedicineClaimWarning'])
     const unaccounted = fixture.cases.filter(
       (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['kind']),

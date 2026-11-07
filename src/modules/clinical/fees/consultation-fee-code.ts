@@ -82,10 +82,10 @@ export const CONSULTATION_CATEGORY = '31001001'
 export const PATTERN_DIAGNOSIS_FEE = { feeCode: '40400', category: '33001099' } as const
 
 /** 이미 있으면 진찰료를 자동으로 넣지 않는 코드 앞자리입니다. `91000`은 비대면 시범사업 진찰료입니다. */
-const CONSULTATION_PREFIXES = ['10100', '10200', '91000']
+const 진찰료자동삽입제외앞자리 = ['10100', '10200', '91000']
 
 /** 변증기술료를 붙이는 처방 카테고리입니다. 침술·구술·부항술·추나, 자보 시술·처치, 한방조제료입니다. */
-const PATTERN_DIAGNOSIS_CATEGORIES: ReadonlySet<string> = new Set([
+const 변증기술료대상카테고리: ReadonlySet<string> = new Set([
   '33001001',
   '33001002',
   '33001003',
@@ -96,13 +96,13 @@ const PATTERN_DIAGNOSIS_CATEGORIES: ReadonlySet<string> = new Set([
   '34002001',
 ])
 
-const SENIOR_AGE = 65
-const SATURDAY_DAYTIME_END = '13:00'
-const LATE_NIGHT_START = '22:00'
-const SATURDAY_EARLIEST_START = '09:00'
+const 시니어시작나이 = 65
+const 토요주간종료시각 = '13:00'
+const 심야시작시각 = '22:00'
+const 토요주간시작상한 = '09:00'
 
 /** 둘째 자리 값입니다. 하나뿐이라 뒤에 정한 값이 앞의 값을 덮습니다(야간 → 심야 → 공휴 → 대리수령). */
-const TIME_DIGIT = { none: '0', night: '1', lateNight: '2', saturday: '3', holiday: '5', proxy: '9' } as const
+const 시간대자리값 = { none: '0', night: '1', lateNight: '2', saturday: '3', holiday: '5', proxy: '9' } as const
 
 /** 이관할 때 초진 산정일수 0("설정 안 함")을 옮길 값입니다 (결정 5). */
 export const DEFAULT_INITIAL_VISIT_WINDOW_DAYS = 30
@@ -128,34 +128,33 @@ export function consultationFeeCodes(base: ConsultationBaseCode, context: Consul
   const { settings, serviceAt } = context
   const { date, time } = serviceAt
   // 진료일보다 늦은 생년월일은 잘못된 값이라 나이를 모르는 것으로 봅니다
-  const age = context.birthDate === null || context.birthDate > date ? null : ageOn(context.birthDate, date)
+  const 나이 = context.birthDate === null || context.birthDate > date ? null : ageOn(context.birthDate, date)
 
-  let ageDigit = '0'
-  if (settings.ageSurcharge && age !== null) {
-    if (age < 1) ageDigit = '1'
-    else if (age < 6) ageDigit = '6'
+  let 연령자리 = '0'
+  if (settings.ageSurcharge && 나이 !== null) {
+    if (나이 < 1) 연령자리 = '1'
+    else if (나이 < 6) 연령자리 = '6'
   }
 
-  const senior = age !== null && age >= SENIOR_AGE
-  const weekday = weekdayIndex(date)
-  const holiday = context.publicHolidays.has(date) || weekday === 0
-  const seniorExcluded = settings.excludeSeniorFromSaturdayHoliday && senior
-  const saturdayDaytime =
-    weekday === 6 && minTime(SATURDAY_EARLIEST_START, settings.daytimeStart) <= time && time <= SATURDAY_DAYTIME_END
-  const saturday = (!seniorExcluded && !holiday && saturdayDaytime) || context.forceSaturday === true
+  const 시니어 = 나이 !== null && 나이 >= 시니어시작나이
+  const 요일 = weekdayIndex(date)
+  const 공휴일 = context.publicHolidays.has(date) || 요일 === 0
+  const 시니어토요공휴제외 = settings.excludeSeniorFromSaturdayHoliday && 시니어
+  const 토요주간 = 요일 === 6 && minTime(토요주간시작상한, settings.daytimeStart) <= time && time <= 토요주간종료시각
+  const 토요가산 = (!시니어토요공휴제외 && !공휴일 && 토요주간) || context.forceSaturday === true
 
-  let timeDigit: string = TIME_DIGIT.none
-  const dayEnd = weekday === 6 ? SATURDAY_DAYTIME_END : settings.daytimeEnd
-  const nightTime = time < settings.daytimeStart || time >= dayEnd
-  if (settings.nightSurcharge && !saturday && (!settings.excludeSeniorFromNight || !senior) && nightTime) {
-    timeDigit = TIME_DIGIT.night
-  }
-  if (time >= LATE_NIGHT_START && age !== null && age >= 1 && age < 6 && !saturday) timeDigit = TIME_DIGIT.lateNight
-  if (holiday && !saturday && !seniorExcluded) timeDigit = TIME_DIGIT.holiday
-  if (context.proxyReceipt === true) timeDigit = TIME_DIGIT.proxy
+  let 시간대자리: string = 시간대자리값.none
+  const 주간종료 = 요일 === 6 ? 토요주간종료시각 : settings.daytimeEnd
+  const 야간시각 = time < settings.daytimeStart || time >= 주간종료
+  const 시니어야간제외 = settings.excludeSeniorFromNight && 시니어
+  const 심야대상나이 = 나이 !== null && 나이 >= 1 && 나이 < 6
+  if (settings.nightSurcharge && !토요가산 && !시니어야간제외 && 야간시각) 시간대자리 = 시간대자리값.night
+  if (time >= 심야시작시각 && 심야대상나이 && !토요가산) 시간대자리 = 시간대자리값.lateNight
+  if (공휴일 && !토요가산 && !시니어토요공휴제외) 시간대자리 = 시간대자리값.holiday
+  if (context.proxyReceipt === true) 시간대자리 = 시간대자리값.proxy
 
-  const code = composeCode(base, ageDigit, timeDigit)
-  return saturday ? [code, composeCode(base, ageDigit, TIME_DIGIT.saturday)] : [code]
+  const 수가코드 = 산정코드조합(base, 연령자리, 시간대자리)
+  return 토요가산 ? [수가코드, 산정코드조합(base, 연령자리, 시간대자리값.saturday)] : [수가코드]
 }
 
 /**
@@ -188,18 +187,20 @@ export function isFollowUpVisit(
  *    진찰료 줄은 넣고 변증기술료만 빼며 경고합니다
  */
 export function consultationLines(input: ConsultationLinesInput): ConsultationLines {
-  const windowDays = input.settings.initialVisitWindowDays
-  const hasConsultation = input.currentLines.some((line) =>
-    CONSULTATION_PREFIXES.some((prefix) => line.feeCode.startsWith(prefix)),
+  const 초진산정일수 = input.settings.initialVisitWindowDays
+  const 진찰료있음 = input.currentLines.some((line) =>
+    진찰료자동삽입제외앞자리.some((앞자리) => line.feeCode.startsWith(앞자리)),
   )
-  if (hasConsultation || windowDays === null) return { lines: [], warnings: [] }
+  if (진찰료있음 || 초진산정일수 === null) return { lines: [], warnings: [] }
 
-  const followUp = isFollowUpVisit(input, input.priorEncounters, windowDays)
-  const codes = consultationFeeCodes(followUp ? '10200' : '10100', input)
-  const missing = codes.filter((code) => !input.feeMaster.has(code))
-  if (missing.length > 0) return { lines: [], warnings: [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: missing }] }
+  const 재진 = isFollowUpVisit(input, input.priorEncounters, 초진산정일수)
+  const 진찰료코드 = consultationFeeCodes(재진 ? '10200' : '10100', input)
+  const 마스터누락코드 = 진찰료코드.filter((수가코드) => !input.feeMaster.has(수가코드))
+  if (마스터누락코드.length > 0) {
+    return { lines: [], warnings: [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: 마스터누락코드 }] }
+  }
 
-  const lines: FeeLine[] = codes.map((feeCode, index) => {
+  const 넣을줄: FeeLine[] = 진찰료코드.map((feeCode, index) => {
     const line: FeeLine = { feeCode, category: CONSULTATION_CATEGORY, name: input.feeMaster.get(feeCode)! }
     if (index === 0 && decodeFeeCode(feeCode).night) {
       line.lineDetails = [{ kind: 'JS010', content: claimTimestamp(input.serviceAt) }]
@@ -207,18 +208,18 @@ export function consultationLines(input: ConsultationLinesInput): ConsultationLi
     return line
   })
 
-  const needsPatternDiagnosis =
-    !followUp &&
+  const 변증기술료대상 =
+    !재진 &&
     input.settings.addPatternDiagnosisFee &&
     !input.currentLines.some((line) => line.feeCode === PATTERN_DIAGNOSIS_FEE.feeCode) &&
-    input.currentLines.some((line) => PATTERN_DIAGNOSIS_CATEGORIES.has(line.category))
-  if (!needsPatternDiagnosis) return { lines, warnings: [] }
-  const name = input.feeMaster.get(PATTERN_DIAGNOSIS_FEE.feeCode)
-  if (name === undefined) {
-    return { lines, warnings: [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: [PATTERN_DIAGNOSIS_FEE.feeCode] }] }
+    input.currentLines.some((line) => 변증기술료대상카테고리.has(line.category))
+  if (!변증기술료대상) return { lines: 넣을줄, warnings: [] }
+  const 변증기술료이름 = input.feeMaster.get(PATTERN_DIAGNOSIS_FEE.feeCode)
+  if (변증기술료이름 === undefined) {
+    return { lines: 넣을줄, warnings: [{ code: 'FEE_CODE_NOT_IN_MASTER', feeCodes: [PATTERN_DIAGNOSIS_FEE.feeCode] }] }
   }
-  lines.push({ ...PATTERN_DIAGNOSIS_FEE, name })
-  return { lines, warnings: [] }
+  넣을줄.push({ ...PATTERN_DIAGNOSIS_FEE, name: 변증기술료이름 })
+  return { lines: 넣을줄, warnings: [] }
 }
 
 export interface DecodedFeeCode {
@@ -241,27 +242,27 @@ export interface DecodedFeeCode {
  * 뜻이 있습니다. 연령 자리는 진찰료에서만 풉니다.
  */
 export function decodeFeeCode(code: string): DecodedFeeCode {
-  const baseCode = code.slice(0, 5)
-  const ageDigit = code[5] ?? '0'
-  const timeDigit = code[6] ?? '0'
-  const consultation = baseCode.startsWith('10')
-  const surchargeable = consultation || baseCode.startsWith('40')
+  const 기본코드 = code.slice(0, 5)
+  const 연령자리 = code[5] ?? '0'
+  const 시간대자리 = code[6] ?? '0'
+  const 진찰료 = 기본코드.startsWith('10')
+  const 야간공휴자리대상 = 진찰료 || 기본코드.startsWith('40')
   return {
-    baseCode,
-    initialVisit: baseCode === '10100',
-    followUpVisit: baseCode === '10200',
-    night: surchargeable && timeDigit === TIME_DIGIT.night,
-    lateNight: consultation && timeDigit === TIME_DIGIT.lateNight,
-    saturday: consultation && timeDigit === TIME_DIGIT.saturday,
-    holiday: surchargeable && timeDigit === TIME_DIGIT.holiday,
-    underOne: consultation && ageDigit === '1',
-    oneToSix: consultation && ageDigit === '6',
-    proxyReceipt: consultation && timeDigit === TIME_DIGIT.proxy,
+    baseCode: 기본코드,
+    initialVisit: 기본코드 === '10100',
+    followUpVisit: 기본코드 === '10200',
+    night: 야간공휴자리대상 && 시간대자리 === 시간대자리값.night,
+    lateNight: 진찰료 && 시간대자리 === 시간대자리값.lateNight,
+    saturday: 진찰료 && 시간대자리 === 시간대자리값.saturday,
+    holiday: 야간공휴자리대상 && 시간대자리 === 시간대자리값.holiday,
+    underOne: 진찰료 && 연령자리 === '1',
+    oneToSix: 진찰료 && 연령자리 === '6',
+    proxyReceipt: 진찰료 && 시간대자리 === 시간대자리값.proxy,
   }
 }
 
-function composeCode(base: string, ageDigit: string, timeDigit: string): string {
-  return ageDigit === '0' && timeDigit === TIME_DIGIT.none ? base : `${base}${ageDigit}${timeDigit}0`
+function 산정코드조합(기본코드: string, 연령자리: string, 시간대자리: string): string {
+  return 연령자리 === '0' && 시간대자리 === 시간대자리값.none ? 기본코드 : `${기본코드}${연령자리}${시간대자리}0`
 }
 
 function compareServiceAt(left: ServiceAt, right: ServiceAt): number {
