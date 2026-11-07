@@ -18,7 +18,7 @@
 |---|---|
 | 진료 | `Encounter` |
 | 진료기록 (본문) | `ClinicalNote` |
-| 상병 | `Diagnosis` (`kind: PRIMARY | SECONDARY`) |
+| 상병 | `Diagnosis` (`kind: PRIMARY \| SECONDARY`) |
 | 처방 | `PrescriptionLine` |
 | 수가코드 | `feeCode` |
 | 시술 (치료실) | `Procedure` |
@@ -31,7 +31,7 @@
 | 약침 | `PHARMACOPUNCTURE` |
 | 진료 완료 | `:complete` (`COMPLETED`). 내원 `COMPLETED`(수납완료)·시술 `DONE`과 다릅니다 |
 | 진료기록 정정 | `:amend` (`AMENDED`). 수납 정정(`correct`, front-desk.md)과 다릅니다 |
-| 판 (완료·정정마다 남는 기록) | `revision` (`source: COMPLETION | AMENDMENT`). 낙관적 잠금 `version`과 다릅니다. 판 조회 경로는 예외로 `/encounters/{id}/versions/{n}`이고 `n`이 판입니다 |
+| 판 (완료·정정마다 남는 기록) | `revision` (`source: COMPLETION \| AMENDMENT`). 낙관적 잠금 `version`과 다릅니다. 판 조회 경로는 예외로 `/encounters/{id}/versions/{n}`이고 `n`이 판입니다 |
 | 철회 (잘못 연 진료) | `:retract` (`ENTERED_IN_ERROR`, `retraction`) |
 | 고정된 기록 | `locked` (`:lock` / `:unlock`) |
 | 정정 제안 / 반영 / 버림 | `AmendmentProposal` / `:apply` (`APPLIED`) / `:dismiss` (`DISMISSED`) |

@@ -6,8 +6,9 @@ import { problemType } from '../../shared/problem/problem.ts'
 import { TenantId, UserId } from '../identity/identity.ts'
 import { normalizeRrn } from './rrn.ts'
 
-/** 환자 ID입니다. 예: `pat_01J...` */
-export const PatientId = Schema.String.pipe(Schema.refine((value): value is Id<'patient'> => isId('patient', value)))
+export const PatientId = Schema.String.annotate({ description: '환자 ID입니다. 예: `pat_01J...`' }).pipe(
+  Schema.refine((value): value is Id<'patient'> => isId('patient', value)),
+)
 
 /** 차트번호입니다. 병원 안에서 유일하고 영문·숫자·`-` 20자까지입니다. 예: `1024` */
 export const ChartNumber = Schema.String.check(Schema.isPattern(/^[0-9A-Za-z-]{1,20}$/))

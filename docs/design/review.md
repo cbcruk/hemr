@@ -177,6 +177,6 @@ D1에서 오프라인 접수·수납을 지원하기로 했습니다. 설계는 
 ## 다음 단계
 
 1. **D2 결정.** 오프라인 엣지 구현의 선행 조건입니다. 온라인 모듈(D7 순서)은 D2 없이 시작할 수 있습니다
-2. **Front Desk·Clinical OpenAPI 명세 작성.** 이 문서의 리소스·커맨드를 `openapi.yaml`로 옮기고, 오류 코드 목록을 확정합니다
+2. **Front Desk·Clinical OpenAPI 명세 작성.** 이 문서의 리소스·커맨드를 `openapi.yaml`로 옮기고, 오류 코드 목록을 확정합니다. #55부터 손으로 쓰지 않고 HTTP 계약에서 생성합니다([docs/reference/openapi.json](../reference/openapi.json), [conventions.md API 문서](conventions.md#api-문서))
 3. **규칙 결정.** [규칙 이전 시 동작 차이](#규칙-이전-시-동작-차이)의 `openQuestions`를 정하고, 픽스처 중 따를 케이스를 서버 테스트로 옮깁니다
 4. **기술 스택 선택.** HTTP 서버는 Effect(`effect/http-api`)로 정했습니다(학습용 선택). 저장소는 SQLite + outbox 릴레이로 정했습니다 (D9). 내원 저장소, outbox, 릴레이를 붙였습니다. 마이그레이션은 별도 도구 없이 `effect/sql` Migrator에 TypeScript 레코드로 둡니다([migrations.ts](../../src/shared/db/migrations.ts)). SQL 파일 로더는 빌드 산출물에 파일을 복사해야 해서 쓰지 않습니다

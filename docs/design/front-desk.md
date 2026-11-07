@@ -18,12 +18,12 @@
 |---|---|
 | 예약 | `Appointment` |
 | 외부 예약 요청 | `BookingRequest` |
-| 예약 차단 / 마킹 | `ScheduleBlock` (`kind: BLOCK | MARK`) |
-| 접수·내원 | `Visit` |
+| 예약 차단 / 마킹 | `ScheduleBlock` (`kind: BLOCK \| MARK`) |
+| 내원 (접수) | `Visit` |
 | 내원 상태 | `VisitStatus`: `WAITING`(대기), `IN_TREATMENT`(진료중), `AWAITING_PAYMENT`(수납대기), `COMPLETED`(수납완료), `CANCELED`(취소). `COMPLETED`는 진료 완료(clinical.md)와 다릅니다 |
 | 내원 다시 열기 (수납 뒤) | `:reopen`. 시재 다시 열기·시술 다시 열기와 다릅니다 |
 | 연쇄 취소 | `cascade` |
-| 자격 (접수 때 판정) | `eligibility` (`status`, `nhis`, `identityVerified`, `benefitRestricted`, `copayCode`) |
+| 자격 (접수 때 판정) | `eligibility`: `VisitEligibility` (`status`, `nhis`, `identityVerified`, `benefitRestricted`, `copayCode`) |
 | 선택의료기관 기호 (직원이 고름 / 저장 / 우리 기관) | `chosenInstitutionCode` / `eligibility.selectedInstitutionCode` / `clinicInstitutionCode` |
 | 자격여부 / 급여제한여부 / 본인부담여부 (공단 조회) | `eligibility.nhis.qualificationCode` / `.benefitRestrictionCode` / `.copayCode` (원래 값) |
 | 진료항목 (예약 단위) | `visitType` |
