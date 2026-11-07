@@ -8,8 +8,9 @@ export const TenantId = Schema.String.annotate({ description: '병원(테넌트)
   Schema.refine((value): value is Id<'tenant'> => isId('tenant', value)),
 )
 
-/** 사용자 ID입니다. 예: `usr_01J...` */
-export const UserId = Schema.String.pipe(Schema.refine((value): value is Id<'user'> => isId('user', value)))
+export const UserId = Schema.String.annotate({ description: '사용자 ID입니다. 예: `usr_01J...`' }).pipe(
+  Schema.refine((value): value is Id<'user'> => isId('user', value)),
+)
 
 /** 테넌트가 쓰는 제품입니다 (현행 `서비스연동`). */
 export type Product = 'EMR' | 'SOO' | 'INSURANCE' | 'CRM' | 'MEMBERS'

@@ -20,6 +20,7 @@
 | 주민등록번호 | `rrn` (응답은 `rrnMasked`) |
 | 건강보험증번호 | `nhisCardNumber` |
 | 최초내원일 | `firstVisitDate` |
+| 동의 (목적별 기록) | `Consent` (`purpose`, `status`, `source`) |
 | 내원경로 / 소개자 | `referralSourceId` / `referrerPatientId` |
 | 환자 등급 | `gradeId` |
 | 자보 / 산재 / 의료급여 | `AUTO_INSURANCE` / `INDUSTRIAL_ACCIDENT` / `MEDICAL_AID` |

@@ -10,92 +10,124 @@ export const PatientId = Schema.String.annotate({ description: '환자 ID입니�
   Schema.refine((value): value is Id<'patient'> => isId('patient', value)),
 )
 
-/** 차트번호입니다. 병원 안에서 유일하고 영문·숫자·`-` 20자까지입니다. 예: `1024` */
-export const ChartNumber = Schema.String.check(Schema.isPattern(/^[0-9A-Za-z-]{1,20}$/))
+export const ChartNumber = Schema.String.check(Schema.isPattern(/^[0-9A-Za-z-]{1,20}$/)).annotate({
+  description: '차트번호입니다. 병원 안에서 유일하고 영문·숫자·`-` 20자까지입니다. 예: `1024`',
+})
 
-/**
- * 직원이 입력하는 차트번호입니다. 숫자로만 된 번호는 12자리까지라, 자동 채번(15자리까지 셉니다)이 큰 수동 번호 때문에
- * 막히지 않습니다.
- */
-export const ChartNumberInput = ChartNumber.check(
+// 자동 채번은 15자리까지 세어, 큰 수동 번호 하나 때문에 채번이 막히지 않습니다. 직접 만든 검사 뒤의 설명은 문서에서
+// 빠지므로 앞에 답니다
+export const ChartNumberInput = Schema.String.annotate({
+  description:
+    '직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다. 비우면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다.',
+}).check(
+  Schema.isPattern(/^[0-9A-Za-z-]{1,20}$/),
   Schema.makeFilter((value: string) => !/^\d{13,}$/.test(value), { title: 'numeric chart number up to 12 digits' }),
 )
 
-/** 날짜입니다. 형식은 `YYYY-MM-DD`입니다. */
-export const LocalDate = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/))
+export const LocalDate = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)).annotate({
+  description: '날짜입니다. 형식은 `YYYY-MM-DD`입니다.',
+})
 
-/** 주민등록번호 입력입니다. `900101-1234567` 또는 하이픈 없는 13자리이고, 생년월일이 맞아야 합니다. */
-export const RrnInput = Schema.String.pipe(Schema.refine((value): value is string => normalizeRrn(value) !== null))
+// 끝자리 검증식은 2020년 10월부터 맞지 않아 보지 않습니다
+export const RrnInput = Schema.String.annotate({
+  description: '주민등록번호입니다. `900101-1234567` 또는 하이픈 없는 13자리이고, 생년월일이 실제 날짜여야 합니다.',
+}).pipe(Schema.refine((value): value is string => normalizeRrn(value) !== null))
 
-export const Sex = Schema.Literals(['MALE', 'FEMALE'])
+export const Sex = Schema.Literals(['MALE', 'FEMALE']).annotate({
+  identifier: 'Sex',
+  description: '성별입니다. 남(`MALE`), 여(`FEMALE`)입니다.',
+})
 
 export const Contact = Schema.Struct({
-  kind: Schema.Literals(['MOBILE', 'HOME', 'GUARDIAN']),
-  /** 숫자와 `-`만 받습니다. 예: `010-1234-5678` */
-  number: Schema.String.check(Schema.isPattern(/^[0-9-]{8,20}$/)),
-  isPrimary: Schema.Boolean,
-})
+  kind: Schema.Literals(['MOBILE', 'HOME', 'GUARDIAN']).annotate({
+    description: '휴대전화(`MOBILE`), 집 전화(`HOME`), 보호자(`GUARDIAN`)입니다.',
+  }),
+  number: Schema.String.check(Schema.isPattern(/^[0-9-]{8,20}$/)).annotate({
+    description: '전화번호입니다. 숫자와 `-`만 8–20자 받습니다. 예: `010-1234-5678`',
+  }),
+  isPrimary: Schema.Boolean.annotate({ description: '대표 연락처입니다. 하나까지입니다.' }),
+}).annotate({ identifier: 'Contact', description: '환자 연락처입니다.' })
 export type Contact = typeof Contact.Type
 
 export const Address = Schema.Struct({
   roadAddress: Schema.NonEmptyString.check(Schema.isMaxLength(200)),
   detail: Schema.NullOr(Schema.String.check(Schema.isMaxLength(200))),
   zipCode: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{5}$/))),
-  isPrimary: Schema.Boolean,
-})
+  isPrimary: Schema.Boolean.annotate({ description: '대표 주소입니다. 하나까지입니다.' }),
+}).annotate({ identifier: 'Address', description: '환자 주소입니다. 우편번호는 5자리입니다.' })
 export type Address = typeof Address.Type
 
-/**
- * 동의 목적입니다 (patients.md 동의). 시술 동의서는 `TREATMENT_CONSENT:{templateId}`로 서식마다 따로 둡니다.
- */
 export const ConsentPurpose = Schema.String.check(
   Schema.isPattern(
     /^(MARKETING_SMS|MARKETING_KAKAO|MARKETING_NIGHT|INFO_MESSAGE|THIRD_PARTY_PROVISION|TREATMENT_CONSENT:[A-Za-z0-9_-]{1,64})$/,
   ),
-)
-export const ConsentStatus = Schema.Literals(['GRANTED', 'DENIED', 'UNDECIDED', 'WITHDRAWN'])
-/** `PATIENT_080`은 080 수신거부라 병원이 되돌릴 수 없습니다. `IMPORT`는 이관 데이터입니다. */
-export const ConsentSource = Schema.Literals(['DESK', 'TABLET', 'PATIENT_080', 'IMPORT'])
+).annotate({
+  description:
+    '동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로)입니다.',
+})
+export const ConsentStatus = Schema.Literals(['GRANTED', 'DENIED', 'UNDECIDED', 'WITHDRAWN']).annotate({
+  identifier: 'ConsentStatus',
+  description: '동의(`GRANTED`), 거부(`DENIED`), 미정(`UNDECIDED`), 철회(`WITHDRAWN`)입니다.',
+})
+export const ConsentSource = Schema.Literals(['DESK', 'TABLET', 'PATIENT_080', 'IMPORT']).annotate({
+  identifier: 'ConsentSource',
+  description:
+    '기록 출처입니다. 데스크(`DESK`), 환자 태블릿(`TABLET`), 080 수신거부(`PATIENT_080`, 병원이 되돌릴 수 없음), 이관(`IMPORT`)입니다. 직원이 기록하면 늘 `DESK`입니다.',
+})
 
-/** 목적별 동의 기록 하나입니다. 기록은 덮어쓰지 않고 쌓으며, 목적별 마지막 기록이 현재 상태입니다. */
 export const Consent = Schema.Struct({
   purpose: ConsentPurpose,
   status: ConsentStatus,
   source: ConsentSource,
   decidedAt: Schema.String,
-  /** 기록한 직원입니다. 080처럼 외부에서 온 기록은 `null`입니다. */
-  decidedBy: Schema.NullOr(UserId),
-  /** 서명한 동의서 같은 근거 문서입니다. */
-  evidenceDocumentId: Schema.NullOr(Schema.String),
+  decidedBy: Schema.NullOr(UserId).annotate({
+    description: '기록한 직원입니다. 080처럼 외부에서 온 기록은 `null`입니다.',
+  }),
+  evidenceDocumentId: Schema.NullOr(Schema.String).annotate({ description: '서명한 동의서 같은 근거 문서입니다.' }),
+}).annotate({
+  identifier: 'Consent',
+  title: '동의',
+  description: '목적별 동의 기록 하나입니다. 기록은 덮어쓰지 않고 쌓으며, 목적별 마지막 기록이 현재 상태입니다.',
 })
 export type Consent = typeof Consent.Type
 
-/**
- * 환자입니다 (patients.md 환자 애그리거트). 지금은 신원·차트번호·연락처·주소·메모·동의만 둡니다. 가족·등급·내원경로·
- * 사진은 쓰는 기능이 생길 때 더합니다.
- */
+// 가족·등급·내원경로·사진은 쓰는 기능이 생길 때 더합니다
 export const Patient = Schema.Struct({
   id: PatientId,
+  // 다른 병원의 환자는 없는 것과 같이 다룹니다(404)
   tenantId: TenantId,
   chartNumber: ChartNumber,
   name: Schema.String,
-  /** 가린 주민등록번호입니다. 예: `900101-1******`. 원문은 `GET /patients/{id}/rrn`으로만 줍니다. */
-  rrnMasked: Schema.NullOr(Schema.String),
-  birthDate: Schema.NullOr(LocalDate),
-  isLunarBirthday: Schema.Boolean,
+  rrnMasked: Schema.NullOr(Schema.String).annotate({
+    description: '가린 주민등록번호입니다. 예: `900101-1******`. 원문은 `GET /patients/{id}/rrn`으로만 줍니다.',
+  }),
+  birthDate: Schema.NullOr(LocalDate).annotate({
+    description: '생년월일입니다. 등록 때 비어 있으면 주민등록번호에서 채웁니다.',
+  }),
+  isLunarBirthday: Schema.Boolean.annotate({ description: '음력 생일인지입니다.' }),
   sex: Schema.NullOr(Sex),
   contacts: Schema.Array(Contact),
   addresses: Schema.Array(Address),
-  notes: Schema.NullOr(Schema.String),
-  /** 목적별 현재 동의입니다. 이력은 `GET /patients/{id}/consents/history`입니다. */
-  consents: Schema.Array(Consent),
-  /** 첫 내원을 마친 날입니다. 내원 완료 때 서버가 정합니다(아직 없음). */
-  firstVisitDate: Schema.NullOr(LocalDate),
+  notes: Schema.NullOr(Schema.String).annotate({ description: '메모입니다.' }),
+  consents: Schema.Array(Consent).annotate({
+    description: '목적별 현재 동의입니다. 목적 이름 순서입니다. 이력은 `GET /patients/{id}/consents/history`입니다.',
+  }),
+  // 내원 완료 때 서버가 정합니다(아직 없음)
+  firstVisitDate: Schema.NullOr(LocalDate).annotate({
+    description: '최초내원일입니다. 지금은 늘 `null`입니다.',
+  }),
   status: Schema.Literal('ACTIVE'),
   createdAt: Schema.String,
   updatedAt: Schema.String,
-  /** 낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. */
-  version: Schema.Int,
+  version: Schema.Int.annotate({
+    description:
+      '낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. 동의 기록은 버전을 올리지 않습니다.',
+  }),
+}).annotate({
+  identifier: 'Patient',
+  title: '환자',
+  description:
+    '환자입니다. 지금은 신원·차트번호·연락처·주소·메모·동의를 둡니다. 전체 리소스는 `docs/design/patients.md`를 보세요.',
 })
 export type Patient = typeof Patient.Type
 
@@ -107,32 +139,32 @@ export interface PatientRecord extends Omit<Patient, 'consents'> {
   rrnIndex: string | null
 }
 
-/** 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다. */
 export class PatientNotFound extends HttpApiError.Problem<PatientNotFound>()(
   'PatientNotFound',
   { type: problemType('PATIENT_NOT_FOUND'), status: 404, title: 'Patient not found' },
   { code: Schema.tag('PATIENT_NOT_FOUND') },
+  { description: '요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.' },
 ) {}
 
-/** 병원에 이미 있는 차트번호입니다. */
 export class ChartNumberTaken extends HttpApiError.Problem<ChartNumberTaken>()(
   'ChartNumberTaken',
   { type: problemType('CHART_NUMBER_TAKEN'), status: 409, title: 'Chart number is already taken' },
   { code: Schema.tag('CHART_NUMBER_TAKEN'), chartNumber: Schema.String },
+  { description: '병원에 이미 있는 차트번호입니다.' },
 ) {}
 
-/** 병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다. */
 export class DuplicateRrn extends HttpApiError.Problem<DuplicateRrn>()(
   'DuplicateRrn',
   { type: problemType('PATIENT_DUPLICATE_RRN'), status: 409, title: 'A patient with this RRN already exists' },
   { code: Schema.tag('PATIENT_DUPLICATE_RRN'), patientId: PatientId },
+  { description: '병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.' },
 ) {}
 
-/** 환자가 080으로 거부한 목적입니다. 병원이 동의로 되돌릴 수 없고, 환자가 다시 동의해야 합니다. */
 export class ConsentLockedByPatient extends HttpApiError.Problem<ConsentLockedByPatient>()(
   'ConsentLockedByPatient',
   { type: problemType('CONSENT_LOCKED_BY_PATIENT'), status: 409, title: 'Patient opted out through 080' },
   { code: Schema.tag('CONSENT_LOCKED_BY_PATIENT'), purpose: Schema.String },
+  { description: '환자가 080으로 거부한 목적입니다. 병원이 동의로 되돌릴 수 없고, 환자가 다시 동의해야 합니다.' },
 ) {}
 
 const INITIALS = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'

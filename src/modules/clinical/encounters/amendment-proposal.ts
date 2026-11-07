@@ -71,16 +71,16 @@ export class AmendmentProposalNotFound extends HttpApiError.Problem<AmendmentPro
   'AmendmentProposalNotFound',
   { type: problemType('AMENDMENT_PROPOSAL_NOT_FOUND'), status: 404, title: 'Amendment proposal not found' },
   { code: Schema.tag('AMENDMENT_PROPOSAL_NOT_FOUND') },
+  { description: '요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다.' },
 ) {}
 
-/** 이미 반영했거나 버린 제안입니다. */
 export class AmendmentProposalNotPending extends HttpApiError.Problem<AmendmentProposalNotPending>()(
   'AmendmentProposalNotPending',
   { type: problemType('AMENDMENT_PROPOSAL_NOT_PENDING'), status: 409, title: 'Amendment proposal is not pending' },
   { code: Schema.tag('AMENDMENT_PROPOSAL_NOT_PENDING'), currentStatus: AmendmentProposalStatus },
+  { description: '이미 반영했거나 버린 제안입니다.' },
 ) {}
 
-/** 제안을 만든 뒤 진료가 정정되어 제안이 낡은 내용 위에 있습니다. 새로 제안하거나 버립니다. */
 export class AmendmentProposalStale extends HttpApiError.Problem<AmendmentProposalStale>()(
   'AmendmentProposalStale',
   {
@@ -89,11 +89,12 @@ export class AmendmentProposalStale extends HttpApiError.Problem<AmendmentPropos
     title: 'Encounter was amended after the proposal was made',
   },
   { code: Schema.tag('AMENDMENT_PROPOSAL_STALE'), baseRevision: Schema.Int, currentRevision: Schema.Int },
+  { description: '제안을 만든 뒤 진료가 정정되어 제안이 낡은 내용 위에 있습니다. 새로 제안하거나 버립니다.' },
 ) {}
 
-/** 진료를 바꾸지 않는 제안입니다. */
 export class AmendmentProposalEmpty extends HttpApiError.Problem<AmendmentProposalEmpty>()(
   'AmendmentProposalEmpty',
   { type: problemType('AMENDMENT_PROPOSAL_EMPTY'), status: 422, title: 'Amendment proposal changes nothing' },
   { code: Schema.tag('AMENDMENT_PROPOSAL_EMPTY') },
+  { description: '진료를 바꾸지 않는 제안입니다.' },
 ) {}

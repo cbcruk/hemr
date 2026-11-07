@@ -263,7 +263,6 @@ export const CheckoutErrorCode = Schema.Literals([
     '결산 오류입니다. 받을 수 없는 결제 수단, 선수금 계열 없음, 선수금 잔액 부족, 과수납인데 손비 처리입니다.',
 })
 
-/** 결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다. */
 export class CheckoutRejected extends HttpApiError.Problem<CheckoutRejected>()(
   'CheckoutRejected',
   { type: problemType('CHECKOUT_REJECTED'), status: 422, title: 'Checkout rejected' },
@@ -272,36 +271,33 @@ export class CheckoutRejected extends HttpApiError.Problem<CheckoutRejected>()(
     errors: Schema.Array(CheckoutErrorCode),
     warnings: Schema.Array(CheckoutWarningCode),
   },
+  { description: '결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다.' },
 ) {}
 
-/** 견적 뒤 청구 금액이 바뀌었습니다. 새 견적을 받아 다시 수납합니다. */
 export class QuoteStale extends HttpApiError.Problem<QuoteStale>()(
   'QuoteStale',
   { type: problemType('QUOTE_STALE'), status: 409, title: 'Charges changed after the quote' },
   { code: Schema.tag('QUOTE_STALE'), quoteId: QuoteId },
+  { description: '견적 뒤 청구 금액이 바뀌었습니다. 새 견적을 받아 다시 수납합니다.' },
 ) {}
 
-/**
- * 내원에 이미 유효한 영수증이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다
- * (`:void`). 결제만 고치려면 `:correct`입니다.
- */
 export class ReceiptAlreadyExists extends HttpApiError.Problem<ReceiptAlreadyExists>()(
   'ReceiptAlreadyExists',
   { type: problemType('RECEIPT_ALREADY_EXISTS'), status: 409, title: 'Visit already has a receipt' },
   { code: Schema.tag('RECEIPT_ALREADY_EXISTS'), receiptId: ReceiptId },
+  {
+    description:
+      '내원에 이미 유효한 영수증이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다(`:void`). 결제만 고치려면 `:correct`입니다.',
+  },
 ) {}
 
-/** 고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). */
 export class CheckoutEncounterInvalid extends HttpApiError.Problem<CheckoutEncounterInvalid>()(
   'CheckoutEncounterInvalid',
   { type: problemType('CHECKOUT_ENCOUNTER_INVALID'), status: 422, title: 'Encounter cannot be checked out here' },
   { code: Schema.tag('CHECKOUT_ENCOUNTER_INVALID'), encounterIds: Schema.Array(Schema.String) },
+  { description: '고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음).' },
 ) {}
 
-/**
- * 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는
- * 급여 라인, 생년월일이 없는 환자의 급여 라인이 그렇습니다 (docs/reference/rules/insured-copay.md).
- */
 export class CheckoutCoverageUnsupported extends HttpApiError.Problem<CheckoutCoverageUnsupported>()(
   'CheckoutCoverageUnsupported',
   {
@@ -310,57 +306,65 @@ export class CheckoutCoverageUnsupported extends HttpApiError.Problem<CheckoutCo
     title: 'Insured copay cannot be calculated for these encounters',
   },
   { code: Schema.tag('CHECKOUT_COVERAGE_UNSUPPORTED'), encounterIds: Schema.Array(EncounterId) },
+  {
+    description:
+      '급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인이 그렇습니다. 규칙은 `docs/reference/rules/insured-copay.md`에 있습니다.',
+  },
 ) {}
 
-/** 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). */
 export class CheckoutPaymentInvalid extends HttpApiError.Problem<CheckoutPaymentInvalid>()(
   'CheckoutPaymentInvalid',
   { type: problemType('CHECKOUT_PAYMENT_INVALID'), status: 422, title: 'Payment cannot be applied here' },
   { code: Schema.tag('CHECKOUT_PAYMENT_INVALID'), paymentIds: Schema.Array(Schema.String) },
+  { description: '고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원).' },
 ) {}
 
-/** 요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다. */
 export class PaymentNotFound extends HttpApiError.Problem<PaymentNotFound>()(
   'PaymentNotFound',
   { type: problemType('PAYMENT_NOT_FOUND'), status: 404, title: 'Payment not found' },
   { code: Schema.tag('PAYMENT_NOT_FOUND') },
+  { description: '요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다.' },
 ) {}
 
-/** 결제의 내원이 결제의 환자의 내원이 아닙니다. */
 export class PaymentVisitMismatch extends HttpApiError.Problem<PaymentVisitMismatch>()(
   'PaymentVisitMismatch',
   { type: problemType('PAYMENT_VISIT_MISMATCH'), status: 422, title: 'Visit belongs to another patient' },
   { code: Schema.tag('PAYMENT_VISIT_MISMATCH') },
+  { description: '결제의 내원이 결제의 환자의 내원이 아닙니다.' },
 ) {}
 
-/** 요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다. */
 export class ReceiptNotFound extends HttpApiError.Problem<ReceiptNotFound>()(
   'ReceiptNotFound',
   { type: problemType('RECEIPT_NOT_FOUND'), status: 404, title: 'Receipt not found' },
   { code: Schema.tag('RECEIPT_NOT_FOUND') },
+  { description: '요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.' },
 ) {}
 
-/** 이미 취소한 영수증입니다. 취소·정정할 수 없습니다. */
 export class ReceiptVoided extends HttpApiError.Problem<ReceiptVoided>()(
   'ReceiptVoided',
   { type: problemType('RECEIPT_VOIDED'), status: 409, title: 'Receipt is already voided' },
   { code: Schema.tag('RECEIPT_VOIDED') },
+  { description: '이미 취소한 영수증입니다. 취소·정정할 수 없습니다.' },
 ) {}
 
-/**
- * 밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. 먼저 `:refund`로 전액 환불합니다.
- */
 export class PaymentRefundRequired extends HttpApiError.Problem<PaymentRefundRequired>()(
   'PaymentRefundRequired',
   { type: problemType('PAYMENT_REFUND_REQUIRED'), status: 409, title: 'Payments must be refunded first' },
   { code: Schema.tag('PAYMENT_REFUND_REQUIRED'), receiptId: ReceiptId, paymentIds: Schema.Array(PaymentId) },
+  {
+    description:
+      '밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. 먼저 `:refund`로 전액 환불합니다.',
+  },
 ) {}
 
-/** 이 결제는 지금 환불할 수 없습니다(이미 전액 환불했거나 취소함). 서버가 만든 수단은 422 `REFUND_REJECTED`입니다. */
 export class PaymentNotRefundable extends HttpApiError.Problem<PaymentNotRefundable>()(
   'PaymentNotRefundable',
   { type: problemType('PAYMENT_NOT_REFUNDABLE'), status: 409, title: 'Payment cannot be refunded' },
   { code: Schema.tag('PAYMENT_NOT_REFUNDABLE'), paymentStatus: PaymentStatus },
+  {
+    description:
+      '이 결제는 지금 환불할 수 없습니다(이미 전액 환불했거나 취소함). 서버가 만든 수단은 422 `REFUND_REJECTED`입니다.',
+  },
 ) {}
 
 export const RefundErrorCode = Schema.Literals(['METHOD_NOT_ALLOWED', 'AMOUNT_EXCEEDED', 'PARTIAL_UNAPPLIED']).annotate(
@@ -378,9 +382,11 @@ export class RefundRejected extends HttpApiError.Problem<RefundRejected>()(
   {
     code: Schema.tag('REFUND_REJECTED'),
     errors: Schema.Array(RefundErrorCode),
-    /** 이 결제에 쓸 수 있는 환불 수단입니다. */
     allowedMethods: Schema.Array(RefundMethod),
-    /** 더 환불할 수 있는 금액입니다. */
     refundable: SplitAmount,
+  },
+  {
+    description:
+      '환불 요청이 결제와 맞지 않습니다. `errors`에 이유를 모두 담고, `allowedMethods`는 이 결제에 쓸 수 있는 환불 수단, `refundable`은 더 환불할 수 있는 금액입니다.',
   },
 ) {}

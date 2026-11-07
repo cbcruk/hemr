@@ -13,7 +13,6 @@ export const IdempotencyKey = Schema.String.check(Schema.isMinLength(1), Schema.
     '`Idempotency-Key` 헤더입니다. 클라이언트가 만든 1–255자 문자열이고 필수입니다. 24시간 안에 같은 키로 같은 요청을 다시 보내면 처음 성공 응답을 그대로 돌려주고, 다른 요청에 쓰면 422 `IDEMPOTENCY_KEY_REUSED`입니다. 실패한 요청은 남기지 않아 고쳐서 같은 키로 다시 보낼 수 있습니다.',
 })
 
-/** 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다. */
 export class IdempotencyKeyReused extends HttpApiError.Problem<IdempotencyKeyReused>()(
   'IdempotencyKeyReused',
   {
@@ -22,6 +21,7 @@ export class IdempotencyKeyReused extends HttpApiError.Problem<IdempotencyKeyReu
     title: 'Idempotency key was used for a different request',
   },
   { code: Schema.tag('IDEMPOTENCY_KEY_REUSED') },
+  { description: '같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.' },
 ) {}
 
 /** 저장한 처음 응답입니다. */
