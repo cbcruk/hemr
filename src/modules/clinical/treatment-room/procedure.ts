@@ -8,44 +8,55 @@ import { PatientId } from '../../patients/patient.ts'
 import { VisitId } from '../../front-desk/visits/visit.ts'
 import { PrescriptionLineId } from '../prescriptions/prescription-line.ts'
 
-/** 시술 ID입니다. 예: `prc_01J...` */
-export const ProcedureId = Schema.String.pipe(
+// 설명은 `refine` 앞에 답니다. 뒤에 달면 OpenAPI 문서에서 빠집니다
+export const ProcedureId = Schema.String.annotate({ description: '시술 ID입니다. 예: `prc_01J...`' }).pipe(
   Schema.refine((value): value is Id<'procedure'> => isId('procedure', value)),
 )
 
-/** 시술 상태입니다 (clinical.md 치료실 상태도). 판정은 `procedure-timer.ts`가 합니다. */
-export const ProcedureStatus = Schema.Literals(['PENDING', 'RUNNING', 'TIMER_ELAPSED', 'DONE'])
+// 판정은 `procedure-timer.ts`가 합니다
+export const ProcedureStatus = Schema.Literals(['PENDING', 'RUNNING', 'TIMER_ELAPSED', 'DONE']).annotate({
+  identifier: 'ProcedureStatus',
+  title: '시술 상태',
+  description:
+    '대기(`PENDING`), 진행 중(`RUNNING`), 타이머 만료(`TIMER_ELAPSED`), 완료(`DONE`)입니다. 타이머 만료는 서버가 판정합니다.',
+})
 
-/** 시술을 하는 사람입니다. 의사가 직접 하는 시술(침 등)과 치료사가 하는 시술(물리치료 등)을 나눕니다. */
-export const ProcedureAssignee = Schema.Literals(['DOCTOR', 'STAFF'])
+export const ProcedureAssignee = Schema.Literals(['DOCTOR', 'STAFF']).annotate({
+  identifier: 'ProcedureAssignee',
+  description:
+    '시술을 하는 사람입니다. 의사가 직접 하는 시술(`DOCTOR`, 침 등)과 치료사가 하는 시술(`STAFF`, 물리치료 등)입니다.',
+})
 
-/**
- * 치료실 시술입니다. 내원에 딸리고, 한 내원의 시술이 한 베드에서 순서대로 진행됩니다.
- *
- * 지금은 치료실·베드 배정과 치료세트가 없어 내원 하나를 베드 하나로 봅니다. 전체 리소스는 `docs/design/clinical.md`를
- * 보세요.
- */
+// 치료실·베드 배정과 치료세트는 그 설정이 생길 때 더합니다
 export const Procedure = Schema.Struct({
   id: ProcedureId,
   tenantId: TenantId,
   visitId: VisitId,
   patientId: PatientId,
   name: Schema.String,
-  /** 이 시술을 만든 처방 라인입니다. 직접 더한 시술은 `null`입니다. */
-  sourcePrescriptionLineId: Schema.NullOr(PrescriptionLineId),
-  /** 내원 안에서의 순서입니다. 0부터입니다. */
-  order: Schema.Int,
+  sourcePrescriptionLineId: Schema.NullOr(PrescriptionLineId).annotate({
+    description:
+      '이 시술을 만든 처방 라인입니다. 직접 더한 시술은 `null`입니다. 진료에 그 라인이 있는지는 보지 않습니다.',
+  }),
+  order: Schema.Int.annotate({ description: '내원 안에서의 순서입니다. 0부터입니다.' }),
   assignee: ProcedureAssignee,
-  durationSeconds: Schema.Int,
+  durationSeconds: Schema.Int.annotate({ description: '시술 시간(초)입니다.' }),
   status: ProcedureStatus,
-  /** 마지막으로 시작한 시각입니다. 대기(`PENDING`)면 `null`입니다. */
-  startedAt: Schema.NullOr(Schema.String),
-  /** 타이머가 끝나는 시각입니다. `startedAt + durationSeconds`입니다. 대기면 `null`입니다. */
-  timerEndsAt: Schema.NullOr(Schema.String),
+  startedAt: Schema.NullOr(Schema.String).annotate({
+    description: '마지막으로 시작한 시각입니다. 대기(`PENDING`)면 `null`입니다.',
+  }),
+  timerEndsAt: Schema.NullOr(Schema.String).annotate({
+    description: '타이머가 끝나는 시각입니다. `startedAt + durationSeconds`입니다. 대기면 `null`입니다.',
+  }),
   completedAt: Schema.NullOr(Schema.String),
   createdAt: Schema.String,
   updatedAt: Schema.String,
   version: Schema.Int,
+}).annotate({
+  identifier: 'Procedure',
+  title: '시술',
+  description:
+    '치료실 시술입니다. 내원에 딸리고, 한 내원의 시술이 순서대로 진행됩니다. 지금은 내원 하나를 베드 하나로 봅니다. 전체 리소스는 `docs/design/clinical.md`를 보세요.',
 })
 export type Procedure = typeof Procedure.Type
 
