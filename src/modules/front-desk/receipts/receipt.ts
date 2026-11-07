@@ -130,7 +130,7 @@ export const byRecorded = (a: { createdAt: string; id: string }, b: { createdAt:
 
 /** 서버가 계산한 청구 금액입니다. 패키지 판매·할인은 그 기능이 생길 때 더합니다. */
 export const ReceiptCharges = Schema.Struct({
-  /** 급여 본인부담입니다. 지금은 일반 진료만 받아 늘 0입니다. */
+  /** 급여 본인부담입니다. 비과세에 들어갑니다. */
   insuredCopay: Schema.Int,
   nonbenefit: SplitAmount,
   total: Schema.Int,
@@ -243,13 +243,16 @@ export class CheckoutEncounterInvalid extends HttpApiError.Problem<CheckoutEncou
   { code: Schema.tag('CHECKOUT_ENCOUNTER_INVALID'), encounterIds: Schema.Array(Schema.String) },
 ) {}
 
-/** 급여 본인부담을 아직 계산하지 못합니다. 처방이 있는 보험 진료는 수납할 수 없습니다. */
+/**
+ * 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는
+ * 급여 라인, 생년월일이 없는 환자의 급여 라인이 그렇습니다 (docs/reference/rules/insured-copay.md).
+ */
 export class CheckoutCoverageUnsupported extends HttpApiError.Problem<CheckoutCoverageUnsupported>()(
   'CheckoutCoverageUnsupported',
   {
     type: problemType('CHECKOUT_COVERAGE_UNSUPPORTED'),
     status: 422,
-    title: 'Insured copay calculation is not available yet',
+    title: 'Insured copay cannot be calculated for these encounters',
   },
   { code: Schema.tag('CHECKOUT_COVERAGE_UNSUPPORTED'), encounterIds: Schema.Array(EncounterId) },
 ) {}

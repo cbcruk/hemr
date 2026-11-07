@@ -36,3 +36,11 @@
 | 설정 | [settings-validation](settings-validation.md) | Client-side validations on settings screens: arbitrary formula limits, package tax-type mixing, nonbenefit amount cap and VAT, treatment room bed/room limits, and name duplicate pre-checks. | 54 (49) | 6 |
 | CRM | [crm-send-window](crm-send-window.md) | Night-time restriction for advertising messages: manual send blocks 20:50-08:00, scheduled contacts and contact rules only allow 08:00-20:30. | 29 (29) | 5 |
 | CRM | [message-type-selection](message-type-selection.md) | SMS/LMS/MMS selection by attachment, title and EUC-KR-like byte length (90 bytes), plus the (광고) header and 080 opt-out footer applied to advertising text. | 24 (24) | 5 |
+
+## 법령에서 정리한 규칙
+
+현행 클라이언트에 없어 법령 원문에서 정리한 규칙입니다. 픽스처가 없고, 각 문서가 근거 자료와 신뢰도를 적습니다.
+
+| 영역 | 규칙 | 내용 |
+|---|---|---|
+| 원무 | [insured-copay](insured-copay.md) | 한의원 외래 급여 본인부담: 건보 30%·나이·임신부·65세 구간, 의료급여 정액, 추나·첩약 시범·차상위·산정특례 |

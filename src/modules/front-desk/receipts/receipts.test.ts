@@ -66,7 +66,7 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
     ])
   })
 
-  it('refuses insured encounters with prescriptions until copay can be calculated', async () => {
+  it('refuses an encounter whose coverage no longer matches the visit eligibility', async () => {
     const error = await run(
       Effect.gen(function* () {
         const visit = yield* checkedIn
@@ -99,6 +99,59 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
       store,
     )
     expect(error).toMatchObject({ code: 'CHECKOUT_COVERAGE_UNSUPPORTED' })
+  })
+
+  it('quotes and checks out the insured copay of an NHIS visit from the patient age at the visit date', async () => {
+    const result = await run(
+      Effect.gen(function* () {
+        const patient = yield* (yield* Patients).register({ name: '김노인', birthDate: '1950-01-01' })
+        const visit = yield* (yield* Visits).checkIn({
+          patientId: patient.id,
+          coverage: 'NHIS',
+          eligibility: { qualificationCode: '1', selectedInstitutionCodes: [] },
+          identityVerified: true,
+        })
+        const encounters = yield* EncounterRepository
+        const encounterId = visit.encounterId as Id<'encounter'>
+        const encounter = Option.getOrThrow(yield* encounters.findById(visit.tenantId, encounterId))
+        const line = (id: string, kind: 'CONSULTATION' | 'NONBENEFIT', feeCode: string | null, amount: number) => ({
+          id: `pl_01JBQ00000000000000000000${id}` as Id<'prescriptionLine'>,
+          kind,
+          feeCode,
+          categoryCode: '33001001',
+          name: kind,
+          dose: { perDay: 1, days: 1 },
+          unitPrice: amount,
+          amount,
+          prn: false,
+        })
+        yield* encounters.save(
+          {
+            ...encounter,
+            prescriptionLines: [line('1', 'CONSULTATION', '10200', 14_000), line('2', 'NONBENEFIT', null, 10_000)],
+            version: encounter.version + 1,
+          },
+          { expectedVersion: encounter.version },
+        )
+        const receipts = yield* Receipts
+        const quote = yield* receipts.quote(visit.id, {})
+        const { receipt } = yield* receipts.checkout(visit.id, {
+          quoteId: quote.quoteId,
+          payments: [{ method: 'CASH', amount: { taxable: 0, taxExempt: 11_500 } }],
+          idempotencyKey: 'k',
+        })
+        return { quote, receipt }
+      }),
+      store,
+    )
+    // 65세 이상, 급여 총액 15,000원 이하라 1,500원 정액입니다
+    expect(result.quote.charges).toEqual({
+      insuredCopay: 1_500,
+      nonbenefit: { taxable: 0, taxExempt: 10_000 },
+      total: 11_500,
+    })
+    expect(result.receipt.charges.insuredCopay).toBe(1_500)
+    expect(result.receipt.settlement.result).toBe('PAID')
   })
 
   it('applies a recorded payment ahead of in-request payments and reads them back in that order', async () => {
