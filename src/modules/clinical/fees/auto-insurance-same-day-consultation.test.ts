@@ -24,8 +24,8 @@ function encounter(
   }
 }
 
-describe('autoInsuranceSecondVisits', () => {
-  it('designates every unset non-primary encounter and keeps one the user cleared', () => {
+describe('자보 1일 2차 판정 (autoInsuranceSecondVisits)', () => {
+  it('1차가 아니고 지정이 없는 진료를 모두 2차로 지정하고 사용자가 해제한 진료는 그대로 둡니다', () => {
     const result = autoInsuranceSecondVisits({
       current: encounter('r3', '15:00', { accidentNumber: 'C' }),
       others: [
@@ -45,7 +45,7 @@ describe('autoInsuranceSecondVisits', () => {
     })
   })
 
-  it('orders a same-minute tie by creation time before ID', () => {
+  it('진료 시각이 같은 분이면 ID보다 생성 시각으로 순서를 정합니다', () => {
     const result = autoInsuranceSecondVisits({
       current: encounter('r1', '10:00', { createdAt: '2026-11-01T01:05:00Z' }),
       others: [encounter('r9', '10:00', { accidentNumber: 'B', createdAt: '2026-11-01T01:00:00Z' })],
@@ -54,7 +54,7 @@ describe('autoInsuranceSecondVisits', () => {
     expect(result.currentIsSecondVisit).toBe(true)
   })
 
-  it('picks the same primary whichever encounter is current when only some have a creation time', () => {
+  it('일부 진료에만 생성 시각이 있어도 어느 진료가 현재든 같은 1차를 고릅니다', () => {
     const a = encounter('z', '10:00', { createdAt: '2026-11-01T01:00:00Z' })
     const b = encounter('m', '10:00', { accidentNumber: 'B' })
     const c = encounter('a', '10:00', { accidentNumber: 'C', createdAt: '2026-11-01T02:00:00Z' })
@@ -66,7 +66,7 @@ describe('autoInsuranceSecondVisits', () => {
     expect(primaries).toEqual(['m', 'm', 'm'])
   })
 
-  it('has no primary when every encounter is flagged', () => {
+  it('모든 진료가 2차로 지정되면 1차가 없고 자동 지정도 없습니다', () => {
     const result = autoInsuranceSecondVisits({
       current: encounter('r2', '14:00', { accidentNumber: 'B', secondVisit: true }),
       others: [encounter('r1', '09:00', { secondVisit: true })],
@@ -75,7 +75,7 @@ describe('autoInsuranceSecondVisits', () => {
     expect(result.designations).toEqual([])
   })
 
-  it('skips a current encounter that is not auto insurance', () => {
+  it('현재 진료가 자보가 아니면 2차 판정과 J0014를 하지 않습니다', () => {
     const result = autoInsuranceSecondVisits({
       current: encounter('r2', '14:00', { coverage: 'NHIS', accidentNumber: 'B' }),
       others: [encounter('r1', '09:00')],
@@ -87,8 +87,8 @@ describe('autoInsuranceSecondVisits', () => {
   })
 })
 
-describe('judgeSameAccidentDuplicate', () => {
-  it('warns only the later encounter and counts every 10-band code', () => {
+describe('같은 사고 진찰료 중복 (judgeSameAccidentDuplicate)', () => {
+  it('뒤 진료에만 경고하고 10 대역 코드를 모두 진찰료로 셉니다', () => {
     const first = encounter('r1', '09:00', { lines: [{ lineId: 'x', feeCode: '10400' }], paid: true })
     const later = encounter('r2', '14:00')
     expect(judgeSameAccidentDuplicate({ current: later, others: [first] }).warnings).toEqual([
@@ -97,7 +97,7 @@ describe('judgeSameAccidentDuplicate', () => {
     expect(judgeSameAccidentDuplicate({ current: first, others: [later] }).warnings).toEqual([])
   })
 
-  it('ignores other accidents and accepts an acknowledged duplicate', () => {
+  it('다른 사고 진료는 세지 않고 확인하고 넘긴 중복은 통과시킵니다', () => {
     const current = encounter('r2', '14:00')
     expect(
       judgeSameAccidentDuplicate({ current, others: [encounter('r1', '09:00', { accidentNumber: 'B' })] }).warnings,

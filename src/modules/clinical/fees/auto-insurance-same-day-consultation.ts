@@ -58,20 +58,20 @@ export interface AutoInsuranceClaimIssue {
  * 지운 뒤 `AUTO_INSURANCE_SECOND_VISIT_ASSIGNED` warning을 줍니다. 사용자가 해제한(`false`) 진료는 그대로 둡니다.
  */
 export function autoInsuranceSecondVisits(input: AutoInsuranceSameDayInput): AutoInsuranceSecondVisits {
-  const sameDay = sameDayAutoInsurance(input)
-  const accidents = new Set(sameDay.flatMap((encounter) => encounter.accidentNumber ?? []))
-  if (input.current.coverage !== 'AUTO_INSURANCE' || accidents.size < 2) {
+  const 그날자보진료 = 같은날자보진료(input)
+  const 사고접수번호종류 = new Set(그날자보진료.flatMap((encounter) => encounter.accidentNumber ?? []))
+  if (input.current.coverage !== 'AUTO_INSURANCE' || 사고접수번호종류.size < 2) {
     return { multipleAccidents: false, primaryEncounterId: null, currentIsSecondVisit: false, designations: [] }
   }
-  const primary = sameDay.find((encounter) => encounter.secondVisit !== true) ?? null
-  const isSecond = (encounter: AutoInsuranceEncounter) => encounter !== primary
+  const 자보1차진료 = 그날자보진료.find((encounter) => encounter.secondVisit !== true) ?? null
+  const 자보2차진료임 = (encounter: AutoInsuranceEncounter) => encounter !== 자보1차진료
   return {
     multipleAccidents: true,
-    primaryEncounterId: primary?.encounterId ?? null,
-    currentIsSecondVisit: isSecond(input.current),
-    designations: sameDay
-      .filter((encounter) => isSecond(encounter) && encounter.secondVisit === null)
-      .map((encounter) => ({ encounterId: encounter.encounterId, removedLineIds: consultationLineIds(encounter) })),
+    primaryEncounterId: 자보1차진료?.encounterId ?? null,
+    currentIsSecondVisit: 자보2차진료임(input.current),
+    designations: 그날자보진료
+      .filter((encounter) => 자보2차진료임(encounter) && encounter.secondVisit === null)
+      .map((encounter) => ({ encounterId: encounter.encounterId, removedLineIds: 진찰료줄ID(encounter) })),
   }
 }
 
@@ -83,8 +83,8 @@ export function autoInsuranceSecondVisits(input: AutoInsuranceSameDayInput): Aut
  */
 export function autoInsuranceClaimIssues(input: AutoInsuranceSameDayInput): AutoInsuranceClaimIssue[] {
   if (!autoInsuranceSecondVisits(input).currentIsSecondVisit) return []
-  const lineIds = consultationLineIds(input.current)
-  return lineIds.length > 0 ? [{ code: 'J0014', lineIds }] : []
+  const 남은진찰료줄ID = 진찰료줄ID(input.current)
+  return 남은진찰료줄ID.length > 0 ? [{ code: 'J0014', lineIds: 남은진찰료줄ID }] : []
 }
 
 /**
@@ -97,29 +97,29 @@ export function judgeSameAccidentDuplicate(
   input: AutoInsuranceSameDayInput & { acknowledge?: readonly 'DUPLICATE_CONSULTATION_FEE'[] },
 ): DuplicateConsultationJudgement {
   const { current } = input
-  const none: DuplicateConsultationJudgement = { warnings: [], acknowledged: [], accepted: true }
-  if (current.coverage !== 'AUTO_INSURANCE' || current.accidentNumber === null) return none
-  if (consultationLineIds(current).length === 0) return none
+  const 위반없음: DuplicateConsultationJudgement = { warnings: [], acknowledged: [], accepted: true }
+  if (current.coverage !== 'AUTO_INSURANCE' || current.accidentNumber === null) return 위반없음
+  if (진찰료줄ID(current).length === 0) return 위반없음
 
-  const conflicts = sameDayAutoInsurance(input).filter(
+  const 충돌진료 = 같은날자보진료(input).filter(
     (encounter) =>
       encounter !== current &&
       encounter.accidentNumber === current.accidentNumber &&
-      compareVisitOrder(encounter, current) < 0 &&
-      consultationLineIds(encounter).length > 0,
+      진료순서비교(encounter, current) < 0 &&
+      진찰료줄ID(encounter).length > 0,
   )
-  if (conflicts.length === 0) return none
+  if (충돌진료.length === 0) return 위반없음
 
-  const violation: DuplicateConsultationFee = {
+  const 위반: DuplicateConsultationFee = {
     code: 'DUPLICATE_CONSULTATION_FEE',
-    conflictingEncounterIds: conflicts.map((encounter) => encounter.encounterId),
-    paidEncounterIds: [current, ...conflicts]
+    conflictingEncounterIds: 충돌진료.map((encounter) => encounter.encounterId),
+    paidEncounterIds: [current, ...충돌진료]
       .filter((encounter) => encounter.paid)
       .map((encounter) => encounter.encounterId),
   }
   return input.acknowledge?.includes('DUPLICATE_CONSULTATION_FEE') === true
-    ? { warnings: [], acknowledged: [violation], accepted: true }
-    : { warnings: [violation], acknowledged: [], accepted: false }
+    ? { warnings: [], acknowledged: [위반], accepted: true }
+    : { warnings: [위반], acknowledged: [], accepted: false }
 }
 
 /** 청구 명세서 특정내역입니다. 자보 2차로 지정된 진료는 `MT001`에 `U`를 적습니다. */
@@ -131,31 +131,31 @@ export function autoInsuranceClaimSpecifics(
 }
 
 /** 현재 진료와 같은 날의 자보 진료를 진료 순서대로 돌려줍니다. 현재 진료도 들어갑니다. */
-function sameDayAutoInsurance(input: AutoInsuranceSameDayInput): AutoInsuranceEncounter[] {
+function 같은날자보진료(input: AutoInsuranceSameDayInput): AutoInsuranceEncounter[] {
   const { current } = input
-  const others = input.others.filter(
+  const 다른자보진료 = input.others.filter(
     (other) =>
       other.encounterId !== current.encounterId &&
       other.coverage === 'AUTO_INSURANCE' &&
       other.serviceAt?.date === current.serviceAt.date,
   )
-  return [current, ...others].sort(compareVisitOrder)
+  return [current, ...다른자보진료].sort(진료순서비교)
 }
 
 /**
  * 진료 시각, 생성 시각, ID 순으로 비교합니다 (결정 3). 생성 시각이 없는 진료(이관 데이터)는 있는 진료보다 앞에
  * 둡니다. 세 값을 한 줄로 이어 비교하므로 순서가 전순서가 되어, 정렬 결과가 입력 순서에 따라 달라지지 않습니다.
  */
-function compareVisitOrder(left: AutoInsuranceEncounter, right: AutoInsuranceEncounter): number {
-  const a = visitOrderKey(left)
-  const b = visitOrderKey(right)
+function 진료순서비교(left: AutoInsuranceEncounter, right: AutoInsuranceEncounter): number {
+  const a = 진료순서키(left)
+  const b = 진료순서키(right)
   for (let index = 0; index < a.length; index += 1) {
     if (a[index] !== b[index]) return a[index]! < b[index]! ? -1 : 1
   }
   return 0
 }
 
-function visitOrderKey(encounter: AutoInsuranceEncounter): string[] {
+function 진료순서키(encounter: AutoInsuranceEncounter): string[] {
   const { serviceAt, createdAt } = encounter
   return [
     serviceAt === null ? '' : `${serviceAt.date} ${serviceAt.time}`,
@@ -164,6 +164,6 @@ function visitOrderKey(encounter: AutoInsuranceEncounter): string[] {
   ]
 }
 
-function consultationLineIds(encounter: AutoInsuranceEncounter): string[] {
+function 진찰료줄ID(encounter: AutoInsuranceEncounter): string[] {
   return encounter.lines.filter((line) => isConsultationFee(line.feeCode)).map((line) => line.lineId)
 }

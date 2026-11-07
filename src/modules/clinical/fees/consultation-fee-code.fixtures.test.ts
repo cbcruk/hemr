@@ -104,15 +104,15 @@ const NOT_PORTED: Record<string, string> = {
     '서버가 이전 진료를 직접 조회하므로 목록이 없는 상태가 없습니다 (결정 4)',
 }
 
-describe('consultation-fee-code fixture', () => {
-  describe('consultation modifiers (lee, 결정 1·2·8)', () => {
+describe('진찰료 수가코드 픽스처 (consultation-fee-code)', () => {
+  describe('진찰료 가산 (lee, 결정 1·2·8)', () => {
     it.each(cases('lee').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const want = (CHANGED[name] ?? expected) as { codes: string[] }
       expect(consultationFeeCodes(input['수가코드'], toContext(input))).toEqual(want.codes)
     })
   })
 
-  describe('auto-inserted lines (Vdn, 결정 3·4·5)', () => {
+  describe('진찰료 줄 자동 삽입 (Vdn, 결정 3·4·5)', () => {
     it.each(cases('Vdn').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const result = consultationLines({
         ...toContext(input),
@@ -134,7 +134,7 @@ describe('consultation-fee-code fixture', () => {
     })
   })
 
-  describe('procedure modifiers (JLt, procedure-fee-modifiers 결정 1·2)', () => {
+  describe('시술·투약 산정코드 (JLt, procedure-fee-modifiers 결정 1·2)', () => {
     it.each(cases('JLt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const { line, context } = procedureFromLegacy(input)
       const want = (CHANGED[name] ?? expected) as { code: string | null }
@@ -142,7 +142,7 @@ describe('consultation-fee-code fixture', () => {
     })
   })
 
-  describe('decode', () => {
+  describe('수가코드 해석 (_t.New)', () => {
     it.each(cases('_t.New').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const decoded = decodeFeeCode(input['수가코드'])
       expect({
@@ -160,7 +160,7 @@ describe('consultation-fee-code fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처의 모든 케이스를 옮겼거나 옮기지 않은 이유를 적었고 예외 목록의 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set(['lee', 'Vdn', 'JLt', '_t.New'])
     const unaccounted = fixture.cases.filter(
       (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['fn']),

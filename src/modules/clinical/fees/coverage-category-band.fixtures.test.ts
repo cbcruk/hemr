@@ -46,7 +46,7 @@ const NOT_PORTED: Record<string, string> = {
   'empty 보험구분 string: all line types': '보험구분은 필수 enum이라 빈 값은 요청 스키마가 400으로 막습니다',
 }
 
-describe('coverage-category-band fixture (GD, 결정 1·2·3)', () => {
+describe('보험구분과 처방 카테고리 픽스처 (GD, 결정 1·2·3)', () => {
   const cases = fixture.cases.filter((testCase) => !(testCase.name in NOT_PORTED))
 
   it.each(cases.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
@@ -65,7 +65,7 @@ describe('coverage-category-band fixture (GD, 결정 1·2·3)', () => {
     expect(result).toEqual(lines.map((line) => line.lineId).filter((id) => want.has(id)))
   })
 
-  it('accounts for every fixture case', () => {
+  it('예외 목록의 이름은 모두 픽스처에 있고 더할 줄은 현행 결과와 겹치지 않습니다', () => {
     expect(Object.keys(NOT_PORTED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
     // 더할 줄이 이미 현행 결과에 있으면 낡은 항목입니다

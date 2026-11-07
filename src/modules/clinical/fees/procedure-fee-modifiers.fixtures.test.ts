@@ -78,8 +78,8 @@ const NOT_PORTED: Record<string, string> = {
   'missing 환자 -> null': '진료는 항상 환자에 속하므로 없는 상태가 없습니다. 생년월일을 모르면 `birthDate: null`입니다',
 }
 
-describe('procedure-fee-modifiers fixture', () => {
-  describe('single code (JLt, 결정 1·2·3·4·7)', () => {
+describe('시술·조제료 산정코드 픽스처 (procedure-fee-modifiers)', () => {
+  describe('줄 하나의 산정코드 (JLt, 결정 1·2·3·4·7)', () => {
     it.each(cases('JLt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const { line, context } = procedureFromLegacy(input)
       const want = (CHANGED[name] ?? expected) as { code: string | null }
@@ -87,7 +87,7 @@ describe('procedure-fee-modifiers fixture', () => {
     })
   })
 
-  describe('prescription lines (ZLt, 결정 5·6)', () => {
+  describe('처방 줄 전체 (ZLt, 결정 5·6)', () => {
     it.each(cases('ZLt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const patient = input['환자']
       const result = procedureFeeLines({
@@ -107,7 +107,7 @@ describe('procedure-fee-modifiers fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처의 모든 케이스를 옮겼거나 옮기지 않은 이유를 적었고 예외 목록의 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set(['JLt', 'ZLt'])
     const unaccounted = fixture.cases.filter(
       (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['fn']),

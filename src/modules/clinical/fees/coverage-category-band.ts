@@ -26,7 +26,7 @@ interface CoverageRestriction {
   allowedIn: (context: CoverageContext) => boolean
 }
 
-const isNational = (context: CoverageContext) => context.coverage === 'NHIS' || context.coverage === 'MEDICAL_AID'
+const 건보의료급여인가 = (context: CoverageContext) => context.coverage === 'NHIS' || context.coverage === 'MEDICAL_AID'
 
 /**
  * 보험구분별 차단 표입니다 (결정 1·2·3). 현행 값을 초기값으로 옮겼고, 고시가 바뀌면 참조데이터로 고칩니다.
@@ -34,7 +34,7 @@ const isNational = (context: CoverageContext) => context.coverage === 'NHIS' || 
  * 대역 일치(건보 31·33·34·35 등)는 강제하지 않습니다. 자보 진료의 건보 침술·진찰료 줄과 모든 보험구분의 비급여
  * 줄을 현행처럼 쓸 수 있습니다.
  */
-const COVERAGE_RESTRICTIONS: readonly CoverageRestriction[] = [
+const 보험구분별차단표: readonly CoverageRestriction[] = [
   {
     // 자보 입원·검사·시술처치·투약
     categories: new Set(['71002001', '72001001', '73001001', '73002001', '74001001', '74002001', '74003001']),
@@ -59,7 +59,7 @@ const COVERAGE_RESTRICTIONS: readonly CoverageRestriction[] = [
     // 비대면 시범사업 코드와 관리료는 비대면 시범사업 진료에서만 씁니다 (결정 3)
     feeCodes: new Set(['91001', '91002', '91003', '91004']),
     feeCodePrefixes: ['91000'],
-    allowedIn: (context) => isNational(context) && context.telemedicinePilot,
+    allowedIn: (context) => 건보의료급여인가(context) && context.telemedicinePilot,
   },
 ]
 
@@ -72,13 +72,15 @@ const COVERAGE_RESTRICTIONS: readonly CoverageRestriction[] = [
  */
 export function coverageMismatchLineIds(lines: readonly CoverageLine[], context: CoverageContext): string[] {
   return lines
-    .filter((line) => COVERAGE_RESTRICTIONS.some((rule) => matches(rule, line) && !rule.allowedIn(context)))
+    .filter((line) => 보험구분별차단표.some((차단) => 차단대상줄(차단, line) && !차단.allowedIn(context)))
     .map((line) => line.lineId)
 }
 
-function matches(rule: CoverageRestriction, line: CoverageLine): boolean {
-  if (rule.categories?.has(line.category) === true) return true
-  const code = line.feeCode
-  if (code === null) return false
-  return rule.feeCodes?.has(code) === true || (rule.feeCodePrefixes ?? []).some((prefix) => code.startsWith(prefix))
+function 차단대상줄(차단: CoverageRestriction, line: CoverageLine): boolean {
+  if (차단.categories?.has(line.category) === true) return true
+  const 수가코드 = line.feeCode
+  if (수가코드 === null) return false
+  return (
+    차단.feeCodes?.has(수가코드) === true || (차단.feeCodePrefixes ?? []).some((앞자리) => 수가코드.startsWith(앞자리))
+  )
 }

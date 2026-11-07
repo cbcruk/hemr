@@ -41,7 +41,7 @@ export interface DuplicateConsultationJudgement {
 }
 
 /** 진찰료 중복을 검사하는 보험구분입니다. 자보는 auto-insurance-same-day-consultation이 맡습니다. */
-const CHECKED_COVERAGES: ReadonlySet<Coverage> = new Set(['NHIS', 'MEDICAL_AID'])
+const 중복검사보험구분: ReadonlySet<Coverage> = new Set(['NHIS', 'MEDICAL_AID'])
 
 /**
  * 같은 날 진찰료 중복입니다 (결정 1·2·3·5).
@@ -51,22 +51,22 @@ const CHECKED_COVERAGES: ReadonlySet<Coverage> = new Set(['NHIS', 'MEDICAL_AID']
  */
 export function judgeDuplicateConsultationFee(input: DuplicateConsultationInput): DuplicateConsultationJudgement {
   const { current } = input
-  const none: DuplicateConsultationJudgement = { warnings: [], acknowledged: [], accepted: true }
-  if (!CHECKED_COVERAGES.has(input.coverage) || !hasConsultationFee(current)) return none
+  const 위반없음: DuplicateConsultationJudgement = { warnings: [], acknowledged: [], accepted: true }
+  if (!중복검사보험구분.has(input.coverage) || !진찰료있음(current)) return 위반없음
 
-  const conflicts = sameDayConsultations(current, input.others)
-  if (conflicts.length === 0) return none
+  const 충돌진료 = 같은날진찰료진료(current, input.others)
+  if (충돌진료.length === 0) return 위반없음
 
-  const violation: DuplicateConsultationFee = {
+  const 위반: DuplicateConsultationFee = {
     code: 'DUPLICATE_CONSULTATION_FEE',
-    conflictingEncounterIds: conflicts.map((other) => other.encounterId),
-    paidEncounterIds: [current, ...conflicts]
+    conflictingEncounterIds: 충돌진료.map((other) => other.encounterId),
+    paidEncounterIds: [current, ...충돌진료]
       .filter((encounter) => encounter.paid)
       .map((encounter) => encounter.encounterId),
   }
   return input.acknowledge?.includes('DUPLICATE_CONSULTATION_FEE') === true
-    ? { warnings: [], acknowledged: [violation], accepted: true }
-    : { warnings: [violation], acknowledged: [], accepted: false }
+    ? { warnings: [], acknowledged: [위반], accepted: true }
+    : { warnings: [위반], acknowledged: [], accepted: false }
 }
 
 /** 청구 명세서 이슈를 만들 처방 줄입니다. */
@@ -94,16 +94,16 @@ export function telemedicineDuplicateIssues(input: {
   lines: readonly ClaimLine[]
   others: readonly ConsultationEncounter[]
 }): TelemedicineDuplicateIssue[] {
-  const faceToFace = sameDayConsultations(input.current, input.others).filter((other) => !other.telemedicine)
-  if (!input.current.telemedicine || faceToFace.length === 0) return []
-  const lineIds = input.lines
+  const 대면진찰료진료 = 같은날진찰료진료(input.current, input.others).filter((other) => !other.telemedicine)
+  if (!input.current.telemedicine || 대면진찰료진료.length === 0) return []
+  const 진찰료줄ID = input.lines
     .filter((line) => line.category === CONSULTATION_CATEGORY && isConsultationFee(line.feeCode))
     .map((line) => line.lineId)
-  return lineIds.length > 0 ? [{ code: 'T0004', lineIds }] : []
+  return 진찰료줄ID.length > 0 ? [{ code: 'T0004', lineIds: 진찰료줄ID }] : []
 }
 
 /** 같은 날 진찰료를 가진 다른 진료입니다. 진료 시각이 없는 진료는 날짜를 몰라 세지 않습니다. */
-function sameDayConsultations(
+function 같은날진찰료진료(
   current: ConsultationEncounter & { serviceAt: ServiceAt },
   others: readonly ConsultationEncounter[],
 ): ConsultationEncounter[] {
@@ -111,10 +111,10 @@ function sameDayConsultations(
     (other) =>
       other.encounterId !== current.encounterId &&
       other.serviceAt?.date === current.serviceAt.date &&
-      hasConsultationFee(other),
+      진찰료있음(other),
   )
 }
 
-function hasConsultationFee(encounter: ConsultationEncounter): boolean {
+function 진찰료있음(encounter: ConsultationEncounter): boolean {
   return encounter.feeCodes.some(isConsultationFee)
 }

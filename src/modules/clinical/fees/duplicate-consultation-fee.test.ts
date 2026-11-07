@@ -15,8 +15,8 @@ function encounter(encounterId: string, overrides: Partial<ConsultationEncounter
 
 const CURRENT = { ...encounter('cur'), serviceAt: { date: '2026-11-01', time: '14:00' } }
 
-describe('judgeDuplicateConsultationFee', () => {
-  it('lists every conflicting encounter and skips ones without a service time or consultation fee', () => {
+describe('같은 날 진찰료 중복 (judgeDuplicateConsultationFee)', () => {
+  it('충돌 진료를 모두 담고 진료 시각이나 진찰료가 없는 진료는 세지 않습니다', () => {
     const result = judgeDuplicateConsultationFee({
       coverage: 'NHIS',
       current: { ...CURRENT, paid: true },
@@ -37,7 +37,7 @@ describe('judgeDuplicateConsultationFee', () => {
     })
   })
 
-  it('moves an acknowledged duplicate out of warnings', () => {
+  it('확인하고 넘긴 중복은 경고에서 빼 acknowledged로 옮깁니다', () => {
     const result = judgeDuplicateConsultationFee({
       coverage: 'MEDICAL_AID',
       current: CURRENT,
@@ -49,14 +49,14 @@ describe('judgeDuplicateConsultationFee', () => {
     expect(result.accepted).toBe(true)
   })
 
-  it('does not check self-pay encounters', () => {
+  it('일반 진료는 검사하지 않습니다', () => {
     const result = judgeDuplicateConsultationFee({ coverage: 'SELF_PAY', current: CURRENT, others: [encounter('a')] })
     expect(result).toEqual({ warnings: [], acknowledged: [], accepted: true })
   })
 })
 
-describe('telemedicineDuplicateIssues', () => {
-  it('needs a same-day face-to-face encounter with a consultation fee', () => {
+describe('비대면 진찰료 중복 청구 이슈 (telemedicineDuplicateIssues)', () => {
+  it('같은 날 진찰료가 있는 대면 진료가 있을 때만 T0004를 붙입니다', () => {
     const lines = [{ lineId: 'f1', feeCode: '10200', category: '31001001' }]
     const current = { ...CURRENT, telemedicine: true }
     expect(telemedicineDuplicateIssues({ current, lines, others: [encounter('a')] })).toEqual([
@@ -69,7 +69,7 @@ describe('telemedicineDuplicateIssues', () => {
     )
   })
 
-  it('skips management fees and lines outside the consultation category', () => {
+  it('관리료와 한방진찰료 카테고리 밖의 줄에는 붙이지 않습니다', () => {
     const issues = telemedicineDuplicateIssues({
       current: { ...CURRENT, telemedicine: true },
       others: [encounter('a')],

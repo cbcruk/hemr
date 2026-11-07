@@ -88,8 +88,8 @@ const NOT_PORTED: Record<string, string> = {
     '현행에서 결과가 버려지는 함수입니다. 서버는 J0014를 `autoInsuranceClaimIssues` 하나로 계산합니다',
 }
 
-describe('auto-insurance-same-day-consultation fixture', () => {
-  describe('claim warning (HFt 자보, 결정 1·2·5)', () => {
+describe('자보 1일 2차 진찰료 픽스처 (auto-insurance-same-day-consultation)', () => {
+  describe('청구 경고 (HFt 자보, 결정 1·2·5)', () => {
     it.each(cases('claimWarning').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const sameDay = toInput(input['현재진료'], input['현재진료']['진료처방'], input['같은날자보진료기록'])
       const want = (CHANGED[name] ?? expected) as { warnings: any[]; duplicateOf?: string[] }
@@ -101,7 +101,7 @@ describe('auto-insurance-same-day-consultation fixture', () => {
     })
   })
 
-  describe('banner and auto-designation (결정 2·4·6)', () => {
+  describe('배너와 2차 자동 지정 (결정 2·4·6)', () => {
     it.each(cases('banner').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const sameDay = toInput(input['진료내용'], input['진료내용']['처방'], input['최근진료기록'])
       const result = autoInsuranceSecondVisits(sameDay)
@@ -120,14 +120,14 @@ describe('auto-insurance-same-day-consultation fixture', () => {
     })
   })
 
-  describe('claim specifics (Tf)', () => {
+  describe('명세서 특정내역 (Tf)', () => {
     it.each(cases('claimSpecifics').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const specifics = autoInsuranceClaimSpecifics(COVERAGE[input['보험구분']]!, input['자보1일2차여부'])
       expect(specifics.map((s) => ({ 특정내역구분: s.kind, 특정내역: s.content }))).toEqual(expected['명세서특정내역'])
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처의 모든 케이스를 옮겼거나 옮기지 않은 이유를 적었고 예외 목록의 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set(['claimWarning', 'banner', 'claimSpecifics'])
     const unaccounted = fixture.cases.filter(
       (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['kind']),
