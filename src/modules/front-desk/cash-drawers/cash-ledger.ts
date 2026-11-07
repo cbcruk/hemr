@@ -15,8 +15,10 @@ const total = (amount: { taxable: number; taxExempt: number }) => amount.taxable
  *
  * - 수납에 쓴 결제는 받은 날의 `PAYMENT`입니다. 나중에 환불하거나 취소해도 받은 날 기록은 그대로입니다
  * - 결제의 환불 기록은 하나씩 환불한 날의 `REFUND`이고, 수단은 환불 기록의 수단입니다
- * - 취소(`VOIDED`)한 결제는 취소한 날 남은 금액을 돌려준 `REFUND`입니다. 수단은 결제 수단이라, 같은 날 받고 취소한
- *   현금은 서로 지워집니다. `VOIDED`는 끝 상태라 마지막으로 바꾼 시각(`updatedAt`)이 취소한 시각입니다
+ * - 취소(`VOIDED`)한 결제는 취소한 날 남은 금액(받은 금액 − 환불한 금액)을 돌려준 `REFUND`입니다. 수단은 결제
+ *   수단입니다. 받은 날 취소했으면 남은 금액은 오가지 않은 돈이라 수납과 환불 어느 쪽에도 넣지 않습니다
+ *   (`cash-drawer.ts`의 "같은 날 취소된 결제는 넣지 않습니다"). `VOIDED`는 끝 상태라 마지막으로 바꾼 시각
+ *   (`updatedAt`)이 취소한 시각입니다
  * - 지우지 않은 지출은 그 날짜의 `EXPENSE`입니다
  *
  * 미적용 결제(`UNAPPLIED`)는 밖에서 받은 결제(카드 등)뿐이라 현금 흐름에 영향이 없지만, 현금으로 환불하면 들어갑니다.
@@ -28,8 +30,12 @@ export function cashLedger(
 ): LedgerEntry[] {
   const entries: LedgerEntry[] = []
   for (const payment of payments) {
+    const refunded = payment.refunds.reduce((sum, refund) => sum + total(refund.amount), 0)
+    const voided = payment.status === 'VOIDED' ? dayOf(payment.updatedAt) : null
     if (payment.status !== 'UNAPPLIED' && dayOf(payment.createdAt) === date) {
-      entries.push({ kind: 'PAYMENT', method: payment.method, amount: total(payment.amount), ref: payment.id })
+      // 받은 날 취소했으면 남은 금액은 오가지 않은 돈이라, 그날 환불한 만큼만 받은 것으로 셉니다
+      const received = voided === date ? refunded : total(payment.amount)
+      if (received > 0) entries.push({ kind: 'PAYMENT', method: payment.method, amount: received, ref: payment.id })
     }
     payment.refunds.forEach((refund, index) => {
       if (dayOf(refund.at) === date) {
@@ -41,8 +47,7 @@ export function cashLedger(
         })
       }
     })
-    if (payment.status === 'VOIDED' && dayOf(payment.updatedAt) === date) {
-      const refunded = payment.refunds.reduce((sum, refund) => sum + total(refund.amount), 0)
+    if (voided === date && dayOf(payment.createdAt) !== date) {
       entries.push({
         kind: 'REFUND',
         method: payment.method,

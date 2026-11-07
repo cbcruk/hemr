@@ -4,9 +4,9 @@ import { IdempotencyKey, IdempotencyKeyReused } from '../../../shared/http/idemp
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
 import { Access } from '../../identity/auth/access.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
-import { LocalDate } from '../../patients/patient.ts'
 import { Won } from '../receipts/receipt.ts'
 import {
+  CalendarDate,
   CashDrawer,
   CashDrawerCarryOverUnavailable,
   CashDrawerDateInFuture,
@@ -23,7 +23,7 @@ import {
 } from './cash-drawer-model.ts'
 
 const strict = { errors: 'all', onExcessProperty: 'error' } as const
-const dateParams = { date: LocalDate }
+const dateParams = { date: CalendarDate }
 /** 공백만 있는 글은 받지 않습니다. */
 const Text = (max: number) => Schema.String.check(Schema.isMaxLength(max), Schema.isPattern(/\S/))
 
@@ -65,14 +65,14 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
       .annotate(Access, Access.requires('cash_drawer:update'))
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.get('listExpenses', '/expenses', {
-      query: { from: LocalDate, to: LocalDate },
+      query: { from: CalendarDate, to: CalendarDate },
       success: Schema.Struct({ items: Schema.Array(Expense) }),
       error: ValidationFailed,
     }).annotate(Access, Access.requires('cash_drawer:read')),
     HttpApiEndpoint.post('recordExpense', '/expenses', {
       headers: { 'idempotency-key': IdempotencyKey },
       payload: Schema.Struct({
-        date: LocalDate,
+        date: CalendarDate,
         amount: Won.check(Schema.isGreaterThanOrEqualTo(1)),
         categoryId: ExpenseCategoryId,
         memo: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(500))),

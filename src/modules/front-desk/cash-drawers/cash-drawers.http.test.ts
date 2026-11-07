@@ -69,6 +69,10 @@ describe.each(['memory', 'sqlite'] as const)('cash drawer routes (%s)', (store) 
     const expense = await send('POST', '/expenses', { body, key: 'k1' })
     expect(expense.status).toBe(201)
     const expenseId = (await json(expense)).id
+    expect((await json(await send('POST', '/expenses', { body, key: 'k1' }))).id).toBe(expenseId)
+    expect(await json(await send('POST', '/expenses', { body: { ...body, amount: 6_000 }, key: 'k1' }))).toMatchObject({
+      code: 'IDEMPOTENCY_KEY_REUSED',
+    })
 
     const listed = await json(await send('GET', `/expenses?from=${date}&to=${date}`))
     expect(listed['items']).toHaveLength(1)
@@ -103,5 +107,10 @@ describe.each(['memory', 'sqlite'] as const)('cash drawer routes (%s)', (store) 
       400,
     )
     expect((await send('GET', '/expenses?from=2026-01-01')).status).toBe(400)
+    expect((await send('GET', '/expenses?from=2026-01-02&to=2026-01-01')).status).toBe(400)
+    // 형식은 맞지만 달력에 없는 날짜입니다
+    expect((await send('GET', '/cash-drawers/2026-13-01')).status).toBe(400)
+    expect((await send('POST', '/cash-drawers/2026-02-30:open', { body: { openingAmount: 0 } })).status).toBe(400)
+    expect((await send('GET', '/expenses?from=2026-02-29&to=2026-03-01')).status).toBe(400)
   })
 })
