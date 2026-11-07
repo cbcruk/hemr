@@ -222,13 +222,13 @@ const CHANGED: Record<string, unknown> = {
   'personalFormulaName: only first 100 loaded names checked': { duplicate: true },
 }
 
-describe('settings-validation fixture', () => {
+describe('현행 픽스처 (settings-validation)', () => {
   it.each(fixture.cases.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
     const run = RUN[input['check']]!
     expect(run.server(input)).toEqual(name in CHANGED ? CHANGED[name] : run.legacy(expected))
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 판정에 연결하고 바뀐 기대값은 실제 케이스 이름을 가리킵니다', () => {
     expect(fixture.cases.filter((c) => !(c.input['check'] in RUN)).map((c) => c.name)).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
   })

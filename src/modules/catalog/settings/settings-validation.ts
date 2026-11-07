@@ -10,8 +10,8 @@ export interface SettingViolation {
 }
 
 /** 요청 형식 위반 코드입니다. 400 `VALIDATION_FAILED`가 됩니다 (conventions 오류). */
-const FORMAT_CODES: ReadonlySet<string> = new Set(['REQUIRED', 'INVALID_TYPE', 'INVALID_VALUE'])
-const DUPLICATE = 'SETTING_NAME_DUPLICATE'
+const 형식위반코드: ReadonlySet<string> = new Set(['REQUIRED', 'INVALID_TYPE', 'INVALID_VALUE'])
+const 중복코드 = 'SETTING_NAME_DUPLICATE'
 
 /**
  * 위반 목록의 응답입니다. 형식 위반이 있으면 400 `VALIDATION_FAILED`, 업무 규칙 위반이 있으면 422와 리소스의
@@ -23,11 +23,11 @@ export function settingProblem(
 ): { status: 400 | 409 | 422; code: string; violations: SettingViolation[] } | null {
   if (violations.length === 0) return null
   const all = [...violations]
-  if (violations.some((each) => FORMAT_CODES.has(each.code))) {
+  if (violations.some((each) => 형식위반코드.has(each.code))) {
     return { status: 400, code: 'VALIDATION_FAILED', violations: all }
   }
-  if (violations.some((each) => each.code !== DUPLICATE)) return { status: 422, code: ruleCode, violations: all }
-  return { status: 409, code: DUPLICATE, violations: all }
+  if (violations.some((each) => each.code !== 중복코드)) return { status: 422, code: ruleCode, violations: all }
+  return { status: 409, code: 중복코드, violations: all }
 }
 
 /**
@@ -46,11 +46,11 @@ export function hasNameConflict(
   name: string,
   selfId: string | null = null,
 ): boolean {
-  const key = settingNameKey(name)
-  return key !== '' && existing.some((each) => each.id !== selfId && settingNameKey(each.name) === key)
+  const 이름키 = settingNameKey(name)
+  return 이름키 !== '' && existing.some((each) => each.id !== selfId && settingNameKey(each.name) === 이름키)
 }
 
-const requiredName = (name: string): SettingViolation[] =>
+const 이름필수위반 = (name: string): SettingViolation[] =>
   settingNameKey(name) === '' ? [{ field: 'name', code: 'REQUIRED' }] : []
 
 /** 소수점 아래 6자리까지의 0 이상 수를 분수로 바꿉니다. 그 밖이면 `null`입니다. */
@@ -86,55 +86,58 @@ export interface ArbitraryFormulaJudgement {
   violations: SettingViolation[]
 }
 
-const USAGE_SCALE = 1_000_000
+const 백만분율 = 1_000_000
 
-/** 약재 금액 `사용량 × 상한금액 ÷ 기준용량`을 정확한 분수로 계산해 반올림(0.5는 올림)합니다. */
-function herbAmount(
-  usage: { numerator: number; denominator: number },
-  price: { numerator: number; denominator: number },
-  spec: { numerator: number; denominator: number },
+/** 약재 금액 `사용량 × 상한금액 ÷ 규격`을 정확한 분수로 계산해 반올림(0.5는 올림)합니다. */
+function 약재금액(
+  사용량: { numerator: number; denominator: number },
+  상한금액: { numerator: number; denominator: number },
+  규격: { numerator: number; denominator: number },
 ): number {
-  const numerator = BigInt(usage.numerator) * BigInt(price.numerator) * BigInt(spec.denominator)
-  const denominator = BigInt(usage.denominator) * BigInt(price.denominator) * BigInt(spec.numerator)
+  const numerator = BigInt(사용량.numerator) * BigInt(상한금액.numerator) * BigInt(규격.denominator)
+  const denominator = BigInt(사용량.denominator) * BigInt(상한금액.denominator) * BigInt(규격.numerator)
   return Number((2n * numerator + denominator) / (2n * denominator))
 }
 
 /**
- * 임의처방(보험 단미엑스 조합) 검증입니다 (결정 5). 약재 금액은 `사용량 × 상한금액 ÷ 기준용량`을 약재별로
+ * 임의처방(보험 단미엑스 조합) 검증입니다 (결정 5). 약재 금액은 `사용량 × 상한금액 ÷ 규격`을 약재별로
  * 반올림하고 더합니다. 금액과 총 투약량 모두 십진 분수로 계산해 부동소수 오차가 없습니다. 총 투약량 50g, 총
  * 투약가 3,000원, 약재 15종까지 받습니다. 이름이 없거나, 약재가 없거나, 사용량이 0 이하이거나 숫자가 잘못된
  * 약재가 있거나, 총 투약가가 0원이면 저장할 수 없습니다. 값이 잘못된 약재는 합계에서 뺍니다.
  */
 export function judgeArbitraryFormula(name: string, herbs: readonly ArbitraryFormulaHerb[]): ArbitraryFormulaJudgement {
-  const invalid: SettingViolation[] = []
-  let totalUnits = 0
-  const herbAmounts = herbs.map((herb, index) => {
-    const usage = exactDecimal(herb.usageG)
-    const price = exactDecimal(herb.upperPrice)
-    const spec = exactDecimal(herb.specG)
-    if (usage === null || usage.numerator === 0)
-      invalid.push({ field: `herbs[${index}].usageG`, code: 'INVALID_VALUE' })
-    if (price === null) invalid.push({ field: `herbs[${index}].upperPrice`, code: 'INVALID_VALUE' })
-    if (spec === null || spec.numerator === 0) invalid.push({ field: `herbs[${index}].specG`, code: 'INVALID_VALUE' })
-    if (usage === null || price === null || spec === null || spec.numerator === 0) return 0
-    totalUnits += usage.numerator * (USAGE_SCALE / usage.denominator)
-    return herbAmount(usage, price, spec)
+  const 약재값위반: SettingViolation[] = []
+  let 총투약량백만분율 = 0
+  const 약재별금액 = herbs.map((약재, index) => {
+    const 사용량 = exactDecimal(약재.usageG)
+    const 상한금액 = exactDecimal(약재.upperPrice)
+    const 규격 = exactDecimal(약재.specG)
+    if (사용량 === null || 사용량.numerator === 0) {
+      약재값위반.push({ field: `herbs[${index}].usageG`, code: 'INVALID_VALUE' })
+    }
+    if (상한금액 === null) 약재값위반.push({ field: `herbs[${index}].upperPrice`, code: 'INVALID_VALUE' })
+    if (규격 === null || 규격.numerator === 0) {
+      약재값위반.push({ field: `herbs[${index}].specG`, code: 'INVALID_VALUE' })
+    }
+    if (사용량 === null || 상한금액 === null || 규격 === null || 규격.numerator === 0) return 0
+    총투약량백만분율 += 사용량.numerator * (백만분율 / 사용량.denominator)
+    return 약재금액(사용량, 상한금액, 규격)
   })
-  const totalAmount = herbAmounts.reduce((sum, amount) => sum + amount, 0)
-  const limits = ARBITRARY_FORMULA_LIMITS
+  const 총투약가 = 약재별금액.reduce((sum, amount) => sum + amount, 0)
+  const 한도 = ARBITRARY_FORMULA_LIMITS
   const violations: SettingViolation[] = [
-    ...requiredName(name),
+    ...이름필수위반(name),
     ...(herbs.length === 0 ? [{ field: 'herbs', code: 'REQUIRED' }] : []),
-    ...invalid,
-    ...(herbs.length > 0 && totalAmount === 0 ? [{ field: 'herbs', code: 'ZERO_AMOUNT' }] : []),
-    ...(totalUnits > limits.totalUsageG * USAGE_SCALE ? [{ field: 'herbs', code: 'TOTAL_USAGE_EXCEEDED' }] : []),
-    ...(totalAmount > limits.totalAmount ? [{ field: 'herbs', code: 'TOTAL_AMOUNT_EXCEEDED' }] : []),
-    ...(herbs.length > limits.herbCount ? [{ field: 'herbs', code: 'HERB_COUNT_EXCEEDED' }] : []),
+    ...약재값위반,
+    ...(herbs.length > 0 && 총투약가 === 0 ? [{ field: 'herbs', code: 'ZERO_AMOUNT' }] : []),
+    ...(총투약량백만분율 > 한도.totalUsageG * 백만분율 ? [{ field: 'herbs', code: 'TOTAL_USAGE_EXCEEDED' }] : []),
+    ...(총투약가 > 한도.totalAmount ? [{ field: 'herbs', code: 'TOTAL_AMOUNT_EXCEEDED' }] : []),
+    ...(herbs.length > 한도.herbCount ? [{ field: 'herbs', code: 'HERB_COUNT_EXCEEDED' }] : []),
   ]
-  return { totalUsageG: totalUnits / USAGE_SCALE, totalAmount, herbAmounts, violations }
+  return { totalUsageG: 총투약량백만분율 / 백만분율, totalAmount: 총투약가, herbAmounts: 약재별금액, violations }
 }
 
-const LIMIT_MESSAGES: Record<string, string> = {
+const 한도위반문구: Record<string, string> = {
   TOTAL_USAGE_EXCEEDED: '총 투약량은 50g을 초과할 수 없습니다.',
   TOTAL_AMOUNT_EXCEEDED: '총 투약가가 3,000원을 초과할 수 없습니다.',
   HERB_COUNT_EXCEEDED: '총 약재 수는 15개를 초과할 수 없습니다.',
@@ -143,8 +146,8 @@ const LIMIT_MESSAGES: Record<string, string> = {
 /** 한도 위반 문구입니다. 현행 문구와 순서를 그대로 씁니다. */
 export const arbitraryFormulaMessages = (violations: readonly SettingViolation[]) =>
   violations.flatMap((violation) => {
-    const message = LIMIT_MESSAGES[violation.code]
-    return message === undefined ? [] : [message]
+    const 문구 = 한도위반문구[violation.code]
+    return 문구 === undefined ? [] : [문구]
   })
 
 // 과세·패키지
@@ -154,9 +157,9 @@ export type TaxType = 'TAXABLE' | 'TAX_EXEMPT'
 
 /** 패키지 과세 판정입니다. 첫 항목이 패키지 과세 여부를 정하고, 다른 항목이 하나라도 다르면 혼합입니다. */
 export function packageTaxMix(items: readonly { taxType: TaxType }[]): { taxable: boolean | null; mixed: boolean } {
-  const first = items[0]
-  if (first === undefined) return { taxable: null, mixed: false }
-  return { taxable: first.taxType === 'TAXABLE', mixed: items.some((item) => item.taxType !== first.taxType) }
+  const 첫항목 = items[0]
+  if (첫항목 === undefined) return { taxable: null, mixed: false }
+  return { taxable: 첫항목.taxType === 'TAXABLE', mixed: items.some((item) => item.taxType !== 첫항목.taxType) }
 }
 
 /** 패키지 저장 위반입니다. 혼합이면 422 `PACKAGE_TAX_MIXED`입니다. */
@@ -169,11 +172,11 @@ export function canAddToPackage(items: readonly { taxType: TaxType }[], candidat
 }
 
 /** 부가세율 10%를 정수 비율로 둡니다. */
-const VAT_DIVISOR = 10
+const 부가세율역수 = 10
 
 /** 과세 공급가의 부가세입니다. 10%를 반올림(0.5는 올림)합니다. */
 export const vatOf = (supplyPrice: number, taxType: TaxType) =>
-  taxType === 'TAXABLE' ? divideHalfUp(supplyPrice, VAT_DIVISOR) : 0
+  taxType === 'TAXABLE' ? divideHalfUp(supplyPrice, 부가세율역수) : 0
 
 /**
  * 패키지 항목 금액입니다 (결정 3). 단가는 공급가이고, 과세면 부가세를 더한 뒤 일투여량·투약일수를 곱합니다.
@@ -183,10 +186,10 @@ export function packageItemAmount(item: { unitPrice: number; taxType: TaxType; p
   tax: number
   amount: number
 } {
-  const tax = vatOf(item.unitPrice, item.taxType)
-  const perDay = decimalFraction(item.perDay)
-  const amount = divideHalfUp((item.unitPrice + tax) * perDay.numerator * item.days, perDay.denominator)
-  return { tax, amount }
+  const 부가세 = vatOf(item.unitPrice, item.taxType)
+  const 일투여량 = decimalFraction(item.perDay)
+  const 금액 = divideHalfUp((item.unitPrice + 부가세) * 일투여량.numerator * item.days, 일투여량.denominator)
+  return { tax: 부가세, amount: 금액 }
 }
 
 // 비급여 항목
@@ -215,8 +218,8 @@ export function nonbenefitPrice(
   if (entry === 'VAT_EXCLUSIVE') {
     return { ok: true, unitPrice: entered, taxType: 'TAXABLE', vat: vatOf(entered, 'TAXABLE') }
   }
-  const unitPrice = divideHalfUp(entered * VAT_DIVISOR, VAT_DIVISOR + 1)
-  return { ok: true, unitPrice, taxType: 'TAXABLE', vat: entered - unitPrice }
+  const 공급가 = divideHalfUp(entered * 부가세율역수, 부가세율역수 + 1)
+  return { ok: true, unitPrice: 공급가, taxType: 'TAXABLE', vat: entered - 공급가 }
 }
 
 /** 비급여 코드입니다. 현행처럼 입력 코드 앞에 늘 `비`를 붙입니다. 저장된 코드는 이미 붙어 있습니다. */
@@ -239,16 +242,16 @@ export function nonbenefitItemViolations(
   reservedNames: ReadonlySet<string>,
   selfId: string | null = null,
 ): SettingViolation[] {
-  const name = settingNameKey(input.name)
-  const blankCode = input.code.trim() === ''
-  const code = nonbenefitCode(input.code)
+  const 이름키 = settingNameKey(input.name)
+  const 코드없음 = input.code.trim() === ''
+  const 비급여코드 = nonbenefitCode(input.code)
   return [
-    ...requiredName(input.name),
-    ...(blankCode ? [{ field: 'code', code: 'REQUIRED' }] : []),
-    ...(reservedNames.has(name) ? [{ field: 'name', code: 'NONBENEFIT_NAME_RESERVED' }] : []),
-    ...(hasNameConflict(existing, name, selfId) ? [{ field: 'name', code: DUPLICATE }] : []),
-    ...(!blankCode && existing.some((each) => each.id !== selfId && each.code.trim() === code)
-      ? [{ field: 'code', code: DUPLICATE }]
+    ...이름필수위반(input.name),
+    ...(코드없음 ? [{ field: 'code', code: 'REQUIRED' }] : []),
+    ...(reservedNames.has(이름키) ? [{ field: 'name', code: 'NONBENEFIT_NAME_RESERVED' }] : []),
+    ...(hasNameConflict(existing, 이름키, selfId) ? [{ field: 'name', code: 중복코드 }] : []),
+    ...(!코드없음 && existing.some((each) => each.id !== selfId && each.code.trim() === 비급여코드)
+      ? [{ field: 'code', code: 중복코드 }]
       : []),
   ]
 }
@@ -266,14 +269,13 @@ export function treatmentRoomViolations(
   room: { id: string | null; name: string; bedCount: number },
   existing: readonly { id: string; name: string }[],
 ): SettingViolation[] {
-  const limits = TREATMENT_ROOM_LIMITS
-  const bedsValid =
-    Number.isInteger(room.bedCount) && room.bedCount >= limits.minBeds && room.bedCount <= limits.maxBeds
+  const 한도 = TREATMENT_ROOM_LIMITS
+  const 베드수유효 = Number.isInteger(room.bedCount) && room.bedCount >= 한도.minBeds && room.bedCount <= 한도.maxBeds
   return [
-    ...requiredName(room.name),
-    ...(settingNameKey(room.name).length > limits.nameLength ? [{ field: 'name', code: 'NAME_TOO_LONG' }] : []),
-    ...(bedsValid ? [] : [{ field: 'bedCount', code: 'BED_COUNT_OUT_OF_RANGE' }]),
-    ...(hasNameConflict(existing, room.name, room.id) ? [{ field: 'name', code: DUPLICATE }] : []),
+    ...이름필수위반(room.name),
+    ...(settingNameKey(room.name).length > 한도.nameLength ? [{ field: 'name', code: 'NAME_TOO_LONG' }] : []),
+    ...(베드수유효 ? [] : [{ field: 'bedCount', code: 'BED_COUNT_OUT_OF_RANGE' }]),
+    ...(hasNameConflict(existing, room.name, room.id) ? [{ field: 'name', code: 중복코드 }] : []),
   ]
 }
 

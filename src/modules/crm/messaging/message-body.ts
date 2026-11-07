@@ -71,19 +71,19 @@ export function resolvedBody(
     } {
   if (purpose !== 'ADVERTISING') return { ok: true, resolvedBody: body }
   const line = (value: string) => value.replace(/\s+/g, ' ').trim()
-  const fields = ['clinicName', 'optOutNumber', 'optOutCode'] as const
-  const violations = fields.flatMap((field) =>
+  const 법정표기항목 = ['clinicName', 'optOutNumber', 'optOutCode'] as const
+  const violations = 법정표기항목.flatMap((field) =>
     line(disclosure[field]) === '' ? [{ field, code: 'REQUIRED' as const }] : [],
   )
   if (violations.length > 0) return { ok: false, code: 'ADVERTISING_DISCLOSURE_INCOMPLETE', violations }
-  const [clinicName, optOutNumber, optOutCode] = fields.map((field) => line(disclosure[field]))
-  return { ok: true, resolvedBody: `(광고) ${clinicName}\n${body}\n\n무료거부: ${optOutNumber}\n인증: ${optOutCode}` }
+  const [병원명, 수신거부번호, 인증코드] = 법정표기항목.map((field) => line(disclosure[field]))
+  return { ok: true, resolvedBody: `(광고) ${병원명}\n${body}\n\n무료거부: ${수신거부번호}\n인증: ${인증코드}` }
 }
 
 /** 문자 유형 초과 처리입니다. 캠페인 `overflow`(SMS 채널)와 `fallback.overflow`(카카오 → SMS 대체) 값입니다. */
 export type SmsOverflowPolicy = 'UPGRADE_TO_LMS' | 'EXCLUDE'
 
-const KIND_RANK: Record<SmsKind, number> = { SMS: 0, LMS: 1, MMS: 2 }
+const 문자유형순위: Record<SmsKind, number> = { SMS: 0, LMS: 1, MMS: 2 }
 
 /**
  * 수신자별 유형 판정입니다 (결정 3). `campaignKind`는 변수를 치환하지 않은 템플릿 본문에 법정 표기를 붙여 `smsKind`로
@@ -97,18 +97,20 @@ export function recipientSmsKind(
   message: { title?: string | null; resolvedBody: string; attachmentCount: number },
   overflow: SmsOverflowPolicy = 'UPGRADE_TO_LMS',
 ): { smsKind: SmsKind; excluded: null } | { smsKind: null; excluded: 'SMS_OVERFLOW' | 'BODY_TOO_LONG' } {
-  const own = smsKind(message)
-  const kind = KIND_RANK[own] < KIND_RANK[campaignKind] ? campaignKind : own
-  if (smsByteLength(message.resolvedBody) > smsMaxBytes(kind)) return { smsKind: null, excluded: 'BODY_TOO_LONG' }
-  if (campaignKind === 'SMS' && kind === 'LMS' && overflow === 'EXCLUDE') {
+  const 치환후유형 = smsKind(message)
+  const 수신자유형 = 문자유형순위[치환후유형] < 문자유형순위[campaignKind] ? campaignKind : 치환후유형
+  if (smsByteLength(message.resolvedBody) > smsMaxBytes(수신자유형)) {
+    return { smsKind: null, excluded: 'BODY_TOO_LONG' }
+  }
+  if (campaignKind === 'SMS' && 수신자유형 === 'LMS' && overflow === 'EXCLUDE') {
     return { smsKind: null, excluded: 'SMS_OVERFLOW' }
   }
-  return { smsKind: kind, excluded: null }
+  return { smsKind: 수신자유형, excluded: null }
 }
 
-const LEGACY_HEADER = /^\(광고\)[^\n]*\n/
-const LEGACY_FOOTER = /\r?\n\r?\n무료거부: [^\r\n]*\r?\n인증: [^\r\n]*\s*$/
-const FOOTER_MARK = /\r?\n\r?\n무료거부:/
+const 현행머리말 = /^\(광고\)[^\n]*\n/
+const 현행꼬리말 = /\r?\n\r?\n무료거부: [^\r\n]*\r?\n인증: [^\r\n]*\s*$/
+const 무료거부표시 = /\r?\n\r?\n무료거부:/
 
 /**
  * 현행 저장 본문(`messageText`)에서 법정 표기를 떼어 냅니다 (결정 5, 이관 전용). 첫 줄이 `(광고)`로 시작하면 그 줄을,
@@ -120,10 +122,10 @@ export function migratedMessageBody(
   purpose: MessagePurpose,
   legacyText: string | null,
 ): { body: string; review: boolean } {
-  const text = legacyText ?? ''
-  if (purpose !== 'ADVERTISING') return { body: text, review: false }
-  const body = text.replace(LEGACY_HEADER, '').replace(LEGACY_FOOTER, '')
-  return { body, review: FOOTER_MARK.test(body) }
+  const 현행본문 = legacyText ?? ''
+  if (purpose !== 'ADVERTISING') return { body: 현행본문, review: false }
+  const 본문 = 현행본문.replace(현행머리말, '').replace(현행꼬리말, '')
+  return { body: 본문, review: 무료거부표시.test(본문) }
 }
 
 /**
