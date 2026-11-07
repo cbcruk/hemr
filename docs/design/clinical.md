@@ -173,7 +173,7 @@ If-Match: "8"
 구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `amend`·`retract`·`setLocked`·`revisions`·`revision`, 철회는 [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)입니다 (#25).
 
 - **범위:** `:amend`, `:retract`, `GET /encounters/{id}/versions`·`/versions/{n}`, `:lock`·`:unlock`, 내원 연쇄 취소의 진료 철회
-  - 미룸: 정정 제안(`AmendmentProposal`, #30). 만드는 쪽(청구 자동수정, 보험구분 변경, 면허 없는 사용자의 정정 요청)이 아직 없어 그때 함께 엽니다. 초진 기록 자동 고정(`encounter-policy.autoLockInitialRecord`)은 병원 정책 설정이 생길 때, 수납·청구한 진료의 철회 409는 그 모듈이 생길 때, 판의 `source` 중 `CLAIM_AUTOFIX`·`AI_ASSISTED`는 그 기능이 생길 때 더합니다. 서명(판에 붙음)과 추가기재·수정 접속기록 저장소도 서명·감사 기능과 함께 붙입니다
+  - 정정 제안(`AmendmentProposal`)은 #30에서 열었습니다([정정 제안 구현 결정](#정정-제안-구현-결정)). 초진 기록 자동 고정(`encounter-policy.autoLockInitialRecord`)은 병원 정책 설정이 생길 때, 수납·청구한 진료의 철회 409는 그 모듈이 생길 때, 판의 `source` 중 `CLAIM_AUTOFIX`·`AI_ASSISTED`는 그 기능이 생길 때 더합니다. 서명(판에 붙음)과 추가기재·수정 접속기록 저장소도 서명·감사 기능과 함께 붙입니다
 - **판(`revision`)과 낙관적 잠금 버전(`version`)을 나눕니다.** `/versions/{n}`의 `n`은 진료기록 판입니다. 초안은 0판이고 판이 없습니다. 완료하면 1판(`source: COMPLETION`), 정정할 때마다 다음 판(`AMENDMENT`, `reason`)을 남깁니다. 고정·철회처럼 내용이 바뀌지 않는 커맨드는 `version`만 올리고 판을 남기지 않습니다. 초안 저장마다 판을 남기지 않는 것은, 법이 보존을 요구하는 것이 완료한 기록의 수정 전 원본이기 때문입니다
   - 대안: 낙관적 잠금 `version`을 판 번호로 쓰기. 고정·철회와 초안 저장에도 올라 번호가 띄엄띄엄이 되고 "몇 번째 기록인가"를 알 수 없어 버렸습니다
 - **판은 추가만 합니다.** `encounter_revisions` 테이블에 판마다 그때의 본문·상병·처방 라인 전체를 남기고, 트리거가 `UPDATE`·`DELETE`를 막습니다 (compliance.md 진료기록 정정). 진료 저장과 같은 트랜잭션에서 쓰고, 버전이 어긋나 거절된 저장은 판도 남기지 않습니다. 판 목록은 내용 전체를 줍니다. 판이 많지 않고 화면이 비교에 바로 쓰기 때문입니다
@@ -190,6 +190,35 @@ If-Match: "8"
 - **권한:** 정정·고정은 `encounter:amend`, 철회는 `encounter:retract`, 판 조회는 `encounter:read`(데스크도 가짐)입니다
 - **이벤트:** `encounter.amended { encounterId, visitId, patientId, revision, changed, reason, acknowledged }`, `encounter.retracted { encounterId, visitId, patientId, from }`, `encounter.locked`·`encounter.unlocked { encounterId, visitId, patientId }`
 - **저장:** 마이그레이션 `0010_encounter_revisions`가 `encounters`에 `revision`·`locked`·`retraction`을 더하고 `encounter_revisions`를 만듭니다. 0009 뒤로 완료한 진료는 그 내용을 1판으로 옮깁니다(기록한 사람은 진료의, 시각은 완료 시각). 그 전에 취소한 내원의 진료는 철회로 맞춥니다(사유·시각은 내원 취소에서, 철회한 사람은 내원에 남지 않아 `null`). 판의 기본키는 `(tenant_id, encounter_id, revision)`입니다
+
+### 정정 제안 구현 결정
+
+구현은 [amendment-proposals.ts](../../src/modules/clinical/encounters/amendment-proposals.ts)의 `AmendmentProposals`입니다 (#30).
+
+```
+POST /encounters/{id}/amendment-proposals   { reason, changes }   → 201          encounter.amendment_proposal:create
+GET  /encounters/{id}/amendment-proposals?status=                                 encounter:read
+GET  /amendment-proposals/{id}                                                    encounter:read
+POST /amendment-proposals/{id}:apply        { acknowledge? }      → { proposal, encounter, prescriptionLineRefs }, ETag   encounter:amend
+POST /amendment-proposals/{id}:dismiss      { reason }                            encounter:amend
+```
+
+- **만드는 쪽은 면허 없는 사용자의 정정 요청부터 엽니다.** 데스크·실장이 진료기록의 잘못(상병 누락, 처방 오기)을 발견하면 바꿀 내용을 제안으로 남기고 의사가 반영합니다. 새 권한 `encounter.amendment_proposal:create`를 데스크 프리셋에 넣었습니다. 치료사는 갖지 않습니다
+  - 미룸: 청구 자동수정(`source: CLAIM_AUTOFIX`, claims.md)과 보험구분 변경(`:change-coverage`). 그 기능이 생길 때 `source`를 넓혀 같은 제안을 만듭니다. 지금 `source`는 `USER`뿐입니다. 자동수정의 이슈 코드는 `reason`이 아니라 `source`와 함께 둘 별도 필드로 받습니다
+- **반영은 정정(`Encounters.amend`)을 그대로 부릅니다.** 검증(적용 규칙, 완료 검증 422, `acknowledge`), 판 보존(`AMENDMENT`, 사유는 제안 사유), 상태·고정·수납 409, 처방 라인 권한(`prescription:write`·`prescription:write_prn`)이 정정과 같습니다. `encounter.amended`에 `proposalId`를 더합니다. 정정이 실패하면 제안은 `PENDING`으로 남습니다(같은 트랜잭션). 응답의 `prescriptionLineRefs`는 제안의 `clientRef`와 반영할 때 만든 처방 라인 ID의 대응입니다
+  - 정정이 업무 규칙으로 실패할 수 있어 진료를 먼저 쓰고 제안을 뒤에 씁니다. SQL은 한 트랜잭션이라 함께 되돌립니다. 되돌리지 못하는 메모리 저장소에서는 같은 제안의 반영과 버림이 겹치면 정정만 남고 반영이 500으로 끝날 수 있습니다. 메모리 저장소는 테스트용이라 받아들였습니다
+- **제안은 만든 때의 판(`baseRevision`) 위에서만 반영합니다.** 그 뒤 진료가 정정되면 409 `AMENDMENT_PROPOSAL_STALE`이고 목록에 `stale: true`로 보입니다. 제안의 `changes`는 본문을 통째로 바꾸거나 상병·처방을 ID로 고치므로, 새 판 위에 적용하면 그 사이 정정을 조용히 덮을 수 있기 때문입니다. 낡은 제안은 버리고 새로 제안합니다
+  - 대안: 지금 판에 그대로 적용하기. 의사가 고친 본문을 옛 본문으로 되돌릴 수 있어 버렸습니다. 되돌릴 조건: 필드별로 겹치지 않는 제안을 합칠 수 있게 되면(예: 상병만 바꾼 제안) 겹치지 않을 때만 반영합니다
+  - 고정·수납·철회처럼 판을 바꾸지 않는 변화는 낡게 하지 않습니다. 반영할 때 정정의 검사가 막습니다
+  - 판이 같으면 같은 `changes`가 같은 결과를 낸다는 전제입니다. 지금 진료 내용은 정정으로만 바뀌어 성립합니다. 되돌릴 조건: 보험구분 변경(`:change-coverage`)처럼 판 없이 진료를 바꾸는 커맨드가 생기면 그 커맨드가 판을 올리거나, 제안이 진료 `version`도 함께 봅니다
+- **반영할 때 진료 버전은 같은 트랜잭션에서 읽은 버전입니다.** `If-Match`를 받지 않습니다. 의사가 본 것은 제안이고, 진료가 그 사이 바뀌었는지는 판(`baseRevision`)으로 봅니다. 응답 `ETag`는 정정한 진료의 버전입니다
+- **만들 때 지금 진료에 적용되는지 확인합니다.** 완료·정정한 진료만 받고(그 밖은 409 `ENCOUNTER_NOT_EDITABLE`), 적용할 수 없으면 422 `ENCOUNTER_CHANGE_INVALID`, 바뀌는 것이 없으면 422 `AMENDMENT_PROPOSAL_EMPTY`입니다. 고정한 진료에도 만들 수 있습니다. 반영 전에 의사가 고정을 풉니다. 처방 라인 권한은 만들 때 보지 않습니다. 반영하는 의사의 권한으로 봅니다
+  - 수납한 진료의 처방 라인 변경(`ENCOUNTER_BILLED`)과 취소한 내원(`ENCOUNTER_VISIT_CANCELED`)도 만들 때 보지 않고 반영할 때 막습니다. 고정과 같이 반영 전에 풀릴 수 있는 상태(영수증 취소·정정)이고, 데스크가 영수증보다 기록 정정 요청을 먼저 남길 수 있게 하려는 것입니다. 되돌릴 조건: 반영할 수 없는 제안이 쌓여 의사 목록을 어지럽히면 만들 때도 막습니다
+- **버리기는 의사가 사유와 함께 합니다(`encounter:amend`).** 반영·버림은 `PENDING`에서만 받고 그 밖은 409 `AMENDMENT_PROPOSAL_NOT_PENDING`입니다. 반영·버린 기록(`resolution { at, by, revision, reason }`)을 남깁니다
+  - 미룸: 제안한 사람이 스스로 거두기, 담당 의사만 반영하기(담당 환자 범위 `scope: OWN`이 생길 때), 의사별 대기 제안 목록(claims.md의 일괄 반영 화면과 함께)
+- **이벤트:** `amendment_proposal.created`·`.applied`·`.dismissed { proposalId, encounterId, patientId }`. 반영은 `encounter.amended { …, proposalId }`도 냅니다
+- **저장:** 마이그레이션 `0016_amendment_proposals`가 `amendment_proposals`를 만듭니다. `changes`와 `resolution`은 JSON이고, 대기 제안만 `resolution`이 비어 있습니다(CHECK). `changes`는 읽을 때 변경 본문 스키마로 디코드합니다. 스키마를 바꾸면 남은 대기 제안을 마이그레이션으로 옮기거나 버립니다
+- **모듈:** `PATCH`·`:amend`·제안이 같은 변경 본문을 쓰도록 스키마를 [encounter-changes-payload.ts](../../src/modules/clinical/encounters/encounter-changes-payload.ts)로 옮겼습니다
 
 ### 다른 날짜 반복
 

@@ -6,6 +6,8 @@ import { Auth } from './modules/identity/auth/auth.ts'
 import { AuthHttpLive, MeHttpLive } from './modules/identity/auth/auth.http.ts'
 import { AuthenticationLive } from './modules/identity/auth/authentication.ts'
 import { AuthorizationLive, accessCheck } from './modules/identity/auth/authorization.ts'
+import { AmendmentProposalsHttpLive } from './modules/clinical/encounters/amendment-proposals.http.ts'
+import { AmendmentProposals } from './modules/clinical/encounters/amendment-proposals.ts'
 import { EncountersHttpLive } from './modules/clinical/encounters/encounters.http.ts'
 import { Encounters } from './modules/clinical/encounters/encounters.ts'
 import { CashDrawersHttpLive } from './modules/front-desk/cash-drawers/cash-drawers.http.ts'
@@ -63,7 +65,10 @@ export const AppLive = HttpApiBuilder.layer(Api).pipe(
     Layer.mergeAll(
       PatientsHttpLive,
       VisitsHttpLive,
-      EncountersHttpLive.pipe(Layer.provide(Encounters.layer)),
+      // 정정 제안의 반영이 정정(`Encounters.amend`)을 부르므로 진료 경로와 같은 `Encounters`를 씁니다
+      Layer.mergeAll(EncountersHttpLive, AmendmentProposalsHttpLive.pipe(Layer.provide(AmendmentProposals.layer))).pipe(
+        Layer.provide(Encounters.layer),
+      ),
       ProceduresHttpLive,
       ReceiptsHttpLive.pipe(Layer.provide(Receipts.layer)),
       PaymentsHttpLive.pipe(Layer.provide(Payments.layer)),

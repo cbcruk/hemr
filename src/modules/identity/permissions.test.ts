@@ -144,6 +144,7 @@ const DESK_WORK: Permission[] = [
   'receipt:void',
   'receipt:refund',
   'cash_drawer:update',
+  'encounter.amendment_proposal:create',
   'document:issue',
   'signature:sign',
   'message:send',

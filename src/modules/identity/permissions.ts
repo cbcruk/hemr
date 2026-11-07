@@ -55,6 +55,8 @@ export const PERMISSIONS = [
   'encounter:amend',
   'encounter:retract',
   'encounter.home_visit_form:update',
+  // 면허 없이 진료기록 정정을 요청합니다. 반영은 의사가 `encounter:amend`로 합니다
+  'encounter.amendment_proposal:create',
   'prescription:read',
   'prescription:write',
   'prescription:write_prn',
@@ -145,6 +147,7 @@ const DESK_WORK: Permission[] = [
   'receipt:void',
   'receipt:refund',
   'cash_drawer:update',
+  'encounter.amendment_proposal:create',
   'document:issue',
   'signature:sign',
   'message:send',

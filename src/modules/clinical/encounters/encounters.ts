@@ -74,6 +74,8 @@ export interface AmendEncounterInput {
   changes: EncounterChanges
   acknowledge?: ReadonlyArray<Acknowledgeable>
   expectedVersion: number
+  /** 정정 제안을 반영한 정정이면 그 제안입니다. `encounter.amended`에 남깁니다. */
+  proposalId?: Id<'amendmentProposal'>
 }
 
 /** 정정한 진료와 새 처방 라인의 `clientRef`와 서버 ID의 대응입니다. */
@@ -410,6 +412,7 @@ export class Encounters extends Context.Service<
                 changed: result.changed,
                 reason: input.reason,
                 acknowledged: judgement.acknowledged,
+                ...(input.proposalId === undefined ? {} : { proposalId: input.proposalId }),
               },
               actor(access),
             )
