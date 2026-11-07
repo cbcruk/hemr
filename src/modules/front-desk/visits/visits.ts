@@ -13,7 +13,9 @@ import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
+import { voidReceipt } from '../receipts/receipt-adjustments.ts'
 import { ReceiptRepository } from '../receipts/receipt-repository.ts'
+import { PaymentRefundRequired, recordOf } from '../receipts/receipt.ts'
 import { validateCheckIn } from './check-in-validation.ts'
 import type { AutoInsuranceGuarantee, NhisEligibility as EligibilityInput } from './check-in-validation.types.ts'
 import { transitionVisit } from './visit-status.ts'
@@ -23,7 +25,6 @@ import {
   VisitAlreadyExists,
   VisitDatePast,
   VisitHasClinicalData,
-  VisitHasReceipt,
   VisitNotFound,
   VisitTransitionInvalid,
 } from './visit.ts'
@@ -75,7 +76,7 @@ export type VisitCommandError =
   | VisitNotFound
   | VisitTransitionInvalid
   | VisitHasClinicalData
-  | VisitHasReceipt
+  | PaymentRefundRequired
   | VisitDatePast
   | VersionMismatch
   | PermissionDenied
@@ -105,13 +106,14 @@ export class Visits extends Context.Service<
      * 정해지므로 여기서 `visit:cancel`·`receipt:void`·`encounter:retract`를 모두 확인합니다(D3). 내원을 읽기 전에
      * 확인해, 권한이 없으면 내원 상태와 상관없이 403 `PERMISSION_DENIED`입니다. 취소는 같은 트랜잭션에서 내원의 진료를
      * 철회합니다(`encounter.retracted`, 사유는 취소 사유). 연쇄가 아니면 내용이 없는 진료만 여기까지 오고, 연쇄 취소는
-     * 고정한 진료도 철회합니다. 수납 기록 처리는 그 모듈이
-     * 생길 때 더합니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다.
+     * 고정한 진료도 철회합니다. 연쇄 취소는 유효한 영수증도 취소합니다(`voidReceipt`, `receipt.voided`). 카드·간편결제처럼
+     * 밖에서 취소할 결제가 남았으면 409 `PAYMENT_REFUND_REQUIRED`이고 먼저 환불합니다. 담당 환자 범위(`scope: OWN`)는
+     * 담당 관계가 생길 때 확인합니다.
      *
      * 읽기·판정·쓰기를 한 트랜잭션에서 해, 진료 저장이 취소의 진료 내용 판정과 저장 사이에 끼어들지 못합니다.
      *
      * 진료에 본문이나 상병이 있거나 유효한 영수증이 있으면 저장된 `hasClinicalData`와 상관없이 기록이 있는 내원으로
-     * 판정합니다. 유효한 영수증이 있는 내원의 연쇄 취소는 영수증 취소(#35)가 생길 때까지 409 `VISIT_HAS_RECEIPT`입니다.
+     * 판정합니다.
      */
     apply(
       id: Id<'visit'>,
@@ -202,15 +204,31 @@ export class Visits extends Context.Service<
             return yield* new VersionMismatch({ currentVersion: visit.version })
           }
 
-          // 연쇄 취소가 영수증을 취소하는 일(#35)이 아직 없어, 돈 기록이 남은 채 내원만 취소되지 않게 막습니다
-          if (command === 'CANCEL' && input.cascade === true) {
-            const active = (yield* receipts.listByVisit(visit.tenantId, visit.id)).find(
-              (each) => each.status === 'ACTIVE',
-            )
-            if (active !== undefined) return yield* new VisitHasReceipt({ receiptId: active.id })
-          }
-
           const now = yield* DateTime.now
+
+          // 연쇄 취소는 유효한 영수증도 취소합니다. 돈 기록이 남은 채 내원만 취소되면 시재가 취소한 내원의 돈을 셉니다.
+          // 막힐 수 있는 판정을 저장 전에 합니다. 영수증 쓰기는 진료 철회처럼 맨 뒤라, 그 사이 다른 요청이 영수증을
+          // 바꾸면 SQL은 모두 되돌리고 되돌리지 못하는 메모리 저장소는 내원만 취소된 채 남을 수 있습니다
+          const voiding =
+            command === 'CANCEL' && input.cascade === true
+              ? yield* Effect.gen(function* () {
+                  const active = (yield* receipts.listByVisit(visit.tenantId, visit.id)).find(
+                    (each) => each.status === 'ACTIVE',
+                  )
+                  if (active === undefined) return null
+                  const record = recordOf(active)
+                  const decision = voidReceipt(record, yield* receipts.paymentsOf(visit.tenantId, active.id), {
+                    reason: input.reason ?? 'Visit canceled',
+                    at: DateTime.formatIso(now),
+                    by: access.userId,
+                  })
+                  if (!decision.ok) {
+                    return yield* new PaymentRefundRequired({ receiptId: active.id, paymentIds: decision.paymentIds })
+                  }
+                  return { before: record, decision }
+                })
+              : null
+
           const options = {
             hasClinicalData: yield* hasClinicalData(visit),
             isPastDate: visit.date < clinicDate(DateTime.toEpochMillis(now)),
@@ -260,6 +278,29 @@ export class Visits extends Context.Service<
                 .save(retracted.encounter, { expectedVersion: encounter.value.version, events: [retracted.event] })
                 .pipe(Effect.orDie)
             }
+          }
+          if (voiding !== null) {
+            const { before, decision } = voiding
+            yield* receipts.commit({
+              updateReceipts: [{ receipt: decision.receipt, expectedVersion: before.version }],
+              updatePayments: decision.voided.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
+              events: [
+                domainEvent(
+                  'receipt.voided',
+                  before.id,
+                  next.statusChangedAt,
+                  {
+                    receiptId: before.id,
+                    visitId: visit.id,
+                    patientId: visit.patientId,
+                    date: before.date,
+                    reason: input.reason ?? 'Visit canceled',
+                    correctedBy: null,
+                  },
+                  { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+                ),
+              ],
+            })
           }
           return next
         })

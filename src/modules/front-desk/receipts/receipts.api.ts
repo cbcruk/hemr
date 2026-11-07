@@ -1,9 +1,11 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/http-api'
 import { IdempotencyKey, IdempotencyKeyReused } from '../../../shared/http/idempotency.ts'
+import { ValidationFailed } from '../../../shared/problem/problem.ts'
 import { EncounterId } from '../../clinical/encounters/encounter-id.ts'
 import { Access } from '../../identity/auth/access.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
+import { LocalDate, PatientId } from '../../patients/patient.ts'
 import { VisitId, VisitNotFound, VisitTransitionInvalid } from '../visits/visit.ts'
 import {
   CheckoutCoverageUnsupported,
@@ -13,11 +15,16 @@ import {
   CheckoutRejected,
   PaymentId,
   PaymentMethod,
+  PaymentRefundRequired,
   PrepaidKind,
   QuoteId,
   QuoteStale,
+  Receipt,
   ReceiptAlreadyExists,
   ReceiptCharges,
+  ReceiptId,
+  ReceiptNotFound,
+  ReceiptVoided,
   SettlementResult,
   SplitAmount,
   Won,
@@ -75,9 +82,13 @@ const quoteErrors = [
   CheckoutPaymentInvalid,
 ]
 
+/** 사유입니다. 감사·이력에 남습니다. */
+const Reason = Schema.String.check(Schema.isMaxLength(500), Schema.isPattern(/\S/))
+
 /**
- * 수납입니다 (front-desk.md 수납 커맨드). 견적과 수납 모두 `receipt:create`가 필요합니다. 견적은 수납 화면이 그리는
- * 값이라 수납과 같은 권한으로 봅니다.
+ * 수납입니다 (front-desk.md 수납 커맨드, 환불과 정정). 견적과 수납 모두 `receipt:create`가 필요합니다. 견적은 수납
+ * 화면이 그리는 값이라 수납과 같은 권한으로 봅니다. 조회는 `receipt:read`, 취소는 `receipt:void`, 정정은
+ * `receipt:correct`입니다.
  */
 export class ReceiptsApi extends HttpApiGroup.make('receipts')
   .add(
@@ -102,6 +113,58 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
       error: [...quoteErrors, QuoteStale, CheckoutRejected, IdempotencyKeyReused],
     })
       .annotate(Access, Access.requires('receipt:create'))
+      .annotate(HttpApi.PayloadParseOptions, strict),
+    HttpApiEndpoint.get('list', '/receipts', {
+      query: {
+        /** 수납한 날(병원 시간대)입니다. */
+        date: Schema.optionalKey(LocalDate),
+        patientId: Schema.optionalKey(PatientId),
+        limit: Schema.optionalKey(
+          Schema.NumberFromString.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 200 })),
+        ),
+        cursor: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(100))),
+      },
+      success: Schema.Struct({ items: Schema.Array(Receipt), nextCursor: Schema.NullOr(Schema.String) }),
+      error: ValidationFailed,
+    }).annotate(Access, Access.requires('receipt:read')),
+    HttpApiEndpoint.get('get', '/receipts/:id', {
+      params: { id: ReceiptId },
+      success: Receipt,
+      error: ReceiptNotFound,
+    }).annotate(Access, Access.requires('receipt:read')),
+    HttpApiEndpoint.post('void', '/receipts/:id::void', {
+      params: { id: ReceiptId },
+      payload: Schema.Struct({ reason: Reason }),
+      success: Receipt,
+      error: [ReceiptNotFound, ReceiptVoided, PaymentRefundRequired],
+    })
+      .annotate(Access, Access.requires('receipt:void'))
+      .annotate(HttpApi.PayloadParseOptions, strict),
+    HttpApiEndpoint.post('correct', '/receipts/:id::correct', {
+      params: { id: ReceiptId },
+      headers: { 'idempotency-key': IdempotencyKey },
+      payload: Schema.Struct({
+        paymentIds: options.paymentIds,
+        payments: options.payments,
+        useOverpaidCredit: options.useOverpaidCredit,
+        writeOffRemainder: options.writeOffRemainder,
+        acknowledge: options.acknowledge,
+        excludeFromTaxDeduction: Schema.optionalKey(Schema.Boolean),
+        memo: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(500))),
+        reason: Reason,
+      }),
+      success: Receipt,
+      error: [
+        ReceiptNotFound,
+        ReceiptVoided,
+        CheckoutEncounterInvalid,
+        CheckoutCoverageUnsupported,
+        CheckoutPaymentInvalid,
+        CheckoutRejected,
+        IdempotencyKeyReused,
+      ],
+    })
+      .annotate(Access, Access.requires('receipt:correct'))
       .annotate(HttpApi.PayloadParseOptions, strict),
   )
   .middleware(Authorization) {}

@@ -393,8 +393,8 @@ Idempotency-Key: ...
 구현은 [receipts.ts](../../src/modules/front-desk/receipts/receipts.ts)의 `quote`·`checkout`, 금액은 [receipt-charges.ts](../../src/modules/front-desk/receipts/receipt-charges.ts), 결산은 이미 포팅한 [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts)의 `settleCheckout`입니다 (#33).
 
 - **범위:** `POST /visits/{id}:quote-checkout`과 `:checkout`. 위 [수납 커맨드](#수납-커맨드)의 3·4·5(내원 `COMPLETED`)·6입니다
-  - 미룸: 영수증 조회·취소·정정·환불(#35), 급여 본인부담(#36), 시재(#37), 내원 없는 수납(`POST /receipts`), 패키지 판매·사용, 등급 할인, 제주 지원금, 선수금·과수납금 잔액(환자 원장이 생길 때)
-- **1(금액 잠금)은 진료 쪽에서 막습니다.** 단가는 처방 라인이 저장할 때 이미 고정합니다. 수납한 뒤에는 유효한 영수증에 들어간 진료의 처방 라인을 바꾸거나(`PATCH`·`:amend`) 진료를 철회하면 409 `ENCOUNTER_BILLED { receiptId }`입니다. 본문·상병은 바꿀 수 있습니다. 처방을 바꾸려면 영수증을 취소·정정(#35)합니다
+  - 미룸: 급여 본인부담(#36), 시재(#37), 내원 없는 수납(`POST /receipts`), 패키지 판매·사용, 등급 할인, 제주 지원금, 선수금·과수납금 잔액(환자 원장이 생길 때)
+- **1(금액 잠금)은 진료 쪽에서 막습니다.** 단가는 처방 라인이 저장할 때 이미 고정합니다. 수납한 뒤에는 유효한 영수증에 들어간 진료의 처방 라인을 바꾸거나(`PATCH`·`:amend`) 진료를 철회하면 409 `ENCOUNTER_BILLED { receiptId }`입니다. 본문·상병은 바꿀 수 있습니다. 처방을 바꾸려면 영수증을 취소(`:void`)합니다([환불과 정정 구현 결정](#환불과-정정-구현-결정))
   - 대안: 진료에 수납 표시를 저장하기. 영수증을 취소할 때 표시도 함께 되돌려야 해, 영수증에서 바로 판정했습니다
 - **일반(`SELF_PAY`) 진료만 금액을 계산합니다.** 급여 본인부담을 계산하는 규칙이 아직 없어, 보험 진료는 견적·수납 모두 422 `CHECKOUT_COVERAGE_UNSUPPORTED`입니다. 진찰료는 아직 처방 라인이 아니어서, 처방이 없어도 본문·상병이 있으면 진찰료 본인부담이 있는 진료로 보고 막습니다. 아무것도 쓰지 않은 보험 진료만 0원으로 수납합니다. 일반 진료는 처방 라인 금액의 합이 모두 비과세 비급여입니다. 라인에 과세 여부가 없고 한의원 진료는 대부분 면세라서입니다. 과세 비급여는 비급여 항목 설정이 생길 때 라인에 표시를 더합니다
   - 대안: 보험 진료를 30% 같은 고정 비율로 계산하기. 정액제·의료급여·가산을 빼먹은 금액을 돈 기록으로 남기게 되어 버렸습니다. #36에서 현행 규칙을 정리한 뒤 엽니다
@@ -405,8 +405,8 @@ Idempotency-Key: ...
 - **`Idempotency-Key`는 필수입니다(conventions.md).** 병원별 키 하나에 처음 성공 응답을 24시간 남기고([idempotency.ts](../../src/shared/http/idempotency.ts)), 같은 요청이면 그 응답을 그대로, 커맨드나 내원·본문이 다르면 422 `IDEMPOTENCY_KEY_REUSED`입니다. 지문(fingerprint)은 커맨드 이름(`visits.checkout`)과 내원 ID·본문의 해시입니다. 기간이 지난 키는 같은 키가 다시 올 때 덮어쓰고, 지난 키를 지우는 작업은 미룹니다(행이 늘어 문제가 되면 `created_at` 인덱스와 정리 작업을 더합니다). 실패한 요청은 남기지 않아 고쳐서 같은 키로 다시 보낼 수 있습니다. 응답 기록은 수납과 같은 트랜잭션입니다
   - 대안: 실패 응답도 남기기(Stripe 방식). 미수 확인처럼 사용자가 고쳐 다시 보내는 422가 많은 커맨드라 새 키를 강요하게 되어 버렸습니다
 - **한 트랜잭션에서 읽기·판정·쓰기를 합니다.** 내원 `CHECKOUT` 전이(`Visits.apply`, `visit.status_changed`)를 먼저 하고 영수증과 `receipt.created`를 씁니다. 전이 권한(`visit:update`)은 따로 보지 않습니다. 이미 수납했거나 취소한 내원은 금액을 보기 전에 409 `VISIT_TRANSITION_INVALID`입니다
-- **내원 하나에 유효한 영수증은 하나입니다.** DB 부분 유일 인덱스로도 막습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하면 409 `RECEIPT_ALREADY_EXISTS { receiptId }`입니다. 추가 처방을 받으려면 영수증을 정정(#35)합니다. 내원 취소의 진료 내용 판정은 유효한 영수증도 기록으로 봐, 연쇄가 아닌 취소는 409 `VISIT_HAS_CLINICAL_DATA`입니다
-  - 미룸: 연쇄 취소의 영수증 `VOIDED`(#35). 그때까지 유효한 영수증이 있는 내원의 연쇄 취소는 409 `VISIT_HAS_RECEIPT { receiptId }`입니다. 영수증을 남긴 채 내원만 취소하면 시재·일자 현황이 취소한 내원의 돈을 세기 때문입니다
+- **내원 하나에 유효한 영수증은 하나입니다.** DB 부분 유일 인덱스로도 막습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하면 409 `RECEIPT_ALREADY_EXISTS { receiptId }`입니다. 추가 처방을 받으려면 영수증을 취소한 뒤 처방을 고치고 다시 수납합니다. 내원 취소의 진료 내용 판정은 유효한 영수증도 기록으로 봐, 연쇄가 아닌 취소는 409 `VISIT_HAS_CLINICAL_DATA`입니다
+  - 연쇄 취소는 유효한 영수증도 취소합니다(#35, [환불과 정정 구현 결정](#환불과-정정-구현-결정)). 영수증을 남긴 채 내원만 취소하면 시재·일자 현황이 취소한 내원의 돈을 세기 때문입니다
 - **수납일은 수납한 날(병원 시간대)입니다.** 내원일이 아닙니다. 시재가 현금이 오간 날로 세기 때문입니다
 - **권한:** 견적·수납 모두 `receipt:create`입니다. 견적은 수납 화면이 그리는 값이라 수납과 같은 권한으로 봅니다
 - **이벤트:** `visit.status_changed`, 이어서 `receipt.created { receiptId, visitId, patientId, date, total, result, acknowledged, paymentIds }`. 내원 전이를 먼저 쓰므로 위 6의 순서와 반대입니다
@@ -423,21 +423,21 @@ GET  /payments/{id}                                                             
 ```
 
 - **범위:** 위 [수납 커맨드](#수납-커맨드)의 `POST /payments`와 수납·견적의 `paymentIds`입니다. `Payment`는 위 모델에서 `groupId`·`cashReceipt`·`refunds`를 빼고 `patientId`·`visitId`·`recordedBy`·`createdAt`·`updatedAt`·`version`을 더했습니다. 상태는 `UNAPPLIED`·`CAPTURED`만 씁니다
-  - 미룸: 미적용 결제 목록(수납현황, `GET /receipts`와 함께 #35), 미적용 결제의 취소·환불(#35), 카드 분할(`groupId`), 현금영수증(`cashReceipt`)
+  - 미룸: 카드 분할(`groupId`), 현금영수증(`cashReceipt`). 미적용 결제 목록과 환불은 #35에서 열었습니다
 - **받는 수단은 밖에서 승인되는 것만입니다(`CARD`·`KAKAO_PAY`·`LOCAL_CURRENCY`·`ZERO_PAY`).** 현금·계좌이체는 수납 요청 안에서 받으므로 미리 남길 이유가 없어 400입니다. 금액은 과세·비과세 합이 0보다 커야 하고, `processorRef`(승인번호 등, 1–100자, 앞뒤 공백 없음)는 필수입니다. 단말 승인 뒤에만 부르는 커맨드라서입니다
   - 이 제약은 이 커맨드의 것이지 모델의 것이 아닙니다. 오프라인 동기화([offline.md](offline.md))처럼 현금을 `UNAPPLIED`로 남기는 경로는 그 기능에서 엽니다
 - **환자는 있어야 하고(404 `PATIENT_NOT_FOUND`), 내원을 정하면 그 환자의 내원이어야 합니다(404 `VISIT_NOT_FOUND`, 422 `PAYMENT_VISIT_MISMATCH`).** 내원 상태는 보지 않습니다. 돈은 이미 오갔으므로 수납했거나 취소한 내원의 결제도 남겨야 기록이 사라지지 않습니다
 - **적용:** 견적·수납의 `paymentIds`(20개 이하, 중복은 하나로)는 이 병원·이 환자의 `UNAPPLIED` 결제이고, 결제에 내원이 있으면 이 내원이어야 합니다. 하나라도 아니면 422 `CHECKOUT_PAYMENT_INVALID { paymentIds }`입니다. 통과한 결제는 입력 결제(`payments`) 앞에 더해 결산에 넣습니다. 그래서 결산의 `entered`·`received`에 들어가고, 결제가 있으니 미수 확인이 필요 없습니다. 수납이 성공하면 같은 트랜잭션에서 `CAPTURED`와 `receiptId`를 쓰고 `version`을 올립니다. 수납이 실패하면(409 `QUOTE_STALE` 등) 결제는 `UNAPPLIED`로 남아 새 견적으로 다시 수납합니다
   - `paymentIds`는 `quoteId`에 넣지 않습니다. 결제 입력과 같은 이유입니다
-  - 내원이 없는 결제는 그 환자의 어느 내원에도 적용할 수 있고, 적용하면 그 내원이 결제의 `visitId`가 됩니다. 시재·수납현황이 내원으로 결제를 찾을 수 있게 하려는 것입니다. 취소한 내원에 묶인 결제는 다른 내원에 적용할 수 없어 #35의 환불을 기다립니다
+  - 내원이 없는 결제는 그 환자의 어느 내원에도 적용할 수 있고, 적용하면 그 내원이 결제의 `visitId`가 됩니다. 시재·수납현황이 내원으로 결제를 찾을 수 있게 하려는 것입니다. 취소한 내원에 묶인 결제는 다른 내원에 적용할 수 없어 환불합니다
   - 대안: 수납이 결제 ID 대신 승인번호로 찾기. 승인번호는 단말·카드사마다 겹칠 수 있어 서버가 만든 ID로 고릅니다
 - **영수증의 `payments`는 이제 적용한 결제를 `payments` 테이블에서 읽어 붙입니다.** 받은 시각, 같으면 ID 순입니다. 미리 기록한 결제는 먼저 받았으므로 보통 앞에 오고(같은 밀리초면 ID 순), 수납 요청 안에서 받은 결제는 요청 순서입니다(같은 시각이라 요청 순서대로 커지는 ID를 줍니다). 각 결제에 `processorRef`를 더했습니다
-  - `0013` 전에 만든 영수증의 결제는 모두 같은 시각이고 ID가 무작위라 원래 요청 순서를 잃습니다. 배포한 DB가 없는 지금은 순서 열을 따로 두지 않았습니다. 되돌릴 조건: 결제 순서를 사용자가 바꾸는 기능(정정 #35)이 생기면 순서 열을 더합니다
+  - `0013` 전에 만든 영수증의 결제는 모두 같은 시각이고 ID가 무작위라 원래 요청 순서를 잃습니다. 배포한 DB가 없는 지금은 순서 열을 따로 두지 않았습니다. 되돌릴 조건: 결제 순서를 사용자가 바꾸는 기능이 생기면 순서 열을 더합니다
 - **`Idempotency-Key`는 필수입니다.** 지문의 커맨드 이름은 `payments.record`이고, 수납(`visits.checkout`)과 같은 키를 쓰면 422 `IDEMPOTENCY_KEY_REUSED`입니다. 승인 직후 네트워크가 끊겨 다시 보내도 결제가 둘로 남지 않습니다. 다시 보내면 처음 응답(`UNAPPLIED`)을 그대로 돌려주므로, 지금 상태는 `GET /payments/{id}`로 봅니다
   - 대안: 병원·수단·승인번호 유일 제약. 승인번호가 겹칠 수 있는 데다 다시 보내기는 키로 막혀서 두지 않았습니다
 - **권한:** 남기기는 `receipt:create`(수납과 같음), 보기는 `receipt:read`입니다. 결제만의 권한은 현행에 없어 더하지 않았습니다
 - **이벤트:** `payment.recorded { paymentId, patientId, visitId, method, amount }`. 적용은 따로 내지 않고 `receipt.created`의 `paymentIds`(그 영수증의 모든 결제, 미리 기록한 것과 수납 요청 안에서 받은 것)로 알립니다
-- **저장:** 마이그레이션 `0013_payments`가 `payments` 테이블(금액은 과세·비과세 정수 열)을 만들고, 기존 영수증 JSON의 결제를 `CAPTURED`로 옮긴 뒤 `receipts.payments` 열을 지웁니다. `UNAPPLIED`이면 `receipt_id`가 없고 `CAPTURED`이면 있도록 CHECK로 막습니다. 환불·취소 상태는 영수증 유무를 정하지 않아, 미적용 결제를 영수증 없이 환불하는 #35를 막지 않습니다. 수단·선수금 계열·금액(0 이상)도 CHECK입니다. 저장소는 영수증과 결제를 같은 `ReceiptRepository`에 둡니다. 수납이 영수증과 결제 적용을 한 번에 쓰기 때문입니다
+- **저장:** 마이그레이션 `0013_payments`가 `payments` 테이블(금액은 과세·비과세 정수 열)을 만들고, 기존 영수증 JSON의 결제를 `CAPTURED`로 옮긴 뒤 `receipts.payments` 열을 지웁니다. `UNAPPLIED`이면 `receipt_id`가 없고 `CAPTURED`이면 있도록 CHECK로 막습니다. 환불·취소 상태는 영수증 유무를 정하지 않아, 미적용 결제를 영수증 없이 환불할 수 있습니다. 수단·선수금 계열·금액(0 이상)도 CHECK입니다. 저장소는 영수증과 결제를 같은 `ReceiptRepository`에 둡니다. 수납이 영수증과 결제 적용을 한 번에 쓰기 때문입니다
 
 ### 내원 없는 수납
 
@@ -467,6 +467,51 @@ POST /receipts/{id}:correct                { payments[...], reason }   # void + 
 - 비대면 진료 수납과 제주 지원금 행은 환불·정정할 수 없습니다 (409). 각 결제의 `allowedActions`로 알려 줍니다
 - 현행 "삭제"(`DELETE /desk/receipts/details/{id}`)는 없앱니다. 돈 기록은 지우지 않고 `VOIDED`로 남깁니다
 - 현행 `결제그룹Id`가 있으면 "삭제 후 재수납"하라던 안내는 `:correct` 하나로 대체합니다
+
+### 환불과 정정 구현 결정
+
+구현은 [receipts.ts](../../src/modules/front-desk/receipts/receipts.ts)의 `list`·`get`·`void`·`correct`, [payments.ts](../../src/modules/front-desk/receipts/payments.ts)의 `list`·`refund`, 판정은 순수 함수 [receipt-adjustments.ts](../../src/modules/front-desk/receipts/receipt-adjustments.ts)입니다 (#35).
+
+```
+GET  /receipts?date=&patientId=&limit=&cursor=                                         receipt:read
+GET  /receipts/{id}                                                                    receipt:read
+POST /receipts/{id}:void      { reason }                                               receipt:void
+POST /receipts/{id}:correct   { paymentIds?, payments?, …결산 선택, reason }  Idempotency-Key   receipt:correct
+GET  /payments?status=&patientId=&limit=&cursor=                                       receipt:read
+POST /payments/{id}:refund    { amount, refundMethod, reason, writeOff? }    Idempotency-Key   receipt:refund
+```
+
+- **범위:** 위 표의 조회·취소·정정·결제 환불, 환불 수단 제약, 연쇄 취소의 영수증 `VOIDED`입니다
+  - 미룸: 결제 묶음 환불(`/payment-groups`, `groupId`가 생길 때), 결제의 `allowedActions`, 정정 견적(아래), 연쇄 취소의 `dryRun`·`refunds[]` 본문, 비대면 수납·제주 지원금의 409(그 결제가 생길 때)
+- **목록은 커서 방식입니다(conventions.md).** 만든 시각, ID 순서이고 커서는 앞 쪽 마지막 행의 ID입니다. 취소한 영수증도 줍니다. 수납현황의 미적용 결제는 `GET /payments?status=UNAPPLIED`입니다
+- **환불은 결제 하나씩 기록을 덧붙입니다(`refunds[]`).** 원 결제는 고치지 않고, 상태가 `PARTIALLY_REFUNDED`·`REFUNDED`가 됩니다. 현행 OK차트처럼 "환불 행을 덧붙이는" 방식입니다
+  - 환불 수단은 위 표대로입니다. 과세·비과세 각각 남은 금액까지 받습니다. 어긋나면 422 `REFUND_REJECTED { errors, allowedMethods, refundable }`로 이유를 모두 돌려줍니다(`METHOD_NOT_ALLOWED`·`AMOUNT_EXCEEDED`·`PARTIAL_UNAPPLIED`). 이미 전액 환불했거나 취소한 결제는 409 `PAYMENT_NOT_REFUNDABLE { paymentStatus }`입니다(`status`는 HTTP 상태 필드라 이름을 바꿨습니다). 환불 수단이 없는 제주 지원금·패키지는 지금 `allowedMethods: []`인 422이고, 위 설계의 409는 그 결제가 생길 때 엽니다
+  - **미적용 결제는 전액만 환불합니다.** 영수증이 없어 나눌 이유가 없고, 일부만 환불한 미적용 결제를 나중에 적용하면 금액이 둘로 갈리기 때문입니다. 환불하면 `UNAPPLIED`에서 바로 `REFUNDED`이고 `writeOff`는 무시합니다
+  - **적용한 결제를 환불하면 같은 트랜잭션에서 영수증 결산을 다시 판정합니다(`settlementAfterRefund`).** 받은 금액에서 돌려준 금액을 빼고 남은 금액이 미수가 됩니다. `writeOff: true`면 늘어난 남은 금액을 손비로 둡니다. 과수납을 돌려주면 `PAID`로 돌아옵니다. 영수증 `version`이 오릅니다
+  - **환불 기록에는 요청의 `writeOff` 대신 실제로 손비가 된 금액(`writtenOff`)을 남깁니다.** 과수납을 돌려준 부분은 `writeOff: true`여도 손비가 아니어서, 참·거짓만 남기면 시재·보고가 없는 손비를 셉니다
+  - 적용한 결제가 취소한 영수증에 붙어 있으면 결함으로 봅니다(취소는 결제를 취소하거나 정정 영수증으로 옮기므로 생기지 않습니다)
+  - 대안: 환불을 영수증의 음수 결제 행으로 두기. 결제마다 남은 환불 가능 금액을 다시 모아야 하고, 원 결제와 환불 수단 제약을 잇기 어려워 버렸습니다
+  - 이벤트: `payment.refunded { paymentId, receiptId, visitId, patientId, date, amount, method, writtenOff }`. `date`는 돌려준 날(병원 시간대)입니다. 시재가 그날의 환불로 셉니다
+- **취소(`:void`)는 잘못 입력한 수납을 받지 않은 것으로 돌립니다.** 영수증은 `VOIDED`와 `voided { at, by, reason, correctedBy }`를 남기고 지우지 않습니다
+  - 서버 안에서 받은 결제(현금·계좌이체)는 `VOIDED`가 됩니다. 일부 환불했으면 남은 금액만 받지 않은 것입니다(시재는 #37에서 이 규칙으로 셉니다)
+  - 카드·간편결제처럼 밖에서 취소해야 하는 결제가 남았으면 409 `PAYMENT_REFUND_REQUIRED { receiptId, paymentIds }`입니다. 단말 취소 없이 기록만 지우면 돈 기록이 실제와 어긋나므로 먼저 `:refund`합니다. 연쇄 취소도 같은 오류입니다
+  - 내원 상태는 바꾸지 않습니다. 취소한 영수증은 처방을 잠그지 않으므로(`ENCOUNTER_BILLED`는 유효한 영수증만 봄) 처방을 고친 뒤 `:reopen`하고 다시 수납합니다
+  - `If-Match`는 받지 않습니다. 이미 취소한 영수증은 409 `RECEIPT_VOIDED`라 두 번 취소되지 않고, 취소 판정은 같은 트랜잭션에서 다시 읽은 결제로 하기 때문입니다
+  - 이벤트: `receipt.voided { receiptId, visitId, patientId, date, reason, correctedBy }`. `date`는 취소한 영수증의 수납일입니다
+- **정정(`:correct`)은 같은 진료를 결제만 바꿔 다시 수납합니다.** 한 트랜잭션에서 앞 영수증을 취소(`correctedBy`)하고 새 영수증(`correctionOf`)을 만듭니다. 현행 "결제그룹이 있으면 삭제 후 재수납" 안내를 대신합니다
+  - 밖에서 취소해야 하는 결제(환불하고 남은 것)는 환불하지 않고 새 영수증으로 옮깁니다. 단말을 다시 거치지 않고 현금·계좌이체 쪽만 고치는 것이 정정의 쓰임이기 때문입니다. 결산에는 환불하고 남은 금액으로 들어갑니다
+  - 서버 안에서 받은 결제는 앞 영수증에서 `VOIDED`가 되고, 요청의 `payments`로 다시 받습니다. `paymentIds`로 미적용 결제를 더할 수도 있습니다
+  - 결산 선택(`useOverpaidCredit`·`writeOffRemainder`·`acknowledge`)과 판정은 수납과 같아 막히면 422 `CHECKOUT_REJECTED`입니다. 진료는 앞 영수증의 진료 그대로이고, 수납한 진료는 처방이 잠겨 있어 청구 금액이 바뀌지 않으므로 `quoteId`를 받지 않습니다. 새 영수증의 `quoteId`는 서버가 다시 계산한 값입니다
+  - 새 영수증의 수납일은 정정한 날입니다. 새로 받은 현금이 오늘 시재에 들어가기 때문입니다
+  - 보내지 않은 `memo`·`excludeFromTaxDeduction`은 앞 영수증 것을 이어받습니다. 결제만 바꾸는 정정이 연말정산 제외 표시를 모르게 되돌리면 안 되기 때문입니다
+  - 정정으로 옮긴 결제는 앞 영수증의 `payments`에서 빠지고 새 영수증에 보입니다. 결제 하나는 영수증 하나에 속하기 때문입니다. 옮긴 이력은 `receipt.created`의 `correctionOf`와 `paymentIds`로 남습니다
+  - 미룸: 정정 견적(`:quote-correct`). 화면이 앞 영수증의 청구 금액으로 그릴 수 있어 미뤘습니다. 되돌릴 조건: 정정에서 진료나 할인을 바꾸게 되면 견적과 `quoteId`를 받습니다
+  - 이벤트: `receipt.voided`(앞 영수증), 이어서 `receipt.created { …, correctionOf }`
+- **연쇄 취소(`:cancel {cascade: true}`)는 유효한 영수증을 `:void`와 같이 취소합니다.** 같은 트랜잭션에서 내원 취소·진료 철회 뒤 영수증 `VOIDED`와 `receipt.voided`를 씁니다. 카드 등이 남았으면 아무것도 쓰지 않고 409 `PAYMENT_REFUND_REQUIRED`입니다. 되돌리지 못하는 메모리 저장소(테스트·개발용)는 진료 철회와 같이, 그 사이 다른 요청이 영수증을 바꾸면 내원만 취소된 채 남을 수 있습니다. 이것으로 #33의 409 `VISIT_HAS_RECEIPT`를 없앴습니다
+  - 미룸: 연쇄 취소 본문의 `refunds[]`(현금을 돌려준 기록). 지금은 현금 결제를 `VOIDED`로만 둡니다. 시재(#37)가 오늘 돌려준 현금을 따로 세야 하면 그때 받습니다
+- **저장:** 마이그레이션 `0014_receipt_adjustments`가 `receipts.voided`(JSON)·`correction_of`와 `payments.refunds`(JSON, 기본 `[]`)를 더합니다. 목록 순서용 `(tenant_id, created_at, id)` 인덱스도 둡니다. 저장소 쓰기는 `commit` 하나로 모았습니다. 영수증·결제 여러 행을 읽은 버전 그대로일 때만 함께 쓰고, 하나라도 어긋나면 아무것도 쓰지 않습니다(결함). 취소한 영수증을 새 영수증보다 먼저 써서 정정이 부분 유일 인덱스에 걸리지 않습니다
+- **멱등성:** `:refund`·`:correct`는 `Idempotency-Key`가 필수이고 커맨드 이름은 `payments.refund`·`receipts.correct`입니다. 같은 키로 다시 보내면 그 뒤 바뀐 상태와 상관없이 처음 응답을 돌려주므로, 지금 상태는 `GET`으로 봅니다. 지문은 보낸 본문 그대로라 `writeOff`를 빼고 보낸 요청과 `false`로 보낸 요청은 다른 요청입니다(수납과 같음)
+- **권한:** 조회 `receipt:read`, 취소 `receipt:void`, 정정 `receipt:correct`, 환불 `receipt:refund`입니다(현행 `receipt_create/update/delete`의 재설계, review.md)
 
 ### 시재와 지출
 
@@ -513,7 +558,7 @@ GET /receipts:export?from=&to=    → Job, X-Access-Reason
 | `visit.status_changed` | `{ visitId, from, to }` | `ACTION_WAITING` |
 | `visit.bed_changed` | `{ visitId, roomId, bedNumber }` | `ACTION_TREATMENT` |
 | `payment.recorded` | `{ paymentId, patientId, status }` | 없음 |
-| `receipt.created/voided`, `payment.refunded` | `{ receiptId, visitId?, patientId, date }` | `ACTION_RECEIPT` |
+| `receipt.created/voided`, `payment.refunded` | `{ receiptId, visitId?, patientId, date }` (미적용 결제의 `payment.refunded`는 `receiptId`가 `null`) | `ACTION_RECEIPT` |
 | `cash_drawer.changed` | `{ date }` | `ACTION_RECEIPT`에 섞임 |
 
 오프라인 접수·수납과 동기화 이벤트는 [offline.md](offline.md)에 있습니다.

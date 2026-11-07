@@ -81,6 +81,8 @@ describe('migrations', () => {
           amount_tax_exempt: 7_000,
           processor_ref: null,
           status: 'CAPTURED',
+          // 0014가 더한 열입니다
+          refunds: '[]',
           recorded_by: 'usr_01JBQ000000000000000000001',
           created_at: '2026-11-06T01:00:00.000Z',
           updated_at: '2026-11-06T01:00:00.000Z',

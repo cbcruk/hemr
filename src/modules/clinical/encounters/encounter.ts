@@ -164,7 +164,7 @@ export class EncounterCompletionRejected extends HttpApiError.Problem<EncounterC
 
 /**
  * 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을
- * 취소하거나 정정합니다(#35). 본문·상병은 바꿀 수 있습니다.
+ * 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다.
  */
 export class EncounterBilled extends HttpApiError.Problem<EncounterBilled>()(
   'EncounterBilled',
