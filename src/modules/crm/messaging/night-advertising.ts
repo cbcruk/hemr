@@ -33,13 +33,13 @@ export const DEFAULT_NIGHT_ADVERTISING_POLICY: NightAdvertisingPolicy = { ...LEG
  */
 export function nightAdvertisingPolicyViolations(policy: NightAdvertisingPolicy): { field: string; code: string }[] {
   const second = (value: number) => Number.isInteger(value) && value >= 0 && value < 24 * HOUR
-  const startValid = second(policy.startSecond) && policy.startSecond <= LEGAL_NIGHT.startSecond
-  const endValid = second(policy.endSecond) && policy.endSecond >= LEGAL_NIGHT.endSecond
+  const 야간시작유효 = second(policy.startSecond) && policy.startSecond <= LEGAL_NIGHT.startSecond
+  const 야간끝유효 = second(policy.endSecond) && policy.endSecond >= LEGAL_NIGHT.endSecond
   // 자정을 넘기는지는 두 값이 각각 맞을 때만 봅니다. 잘못된 끝 때문에 맞는 시작을 탓하지 않습니다
-  const wraps = !startValid || !endValid || policy.startSecond > policy.endSecond
+  const 자정넘김 = policy.startSecond > policy.endSecond
   return [
-    ...(startValid && wraps ? [] : [{ field: 'startSecond', code: 'INVALID_VALUE' }]),
-    ...(endValid ? [] : [{ field: 'endSecond', code: 'INVALID_VALUE' }]),
+    ...(야간시작유효 && (!야간끝유효 || 자정넘김) ? [] : [{ field: 'startSecond', code: 'INVALID_VALUE' }]),
+    ...(야간끝유효 ? [] : [{ field: 'endSecond', code: 'INVALID_VALUE' }]),
   ]
 }
 
@@ -102,8 +102,8 @@ export function contactRuleNightWarning(
   const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(rule.sendTime)
   if (match === null) throw new RangeError(`sendTime must be HH:mm: ${rule.sendTime}`)
   if (rule.purpose !== 'ADVERTISING') return null
-  const second = Number(match[1]) * HOUR + Number(match[2]) * 60
-  return isNightSecond(second, policy) ? { code: 'CONTACT_RULE_NIGHT_SEND_TIME', field: 'sendTime' } : null
+  const 발송시각초 = Number(match[1]) * HOUR + Number(match[2]) * 60
+  return isNightSecond(발송시각초, policy) ? { code: 'CONTACT_RULE_NIGHT_SEND_TIME', field: 'sendTime' } : null
 }
 
 /**

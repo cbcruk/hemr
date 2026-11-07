@@ -144,7 +144,7 @@ function legacyExpected(check: string, expected: any): unknown {
   return expected
 }
 
-describe('external-herbal-precheck fixture', () => {
+describe('현행 픽스처 (external-herbal-precheck)', () => {
   const ported = fixture.cases.filter((c) => !(c.name in NOT_PORTED))
 
   it.each(ported.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
@@ -153,7 +153,7 @@ describe('external-herbal-precheck fixture', () => {
     expect(RUN[check]!(input)).toEqual(want)
   })
 
-  it('accounts for every fixture case', () => {
+  it('옮긴 케이스는 모두 판정에 연결하고, 제외·바뀐 기대값 목록은 실제 케이스를 가리키며 서로 겹치지 않습니다', () => {
     expect(ported.filter((c) => !(c.input['check'] in RUN)).map((c) => c.name)).toEqual([])
     // 결제수단 재분배는 서버에 없으므로 옮긴 케이스는 모두 바뀐 기대값입니다
     expect(

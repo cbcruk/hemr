@@ -42,16 +42,16 @@ export type ExternalPrecheckGate =
 export function parseExternalPrecheck(body: unknown): ExternalPrecheckResult {
   const record = isRecord(body) ? body : {}
   const lines = Array.isArray(record['lines']) ? record['lines'] : []
-  const errors = Array.isArray(record['errors'])
+  const 주문오류 = Array.isArray(record['errors'])
     ? record['errors'].filter((each): each is string => typeof each === 'string')
     : []
-  const lineIssues = lines.flatMap((line, index): ExternalPrecheckLineIssue[] => {
+  const 줄실패 = lines.flatMap((line, index): ExternalPrecheckLineIssue[] => {
     const entry = isRecord(line) ? line : {}
     if (entry['ok'] === true) return []
-    const rawCode = typeof entry['code'] === 'string' ? entry['code'] : null
-    return [{ line: index, code: rawCode === 'OUT_OF_STOCK' ? 'OUT_OF_STOCK' : 'UNKNOWN', rawCode }]
+    const 원문코드 = typeof entry['code'] === 'string' ? entry['code'] : null
+    return [{ line: index, code: 원문코드 === 'OUT_OF_STOCK' ? 'OUT_OF_STOCK' : 'UNKNOWN', rawCode: 원문코드 }]
   })
-  return { ok: record['ok'] === true, errors, lineIssues }
+  return { ok: record['ok'] === true, errors: 주문오류, lineIssues: 줄실패 }
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -64,7 +64,7 @@ export function externalPrecheckGate(call: ExternalPrecheckCall): ExternalPreche
   return result.ok ? { ok: true, result } : { ok: false, status: 422, code: 'EXTERNAL_PRECHECK_FAILED', result }
 }
 
-const LINE_LABEL: Record<ExternalPrecheckLineCode, string> = {
+const 줄실패문구: Record<ExternalPrecheckLineCode, string> = {
   OUT_OF_STOCK: '재고 부족',
   // 현행은 `OUT_OF_STOCK` 밖을 모두 "수량 불일치"로 보였습니다. 코드 목록을 확인하면 나눕니다 (결정 3)
   UNKNOWN: '수량 불일치',
@@ -72,8 +72,8 @@ const LINE_LABEL: Record<ExternalPrecheckLineCode, string> = {
 
 /** 실패 문구입니다. 주문 단위 오류 뒤에 줄 실패를 붙이고, 둘 다 없으면 일반 문구입니다. 현행 문구를 그대로 씁니다. */
 export function externalPrecheckMessage(result: ExternalPrecheckResult): string {
-  const reasons = [...result.errors, ...result.lineIssues.map((issue) => LINE_LABEL[issue.code])]
-  return `주문 확인 실패: ${reasons.length > 0 ? reasons.join(', ') : '수량·재고를 확인해주세요.'}`
+  const 실패사유 = [...result.errors, ...result.lineIssues.map((issue) => 줄실패문구[issue.code])]
+  return `주문 확인 실패: ${실패사유.length > 0 ? 실패사유.join(', ') : '수량·재고를 확인해주세요.'}`
 }
 
 /**
@@ -87,8 +87,8 @@ export function herbLineQuantity(dosePerPackG: number, doses: number): number {
   }
   if (!(dosePerPackG > 0) || doses <= 0) return 0
   const { numerator, denominator } = decimalFraction(dosePerPackG)
-  const tenths = divideHalfUp(numerator * 10, denominator)
-  return (tenths * doses) / 10
+  const 첩당용량십배 = divideHalfUp(numerator * 10, denominator)
+  return (첩당용량십배 * doses) / 10
 }
 
 /**
@@ -121,9 +121,10 @@ export function externalPaymentAmountMismatch(
   methods: readonly ExternalPaymentMethod[],
   payable: number,
 ): ExternalPaymentAmountMismatch | null {
-  const total = methods.reduce((sum, method) => sum + method.amount, 0)
+  const 결제수단합계 = methods.reduce((sum, method) => sum + method.amount, 0)
   if (methods.some((method) => !(method.amount > 0))) {
-    return { code: 'PAYMENT_AMOUNT_MISMATCH', reason: 'NON_POSITIVE_AMOUNT', payable, total }
+    return { code: 'PAYMENT_AMOUNT_MISMATCH', reason: 'NON_POSITIVE_AMOUNT', payable, total: 결제수단합계 }
   }
-  return total === payable ? null : { code: 'PAYMENT_AMOUNT_MISMATCH', reason: 'TOTAL', payable, total }
+  if (결제수단합계 === payable) return null
+  return { code: 'PAYMENT_AMOUNT_MISMATCH', reason: 'TOTAL', payable, total: 결제수단합계 }
 }

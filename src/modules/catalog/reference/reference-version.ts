@@ -37,14 +37,14 @@ export function effectiveAsOf(asOf: string | undefined, nowMillis: number): stri
  */
 export function selectReferenceVersion(versions: readonly ReferenceVersion[], asOf: string): ReferenceVersionSelection {
   if (!isCalendarDate(asOf)) throw new RangeError(`Expected a YYYY-MM-DD date, got ${asOf}`)
-  const valid = versions.filter(
-    (version) => version.validFrom <= asOf && (version.validTo === null || asOf < version.validTo),
+  const 유효버전목록 = versions.filter(
+    (버전) => 버전.validFrom <= asOf && (버전.validTo === null || asOf < 버전.validTo),
   )
-  const latest = valid.reduce<ReferenceVersion | null>(
-    (best, version) => (best === null || version.validFrom > best.validFrom ? version : best),
+  const 최신유효버전 = 유효버전목록.reduce<ReferenceVersion | null>(
+    (최신, 버전) => (최신 === null || 버전.validFrom > 최신.validFrom ? 버전 : 최신),
     null,
   )
-  return latest === null ? { error: 'REFERENCE_DATA_UNAVAILABLE' } : { version: latest }
+  return 최신유효버전 === null ? { error: 'REFERENCE_DATA_UNAVAILABLE' } : { version: 최신유효버전 }
 }
 
 /**
@@ -52,14 +52,14 @@ export function selectReferenceVersion(versions: readonly ReferenceVersion[], as
  * 같은 날짜가 여러 번 있으면 하나로 합칩니다.
  */
 export function versionsFromStartDates(startDates: readonly string[]): ReferenceVersion[] {
-  for (const date of startDates) {
-    if (!isCalendarDate(date)) throw new RangeError(`Expected a YYYY-MM-DD date, got ${date}`)
+  for (const 시작일 of startDates) {
+    if (!isCalendarDate(시작일)) throw new RangeError(`Expected a YYYY-MM-DD date, got ${시작일}`)
   }
-  const sorted = [...new Set(startDates)].sort()
-  return sorted.map((validFrom, index) => ({
-    versionId: validFrom.replaceAll('-', ''),
-    validFrom,
-    validTo: sorted[index + 1] ?? null,
+  const 정렬한시작일 = [...new Set(startDates)].sort()
+  return 정렬한시작일.map((시작일, index) => ({
+    versionId: 시작일.replaceAll('-', ''),
+    validFrom: 시작일,
+    validTo: 정렬한시작일[index + 1] ?? null,
   }))
 }
 
@@ -70,13 +70,13 @@ export function versionsFromStartDates(startDates: readonly string[]): Reference
  * 남깁니다. 현행은 숫자가 없는 값을 조용히 버렸습니다.
  */
 export function migrateAvailableDates(legacy: readonly string[]): { dates: string[]; rejected: string[] } {
-  const dates: string[] = []
-  const rejected: string[] = []
-  for (const value of legacy) {
-    const digits = value.replace(/\D/g, '')
-    const date = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
-    if (digits.length >= 8 && isCalendarDate(date)) dates.push(date)
-    else rejected.push(value)
+  const 적용일자: string[] = []
+  const 이관불가값: string[] = []
+  for (const 현행값 of legacy) {
+    const digits = 현행값.replace(/\D/g, '')
+    const 일자 = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+    if (digits.length >= 8 && isCalendarDate(일자)) 적용일자.push(일자)
+    else 이관불가값.push(현행값)
   }
-  return { dates, rejected }
+  return { dates: 적용일자, rejected: 이관불가값 }
 }

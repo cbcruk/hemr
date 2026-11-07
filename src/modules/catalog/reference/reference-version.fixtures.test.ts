@@ -105,18 +105,18 @@ const CHANGED: Record<string, Outcome> = {
   'feeVersion dates list empty -> empty string': { error: 'REFERENCE_DATA_UNAVAILABLE' },
 }
 
-describe('reference-version-selection fixture', () => {
+describe('현행 픽스처 (reference-version-selection)', () => {
   it.each(fixture.cases.map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
     const outcome = input['fn'] === 'O0' ? staticVersion(input) : feeVersion(input)
     expect(outcome).toEqual(CHANGED[name] ?? legacyOutcome(input['fn'], expected))
   })
 
-  it('reports the dropped entry of the "without digits" case (notes block)', () => {
+  it('숫자가 없어 현행이 버린 값을 rejected로 돌려줍니다 (notes 블록)', () => {
     const testCase = fixture.cases.find((c) => c.name === 'feeVersion list entry without digits is dropped')!
     expect(migrateAvailableDates(testCase.input['적용일자목록']).rejected).toEqual(['N/A'])
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 판정에 연결하고 바뀐 기대값은 실제 케이스 이름을 가리킵니다', () => {
     expect(fixture.cases.filter((c) => !['O0', 'qF'].includes(c.input['fn'])).map((c) => c.name)).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])
   })
