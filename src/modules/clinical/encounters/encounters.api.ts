@@ -36,7 +36,7 @@ const CompletePayload = Schema.Struct({
   nextVisitStatus: Schema.optionalKey(
     Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT']).annotate({
       description:
-        '완료한 뒤 내원을 보낼 상태입니다. 없으면 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`·`AWAITING_PAYMENT`면 진행 중인 시술을 완료합니다.',
+        '완료한 뒤 내원을 보낼 상태입니다. 없으면 `IN_TREATMENT`(치료실로 보냄)이고, 수납 대기(`AWAITING_PAYMENT`)인 내원은 그대로 둡니다. 내원이 수납까지 끝났거나(`COMPLETED`) 지난 날짜면 옮기지 않습니다. `WAITING`·`AWAITING_PAYMENT`를 골라 내원이 그 상태면 진행 중·타이머 만료 시술을 완료합니다.',
     }),
   ),
   acknowledge: Schema.optionalKey(
@@ -54,7 +54,10 @@ const AmendPayload = Schema.Struct({
   reason: Reason,
   changes: UpdatePayload,
   acknowledge: CompletePayload.fields.acknowledge,
-}).annotate({ description: '정정 본문입니다. `changes`는 `PATCH` 본문과 같고, 새 판을 한 번에 확정합니다.' })
+}).annotate({
+  description:
+    '정정 본문입니다. `changes`는 `PATCH` 본문과 같고, 바뀌는 것이 있으면 새 판을 한 번에 확정합니다. 바뀌는 것이 없으면 진료를 그대로 돌려줍니다.',
+})
 
 const lockEndpoint = (name: 'lock' | 'unlock') =>
   HttpApiEndpoint.post(name, `/encounters/:id::${name}`, {
@@ -95,7 +98,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       error: PatientNotFound,
     })
       .annotate(Access, Access.requires('encounter:read'))
-      .annotate(OpenApi.Summary, '환자의 진료 목록'),
+      .annotate(OpenApi.Summary, '환자의 진료 목록 (최신 진료부터)'),
     HttpApiEndpoint.patch('update', '/encounters/:id', {
       params: { id: EncounterId },
       headers,
@@ -124,7 +127,12 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       params: { id: EncounterId },
       headers,
       payload: CompletePayload,
-      success: withETag(Schema.Struct({ encounter: Encounter, visit: Schema.NullOr(Visit) })),
+      success: withETag(
+        Schema.Struct({
+          encounter: Encounter,
+          visit: Schema.NullOr(Visit).annotate({ description: '완료 뒤의 내원입니다. 내원 없는 진료는 `null`입니다.' }),
+        }),
+      ),
       error: [
         EncounterNotFound,
         EncounterNotEditable,
@@ -174,13 +182,14 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       error: EncounterNotFound,
     })
       .annotate(Access, Access.requires('encounter:read'))
-      .annotate(OpenApi.Summary, '판 목록'),
+      .annotate(OpenApi.Summary, '판 목록 (1판부터, 초안은 빈 목록)'),
     HttpApiEndpoint.get('getRevision', '/encounters/:id/versions/:n', {
       params: {
         id: EncounterId,
-        n: Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)).annotate({
-          description: '판 번호입니다. 1부터입니다.',
-        }),
+        // 변환 Schema는 문서에 인코딩 쪽(문자열)만 나오므로 설명을 그쪽에 답니다
+        n: Schema.String.annotate({ description: '판 번호입니다. 1부터입니다.' }).pipe(
+          Schema.decodeTo(Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1))),
+        ),
       },
       success: EncounterRevision,
       error: [EncounterNotFound, EncounterRevisionNotFound],

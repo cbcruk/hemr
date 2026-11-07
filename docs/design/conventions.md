@@ -185,11 +185,13 @@ OpenAPI 문서는 손으로 쓰지 않고 HTTP 계약(`Api`)에서 만듭니다(
 - **저장본 [docs/reference/openapi.json](../reference/openapi.json)을 테스트가 지킵니다.** 계약을 바꾸고 `pnpm openapi`를 돌리지 않으면 테스트가 실패해, API 변경이 PR 차이에 그대로 보입니다. 생성 파일이라 GitHub 차이에서는 접힙니다(`.gitattributes`)
   - 대안: `GET /openapi.json`으로 서버가 내주기. 바뀐 것이 리뷰에 보이지 않아 버렸습니다. 문서 화면(Swagger·Scalar)이 필요해지면 저장본과 함께 둡니다
 - **리소스·enum Schema는 `identifier`·`title`·`description`을 답니다.** `identifier`는 Schema 상수 이름과 같게 하고, OpenAPI `components`의 이름이 됩니다. `title`은 업무 용어이고, 테스트가 용어 표에서 그 이름을 키로 둔 행에 그 용어가 있는지 확인합니다. 행의 첫 키에 한해 첫 글자 소문자 필드 이름(`coverage` → `Coverage`)도 받습니다. 용어와 키가 `/`로 같은 수만큼 나뉜 행은 순서대로 짝짓고, `·`는 나누지 않습니다(`접수·내원`이 아니라 `내원 (접수)`로 썼습니다). 표 셀의 코드 안 `|`는 `\|`로 씁니다(GFM 표가 셀을 나누지 않게). 용어 표가 번역의 단일 출처라는 규칙을 문서에도 지키려는 것입니다. 용어 표에 없는 Schema는 `title` 없이 `description`만 답니다
-- **필드 설명은 `description`으로 쓰고 JSDoc은 지웁니다.** 같은 설명을 두 곳에 두면 어긋나기 때문입니다. 헤더(`If-Match`, `ETag`)와 본문 필드도 같습니다. API를 쓰는 사람이 알 필요 없는 구현 메모(마이그레이션 번호, 앞으로 바꿀 계획)만 `//` 주석으로 남깁니다. 응답이 `null`일 수 있는 경우, 404·409가 나는 조건처럼 클라이언트가 알아야 할 사실은 설명에 둡니다. 편집기에서 필드 위에 마우스를 올려도 설명이 보이지 않는 것은 감수합니다
+- **필드 설명은 `description`으로 쓰고 JSDoc은 지웁니다.** 같은 설명을 두 곳에 두면 어긋나기 때문입니다. 헤더(`If-Match`, `ETag`)와 본문 필드도 같습니다. API를 쓰는 사람이 알 필요 없는 구현 메모(마이그레이션 번호, 앞으로 바꿀 계획, 현행 필드 이름)만 `//` 주석으로 남깁니다. 응답이 `null`일 수 있는 경우, 404·409가 나는 조건처럼 클라이언트가 알아야 할 사실은 설명에 둡니다. 편집기에서 필드 위에 마우스를 올려도 설명이 보이지 않는 것은 감수합니다
 - **엔드포인트는 `OpenApi.Summary`, 그룹은 `OpenApi.Description`을 한글로 답니다.** 권한·라우터 사정 같은 구현 설명은 그룹의 JSDoc에 둡니다
-- **Effect의 함정 두 가지:**
-  - `refine`으로 만든 Schema(ID 등)는 `refine` 뒤에 단 설명이 문서에서 빠집니다. `Schema.String.annotate({ description }).pipe(Schema.refine(…))`처럼 앞에 답니다. 같은 이유로 필드 자리에서 ID에 단 설명도 빠지므로, 필드별 설명이 필요하면 `//` 주석으로 둡니다
+- **Effect의 함정 네 가지:**
+  - `refine`이나 직접 만든 검사(`Schema.makeFilter`)처럼 JSON Schema로 옮길 수 없는 검사가 있으면, 그 뒤에 단 설명이 문서에서 빠집니다. `Schema.String.annotate({ description }).pipe(Schema.refine(…))`, `Schema.Finite.annotate({ description }).check(…)`처럼 앞에 답니다. 같은 이유로 필드 자리에서 ID에 단 설명도 빠지므로, 필드별 설명이 필요하면 `//` 주석으로 둡니다
   - 이름(`identifier`) 있는 Schema를 필드 자리에서 다시 `annotate`하면 `Visit_1`처럼 사본 Schema가 생깁니다. 설명은 Schema 쪽에만 달고, 테스트가 사본이 없는지 확인합니다
+  - `Schema.Number`는 문서에 `NaN`·`Infinity` 문자열을 함께 받는 `anyOf`로 나오고 설명과 범위가 빠집니다. 숫자 필드는 `Schema.Finite`(정수는 `Schema.Int`)로 씁니다
+  - 변환 Schema(`NumberFromString` 등)는 문서에 인코딩 쪽(문자열)만 나와 뒤에 단 설명이 빠집니다. `Schema.String.annotate({ description }).pipe(Schema.decodeTo(…))`처럼 인코딩 쪽에 답니다
 - `identifier`를 달면 Schema 내부 오류 문구가 이름으로 바뀝니다(`Expected "A" | "B"` → `Expected VisitStatus`). `VALIDATION_FAILED` 응답은 오류 종류와 경로만 쓰므로 바뀌지 않고, 로그와 DB 행 디코딩 오류의 문구만 바뀝니다
 - 문제 응답(`HttpApiError.Problem`)의 설명은 공통 묶음에서 다룹니다. 그때까지 재시도 안내 같은 내용은 그 클래스의 JSDoc에 있습니다
 - **커맨드 경로:** 라우터는 커맨드 경로의 콜론을 `::`로 적습니다(`/visits/:id::cancel`). 문서에는 실제 경로(`/visits/{id}:cancel`)로 바꿔 씁니다

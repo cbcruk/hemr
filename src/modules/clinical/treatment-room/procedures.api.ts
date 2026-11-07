@@ -75,14 +75,14 @@ export class ProceduresApi extends HttpApiGroup.make('procedures')
     })
       // 내원 전체(보험구분·자격 등)를 함께 주므로 내원 조회 권한도 봅니다
       .annotate(Access, Access.requires('procedure:read', 'visit:read'))
-      .annotate(OpenApi.Summary, '치료실 보드'),
+      .annotate(OpenApi.Summary, '치료실 보드 (그날 취소하지 않은 내원, 접수 순서)'),
     HttpApiEndpoint.get('listForVisit', '/visits/:id/procedures', {
       params: visitParams,
       success: Procedures,
       error: VisitNotFound,
     })
       .annotate(Access, Access.requires('procedure:read'))
-      .annotate(OpenApi.Summary, '내원의 시술 목록'),
+      .annotate(OpenApi.Summary, '내원의 시술 목록 (`order` 순서)'),
     HttpApiEndpoint.post('add', '/visits/:id/procedures', {
       params: visitParams,
       payload: AddPayload,
@@ -149,6 +149,6 @@ export class ProceduresApi extends HttpApiGroup.make('procedures')
   )
   .annotate(
     OpenApi.Description,
-    '치료실 보드와 시술입니다. 시술은 내원에 딸리고 타이머로 진행합니다. 타이머 만료는 서버가 판정하고, 보드의 `serverTime`으로 남은 시간을 그립니다. 시작(`:start`)은 같은 내원의 만료 시술을 함께 완료하므로 바뀐 시술 모두를 `items`로 줍니다. 시술 커맨드는 `If-Match`를 받지 않고, 같은 시술을 두 번 시작하면 뒤 요청이 409입니다. 취소했거나 수납까지 끝난 내원에는 시술을 더하거나 진행할 수 없습니다(409). 다른 병원의 내원·시술은 없는 것과 같이 404입니다.',
+    '치료실 보드와 시술입니다. 시술은 내원에 딸리고 타이머로 진행합니다. 타이머 만료는 서버가 판정하고, 보드의 `serverTime`으로 남은 시간을 그립니다. 시작(`:start`)은 같은 내원의 만료 시술을 함께 완료하므로 바뀐 시술 모두를 `items`로 줍니다. 시술 커맨드는 `If-Match`를 받지 않고, 같은 시술을 두 번 시작하면 뒤 요청이 409입니다. 취소했거나 수납까지 끝난 내원에서는 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기가 409 `PROCEDURE_VISIT_CLOSED`이고, 정리용인 완료·모두 완료·지우기·순서 바꾸기는 됩니다. 다른 병원의 내원·시술은 없는 것과 같이 404입니다.',
   )
   .middleware(Authorization) {}

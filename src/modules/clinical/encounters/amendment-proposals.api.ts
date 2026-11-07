@@ -48,16 +48,19 @@ export class AmendmentProposalsApi extends HttpApiGroup.make('amendmentProposals
       error: [EncounterNotFound, EncounterNotEditable, EncounterChangeInvalid, AmendmentProposalEmpty],
     })
       .annotate(Access, Access.requires('encounter.amendment_proposal:create'))
-      .annotate(OpenApi.Summary, '정정 제안')
+      .annotate(OpenApi.Summary, '정정 제안 만들기')
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.get('list', '/encounters/:id/amendment-proposals', {
       params: { id: EncounterId },
-      query: { status: Schema.optionalKey(AmendmentProposalStatus) },
+      query: {
+        // 없으면 모든 상태입니다
+        status: Schema.optionalKey(AmendmentProposalStatus),
+      },
       success: Schema.Struct({ items: Schema.Array(AmendmentProposalView) }),
       error: EncounterNotFound,
     })
       .annotate(Access, Access.requires('encounter:read'))
-      .annotate(OpenApi.Summary, '진료의 정정 제안 목록'),
+      .annotate(OpenApi.Summary, '진료의 정정 제안 목록 (만든 순서)'),
     HttpApiEndpoint.get('get', '/amendment-proposals/:id', {
       params: proposalParams,
       success: AmendmentProposalView,
@@ -116,6 +119,6 @@ export class AmendmentProposalsApi extends HttpApiGroup.make('amendmentProposals
   )
   .annotate(
     OpenApi.Description,
-    '정정 제안입니다. 면허 없는 사용자가 완료한 진료기록의 정정을 제안하고, 의사가 반영(`:apply`)하거나 버립니다(`:dismiss`). 반영은 정정(`:amend`)과 같은 검사를 거치고, 실패하면 제안은 대기로 남습니다. 제안 뒤 진료가 정정되면 낡은 제안(`stale`)이라 반영할 수 없습니다. 다른 병원의 제안은 없는 것과 같이 404입니다.',
+    '정정 제안입니다. 면허 없는 사용자가 완료한 진료기록의 정정을 제안하고, 의사가 반영(`:apply`)하거나 버립니다(`:dismiss`). 반영은 정정(`:amend`)과 같은 검사를 거치고, 실패하면 제안은 대기로 남습니다. 고정한 진료에도 제안할 수 있지만 반영은 고정을 푼 뒤에 됩니다(409 `ENCOUNTER_LOCKED`). 제안 뒤 진료가 정정되면 낡은 제안(`stale`)이라 반영할 수 없습니다. 다른 병원의 제안은 없는 것과 같이 404입니다.',
   )
   .middleware(Authorization) {}

@@ -39,17 +39,17 @@ const hasAtMostTwoDecimals = Schema.makeFilter((value: number) => Math.round(val
 })
 
 export const Dose = Schema.Struct({
-  perDay: Schema.Number.check(Schema.isBetween({ minimum: 0.01, maximum: 1000 }), hasAtMostTwoDecimals).annotate({
+  // 직접 만든 검사(`hasAtMostTwoDecimals`) 뒤에 단 설명은 OpenAPI 문서에서 빠지므로 앞에 답니다
+  perDay: Schema.Finite.annotate({
     description: '1일 횟수입니다. 첩약 반 첩처럼 소수일 수 있고, 소수점 아래 둘째 자리까지 받습니다.',
-  }),
+  }).check(Schema.isBetween({ minimum: 0.01, maximum: 1000 }), hasAtMostTwoDecimals),
   days: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 365 })).annotate({ description: '일수입니다.' }),
 }).annotate({ identifier: 'Dose', description: '투여·시술 양입니다. 금액은 `unitPrice × perDay × days`입니다.' })
 export type Dose = typeof Dose.Type
 
-export const UnitPrice = Schema.Number.check(
-  Schema.isBetween({ minimum: 0, maximum: 100_000_000 }),
-  hasAtMostTwoDecimals,
-).annotate({ description: '처방 시점의 단가(원)입니다. 소수점 아래 둘째 자리까지 받습니다.' })
+export const UnitPrice = Schema.Finite.annotate({
+  description: '처방 시점의 단가(원)입니다. 소수점 아래 둘째 자리까지 받습니다.',
+}).check(Schema.isBetween({ minimum: 0, maximum: 100_000_000 }), hasAtMostTwoDecimals)
 
 // 지금은 저장과 금액 계산에 필요한 필드만 두었습니다. 침법·시간대 가산·부위·시술자·줄단위특정내역·패키지·심평원 승인·
 // 한약 처방은 그 기능이 생길 때 더합니다
@@ -59,12 +59,13 @@ export const PrescriptionLine = Schema.Struct({
   feeCode: Schema.NullOr(Schema.String).annotate({
     description: '수가코드입니다. 비급여처럼 코드가 없으면 `null`입니다.',
   }),
+  // 현행 카테고리숫자코드입니다
   categoryCode: Schema.String.annotate({
-    description: '처방 카테고리(현행 카테고리숫자코드) 8자리입니다. 보험구분 전용 카테고리 판정에 씁니다.',
+    description: '처방 카테고리 숫자 8자리입니다. 보험구분 전용 카테고리 판정에 씁니다.',
   }),
   name: Schema.String,
   dose: Dose,
-  unitPrice: Schema.Number.annotate({
+  unitPrice: Schema.Finite.annotate({
     description: '처방 시점 단가(원)입니다. 설정 단가가 바뀌어도 이 진료의 금액은 변하지 않습니다.',
   }),
   amount: Schema.Int.annotate({
