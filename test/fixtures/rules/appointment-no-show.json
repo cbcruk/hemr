@@ -3,19 +3,19 @@
   "description": "No-show timing settings as the client edits and displays them; the no-show transition itself runs on the server.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/setting/SettingAppointmentGeneral.vue.js",
+      "file": "restored/components/setting/SettingAppointmentGeneral.vue.js",
       "lines": "73-110, 183-229",
-      "origin": "unminified/SettingAppointment-DsssnKZ3.js:1010-1233"
+      "origin": "unminified/SettingAppointment.js:1010-1233"
     },
     {
-      "file": "re-upstream/restored/components/appointment/AppointmentPlannerHistory.vue.js",
+      "file": "restored/components/appointment/AppointmentPlannerHistory.vue.js",
       "lines": "157-216",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:15743-16051"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:15743-16051"
     },
     {
-      "file": "re-upstream/restored/modules/index/orderSource.js",
+      "file": "restored/modules/index/orderSource.js",
       "lines": "376-386",
-      "origin": "unminified/index-CBEIvlV0.js:70299-70816"
+      "origin": "unminified/index.js:70299-70816"
     }
   ],
   "inputSchema": {

@@ -24,7 +24,7 @@
   - Pinia `deskDate`: `deskDate`, `deskScrollPositions`
     - 스크롤 위치는 날짜·컬럼(`data-desk-scroll` = `board`/`appointment`/`waiting`/`treatment`) 단위로 저장했다가 복원합니다
     - `onActivated`/`onDeactivated` 훅을 쓰므로 keep-alive 안에서 동작합니다 (추정)
-- **근거:** `re-upstream/restored/router/routes.js`, `re-upstream/restored/components/desk/DeskSuspense.vue`, `re-upstream/restored/views/DeskView.vue`, `re-upstream/restored/components/today/TodaySummaryBar.vue`, `re-upstream/restored/stores/deskDate.js`, `re-upstream/restored/modules/DeskView/part-3.js` (`Ff` 스크롤 복원)
+- **근거:** `restored/router/routes.js`, `restored/components/desk/DeskSuspense.vue`, `restored/views/DeskView.vue`, `restored/components/today/TodaySummaryBar.vue`, `restored/stores/deskDate.js`, `restored/modules/DeskView/part-3.js` (`Ff` 스크롤 복원)
 
 ## 내원현황 보드 (5개 컬럼)
 
@@ -93,7 +93,7 @@
     - 그룹핑 기준: `deskVisitGroupingCriteria` (`Bxe` 훅)
     - 컬럼별 카드 형태: `patientCardType`(예약), `waitingPatientCardType`, `treatmentPatientCardType`, `paymentPatientCardType`, `paymentCompletePatientCardType`
     - 예약 컬럼 숨김 토글: `deskVisitHideCancelledNoShow`
-- **근거:** `re-upstream/restored/views/DeskVisitView.vue`, `re-upstream/restored/components/desk/DeskVisitHeader.vue`, `re-upstream/restored/components/desk/DeskVisitAppointment.vue`, `re-upstream/restored/components/desk/DeskVisitWaiting.vue`, `re-upstream/restored/components/desk/DeskVisitEmptySection.vue`, `re-upstream/restored/modules/DeskView/part-3.js`, `re-upstream/restored/modules/index/useDeskWaitingQuery.js`, `re-upstream/restored/modules/index/useDeskAppointmentsByValueQuery.js`, `re-upstream/restored/components/waiting/WaitingColumn.vue`
+- **근거:** `restored/views/DeskVisitView.vue`, `restored/components/desk/DeskVisitHeader.vue`, `restored/components/desk/DeskVisitAppointment.vue`, `restored/components/desk/DeskVisitWaiting.vue`, `restored/components/desk/DeskVisitEmptySection.vue`, `restored/modules/DeskView/part-3.js`, `restored/modules/index/useDeskWaitingQuery.js`, `restored/modules/index/useDeskAppointmentsByValueQuery.js`, `restored/components/waiting/WaitingColumn.vue`
 
 ## 접수·대기 상태 값
 
@@ -106,11 +106,11 @@
 | `수납` | 수납 | 대기·치료·수납완료 카드를 수납 컬럼에 드롭 |
 | `수납완료` | 수납 완료 | 수납 완료 처리(`DeskVisitPaymentCheckOut`) 후 자동, 또는 수납 내역이 있는 카드를 드롭 |
 
-- 화면 문구용 이동 단계(`_D`)에는 `차팅 완료`도 있습니다: `["차팅 완료","대기","치료","수납"]`. 분석 이벤트 값은 `no_move`/`waiting`/`treatment`/`payment`/`payment_done`입니다 (`re-upstream/restored/modules/SidePanelDeskActions/part-2.js`)
+- 화면 문구용 이동 단계(`_D`)에는 `차팅 완료`도 있습니다: `["차팅 완료","대기","치료","수납"]`. 분석 이벤트 값은 `no_move`/`waiting`/`treatment`/`payment`/`payment_done`입니다 (`restored/modules/SidePanelDeskActions/part-2.js`)
 
 ### 보험구분 (`S0e`)
 
-`건보`, `자보`, `급여`, `산재`, `일반` (`re-upstream/restored/api/patients/queries-2.js`)
+`건보`, `자보`, `급여`, `산재`, `일반` (`restored/api/patients/queries-2.js`)
 
 ### 예약 상태
 
@@ -177,7 +177,7 @@
   - `usePostDeskWaitingMutation` 성공 시 무효화: `desk.waiting(today)`, `desk.appointment(today)`, `appointmentsPlanner.all`, 환자 `QueryKey$.all`, `patientHistory`
   - `usePatchDeskWaitingMutation` 성공 시: `waiting`이 들어간 모든 키를 무효화합니다
   - 패널 상태는 `xft()`가 만든 `sidePanelContextState` ref에 둡니다 (`{ panel, data }`)
-- **근거:** `re-upstream/restored/components/desk/DeskPatientAccept.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientAccept.vue`, `re-upstream/restored/components/desk/DeskPatientAcceptModal.vue`, `re-upstream/restored/api/desk/requests-4.js` (`postDeskWaiting`), `re-upstream/restored/modules/mutations/usePostPatientsNewMutation.js`, `re-upstream/restored/modules/index/part-86.js` (`xft`), `re-upstream/restored/components/patient/PatientHealthInsuranceEligibilityTable.vue`
+- **근거:** `restored/components/desk/DeskPatientAccept.vue`, `restored/components/side/SidePanelDeskActionsPatientAccept.vue`, `restored/components/desk/DeskPatientAcceptModal.vue`, `restored/api/desk/requests-4.js` (`postDeskWaiting`), `restored/modules/mutations/usePostPatientsNewMutation.js`, `restored/modules/index/part-86.js` (`xft`), `restored/components/patient/PatientHealthInsuranceEligibilityTable.vue`
 
 ## 대기 상태 전환 (드래그·카드 메뉴)
 
@@ -238,7 +238,7 @@
     - `이전상태`는 요청 body에서 뺍니다
 - **데이터:** `PATCH /desk/waiting/{id}` (`상태`, `진료의Id` 등), `DELETE /desk/waiting/{id}`, `PUT /treatments/patients/{내원Id}`, `PUT`/`DELETE /noti/instructions`
 - **상태 저장:** query `["desk","waiting",date]` 낙관적 갱신. 드래그 데이터 `{ type: Tt.PATIENT_CARD, from: "예약"|"대기"|"치료"|"수납"|"수납완료", …Data }`
-- **근거:** `re-upstream/restored/components/waiting/WaitingColumn.vue`, `re-upstream/restored/components/treatment/TreatmentColumn.vue`, `re-upstream/restored/components/payment/PaymentColumn.vue`, `re-upstream/restored/components/payment/PaymentCompleteColumn.vue`, `re-upstream/restored/components/desk/DeskVisitPatientCardDropArea.vue`, `re-upstream/restored/modules/DeskView/part-4.js`, `re-upstream/restored/modules/CardDropArea/usePutTreatmentsPatientsMutation.js`, `re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue`, `re-upstream/restored/modules/desk-patient/_hoisted_1.js`, `re-upstream/restored/components/patient/PatientCard.vue.js`
+- **근거:** `restored/components/waiting/WaitingColumn.vue`, `restored/components/treatment/TreatmentColumn.vue`, `restored/components/payment/PaymentColumn.vue`, `restored/components/payment/PaymentCompleteColumn.vue`, `restored/components/desk/DeskVisitPatientCardDropArea.vue`, `restored/modules/DeskView/part-4.js`, `restored/modules/CardDropArea/usePutTreatmentsPatientsMutation.js`, `restored/components/treatment/TreatmentRoomBedAssignModal.vue`, `restored/modules/desk-patient/_hoisted_1.js`, `restored/components/patient/PatientCard.vue.js`
 
 ## 예약 카드 (데스크 측)
 
@@ -263,8 +263,8 @@
 - **데이터:** `GET /desk/appointments?date=`, `PATCH /desk/appointments/{id}`, `DELETE /desk/appointments/{id}`. 비대면은 `GET /desk/appointments/telemedicine`(`DeskVisitTelemedicineCard`)입니다
 - **상태 저장:**
   - `usePatchDeskAppointmentsMutation`이 `desk.appointment(date)` 캐시의 `예약`·`시간미정예약내역`을 낙관적으로 갱신합니다
-  - 성공하면 `appointmentsByDateAndDoctor`, `appointmentsPlanner.all`, `doctalk.all`, 환자 예약 이력 키를 무효화합니다
-- **근거:** `re-upstream/restored/components/appointment/AppointmentColumn.vue`, `re-upstream/restored/components/appointment/AppointmentColumnTime.vue`, `re-upstream/restored/components/patient/PatientCardAppointment.vue`, `re-upstream/restored/components/appointment/AppointmentCardContextMenuWrapper.vue`, `re-upstream/restored/components/desk/DeskVisitTelemedicineCard.vue`
+  - 성공하면 `appointmentsByDateAndDoctor`, `appointmentsPlanner.all`, `booking.all`, 환자 예약 이력 키를 무효화합니다
+- **근거:** `restored/components/appointment/AppointmentColumn.vue`, `restored/components/appointment/AppointmentColumnTime.vue`, `restored/components/patient/PatientCardAppointment.vue`, `restored/components/appointment/AppointmentCardContextMenuWrapper.vue`, `restored/components/desk/DeskVisitTelemedicineCard.vue`
 
 ## 수납 (환자 수납 사이드패널)
 
@@ -311,7 +311,7 @@
 - **상태 저장:**
   - 수납 후 무효화: `desk.waiting(date)`, `desk.medicalReceipts(차트Id)`, 그리고 키에 `waiting`/`patientInfo`/`getReceiptsKeysByPatientId`/`getReceiptDetailsKeysByPatientId`/`medicalReceipts`가 들어간 모든 쿼리
   - `finally`에서 `desk.receipts(today)`도 무효화합니다
-- **근거:** `re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue`, `re-upstream/restored/components/payment/PaymentCalculator.vue`, `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue`, `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutFooter.vue`, `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue`, `re-upstream/restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js`
+- **근거:** `restored/components/desk/DeskVisitPaymentCheckOut.vue`, `restored/components/payment/PaymentCalculator.vue`, `restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue`, `restored/components/desk/DeskVisitPaymentCheckOutFooter.vue`, `restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue`, `restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js`
 
 ## 수납현황 탭 (수납 내역·시재·지출)
 
@@ -353,7 +353,7 @@
   - **변경 감지:** `GET /desk/receipts/updated-checks/{date}?datetime=` → `isUpdated`이면 "수납 현황에 변경된 내역이 있습니다. 새로고침 후 변경된 내역을 확인해 주세요."를 보여 줍니다
 - **데이터:** `GET /desk/receipts/{date}` → `results.수납현황`, `GET /desk/cash-registers?date=`, `GET /desk/expenses?date=`, `GET desk/expenses/items`, `GET /desk/balances` (`limit`, `offset`, `type`), `GET`/`POST /documents/copayment-ledger`
 - **상태 저장:** query key `desk.receipts(date)`, `desk.cashBalance(date)`, `desk.expenseReceipts(date)`, `desk.expenseItems()`, `desk.checkReceiptUpdate(date, datetime)`
-- **근거:** `re-upstream/restored/views/DeskPaymentsView.vue`, `re-upstream/restored/components/desk/DeskPaymentsHistoryTable.vue`, `re-upstream/restored/components/desk/DeskPaymentsCashBalance.vue`, `re-upstream/restored/components/desk/DeskPaymentsCashBalanceForm.vue`, `re-upstream/restored/components/desk/DeskPaymentsCashBalanceSettlement.vue`, `re-upstream/restored/components/desk/DeskPaymentsExpenseHistory.vue`, `re-upstream/restored/components/desk/DeskPaymentsUnusualPatients.vue`, `re-upstream/restored/modules/DeskView/part-2.js`, `re-upstream/restored/components/copayment/CopaymentLedger.vue`
+- **근거:** `restored/views/DeskPaymentsView.vue`, `restored/components/desk/DeskPaymentsHistoryTable.vue`, `restored/components/desk/DeskPaymentsCashBalance.vue`, `restored/components/desk/DeskPaymentsCashBalanceForm.vue`, `restored/components/desk/DeskPaymentsCashBalanceSettlement.vue`, `restored/components/desk/DeskPaymentsExpenseHistory.vue`, `restored/components/desk/DeskPaymentsUnusualPatients.vue`, `restored/modules/DeskView/part-2.js`, `restored/components/copayment/CopaymentLedger.vue`
 
 ## 환자 등록·검색
 
@@ -386,7 +386,7 @@
 - **상태 저장:**
   - 등록·수정 후 무효화: `desk.waiting(date)`, `desk.appointment(date)`, `patientInfo`, `patientProfileImage`, `relationship`, `patientAddresses`, `appointmentInfo`, 동의 이력
   - `usePostPatientsNewMutation`은 환자 `QueryKey$.all`을 무효화합니다
-- **근거:** `re-upstream/restored/components/desk/DeskPatientRegister.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientRegisterOrModify.vue`, `re-upstream/restored/components/desk/DeskPatientAcceptModal.vue`, `re-upstream/restored/components/patient/PatientSearch.vue`, `re-upstream/restored/modules/index/useDeskWaitingQuery.js`, `re-upstream/restored/components/header/HeaderLayout.vue`
+- **근거:** `restored/components/desk/DeskPatientRegister.vue`, `restored/components/side/SidePanelDeskActionsPatientRegisterOrModify.vue`, `restored/components/desk/DeskPatientAcceptModal.vue`, `restored/components/patient/PatientSearch.vue`, `restored/modules/index/useDeskWaitingQuery.js`, `restored/components/header/HeaderLayout.vue`
 
 ## 사이드패널 (환자 상세 외)
 
@@ -401,7 +401,7 @@
   | `예약` / `예약 변경` | `openSidePanel예약`/`예약변경` | `예약생성`/`예약수정` | `DeskViewPatientAppointment` |
   | `문서발급` | `openSidePanel문서발급(환자Id)` | `canCreate$(문서발급 = document_create)` | `DocumentIssueView` |
   | `문자 발송` | `openSidePanel문자발송(id\|ids)` | `canAccess$(일반문자 = sms)` | `CrmPatientMessageSendSidePanel` |
-  | `차트생성` | `openSidePanel차트생성(환자Id, 예약Id, {이름, 핸드폰번호})` | `canCreate$(접수생성)` | `SooChartCreatePanel` |
+  | `차트생성` | `openSidePanel차트생성(환자Id, 예약Id, {이름, 핸드폰번호})` | `canCreate$(접수생성)` | `LiteChartCreatePanel` |
 
 - **화면 구성:**
   - `SidePanelDeskActions`가 `validActions`에 있는 패널만 `#side-panel`로 텔레포트해 그립니다
@@ -409,7 +409,7 @@
 - **동작:**
   - **환자상세 (`PatientInfoDetail`)**
     - 탭(EMR 구성): 홈 / 예약 내역 / 수납 내역 / 패키지 내역 / 문진표 / 동의서. EMR이 아니면 `연락 이력`이 더 있습니다
-    - 조건에 따라 `문진표`·`동의서` 탭이 빠지고, `vx`(soo 단독)이면 `수납 내역` 탭이 빠집니다
+    - 조건에 따라 `문진표`·`동의서` 탭이 빠지고, `vx`(lite 단독)이면 `수납 내역` 탭이 빠집니다
     - 홈 탭: `DeskPatientInfoBasicInfo`, 진료기록 목록(읽기 전용), `PatientMemo`
     - 액션 버튼:
       - 문자 발송 (`일반문자`)
@@ -420,7 +420,7 @@
     - `canAccess$(환자상세)`가 없으면 "접근 권한이 없습니다."를 보여 줍니다
   - 수납 완료 카드의 `수납 내역` 버튼은 환자상세를 `initialTab: "수납 내역"`으로 엽니다
 - **상태 저장:** `sidePanelContextState` ref (`{ panel, data }`). `_hoisted_2_2.provide`로 하위에 전달합니다
-- **근거:** `re-upstream/restored/components/side/SidePanelDeskActions.vue`, `re-upstream/restored/modules/index/part-86.js`, `re-upstream/restored/components/patient/PatientInfoDetail.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsPatientInfoDetail.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsChartCreate.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsMessageSend.vue`
+- **근거:** `restored/components/side/SidePanelDeskActions.vue`, `restored/modules/index/part-86.js`, `restored/components/patient/PatientInfoDetail.vue`, `restored/components/side/SidePanelDeskActionsPatientInfoDetail.vue`, `restored/components/side/SidePanelDeskActionsChartCreate.vue`, `restored/components/side/SidePanelDeskActionsMessageSend.vue`
 
 ## 서류 발급
 
@@ -438,7 +438,7 @@
   - **본인부담금 수납대장:** `/documents/copayment-ledger` (수납현황 탭)
 - **데이터:** `/documents/*` ([endpoints.md](../../endpoints.md) `/documents` 절)
 - **상태 저장:** Pinia `useDocumentIssueStore` (`currentDocumentType`, `selectedDraftItemId`, `isTempSaving`, `isCompletedSave`, snapshot)
-- **근거:** `re-upstream/restored/views/DocumentIssueView.vue`, `re-upstream/restored/components/side/SidePanelDeskActionsDocumentIssue.vue`, `re-upstream/restored/modules/DocumentIssueView/진료내용.js`, `re-upstream/restored/stores/documentIssue.js`
+- **근거:** `restored/views/DocumentIssueView.vue`, `restored/components/side/SidePanelDeskActionsDocumentIssue.vue`, `restored/modules/DocumentIssueView/진료내용.js`, `restored/stores/documentIssue.js`
 
 ## 실시간 동기화
 
@@ -472,9 +472,9 @@
     - 알림을 누르면 `requestFocusPatient(환자Id)` → 대기 카드로 스크롤하고 강조합니다
   - 소켓과 별도로 대기·예약 쿼리가 1분마다 폴링합니다
   - `BT(queryClient, keys)` 디바운스 무효화 헬퍼를 씁니다 (`maxWait`, 추정)
-- **데이터:** Socket.IO `https://socket.upstream.co.kr` ([non-axios-channels.md](../non-axios-channels.md))
+- **데이터:** Socket.IO `https://socket.example.com` ([non-axios-channels.md](../non-axios-channels.md))
 - **상태 저장:** Pinia `socketClient`, `patient` (`recentAcceptPatientId`, `focusRequestPatientId`). `useTreatmentStore`는 데스크 보드 코드에서 쓰지 않습니다
-- **근거:** `re-upstream/restored/modules/index/part-239.js` (`XVt`), `re-upstream/restored/modules/index/part-233.js` (`NUt`), `re-upstream/restored/stores/socketClient.js`, `re-upstream/restored/stores/patient.js`, `re-upstream/restored/components/app/App.vue`
+- **근거:** `restored/modules/index/part-239.js` (`XVt`), `restored/modules/index/part-233.js` (`NUt`), `restored/stores/socketClient.js`, `restored/stores/patient.js`, `restored/components/app/App.vue`
 
 ## 흐름
 
@@ -488,76 +488,76 @@
 5. **수납:** 수납 컬럼으로 옮깁니다(`PATCH 상태: "수납"`) → 카드 `수납기록` → `DeskVisitPaymentCheckOut` → `POST /desk/v2/receipts`
 6. **귀가:** 수납을 저장하면 자동으로 `PATCH 상태: "수납완료"`가 나가 수납 완료 컬럼으로 옮겨집니다. 필요하면 `다음 내원 예약`(예약 패널)과 서류 발급(`문서 발급`)을 합니다. 하루 마감은 수납현황 탭에서 시재 정산(`POST /desk/settlements/cash/{date}`)으로 합니다
 
-## 레거시 차트(OK차트) 대비
+## 레거시 차트 대비
 
-이 절은 한메디 OK차트 매뉴얼(https://www.okmedi.net/Manual/)을 근거로 정리한 것이며, 현행 Upstream 코드에서 확인한 내용이 아닙니다.
+이 절은 레거시 차트 사용자 매뉴얼을 근거로 정리한 것이며, 현행 코드에서 확인한 내용이 아닙니다.
 
 ### 현행 스펙에 없는 업무
 
-- **자격관리(예비심사):** 연·월을 정해 주민번호 오류, 보험기호·증번호가 모두 빈 환자, 진료승인번호가 없는 의료급여 진료를 목록으로 뽑아 고치게 합니다. 청구 전에 데스크가 돌리는 점검 작업입니다 ([OK차트: 자격조회, 조회확인, 자격관리 기능](https://www.okmedi.net/Manual/?idx=405))
-- **자격조회 이력(조회확인):** 환자별로 과거 자격조회 결과와 본인확인 여부를 다시 볼 수 있습니다. 잘못 남은 조회 이력(예: 무자격 조회)은 지울 수 있습니다 ([OK차트: 자격조회, 조회확인, 자격관리 기능](https://www.okmedi.net/Manual/?idx=405), [OK차트: 자격조회 - 본인확인 여부 체크하기](https://www.okmedi.net/Manual/?idx=1175))
-- **과거 날짜 자격조회:** 진료(조회)일자를 과거로 바꿔 조회합니다. 과거 진료분의 의료급여 승인 요청도 이 조회 결과로 합니다 ([OK차트: 과거 날짜로 자격조회하기](https://www.okmedi.net/Manual/?idx=1103))
-- **다른 조회 수단:** 건강보험증번호로 조회하면 주민번호 뒷자리가 자동으로 채워집니다. 모바일 건강보험증 번호 입력과 앱 QR 스캔으로도 조회·본인확인을 합니다 ([OK차트: 건강보험증번호로 공단 자격조회](https://www.okmedi.net/Manual/?idx=344), [OK차트: 자격조회 - 모바일 건강보험증, QR코드 접수](https://www.okmedi.net/Manual/?idx=1176))
-- **최근 본인확인 경과일:** 본인확인을 체크하면 그 날짜가 남고, 다음 접수 때 마지막 본인확인 뒤 지난 일수를 보여 줍니다 ([OK차트: 자격조회 - 본인확인 여부 체크하기](https://www.okmedi.net/Manual/?idx=1175))
-- **의료급여 진료승인 요청:** 수납 전에 공단에 진료승인을 요청하고 승인번호를 받습니다. 목록에서 미승인은 빨강, 승인 완료는 파랑으로 구분합니다. 공단 사이트에서 승인을 취소했으면 차트의 승인 정보를 초기화한 뒤 다시 요청합니다 ([OK차트: 의료급여 1종 건강생활유지비로 승인](https://www.okmedi.net/Manual/?idx=756), [OK차트: 의료급여환자의 진료승인취소를 공단 홈페이지에서 취소한 경우](https://www.okmedi.net/Manual/?idx=936))
-- **산전지원비 잔액 승인:** 의료급여 임신부는 산전지원비 잔액으로 승인을 요청하고 `지원금`으로 수납합니다 ([OK차트: 산전지원비 잔액으로 승인](https://www.okmedi.net/Manual/?idx=760))
-- **공상(공무상요양) 환자:** 급여 비용은 모두 공단에 청구하고 비급여만 환자에게 받습니다. 그 비급여는 공제제외입니다. 현행 보험구분(`건보`/`자보`/`급여`/`산재`/`일반`)에는 공상이 없습니다 ([OK차트: 공무상요양(공상) 환자의 진료기록](https://www.okmedi.net/Manual/?idx=826))
-- **요양병원 입원 중 환자:** 자격조회 결과에 요양병원 입원 여부가 나옵니다. 요양병원 의뢰서가 있으면 그 기관기호와 의뢰일자를 기록합니다. 의뢰서가 없으면 `일반`으로 바꾸고 진료비 전액을 환자에게 받습니다 ([OK차트: 요양병원에 입원 중인 환자 접수](https://www.okmedi.net/Manual/?idx=929))
-- **자보 지급보증 이력:** 한 사고접수번호 아래 지급보증서마다 적용시작·적용종료 일자를 두고 여러 건을 쌓습니다. 새 보증을 받으면 이전 건을 전날로 종료하고, 이전 정보를 복사해 새 건을 만듭니다. 합의로 치료가 끝나면 적용종료일을 넣습니다. 수상일과 자보 담당자도 관리합니다 ([OK차트: 자동차보험 환자 접수/조회/동의서 출력](https://www.okmedi.net/Manual/?idx=923), [OK차트: 자동차보험 지불보증번호가 계속 변경되는 경우](https://www.okmedi.net/Manual/?idx=1044))
-- **지급보증 API 신청:** 사고접수번호를 넣으면 보험사 API로 지급보증번호를 신청·조회해 자동으로 채웁니다. 매뉴얼 기준(2022년 9월) 삼성·흥국·현대 3개사이고, 팩스·유선으로 보증을 받은 적이 없을 때만 씁니다 ([OK차트: 자동차보험 지급보증 API로 접수](https://www.okmedi.net/Manual/?idx=1083))
-- **자보 타병원 입원환자 의뢰:** 의뢰기관 요양기관기호와 의뢰일자를 받으면 청구 특정내역 `MT015`=`69`, `MJ006`=의뢰기관 기호/의뢰일자가 자동으로 들어갑니다 ([OK차트: 자동차보험 환자 접수/조회/동의서 출력](https://www.okmedi.net/Manual/?idx=923))
-- **산재 자격 정보:** 적용시작일, 재해발생일자, 소속사업장명, 적용종료일을 둡니다. 치료가 끝난 뒤 합병증 등 예방관리 대상이 되면 따로 표시합니다 ([OK차트: 산재환자 접수](https://www.okmedi.net/Manual/?idx=1185))
+- **자격관리(예비심사):** 연·월을 정해 주민번호 오류, 보험기호·증번호가 모두 빈 환자, 진료승인번호가 없는 의료급여 진료를 목록으로 뽑아 고치게 합니다. 청구 전에 데스크가 돌리는 점검 작업입니다 (레거시 차트 매뉴얼 「자격조회, 조회확인, 자격관리 기능」)
+- **자격조회 이력(조회확인):** 환자별로 과거 자격조회 결과와 본인확인 여부를 다시 볼 수 있습니다. 잘못 남은 조회 이력(예: 무자격 조회)은 지울 수 있습니다 (레거시 차트 매뉴얼 「자격조회, 조회확인, 자격관리 기능」, 레거시 차트 매뉴얼 「자격조회 - 본인확인 여부 체크하기」)
+- **과거 날짜 자격조회:** 진료(조회)일자를 과거로 바꿔 조회합니다. 과거 진료분의 의료급여 승인 요청도 이 조회 결과로 합니다 (레거시 차트 매뉴얼 「과거 날짜로 자격조회하기」)
+- **다른 조회 수단:** 건강보험증번호로 조회하면 주민번호 뒷자리가 자동으로 채워집니다. 모바일 건강보험증 번호 입력과 앱 QR 스캔으로도 조회·본인확인을 합니다 (레거시 차트 매뉴얼 「건강보험증번호로 공단 자격조회」, 레거시 차트 매뉴얼 「자격조회 - 모바일 건강보험증, QR코드 접수」)
+- **최근 본인확인 경과일:** 본인확인을 체크하면 그 날짜가 남고, 다음 접수 때 마지막 본인확인 뒤 지난 일수를 보여 줍니다 (레거시 차트 매뉴얼 「자격조회 - 본인확인 여부 체크하기」)
+- **의료급여 진료승인 요청:** 수납 전에 공단에 진료승인을 요청하고 승인번호를 받습니다. 목록에서 미승인은 빨강, 승인 완료는 파랑으로 구분합니다. 공단 사이트에서 승인을 취소했으면 차트의 승인 정보를 초기화한 뒤 다시 요청합니다 (레거시 차트 매뉴얼 「의료급여 1종 건강생활유지비로 승인」, 레거시 차트 매뉴얼 「의료급여환자의 진료승인취소를 공단 홈페이지에서 취소한 경우」)
+- **산전지원비 잔액 승인:** 의료급여 임신부는 산전지원비 잔액으로 승인을 요청하고 `지원금`으로 수납합니다 (레거시 차트 매뉴얼 「산전지원비 잔액으로 승인」)
+- **공상(공무상요양) 환자:** 급여 비용은 모두 공단에 청구하고 비급여만 환자에게 받습니다. 그 비급여는 공제제외입니다. 현행 보험구분(`건보`/`자보`/`급여`/`산재`/`일반`)에는 공상이 없습니다 (레거시 차트 매뉴얼 「공무상요양(공상) 환자의 진료기록」)
+- **요양병원 입원 중 환자:** 자격조회 결과에 요양병원 입원 여부가 나옵니다. 요양병원 의뢰서가 있으면 그 기관기호와 의뢰일자를 기록합니다. 의뢰서가 없으면 `일반`으로 바꾸고 진료비 전액을 환자에게 받습니다 (레거시 차트 매뉴얼 「요양병원에 입원 중인 환자 접수」)
+- **자보 지급보증 이력:** 한 사고접수번호 아래 지급보증서마다 적용시작·적용종료 일자를 두고 여러 건을 쌓습니다. 새 보증을 받으면 이전 건을 전날로 종료하고, 이전 정보를 복사해 새 건을 만듭니다. 합의로 치료가 끝나면 적용종료일을 넣습니다. 수상일과 자보 담당자도 관리합니다 (레거시 차트 매뉴얼 「자동차보험 환자 접수/조회/동의서 출력」, 레거시 차트 매뉴얼 「자동차보험 지불보증번호가 계속 변경되는 경우」)
+- **지급보증 API 신청:** 사고접수번호를 넣으면 보험사 API로 지급보증번호를 신청·조회해 자동으로 채웁니다. 매뉴얼 기준(2022년 9월) 삼성·흥국·현대 3개사이고, 팩스·유선으로 보증을 받은 적이 없을 때만 씁니다 (레거시 차트 매뉴얼 「자동차보험 지급보증 API로 접수」)
+- **자보 타병원 입원환자 의뢰:** 의뢰기관 요양기관기호와 의뢰일자를 받으면 청구 특정내역 `MT015`=`69`, `MJ006`=의뢰기관 기호/의뢰일자가 자동으로 들어갑니다 (레거시 차트 매뉴얼 「자동차보험 환자 접수/조회/동의서 출력」)
+- **산재 자격 정보:** 적용시작일, 재해발생일자, 소속사업장명, 적용종료일을 둡니다. 치료가 끝난 뒤 합병증 등 예방관리 대상이 되면 따로 표시합니다 (레거시 차트 매뉴얼 「산재환자 접수」)
 - **접수 시 사전 조회:**
-  - 심평원 DUR로 감염병 발생지역 입국자 여부를 접수할 때 자동 조회합니다. 해당 환자가 오면 7일 이내 보건소에 신고해야 합니다 ([OK차트: DUR의 감염병 여부 조회](https://www.okmedi.net/Manual/?idx=345))
-  - 추나 급여 전에 환자의 연간 실시 횟수와 진료의별 당일 횟수를 조회합니다 ([OK차트: 추나진료 현황 조회](https://www.okmedi.net/Manual/?idx=934))
-  - 첩약 시범사업은 상병구분별 누적 투약일수와 진료의별 당일 건수를 조회합니다. 개인정보 동의서는 매년 받습니다 ([OK차트: 첩약시범사업 접수/조회/동의서 출력](https://www.okmedi.net/Manual/?idx=1004))
+  - 심평원 DUR로 감염병 발생지역 입국자 여부를 접수할 때 자동 조회합니다. 해당 환자가 오면 7일 이내 보건소에 신고해야 합니다 (레거시 차트 매뉴얼 「DUR의 감염병 여부 조회」)
+  - 추나 급여 전에 환자의 연간 실시 횟수와 진료의별 당일 횟수를 조회합니다 (레거시 차트 매뉴얼 「추나진료 현황 조회」)
+  - 첩약 시범사업은 상병구분별 누적 투약일수와 진료의별 당일 건수를 조회합니다. 개인정보 동의서는 매년 받습니다 (레거시 차트 매뉴얼 「첩약시범사업 접수/조회/동의서 출력」)
 - **비접촉 자동접수:**
   - 태블릿, QR 스캔, 키오스크, 바코드(멤버십카드) 스캔으로 초진·재진을 직원 없이 대기열에 넣습니다
   - 태블릿·QR·키오스크에서는 개인정보 동의도 받습니다. 태블릿으로 받은 동의는 출처(예: `굿닥동의`)를 남깁니다
   - 키오스크는 신분증 인식 본인확인과 무인 카드 수납까지 합니다
   - 재진은 개인정보 입력 단계를 건너뜁니다
-  - ([OK차트: 굿닥 태블릿 비접촉 자동접수](https://www.okmedi.net/Manual/?idx=872), [OK차트: QR코드 스캔 비접촉 자동접수](https://www.okmedi.net/Manual/?idx=1061), [OK차트: 키오스크 비접촉 자동접수](https://www.okmedi.net/Manual/?idx=931), [OK차트: 바코드 스캔 비접촉 자동접수](https://www.okmedi.net/Manual/?idx=1024))
+  - (레거시 차트 매뉴얼 「굿닥 태블릿 비접촉 자동접수」, 레거시 차트 매뉴얼 「QR코드 스캔 비접촉 자동접수」, 레거시 차트 매뉴얼 「키오스크 비접촉 자동접수」, 레거시 차트 매뉴얼 「바코드 스캔 비접촉 자동접수」)
 - **환자 관리정보:**
   - 항목: 주치의, VIP 등급, 소개자(관계 포함), 유입경로, 직업, 진행중 치료, 예정된 치료, 개인정보사용(미정/동의/거부), SMS 거부, 주의 환자, 비급여 할인율, 임신부(출산 예정일)
   - `주의`를 켜면 검색할 때마다 경고창을 띄웁니다
   - `할인율`은 수납할 때 비급여 진료비에 자동 적용합니다
   - 주치의는 대기실·치료실로 보낼 때의 담당의사 기본값과 이어집니다
   - 항목 사전의 값을 바꾸거나 지우면 그 값을 가진 모든 환자에게 반영됩니다
-  - ([OK차트: 관리정보, 가족관리, 소개자 등 입력](https://www.okmedi.net/Manual/?idx=349), [OK차트: 관리정보에서의 지정 항목 관리 - 변경, 삭제 등](https://www.okmedi.net/Manual/?idx=855), [OK차트: 주치의 지정 항목 관리 - 변경, 삭제 등](https://www.okmedi.net/Manual/?idx=1040))
-- **소개자 트리·랭킹:** 소개 관계를 트리와 랭킹(소개 횟수 등)으로 집계합니다. 가족·소개자 단위 진료비 요약도 봅니다 ([OK차트: 소개자 기록 및 통계](https://www.okmedi.net/Manual/?idx=401))
-- **가족 자동 구성:** 신환 등록 때 주소·전화번호·보험정보가 같으면 자동으로 가족으로 묶습니다. 수동으로 묶거나 나눌 수도 있습니다. 수납 화면에 본인 미수와 가족 미수를 함께 보여 줍니다 ([OK차트: 관리정보, 가족관리, 소개자 등 입력](https://www.okmedi.net/Manual/?idx=349), [OK차트: 본인부담금 및 비급여 진료비 수납](https://www.okmedi.net/Manual/?idx=371))
+  - (레거시 차트 매뉴얼 「관리정보, 가족관리, 소개자 등 입력」, 레거시 차트 매뉴얼 「관리정보에서의 지정 항목 관리 - 변경, 삭제 등」, 레거시 차트 매뉴얼 「주치의 지정 항목 관리 - 변경, 삭제 등」)
+- **소개자 트리·랭킹:** 소개 관계를 트리와 랭킹(소개 횟수 등)으로 집계합니다. 가족·소개자 단위 진료비 요약도 봅니다 (레거시 차트 매뉴얼 「소개자 기록 및 통계」)
+- **가족 자동 구성:** 신환 등록 때 주소·전화번호·보험정보가 같으면 자동으로 가족으로 묶습니다. 수동으로 묶거나 나눌 수도 있습니다. 수납 화면에 본인 미수와 가족 미수를 함께 보여 줍니다 (레거시 차트 매뉴얼 「관리정보, 가족관리, 소개자 등 입력」, 레거시 차트 매뉴얼 「본인부담금 및 비급여 진료비 수납」)
 - **환자 등록 보조:**
   - 주민번호를 정확히 모르면 근사 생년월일(예: `230101-1000000`)로 등록합니다
   - 기존 환자의 신상정보를 복사해 새 차트를 만듭니다
   - 차트번호와 등록일을 나중에 고칩니다
   - 진료기록이 없는 환자만 데스크에서 삭제할 수 있습니다
   - 신환을 등록하면 정해 둔 문구·시각에 신환 문자가 자동으로 나갑니다. 환자별로 끌 수 있습니다
-  - ([OK차트: 신규환자 접수](https://www.okmedi.net/Manual/?idx=342), [OK차트: 접수실프로그램 메뉴 버튼 안내](https://www.okmedi.net/Manual/?idx=341))
-- **개인정보 동의 결과 고지:** 서명패드나 펜차트로 항목별 동의를 받습니다. 그 뒤 기관명, 동의 일자, 수신 동의 사실, 처리 결과를 환자에게 알립니다(구두 또는 문자). 문자로 알릴 때는 동의 시점부터 14일 이내여야 합니다 ([OK차트: 개인정보동의 서명(싸인패드, 펜차트)](https://www.okmedi.net/Manual/?idx=343))
+  - (레거시 차트 매뉴얼 「신규환자 접수」, 레거시 차트 매뉴얼 「접수실프로그램 메뉴 버튼 안내」)
+- **개인정보 동의 결과 고지:** 서명패드나 펜차트로 항목별 동의를 받습니다. 그 뒤 기관명, 동의 일자, 수신 동의 사실, 처리 결과를 환자에게 알립니다(구두 또는 문자). 문자로 알릴 때는 동의 시점부터 14일 이내여야 합니다 (레거시 차트 매뉴얼 「개인정보동의 서명(싸인패드, 펜차트)」)
 - **현금영수증 승인·취소·수기 기록:**
   - 수납 건마다 차트에서 VAN사를 거쳐 현금영수증을 승인합니다. 수납 뒤에 승인을 추가하거나 금액을 더할 수도 있습니다
   - 취소는 사유를 골라 하고, 마이너스 금액 건으로 남깁니다. 승인 건과 취소 건을 모두 쌓습니다
   - 카드단말기에서 직접 승인한 건은 금액(본인부담/비급여)과 승인번호(선택)로 수기 기록합니다. 그래야 통계에 잡힙니다
   - 기간·전체 환자 단위로 승인·취소 내역을 조회합니다
-  - ([OK차트: 현금영수증 승인 및 영수증 출력](https://www.okmedi.net/Manual/?idx=1006), [OK차트: 현금영수증 승인 취소](https://www.okmedi.net/Manual/?idx=952), [OK차트: 현금영수증 승인 수기 기록](https://www.okmedi.net/Manual/?idx=953), [OK차트: 현금영수증 승인 관련 내용 정리 요약](https://www.okmedi.net/Manual/?idx=822))
+  - (레거시 차트 매뉴얼 「현금영수증 승인 및 영수증 출력」, 레거시 차트 매뉴얼 「현금영수증 승인 취소」, 레거시 차트 매뉴얼 「현금영수증 승인 수기 기록」, 레거시 차트 매뉴얼 「현금영수증 승인 관련 내용 정리 요약」)
 - **미수금 회수 기록:**
   - 미수를 받을 때 결제수단을 `현금(회수)`·`카드(회수)`·`통장(회수)`로 따로 남깁니다. 일일결산에 회수금 항목으로 집계됩니다
   - 전체 미수금 목록 화면에서 바로 회수하고, 미수금을 지울 수도 있습니다
   - 이전 차트에서 넘어온 미수금은 과거 진료일에 0원 비급여 항목을 기록하고, 그 날짜 건에 회수 수납을 남기는 방식으로 옮깁니다
-  - ([OK차트: 미수금 수납](https://www.okmedi.net/Manual/?idx=920), [OK차트: OK차트로 변경한 후 이전 차트에서 발생한 미수금을 수납하기](https://www.okmedi.net/Manual/?idx=819))
-- **환불·재수납:** 수납 내역에 `환불` 종류 행을 환불 날짜·금액·수단(현금/카드)과 함께 추가합니다. 다시 받으면 `수납` 종류 행을 추가합니다. 원래 수납 행을 고치지 않고 행을 덧붙이는 방식입니다 ([OK차트: 환불 및 재수납](https://www.okmedi.net/Manual/?idx=951))
-- **비대면 결제:** 받을 금액을 결제 링크 문자로 보냅니다. 휴대폰 번호와 결제기한을 바꿀 수 있고, 건별 발송·주문·결제 상태를 확인합니다. 내원했지만 결제 수단이 없는 환자에게도 씁니다 ([OK차트: 진료비 비대면 결제 기능](https://www.okmedi.net/Manual/?idx=1095))
-- **카드단말기 금액 송신:** 카드 결제 금액을 연동 단말기로 보내고 15초 안에 카드를 넣게 합니다. 현금영수증·진료비 계산서 요약본도 단말기 프린터로 뽑습니다 ([OK차트: 카드단말기에 금액 정보 송신 기능](https://www.okmedi.net/Manual/?idx=1091), [OK차트: 여러가지 계산서 출력](https://www.okmedi.net/Manual/?idx=374))
-- **과세상품 판매관리:** 면세 진료와 분리된 과세 사업자로 물품을 팝니다. 거래처, 물품, 구매 입고, 재고, 판매(단가할인·수량), 반품, 미수, 영수증, 통계가 진료 수납과 별도 데이터로 관리됩니다 ([OK차트: 판매관리에서 과세상품 관리](https://www.okmedi.net/Manual/?idx=413))
-- **접수·수납 시각 로그:** 내원마다 최초 접수 시각, 대기실·치료실 입실 시각, 진료기록 시각, 수납기록 시각을 남기고 조회합니다 ([OK차트: 접수시각 - 대기실, 치료실 기록 시각 - 수납기록 시각 로그 확인](https://www.okmedi.net/Manual/?idx=1286))
+  - (레거시 차트 매뉴얼 「미수금 수납」, 레거시 차트 매뉴얼 「레거시 차트로 변경한 후 이전 차트에서 발생한 미수금을 수납하기」)
+- **환불·재수납:** 수납 내역에 `환불` 종류 행을 환불 날짜·금액·수단(현금/카드)과 함께 추가합니다. 다시 받으면 `수납` 종류 행을 추가합니다. 원래 수납 행을 고치지 않고 행을 덧붙이는 방식입니다 (레거시 차트 매뉴얼 「환불 및 재수납」)
+- **비대면 결제:** 받을 금액을 결제 링크 문자로 보냅니다. 휴대폰 번호와 결제기한을 바꿀 수 있고, 건별 발송·주문·결제 상태를 확인합니다. 내원했지만 결제 수단이 없는 환자에게도 씁니다 (레거시 차트 매뉴얼 「진료비 비대면 결제 기능」)
+- **카드단말기 금액 송신:** 카드 결제 금액을 연동 단말기로 보내고 15초 안에 카드를 넣게 합니다. 현금영수증·진료비 계산서 요약본도 단말기 프린터로 뽑습니다 (레거시 차트 매뉴얼 「카드단말기에 금액 정보 송신 기능」, 레거시 차트 매뉴얼 「여러가지 계산서 출력」)
+- **과세상품 판매관리:** 면세 진료와 분리된 과세 사업자로 물품을 팝니다. 거래처, 물품, 구매 입고, 재고, 판매(단가할인·수량), 반품, 미수, 영수증, 통계가 진료 수납과 별도 데이터로 관리됩니다 (레거시 차트 매뉴얼 「판매관리에서 과세상품 관리」)
+- **접수·수납 시각 로그:** 내원마다 최초 접수 시각, 대기실·치료실 입실 시각, 진료기록 시각, 수납기록 시각을 남기고 조회합니다 (레거시 차트 매뉴얼 「접수시각 - 대기실, 치료실 기록 시각 - 수납기록 시각 로그 확인」)
 - **서류 보조:**
-  - 진료확인서 등을 만들 때, 진료 없이 서류만 발급한 날을 내원일에서 뺍니다 ([OK차트: 진료확인서 및 진단서 등 작성 시 내원일 제외하기](https://www.okmedi.net/Manual/?idx=744))
-  - 진료비 납입확인서에 비급여 납입 항목을 손으로 추가합니다 ([OK차트: 여러가지 계산서 출력](https://www.okmedi.net/Manual/?idx=374))
-- **실손보험 보장 조회:** 환자 동의(휴대폰 본인인증)를 받아 실손 가입 여부, 보험사, 세대, 보장한도, 자기부담금을 조회하고 이력을 남깁니다. 제휴사 서비스입니다 ([OK차트: 실손보험 조회 서비스](https://www.okmedi.net/Manual/?idx=1303))
+  - 진료확인서 등을 만들 때, 진료 없이 서류만 발급한 날을 내원일에서 뺍니다 (레거시 차트 매뉴얼 「진료확인서 및 진단서 등 작성 시 내원일 제외하기」)
+  - 진료비 납입확인서에 비급여 납입 항목을 손으로 추가합니다 (레거시 차트 매뉴얼 「여러가지 계산서 출력」)
+- **실손보험 보장 조회:** 환자 동의(휴대폰 본인인증)를 받아 실손 가입 여부, 보험사, 세대, 보장한도, 자기부담금을 조회하고 이력을 남깁니다. 제휴사 서비스입니다 (레거시 차트 매뉴얼 「실손보험 조회 서비스」)
 
 ### 업무 규칙
 
-- **본인일부부담률 (매뉴얼 기준 2024-01-01 이후, 건강보험 외래)** ([OK차트: (기준) - 본인일부부담금 및 세부사항](https://www.okmedi.net/Manual/?idx=1086), [OK차트: 65세이상 경로우대 본인부담금 기준](https://www.okmedi.net/Manual/?idx=694))
+- **본인일부부담률 (매뉴얼 기준 2024-01-01 이후, 건강보험 외래)** (레거시 차트 매뉴얼 「(기준) - 본인일부부담금 및 세부사항」, 레거시 차트 매뉴얼 「65세이상 경로우대 본인부담금 기준」)
 
   | 구분 | 본인부담 | 조건·비고 |
   |---|---|---|
@@ -580,39 +580,39 @@
   - 정률 본인부담은 100원 미만을 절사하고, 절사한 금액은 청구액에 더합니다
   - 야간·휴일·토요 주간 가산은 기본진찰료의 30%입니다. 만 6세 미만은 20시 ~ 다음 날 07시에 초진 기본진찰료의 200%를 가산합니다(2023-11-01부터)
   - 65세 이상 구간 금액은 매년 수가 변경에 따라 다시 계산됩니다
-- **의료급여 본인부담과 승인** ([OK차트: 의료급여 환자의 구분](https://www.okmedi.net/Manual/?idx=372), [OK차트: 의료급여 1종 '건강생활유지비' 지원](https://www.okmedi.net/Manual/?idx=1195), [OK차트: 의료급여 1종 선택병원의원 참여자 승인하기](https://www.okmedi.net/Manual/?idx=758), [OK차트: 의료급여 2종 환자 승인](https://www.okmedi.net/Manual/?idx=759), [OK차트: 의료급여 1종 또는 2종 연장승인 미신청자](https://www.okmedi.net/Manual/?idx=885))
+- **의료급여 본인부담과 승인** (레거시 차트 매뉴얼 「의료급여 환자의 구분」, 레거시 차트 매뉴얼 「의료급여 1종 '건강생활유지비' 지원」, 레거시 차트 매뉴얼 「의료급여 1종 선택병원의원 참여자 승인하기」, 레거시 차트 매뉴얼 「의료급여 2종 환자 승인」, 레거시 차트 매뉴얼 「의료급여 1종 또는 2종 연장승인 미신청자」)
   - 1종은 매월 1일 건강생활유지비 6,000원이 적립됩니다. 본인부담(투약 1,500원 / 미투약 1,000원)을 잔액에서 빼고 `건생비`로 기록하며, 환자에게서는 받지 않습니다. 잔액이 없으면 현금 본인부담으로 승인받고 환자에게 받습니다
-  - 전월 진료분은 다음 달에 건강생활유지비로 소급 차감할 수 없습니다. 이때는 건생비 청구액을 0으로 두고 환자 납부로 승인합니다 ([OK차트: 진료승인요청이 안 될 경우 해결방법](https://www.okmedi.net/Manual/?idx=761))
+  - 전월 진료분은 다음 달에 건강생활유지비로 소급 차감할 수 없습니다. 이때는 건생비 청구액을 0으로 두고 환자 납부로 승인합니다 (레거시 차트 매뉴얼 「진료승인요청이 안 될 경우 해결방법」)
   - 1종 면제(`M003`~`M018`: 18세 미만, 희귀난치, 장기이식, 임산부 등)는 0원으로 승인합니다
   - 1종 선택병의원(`M001`~`M002`): 우리 기관이 1·2차 선택기관이면 무료, 3·4차면 1,500원/1,000원입니다. 선택기관이 아닌 곳에 오면 전액 본인부담입니다. 단 선택기관의 의료급여의뢰서를 가져오면 `B005`와 의뢰기관을 지정해 승인하고 본인부담만 받습니다
   - 의료급여의뢰서는 원본만 받습니다(사본·팩스 불가). 발급 뒤 7일(공휴일 제외) 안에 내야 하고, 해당 상병 진료가 끝날 때까지 유효합니다. 다른 질환이면 새로 받아야 합니다
   - 2종은 투약 1,500원 / 미투약 1,000원, 2종 장애는 750원 / 250원입니다
   - 연장승인 미신청자(`B014`)는 총진료비의 30%를 받고 특정기호 `F023`을 기재합니다(2019-01-01부터)
   - 같은 진료가 이미 승인된 상태("중복된 진료확인 건")면 공단 사이트에서 진료확인번호를 취소한 뒤 다시 요청합니다. "자격조회 정보 없음"이면 진료일로 자격조회를 다시 한 뒤 요청합니다
-- **본인확인 의무:** 초진·재진 구분 없이 신분증으로 확인합니다. 확인하지 않고 급여를 하면 과태료 100만 원 이하입니다(국민건강보험법 제119조) ([OK차트: 자격조회 - 본인확인 여부 체크하기](https://www.okmedi.net/Manual/?idx=1175))
+- **본인확인 의무:** 초진·재진 구분 없이 신분증으로 확인합니다. 확인하지 않고 급여를 하면 과태료 100만 원 이하입니다(국민건강보험법 제119조) (레거시 차트 매뉴얼 「자격조회 - 본인확인 여부 체크하기」)
   - 예외(국민건강보험 시행규칙 제7조의2): 19세 미만, 최근 본인확인 후 6개월 이내 재내원, 진료의뢰·회송, 응급환자, 거동이 현저히 불편한 자 등
   - 자격조회 결과의 예외 대상 표시는 심한 장애인·장기요양등급자·임산부 중 하나면 `Y`입니다. 어느 사유인지는 나오지 않습니다
-- **무자격자·급여제한자** ([OK차트: 무자격자, 급여제한자, 외국인 접수](https://www.okmedi.net/Manual/?idx=347), [OK차트: 건강보험 무자격자/급여제한자 진료기록과 수납](https://www.okmedi.net/Manual/?idx=706), [OK차트: 건강보험 부정수급 방지대책 관련](https://www.okmedi.net/Manual/?idx=705))
+- **무자격자·급여제한자** (레거시 차트 매뉴얼 「무자격자, 급여제한자, 외국인 접수」, 레거시 차트 매뉴얼 「건강보험 무자격자/급여제한자 진료기록과 수납」, 레거시 차트 매뉴얼 「건강보험 부정수급 방지대책 관련」)
   - 2014-07-01부터 접수 때 급여제한 여부를 꼭 확인해야 합니다. 착오로 청구해도 급여비가 나오지 않습니다
   - 표시: 자격 상실자는 `무자격`, 보험료 6회 이상 체납자는 `급여제한`, 외국인·재외국민 체납자는 `외국인등보험료체납`(2019-08-01부터)
   - 무자격자는 `일반`으로 기록하고 전액을 받습니다. 나중에 상실일로 소급해 자격이 회복되면 그 진료를 `보험`으로 다시 계산하고, 공단부담금만큼 환자에게 환불합니다. 무자격 조회 이력도 지웁니다
   - 급여제한자도 전액을 받습니다. 다만 청구명세서에는 청구금액을 본인부담에 더해 송신하고, 환자가 체납액을 내면 공단이 환자에게 직접 돌려줍니다
-- **외국인:** 주민번호 형식 검증에 걸려도 공단 자격이 확인되면 내국인과 같이 진행합니다. 자격조회가 안 되면 `일반`으로 전액을 받습니다. 생년월일이 `570000` 꼴이면 그해 1월 1일(`1957-01-01`)로 저장합니다(공단 지침). 출국자로 조회되면 무자격이 아닐 때만 외국인등록증 확인 뒤 급여를 적용합니다 ([OK차트: 무자격자, 급여제한자, 외국인 접수](https://www.okmedi.net/Manual/?idx=347))
-- **임신부·조산아** ([OK차트: 임신부 본인부담률 경감 및 '임신확인 - 진료기록 - 수납하기' 안내](https://www.okmedi.net/Manual/?idx=843), [OK차트: 임신부 및 조산아 접수](https://www.okmedi.net/Manual/?idx=346))
+- **외국인:** 주민번호 형식 검증에 걸려도 공단 자격이 확인되면 내국인과 같이 진행합니다. 자격조회가 안 되면 `일반`으로 전액을 받습니다. 생년월일이 `570000` 꼴이면 그해 1월 1일(`1957-01-01`)로 저장합니다(공단 지침). 출국자로 조회되면 무자격이 아닐 때만 외국인등록증 확인 뒤 급여를 적용합니다 (레거시 차트 매뉴얼 「무자격자, 급여제한자, 외국인 접수」)
+- **임신부·조산아** (레거시 차트 매뉴얼 「임신부 본인부담률 경감 및 '임신확인 - 진료기록 - 수납하기' 안내」, 레거시 차트 매뉴얼 「임신부 및 조산아 접수」)
   - 임신 확인 뒤부터 출산 당일까지 모든 외래에 적용합니다. 유산·사산 관련 외래 당일도 포함합니다. 확인 근거는 임신부 수첩, 산부인과 확인서, 바우처 카드, 공단 정보마당 조회입니다
   - 조산아는 재태 37주 미만 또는 2,500g 이하 출생아로, 출생 후 5년까지 적용합니다. 자격조회 결과로 자동 확인됩니다
   - 1세 이상 조산아는 국민행복카드 지원금으로 결제할 수 없습니다
-- **국민행복카드·첫만남이용권** ([OK차트: 임신부 지원 카드로 수납](https://www.okmedi.net/Manual/?idx=373), [OK차트: 임신부 지원 카드의 잔액이 부족한 경우](https://www.okmedi.net/Manual/?idx=882), [OK차트: 국민행복카드 첫만남이용권 등 요약 안내](https://www.okmedi.net/Manual/?idx=1310))
+- **국민행복카드·첫만남이용권** (레거시 차트 매뉴얼 「임신부 지원 카드로 수납」, 레거시 차트 매뉴얼 「임신부 지원 카드의 잔액이 부족한 경우」, 레거시 차트 매뉴얼 「국민행복카드 첫만남이용권 등 요약 안내」)
   - 임신·출산 진료비 바우처는 분만예정일 등으로부터 2년간 씁니다. 단말기에서 할부 개월 칸에 승인코드 `38`을 넣어 결제합니다
   - 지원금으로 낸 금액(급여 본인부담·비급여)은 공제제외입니다. 지원금이 모자라 환자가 낸 차액은 공제대상입니다
   - 첫만남이용권(출생 후 2년, 첫째 200만 원·둘째 이상 300만 원)은 승인코드 없이 일반 일시불로 결제합니다
-- **희귀난치 지원 대상:** 본인부담을 `지원금`으로 자동 기록하고 환자에게 받지 않습니다. 이 금액은 공제제외로 체크됩니다 ([OK차트: 본인부담금 및 비급여 진료비 수납](https://www.okmedi.net/Manual/?idx=371))
-- **제주 지원** ([OK차트: (기준) - 본인일부부담금 및 세부사항](https://www.okmedi.net/Manual/?idx=1086), [OK차트: 제주4·3희생자 유족 및 며느리 진료비 수납](https://www.okmedi.net/Manual/?idx=1011), [OK차트: 제주 해녀 진료비 수납](https://www.okmedi.net/Manual/?idx=1013), [OK차트: 제주4·3희생자 유족 및 며느리 접수](https://www.okmedi.net/Manual/?idx=1010))
+- **희귀난치 지원 대상:** 본인부담을 `지원금`으로 자동 기록하고 환자에게 받지 않습니다. 이 금액은 공제제외로 체크됩니다 (레거시 차트 매뉴얼 「본인부담금 및 비급여 진료비 수납」)
+- **제주 지원** (레거시 차트 매뉴얼 「(기준) - 본인일부부담금 및 세부사항」, 레거시 차트 매뉴얼 「제주4·3희생자 유족 및 며느리 진료비 수납」, 레거시 차트 매뉴얼 「제주 해녀 진료비 수납」, 레거시 차트 매뉴얼 「제주4·3희생자 유족 및 며느리 접수」)
   - 4·3 희생자 유족·며느리: 급여 본인부담금의 30%를 지원합니다. 본인부담이 6,000원 이하면 전액 지원합니다. 매월 말일 기준으로 4·3평화재단에 청구합니다
   - 해녀: 급여 본인부담 전액을 지원합니다(환자 무료). 매월 말일 기준으로 제주시청·서귀포시청에 청구합니다
   - 두 경우 모두 비급여는 환자에게 받습니다. 대상 여부는 관리정보의 증번호로 판단합니다
-- **공제제외(연말정산 의료비 자료에서 빠지는 금액):** 미용·성형 비용, 건강증진 목적 한약(치료 목적 한약은 포함), 국민행복카드 결제분, 과세 진료·제품, 의료급여 건강생활유지비, 각종 지원금, 진단서 등 제증명수수료가 해당합니다. 근거는 소득세법 시행령 제110조 제2항입니다. 체크하기 전에 환자에게 이유를 설명해야 합니다 ([OK차트: 공제제외로 수납](https://www.okmedi.net/Manual/?idx=954), [OK차트: 본인부담금 및 비급여 진료비 수납](https://www.okmedi.net/Manual/?idx=371))
-- **현금영수증** ([OK차트: 현금영수증 승인 관련 내용 정리 요약](https://www.okmedi.net/Manual/?idx=822), [OK차트: 현금영수증 차트에서 승인하고 카드단말기에서 출력하기](https://www.okmedi.net/Manual/?idx=1008), [OK차트: 현금영수증 발행분에 대한 해석 - 세무관련 통계](https://www.okmedi.net/Manual/?idx=858))
+- **공제제외(연말정산 의료비 자료에서 빠지는 금액):** 미용·성형 비용, 건강증진 목적 한약(치료 목적 한약은 포함), 국민행복카드 결제분, 과세 진료·제품, 의료급여 건강생활유지비, 각종 지원금, 진단서 등 제증명수수료가 해당합니다. 근거는 소득세법 시행령 제110조 제2항입니다. 체크하기 전에 환자에게 이유를 설명해야 합니다 (레거시 차트 매뉴얼 「공제제외로 수납」, 레거시 차트 매뉴얼 「본인부담금 및 비급여 진료비 수납」)
+- **현금영수증** (레거시 차트 매뉴얼 「현금영수증 승인 관련 내용 정리 요약」, 레거시 차트 매뉴얼 「현금영수증 차트에서 승인하고 카드단말기에서 출력하기」, 레거시 차트 매뉴얼 「현금영수증 발행분에 대한 해석 - 세무관련 통계」)
   - 10만 원 이상 현금 거래는 발급 의무입니다(2014-07-01부터, 매뉴얼 기준)
   - 신분확인 번호는 주민번호가 기본입니다. 휴대폰번호, 현금영수증카드, 사업자번호, 보호자 등 다른 사람 번호로 바꿀 수 있습니다. 아무것도 확인되지 않으면 `010-000-1234`로 발급합니다
   - 카드번호가 `154420209`로 시작하면 지출증빙용으로 발행됩니다
@@ -620,33 +620,33 @@
   - 승인·취소 정보는 VAN사 서버에 모였다가 일괄로 국세청에 전송됩니다. 그래서 당일 건은 홈택스에서 바로 보이지 않을 수 있습니다
   - 차트와 단말기에서 같은 건을 두 번 승인하지 않게 막아야 합니다
   - 세무 통계는 보험 본인부담과 비보험으로 나눕니다. 보험 본인부담을 현금영수증으로 받은 금액(`현금영수증 본인`)을 따로 집계합니다
-- **급여 본인부담 할인:** 급여 본인부담금 할인은 의료법 위반 소지가 있어 주의하라고 안내합니다. 잔액은 할인 또는 미수 중 하나로 처리합니다 ([OK차트: 본인부담금 및 비급여 진료비 수납](https://www.okmedi.net/Manual/?idx=371)). 임시공휴일 가산분을 평일 수준으로 받을 때는 본인부담 할인 항목으로 맞추라고 합니다(초진 약 1,100원, 재진 약 700원, 매뉴얼 기준) ([OK차트: 임시공휴일(10월 2일) 진료비 가산 적용 및 본인부담금 부과 방법 안내](https://www.okmedi.net/Manual/?idx=830))
-- **초진·재진 자동 판정** (접수의 `초진여부` 기본값 참고) ([OK차트: 초진 - 재진 진찰료 산정 안내](https://www.okmedi.net/Manual/?idx=844))
+- **급여 본인부담 할인:** 급여 본인부담금 할인은 의료법 위반 소지가 있어 주의하라고 안내합니다. 잔액은 할인 또는 미수 중 하나로 처리합니다 (레거시 차트 매뉴얼 「본인부담금 및 비급여 진료비 수납」). 임시공휴일 가산분을 평일 수준으로 받을 때는 본인부담 할인 항목으로 맞추라고 합니다(초진 약 1,100원, 재진 약 700원, 매뉴얼 기준) (레거시 차트 매뉴얼 「임시공휴일(10월 2일) 진료비 가산 적용 및 본인부담금 부과 방법 안내」)
+- **초진·재진 자동 판정** (접수의 `초진여부` 기본값 참고) (레거시 차트 매뉴얼 「초진 - 재진 진찰료 산정 안내」)
   - 마지막 내원 뒤 30일이 지나 다른 상병으로 오면 초진입니다
   - 같은 상병으로 90일 이내에 오면 재진, 90일이 지나면 초진입니다
   - 고시상 치료가 끝나지 않은 상병은 간격과 관계없이 재진이므로, 직원이 수동으로 바꿀 수 있습니다
-- **자보 접수 규칙** ([OK차트: 자동차보험 환자 접수/조회/동의서 출력](https://www.okmedi.net/Manual/?idx=923), [OK차트: 자동차보험 4주 경과 시 지급보증 절차, 진단서 발급](https://www.okmedi.net/Manual/?idx=1109), [OK차트: 자동차보험 지불보증번호가 계속 변경되는 경우](https://www.okmedi.net/Manual/?idx=1044), [OK차트: 자동차보험 중복진료 구분 요약](https://www.okmedi.net/Manual/?idx=1050))
+- **자보 접수 규칙** (레거시 차트 매뉴얼 「자동차보험 환자 접수/조회/동의서 출력」, 레거시 차트 매뉴얼 「자동차보험 4주 경과 시 지급보증 절차, 진단서 발급」, 레거시 차트 매뉴얼 「자동차보험 지불보증번호가 계속 변경되는 경우」, 레거시 차트 매뉴얼 「자동차보험 중복진료 구분 요약」)
   - 수상일로부터 4주가 지나면, 그 뒤로는 2주마다 진단서를 내고 지급보증을 새로 받습니다
   - 지급보증 적용 기간은 서로 겹치면 안 됩니다
   - 보증 연장용 진단서 비용은 비급여로 받고, 환자가 보험사에 청구합니다
   - 자보 첩약 개인정보 동의서는 5년마다 다시 받습니다
   - 양방에서 자보로 통원·입원 중이면 한방 자보 접수는 할 수 없고, 사고와 무관한 기존 건보 상병만 볼 수 있습니다
-- **세부산정내역서 발급비:** 최초 1부는 무료이고, 그 뒤부터 요구자에게 받을 수 있습니다(보건복지부 고시 제2018-21호, 2018-03-02 시행). 제증명수수료 항목·상한은 고시 제2017-166호를 따릅니다 ([OK차트: 여러가지 계산서 출력](https://www.okmedi.net/Manual/?idx=374), [OK차트: 제증명수수료 항목 및 금액에 관한 기준](https://www.okmedi.net/Manual/?idx=825))
-- **본인부담금 수납대장:** 진료와 수납은 당일에 기록하는 것이 원칙이고, 급여·비급여를 모두 남깁니다. 수납대장은 별지 제5호 서식에 맞춥니다 ([OK차트: 진료기록부 및 본인부담금 수납대장 작성시 유의사항](https://www.okmedi.net/Manual/?idx=743))
+- **세부산정내역서 발급비:** 최초 1부는 무료이고, 그 뒤부터 요구자에게 받을 수 있습니다(보건복지부 고시 제2018-21호, 2018-03-02 시행). 제증명수수료 항목·상한은 고시 제2017-166호를 따릅니다 (레거시 차트 매뉴얼 「여러가지 계산서 출력」, 레거시 차트 매뉴얼 「제증명수수료 항목 및 금액에 관한 기준」)
+- **본인부담금 수납대장:** 진료와 수납은 당일에 기록하는 것이 원칙이고, 급여·비급여를 모두 남깁니다. 수납대장은 별지 제5호 서식에 맞춥니다 (레거시 차트 매뉴얼 「진료기록부 및 본인부담금 수납대장 작성시 유의사항」)
 
 ### 현행과 다른 점
 
-- **급여제한자 처리:** 현행은 `급여제한여부`가 있으면 무자격이든 급여제한이든 보험구분을 `일반`으로 바꿉니다. OK차트는 무자격자만 `일반`으로 돌립니다. 급여제한자는 자격구분 `급여제한`을 유지한 채 전액을 받고, 청구명세서도 만들어 송신합니다 ([OK차트: 건강보험 무자격자/급여제한자 진료기록과 수납](https://www.okmedi.net/Manual/?idx=706))
-- **공제제외 단위:** 현행 수납 body의 `공제제외여부`는 수납 한 건 전체에 붙는 플래그입니다. OK차트는 한 번 수납할 때 금액을 공제대상과 공제제외 칸(현금/카드 각각)으로 나눠 받습니다. 과세·지원금·건생비·행복카드분은 수납 내역에 자동으로 공제제외가 체크되고, 나중에 행 단위로 바꿀 수도 있습니다 ([OK차트: 공제제외로 수납](https://www.okmedi.net/Manual/?idx=954), [OK차트: 본인부담금 및 비급여 진료비 수납](https://www.okmedi.net/Manual/?idx=371))
-- **급여·비급여 분리 수납:** OK차트는 급여 본인부담과 비급여를 나눈 채로 할인·절사·현금·카드·건생비를 입력하고, 수납 내역도 본인/비급여로 나눠 보여 줍니다. 현행은 받을 금액을 비과세/과세로만 나눕니다 ([OK차트: 본인부담금 및 비급여 진료비 수납](https://www.okmedi.net/Manual/?idx=371))
-- **현금영수증:** 현행 `PaymentCalculator`의 `현금영수증` 모델은 항상 `false`입니다(위 미확인 항목). OK차트는 수납 화면에서 바로 승인하고, 승인·취소·수기 내역을 따로 관리합니다 ([OK차트: 현금영수증 승인 및 영수증 출력](https://www.okmedi.net/Manual/?idx=1006))
-- **임신부 정보:** 현행은 접수할 때 `임산부여부` 체크만 보냅니다. OK차트는 환자 관리정보에 출산 예정일(기간)을 저장해, 그 기간의 접수에 자동으로 적용합니다 (추정) ([OK차트: 임신부 및 조산아 접수](https://www.okmedi.net/Manual/?idx=346))
-- **같은 날 자보·건보 병행:** OK차트는 같은 날 자보와 건보 진료가 겹치면 차트(차트번호)를 하나 더 만들어 따로 기록합니다. 그래야 청구명세서가 갈라집니다. 날짜가 다르면 한 차트에서 진료일별로 보험을 다시 계산합니다. 현행은 접수(`내원`) 단위로 `보험구분`을 갖습니다. 그래서 같은 환자를 하루에 두 번 접수하면 분리할 수 있을 것으로 보입니다 (추정) ([OK차트: 자보치료와 건보치료가 병행된 경우 진료기록](https://www.okmedi.net/Manual/?idx=1049))
-- **패키지·선결제:** OK차트가 권장하는 방식은 예약플래너에 패키지 회차를 표시하는 것입니다. 진료 기록으로 할 때는 첫 회에 총액, 이후 회차는 0원으로 기록하고 회차는 메모로 공유합니다. 선결제 뒤 실손보험금을 받고 결제를 취소하는 악용 사례를 들어 선수납 차감 방식을 권장하지 않습니다. 보험 진료는 패키지로 묶을 수 없습니다. 현행은 `선수금` 충전·차감과 `진행중인패키지여부`를 둡니다 ([OK차트: 패키지진료 관리하기](https://www.okmedi.net/Manual/?idx=354))
-- **환불 표현:** 현행 환불은 환자상세 수납 내역의 별도 API로 보입니다(추정). OK차트는 수납 내역에 `환불` 종류 행을 날짜·수단과 함께 덧붙이고, 재수납도 새 행으로 남깁니다 ([OK차트: 환불 및 재수납](https://www.okmedi.net/Manual/?idx=951))
-- **지출·시재:** 현행은 현금 시재와 지출 항목·금액만 다룹니다. OK차트 금전출납은 수입·지출 계정과목과 거래처를 두고, 수납현황에서 현금 수납·환불(또는 카드 포함) 금액을 불러와 장부에 반영합니다. 기간별 통계도 냅니다 ([OK차트: 금전출납부 기록 및 통계](https://www.okmedi.net/Manual/?idx=395))
-- **대기 목록 정리:** OK차트는 진료기록이 끝난 환자나 목록 전체를 대기실·치료실에서 한꺼번에 빼는 기능이 있고, 드래그로 대기 순서를 바꿉니다. 현행 대기·치료 컬럼은 `대기시간` 오름차순 고정입니다 ([OK차트: 접수실프로그램 메뉴 버튼 안내](https://www.okmedi.net/Manual/?idx=341), [OK차트: 재진환자 접수](https://www.okmedi.net/Manual/?idx=348))
-- **진료비 발생 정보 삭제:** OK차트는 진료기록과 수납기록이 모두 없는 건만 수납현황에서 지울 수 있습니다. 현행 접수 취소는 그날의 진료기록과 수납 내역을 함께 지웁니다 ([OK차트: 접수실프로그램 메뉴 버튼 안내](https://www.okmedi.net/Manual/?idx=341))
+- **급여제한자 처리:** 현행은 `급여제한여부`가 있으면 무자격이든 급여제한이든 보험구분을 `일반`으로 바꿉니다. 레거시 차트는 무자격자만 `일반`으로 돌립니다. 급여제한자는 자격구분 `급여제한`을 유지한 채 전액을 받고, 청구명세서도 만들어 송신합니다 (레거시 차트 매뉴얼 「건강보험 무자격자/급여제한자 진료기록과 수납」)
+- **공제제외 단위:** 현행 수납 body의 `공제제외여부`는 수납 한 건 전체에 붙는 플래그입니다. 레거시 차트는 한 번 수납할 때 금액을 공제대상과 공제제외 칸(현금/카드 각각)으로 나눠 받습니다. 과세·지원금·건생비·행복카드분은 수납 내역에 자동으로 공제제외가 체크되고, 나중에 행 단위로 바꿀 수도 있습니다 (레거시 차트 매뉴얼 「공제제외로 수납」, 레거시 차트 매뉴얼 「본인부담금 및 비급여 진료비 수납」)
+- **급여·비급여 분리 수납:** 레거시 차트는 급여 본인부담과 비급여를 나눈 채로 할인·절사·현금·카드·건생비를 입력하고, 수납 내역도 본인/비급여로 나눠 보여 줍니다. 현행은 받을 금액을 비과세/과세로만 나눕니다 (레거시 차트 매뉴얼 「본인부담금 및 비급여 진료비 수납」)
+- **현금영수증:** 현행 `PaymentCalculator`의 `현금영수증` 모델은 항상 `false`입니다(위 미확인 항목). 레거시 차트는 수납 화면에서 바로 승인하고, 승인·취소·수기 내역을 따로 관리합니다 (레거시 차트 매뉴얼 「현금영수증 승인 및 영수증 출력」)
+- **임신부 정보:** 현행은 접수할 때 `임산부여부` 체크만 보냅니다. 레거시 차트는 환자 관리정보에 출산 예정일(기간)을 저장해, 그 기간의 접수에 자동으로 적용합니다 (추정) (레거시 차트 매뉴얼 「임신부 및 조산아 접수」)
+- **같은 날 자보·건보 병행:** 레거시 차트는 같은 날 자보와 건보 진료가 겹치면 차트(차트번호)를 하나 더 만들어 따로 기록합니다. 그래야 청구명세서가 갈라집니다. 날짜가 다르면 한 차트에서 진료일별로 보험을 다시 계산합니다. 현행은 접수(`내원`) 단위로 `보험구분`을 갖습니다. 그래서 같은 환자를 하루에 두 번 접수하면 분리할 수 있을 것으로 보입니다 (추정) (레거시 차트 매뉴얼 「자보치료와 건보치료가 병행된 경우 진료기록」)
+- **패키지·선결제:** 레거시 차트가 권장하는 방식은 예약플래너에 패키지 회차를 표시하는 것입니다. 진료 기록으로 할 때는 첫 회에 총액, 이후 회차는 0원으로 기록하고 회차는 메모로 공유합니다. 선결제 뒤 실손보험금을 받고 결제를 취소하는 악용 사례를 들어 선수납 차감 방식을 권장하지 않습니다. 보험 진료는 패키지로 묶을 수 없습니다. 현행은 `선수금` 충전·차감과 `진행중인패키지여부`를 둡니다 (레거시 차트 매뉴얼 「패키지진료 관리하기」)
+- **환불 표현:** 현행 환불은 환자상세 수납 내역의 별도 API로 보입니다(추정). 레거시 차트는 수납 내역에 `환불` 종류 행을 날짜·수단과 함께 덧붙이고, 재수납도 새 행으로 남깁니다 (레거시 차트 매뉴얼 「환불 및 재수납」)
+- **지출·시재:** 현행은 현금 시재와 지출 항목·금액만 다룹니다. 레거시 차트 금전출납은 수입·지출 계정과목과 거래처를 두고, 수납현황에서 현금 수납·환불(또는 카드 포함) 금액을 불러와 장부에 반영합니다. 기간별 통계도 냅니다 (레거시 차트 매뉴얼 「금전출납부 기록 및 통계」)
+- **대기 목록 정리:** 레거시 차트는 진료기록이 끝난 환자나 목록 전체를 대기실·치료실에서 한꺼번에 빼는 기능이 있고, 드래그로 대기 순서를 바꿉니다. 현행 대기·치료 컬럼은 `대기시간` 오름차순 고정입니다 (레거시 차트 매뉴얼 「접수실프로그램 메뉴 버튼 안내」, 레거시 차트 매뉴얼 「재진환자 접수」)
+- **진료비 발생 정보 삭제:** 레거시 차트는 진료기록과 수납기록이 모두 없는 건만 수납현황에서 지울 수 있습니다. 현행 접수 취소는 그날의 진료기록과 수납 내역을 함께 지웁니다 (레거시 차트 매뉴얼 「접수실프로그램 메뉴 버튼 안내」)
 
 ## 미확인·추정
 

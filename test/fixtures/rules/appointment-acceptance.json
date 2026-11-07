@@ -3,59 +3,59 @@
   "description": "Client-side appointment slot checks: per-slot capacity with the 추가예약제한 exclusive rule, closed day, clinic hours, doctor off-day, break, blocked and past-time checks for booking and drag-move.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/orderSource.js",
+      "file": "restored/modules/index/orderSource.js",
       "lines": "54, 197-213",
-      "origin": "unminified/index-CBEIvlV0.js:70299-70816"
+      "origin": "unminified/index.js:70299-70816"
     },
     {
-      "file": "re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue.js",
+      "file": "restored/components/appointment/AppointmentPlannerDailyCell.vue.js",
       "lines": "81-145",
-      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:5254-5518"
+      "origin": "unminified/AppointmentPlannerView.js:5254-5518"
     },
     {
-      "file": "re-upstream/restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js",
+      "file": "restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js",
       "lines": "80-120",
-      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:6045-6291"
+      "origin": "unminified/AppointmentPlannerView.js:6045-6291"
     },
     {
-      "file": "re-upstream/restored/components/appointment/AppointmentPlannerDaily.vue.js",
+      "file": "restored/components/appointment/AppointmentPlannerDaily.vue.js",
       "lines": "111-121, 195-209",
-      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:5519-5901"
+      "origin": "unminified/AppointmentPlannerView.js:5519-5901"
     },
     {
-      "file": "re-upstream/restored/modules/AppointmentPlannerView/part-2.js",
+      "file": "restored/modules/AppointmentPlannerView/part-2.js",
       "lines": "293-365",
-      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:2298-2652"
+      "origin": "unminified/AppointmentPlannerView.js:2298-2652"
     },
     {
-      "file": "re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js",
+      "file": "restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js",
       "lines": "160-168",
-      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:4726-4895"
+      "origin": "unminified/AppointmentPlannerView.js:4726-4895"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskViewPatientAppointment.vue.js",
+      "file": "restored/components/desk/DeskViewPatientAppointment.vue.js",
       "lines": "425-563, 796-799, 854-857",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:14350-15476"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:14350-15476"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskViewPatientAppointment.helpers.js",
+      "file": "restored/components/desk/DeskViewPatientAppointment.helpers.js",
       "lines": "86-115",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:12214-12333"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:12214-12333"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskViewPatientAppointment.helpers-2.js",
+      "file": "restored/components/desk/DeskViewPatientAppointment.helpers-2.js",
       "lines": "8-30",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:12334-12472"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:12334-12472"
     },
     {
-      "file": "re-upstream/restored/api/crm/requests-5.js",
+      "file": "restored/api/crm/requests-5.js",
       "lines": "38-53",
-      "origin": "unminified/queries-HFyu0TR7.js:5796-5922"
+      "origin": "unminified/queries.js:5796-5922"
     },
     {
-      "file": "re-upstream/restored/lib/index/part-251.js",
+      "file": "restored/lib/index/part-251.js",
       "lines": "8-27",
-      "origin": "unminified/index-CBEIvlV0.js:140676-140698"
+      "origin": "unminified/index.js:140676-140698"
     }
   ],
   "inputSchema": {
@@ -465,7 +465,7 @@
               "취소여부": false,
               "부도여부": false,
               "추가예약제한": true,
-              "주문출처": "naver_doctalk",
+              "주문출처": "naver_booking",
               "예약변경내역": [
                 {
                   "to": {
@@ -496,7 +496,7 @@
               "취소여부": false,
               "부도여부": false,
               "추가예약제한": false,
-              "주문출처": "naver_doctalk",
+              "주문출처": "naver_booking",
               "예약변경내역": []
             },
             {
@@ -528,7 +528,7 @@
               "취소여부": false,
               "부도여부": false,
               "추가예약제한": false,
-              "주문출처": "kakao_doctalk",
+              "주문출처": "kakao_booking",
               "예약변경내역": [
                 {
                   "to": {
@@ -566,7 +566,7 @@
               "취소여부": false,
               "부도여부": false,
               "추가예약제한": false,
-              "주문출처": "kakao_doctalk",
+              "주문출처": "kakao_booking",
               "예약변경내역": [
                 {
                   "to": {
@@ -609,7 +609,7 @@
               "취소여부": false,
               "부도여부": false,
               "추가예약제한": false,
-              "주문출처": "daangn_doctalk",
+              "주문출처": "daangn_booking",
               "예약변경내역": []
             },
             {

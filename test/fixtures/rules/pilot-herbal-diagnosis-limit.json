@@ -3,29 +3,29 @@
   "description": "HIRA cumulative dosing history decides whether a pilot herbal (첩건) disease may be prescribed and which copay code (G/U/blank) applies: 2+ other diseases or other-clinic history blocks, 20+ days at this clinic switches to U.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "57-99",
-      "origin": "unminified/index-CBEIvlV0.js:121709-121750"
+      "origin": "unminified/index.js:121709-121750"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "683-697",
-      "origin": "unminified/index-CBEIvlV0.js:122313-122326"
+      "origin": "unminified/index.js:122313-122326"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "705-743",
-      "origin": "unminified/index-CBEIvlV0.js:122332-122370"
+      "origin": "unminified/index.js:122332-122370"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "765-818",
-      "origin": "unminified/index-CBEIvlV0.js:122389-122442"
+      "origin": "unminified/index.js:122389-122442"
     },
     {
-      "file": "re-upstream/restored/modules/DeskPatientRegister/part-4.js",
+      "file": "restored/modules/DeskPatientRegister/part-4.js",
       "lines": "13-153",
-      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1439-1575"
+      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang.js:1439-1575"
     }
   ],
   "inputSchema": {

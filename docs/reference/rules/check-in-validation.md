@@ -9,12 +9,12 @@
 
 ## 현행 위치
 
-- 접수 패널: `re-upstream/restored/components/desk/DeskPatientAccept.vue.js`
-- 검증 헬퍼: `re-upstream/restored/modules/SidePanelDeskActions/선택된기관기호.js` (`PD`, `AD`, `ED`)
-- 급여제한 코드: `re-upstream/restored/modules/insurance.js`
-- 자격 코드, 본인확인 판정: `re-upstream/restored/api/patients/queries-2.js` (`x0e`, `Dun`, `Lun`)
-- 선택기관 코드 목록: `re-upstream/restored/modules/DeskPatientRegister/part-3.js` (`ni`), `re-upstream/restored/modules/MedicalAidsHospitalSelect/part-1.js` (`X`)
-- 예약 상세 접수 버튼: `re-upstream/restored/components/appointment/AppointmentPlannerSideDetail.vue.js`
+- 접수 패널: `restored/components/desk/DeskPatientAccept.vue.js`
+- 검증 헬퍼: `restored/modules/SidePanelDeskActions/선택된기관기호.js` (`PD`, `AD`, `ED`)
+- 급여제한 코드: `restored/modules/insurance.js`
+- 자격 코드, 본인확인 판정: `restored/api/patients/queries-2.js` (`x0e`, `Dun`, `Lun`)
+- 선택기관 코드 목록: `restored/modules/DeskPatientRegister/part-3.js` (`ni`), `restored/modules/MedicalAidsHospitalSelect/part-1.js` (`X`)
+- 예약 상세 접수 버튼: `restored/components/appointment/AppointmentPlannerSideDetail.vue.js`
 
 ## 로직
 
@@ -74,13 +74,13 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/insurance.js:41-57`, `re-upstream/restored/components/desk/DeskPatientAccept.vue.js:687-692`
+`restored/modules/insurance.js:41-57`, `restored/components/desk/DeskPatientAccept.vue.js:687-692`
 
 ```js
-// Restored from unminified/insurance-DbeX1NlJ.js:12-166
+// Restored from unminified/insurance.js:12-166
 const i = { 무자격자: "01", 체납6회이상: "02", 외국인재외국민체납: "03", 사망자: "04", 국외이민자: "05" };
 const x = t => t === i.무자격자;
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:9306-10509
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:9306-10509
 watch(건보자격조회결과$, De => {
   if (selectedInsuranceType$.value === 건보 && x_2(De?.급여제한여부)) {
     selectedInsuranceType$.value = 일반;
@@ -89,7 +89,7 @@ watch(건보자격조회결과$, De => {
 });
 ```
 
-`re-upstream/restored/components/desk/DeskPatientAccept.vue.js:418-460`
+`restored/components/desk/DeskPatientAccept.vue.js:418-460`
 
 ```js
 const bn = computed(() => {
@@ -108,10 +108,10 @@ const bn = computed(() => {
 const ta = computed(() => !bn.value || 선택된본인부담여부$.value === "U001" ? false : 선택된본인부담여부$.value === "B005" ? !선택된기관$.value.선택된기관기호 : true);
 ```
 
-`re-upstream/restored/modules/SidePanelDeskActions/선택된기관기호.js:149-159`
+`restored/modules/SidePanelDeskActions/선택된기관기호.js:149-159`
 
 ```js
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:2840-2985
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:2840-2985
 const AD = (t, s) => {
   if (!X.includes(t)) return null;                          // ["B005", "B006", "B008"]
   const 선택된기관기호$ = s.선택된기관기호;
@@ -120,7 +120,7 @@ const AD = (t, s) => {
 };
 ```
 
-`re-upstream/restored/components/desk/DeskPatientAccept.vue.js:884-900, 652-656`
+`restored/components/desk/DeskPatientAccept.vue.js:884-900, 652-656`
 
 ```js
 const gx = async () => {
@@ -142,10 +142,10 @@ const It = 직전내원현황$.자동차보험조회.보증종료일자 ? parse(
 if (It && $f(It, Ts(new Date()))) return;                   // isBefore(end, startOfDay(now))
 ```
 
-`re-upstream/restored/api/patients/queries-2.js:815-824` (본인확인 필요)
+`restored/api/patients/queries-2.js:815-824` (본인확인 필요)
 
 ```js
-// Restored from unminified/index-CBEIvlV0.js:117270-118177
+// Restored from unminified/index.js:117270-118177
 function Dun({ 환자정보 }) {
   if (!환자정보) return true;
   const t = !환자정보.최초내원일;
@@ -154,10 +154,10 @@ function Dun({ 환자정보 }) {
 }
 ```
 
-`re-upstream/restored/components/appointment/AppointmentPlannerSideDetail.vue.js:551-552`
+`restored/components/appointment/AppointmentPlannerSideDetail.vue.js:551-552`
 
 ```js
-// Restored from unminified/AppointmentPlannerView-DLL_lCp9.js:803-1326
+// Restored from unminified/AppointmentPlannerView.js:803-1326
 class: normalizeClass(["whitespace-nowrap !p-0", ["등록", "취소", "부도", "부도후_예약시간_변경", "부도후_예약일자_변경"].includes(p.value.예약상태) ? "visible" : "invisible"]),
 disabled: !unref(canCreate$)(unref(PermissionCode$).접수생성) || !unref(DDe)(unref(parse)(props.appointment.예약일자, "yyyyMMdd", new Date())),  // DDe = isToday
 ```

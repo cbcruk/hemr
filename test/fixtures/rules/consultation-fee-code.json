@@ -3,54 +3,54 @@
   "description": "Selects the consultation fee code (초진 10100 / 재진 10200) and its 8-digit 산정코드 modifiers (age, night, 심야, Saturday, holiday, proxy receipt) from visit time, patient RRN, clinic settings and the prior-visit window.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "174-347",
-      "origin": "unminified/index-CBEIvlV0.js:121819-121991"
+      "origin": "unminified/index.js:121819-121991"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "453-613",
-      "origin": "unminified/index-CBEIvlV0.js:122095-122254"
+      "origin": "unminified/index.js:122095-122254"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "944-1003",
-      "origin": "unminified/index-CBEIvlV0.js:122560-122618"
+      "origin": "unminified/index.js:122560-122618"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1374-1487",
-      "origin": "unminified/index-CBEIvlV0.js:122977-123090"
+      "origin": "unminified/index.js:122977-123090"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1489-1680",
-      "origin": "unminified/index-CBEIvlV0.js:123091-123280"
+      "origin": "unminified/index.js:123091-123280"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-213.js",
+      "file": "restored/modules/index/part-213.js",
       "lines": "5-29",
-      "origin": "unminified/index-CBEIvlV0.js:119846-119870"
+      "origin": "unminified/index.js:119846-119870"
     },
     {
-      "file": "re-upstream/restored/modules/index/formatDistance.js",
+      "file": "restored/modules/index/formatDistance.js",
       "lines": "382-515",
-      "origin": "unminified/index-CBEIvlV0.js:57188-57320"
+      "origin": "unminified/index.js:57188-57320"
     },
     {
-      "file": "re-upstream/restored/modules/index/수가코드.js",
+      "file": "restored/modules/index/수가코드.js",
       "lines": "10-20",
-      "origin": "unminified/index-CBEIvlV0.js:79536-79747"
+      "origin": "unminified/index.js:79536-79747"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
+      "file": "restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
       "lines": "84-115",
-      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:3823-3854"
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang.js:3823-3854"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentPayment.vue.js",
+      "file": "restored/components/treatment/TreatmentPayment.vue.js",
       "lines": "59-400",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:9571-9960"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:9571-9960"
     }
   ],
   "inputSchema": {

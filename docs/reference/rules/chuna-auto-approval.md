@@ -9,12 +9,12 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-2.js:53-130` `AV().autoApproveChuna`.
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-11.js:68-82` 완료 흐름: `checkNhicChubyakApproval` → `savePatientRecord({ 진찰료중복안내: true })` → `PATCH done` → `n.autoApproveChuna()`(await 하지 않음).
-- `re-upstream/restored/modules/TreatmentViewBoard/part-16.js:192-262` 제출 페이로드 `MV`, 263-319 승인 상태 반영 `DV`(`POST /record/hira/prescriptions/approval {진료처방Ids, 승인여부: true}`, 시술자가 바뀌면 처방 PATCH).
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-3.js` `KV`: `진료일시`(기준일시 파싱), `fetch추나제출건조회`(심평원 병원별 추나요법 목록을 진료일 하루로 조회 후 `hiraChuna.B`로 매칭), `get추나ProcessingKeyParams`, `get기본추나시술자Id`.
-- `re-upstream/restored/modules/hiraChuna.js:5-39` 제출 건 매칭 `B`, 상병 포함 검사 `_`.
-- `re-upstream/restored/api/chart/query-keys.js:17-81` 공상구분코드 `w`.
+- `restored/components/treatment/TreatmentViewBoard.helpers-2.js:53-130` `AV().autoApproveChuna`.
+- `restored/components/treatment/TreatmentViewBoard.helpers-11.js:68-82` 완료 흐름: `checkNhicChubyakApproval` → `savePatientRecord({ 진찰료중복안내: true })` → `PATCH done` → `n.autoApproveChuna()`(await 하지 않음).
+- `restored/modules/TreatmentViewBoard/part-16.js:192-262` 제출 페이로드 `MV`, 263-319 승인 상태 반영 `DV`(`POST /record/hira/prescriptions/approval {진료처방Ids, 승인여부: true}`, 시술자가 바뀌면 처방 PATCH).
+- `restored/components/treatment/TreatmentViewBoard.helpers-3.js` `KV`: `진료일시`(기준일시 파싱), `fetch추나제출건조회`(심평원 병원별 추나요법 목록을 진료일 하루로 조회 후 `hiraChuna.B`로 매칭), `get추나ProcessingKeyParams`, `get기본추나시술자Id`.
+- `restored/modules/hiraChuna.js:5-39` 제출 건 매칭 `B`, 상병 포함 검사 `_`.
+- `restored/api/chart/query-keys.js:17-81` 공상구분코드 `w`.
 - 한도·당일 판정은 [chuna-annual-limit.md](chuna-annual-limit.md)의 `tLt` 결과를 씁니다.
 
 ## 로직
@@ -40,7 +40,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-2.js:53-130` (`// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:19423-19540`, 해당 부분 19462-19538)
+`restored/components/treatment/TreatmentViewBoard.helpers-2.js:53-130` (`// Restored from unminified/TreatmentViewBoard.js:19423-19540`, 해당 부분 19462-19538)
 
 ```js
 autoApproveChuna: async () => {
@@ -99,7 +99,7 @@ autoApproveChuna: async () => {
 }
 ```
 
-`re-upstream/restored/modules/hiraChuna.js:28-35` (`// Restored from unminified/hiraChuna-gwDnfLOu.js:12-55`)
+`restored/modules/hiraChuna.js:28-35` (`// Restored from unminified/hiraChuna.js:12-55`)
 
 ```js
 const i = e => e.상병기호.split(",").map(n => n.trim()).filter(Boolean);

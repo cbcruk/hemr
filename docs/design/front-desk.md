@@ -146,7 +146,7 @@ POST /booking-requests:batch-confirm         { ids[] }  → Job (항목별 결�
 ```
 
 - 현행 대기 판정은 클라이언트가 이력을 보고 추론했습니다. 재설계는 `status`가 있습니다
-- 외부 채널(닥톡 등)에 결과를 돌려주는 일은 Integrations가 `booking_request.confirmed` 이벤트를 받아 처리합니다. 실패하면 요청의 `syncStatus: PENDING|SYNCED|FAILED`로 보여 줍니다 (현행 `NONE/SENT/COMPLETED/FAILED`)
+- 외부 채널(예약 중개 서비스 등)에 결과를 돌려주는 일은 Integrations가 `booking_request.confirmed` 이벤트를 받아 처리합니다. 실패하면 요청의 `syncStatus: PENDING|SYNCED|FAILED`로 보여 줍니다 (현행 `NONE/SENT/COMPLETED/FAILED`)
 - 현행은 일괄 확정을 클라이언트가 100건씩 끊어 보냈습니다. 재설계는 `Job` 하나입니다
 
 ## 내원 (접수)
@@ -536,7 +536,7 @@ POST /payments/{id}:refund    { amount, refundMethod, reason, writeOff? }    Ide
 - **범위:** 위 표의 조회·취소·정정·결제 환불, 환불 수단 제약, 연쇄 취소의 영수증 `VOIDED`입니다
   - 미룸: 결제 묶음 환불(`/payment-groups`, `groupId`가 생길 때), 결제의 `allowedActions`, 정정 견적(아래), 연쇄 취소의 `dryRun`·`refunds[]` 본문, 비대면 수납·제주 지원금의 409(그 결제가 생길 때)
 - **목록은 커서 방식입니다(conventions.md).** 만든 시각, ID 순서이고 커서는 앞 쪽 마지막 행의 ID입니다. 취소한 영수증도 줍니다. 수납현황의 미적용 결제는 `GET /payments?status=UNAPPLIED`입니다
-- **환불은 결제 하나씩 기록을 덧붙입니다(`refunds[]`).** 원 결제는 고치지 않고, 상태가 `PARTIALLY_REFUNDED`·`REFUNDED`가 됩니다. 현행 OK차트처럼 "환불 행을 덧붙이는" 방식입니다
+- **환불은 결제 하나씩 기록을 덧붙입니다(`refunds[]`).** 원 결제는 고치지 않고, 상태가 `PARTIALLY_REFUNDED`·`REFUNDED`가 됩니다. 현행 레거시 차트처럼 "환불 행을 덧붙이는" 방식입니다
   - 환불 수단은 위 표대로입니다. 과세·비과세 각각 남은 금액까지 받습니다. 어긋나면 422 `REFUND_REJECTED { errors, allowedMethods, refundable }`로 이유를 모두 돌려줍니다(`METHOD_NOT_ALLOWED`·`AMOUNT_EXCEEDED`·`PARTIAL_UNAPPLIED`). 이미 전액 환불했거나 취소한 결제는 409 `PAYMENT_NOT_REFUNDABLE { paymentStatus }`입니다(`status`는 HTTP 상태 필드라 이름을 바꿨습니다). 환불 수단이 없는 제주 지원금·패키지는 지금 `allowedMethods: []`인 422이고, 위 설계의 409는 그 결제가 생길 때 엽니다
   - **미적용 결제는 전액만 환불합니다.** 영수증이 없어 나눌 이유가 없고, 일부만 환불한 미적용 결제를 나중에 적용하면 금액이 둘로 갈리기 때문입니다. 환불하면 `UNAPPLIED`에서 바로 `REFUNDED`이고 `writeOff`는 무시합니다
   - **적용한 결제를 환불하면 같은 트랜잭션에서 영수증 결산을 다시 판정합니다(`settlementAfterRefund`).** 받은 금액에서 돌려준 금액을 빼고 남은 금액이 미수가 됩니다. `writeOff: true`면 늘어난 남은 금액을 손비로 둡니다. 과수납을 돌려주면 `PAID`로 돌아옵니다. 영수증 `version`이 오릅니다

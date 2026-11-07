@@ -3,62 +3,62 @@
   "description": "Client-side validations on settings screens: arbitrary formula limits, package tax-type mixing, nonbenefit amount cap and VAT, treatment room bed/room limits, and name duplicate pre-checks.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js",
+      "file": "restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js",
       "lines": "3-36",
-      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:7448-7481"
+      "origin": "unminified/SettingPrescriptionView.js:7448-7481"
     },
     {
-      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue.js",
+      "file": "restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue.js",
       "lines": "188-279",
-      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:7482-8008"
+      "origin": "unminified/SettingPrescriptionView.js:7482-8008"
     },
     {
-      "file": "re-upstream/restored/modules/PrescriptionInputSearchTreatment/part-3.js",
+      "file": "restored/modules/PrescriptionInputSearchTreatment/part-3.js",
       "lines": "5-43",
-      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:455-492"
+      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang.js:455-492"
     },
     {
-      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewPackagePrescriptionSidePanel.vue.js",
+      "file": "restored/components/setting/SettingPrescriptionViewPackagePrescriptionSidePanel.vue.js",
       "lines": "105-113",
-      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:4294-4617"
+      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang.js:4294-4617"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-105.js",
+      "file": "restored/modules/index/part-105.js",
       "lines": "8",
-      "origin": "unminified/index-CBEIvlV0.js:80244-80371"
+      "origin": "unminified/index.js:80244-80371"
     },
     {
-      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js",
+      "file": "restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js",
       "lines": "502-532",
-      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:13151-13181"
+      "origin": "unminified/SettingPrescriptionView.js:13151-13181"
     },
     {
-      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js",
+      "file": "restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js",
       "lines": "248, 400-460, 567-604",
-      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:12700-13532"
+      "origin": "unminified/SettingPrescriptionView.js:12700-13532"
     },
     {
-      "file": "re-upstream/restored/modules/SettingPrescriptionView/part-7.js",
+      "file": "restored/modules/SettingPrescriptionView/part-7.js",
       "lines": "5-19",
-      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:11249-11271"
+      "origin": "unminified/SettingPrescriptionView.js:11249-11271"
     },
     {
-      "file": "re-upstream/restored/lib/SettingPrescriptionView/part-6.js",
+      "file": "restored/lib/SettingPrescriptionView/part-6.js",
       "lines": "8-53",
-      "origin": "unminified/SettingPrescriptionView-BIi4IB2Q.js:11199-11248"
+      "origin": "unminified/SettingPrescriptionView.js:11199-11248"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js",
+      "file": "restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js",
       "lines": "72-105, 212",
       "origin": "unminified/TreatmentRoomRegisterOrModifyModal.vue_vue_type_script_setup_true_lang-Bip_ua-d.js:87-120, 227"
     },
     {
-      "file": "re-upstream/restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js",
+      "file": "restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js",
       "lines": "119-136",
-      "origin": "unminified/SettingTreatmentView-BE_swnEi.js:1806-1823"
+      "origin": "unminified/SettingTreatmentView.js:1806-1823"
     },
     {
-      "file": "re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue.js",
+      "file": "restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue.js",
       "lines": "89-100",
       "origin": "unminified/useOcsV2배송상태-DHC-CIRk.js:6065-6076"
     }
@@ -1238,7 +1238,7 @@
       "derivation": "traced"
     },
     {
-      "name": "nonBenefitRegister: 수 service-only name blocked",
+      "name": "nonBenefitRegister: lite service-only name blocked",
       "input": {
         "check": "nonBenefitRegister",
         "처방명": "경옥고",
@@ -1249,7 +1249,7 @@
       "expected": {
         "blocked": true,
         "field": "처방명",
-        "message": "수 서비스 전용 처방으로 설정에서 추가할 수 없습니다."
+        "message": "라이트 서비스 전용 처방으로 설정에서 추가할 수 없습니다."
       },
       "derivation": "traced"
     },

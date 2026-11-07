@@ -3,39 +3,39 @@
   "description": "Appends 산정코드 digits (age 신생아/1세미만/1~6세, 침법, time-of-day flags) to procedure (40xxx) and dispensing (30xxx) fee codes, and swaps whole prescription lines to the modified fee-master row.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1489-1575",
-      "origin": "unminified/index-CBEIvlV0.js:123091-123177"
+      "origin": "unminified/index.js:123091-123177"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1682-1718",
-      "origin": "unminified/index-CBEIvlV0.js:123281-123317"
+      "origin": "unminified/index.js:123281-123317"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "174-347",
-      "origin": "unminified/index-CBEIvlV0.js:121819-121991"
+      "origin": "unminified/index.js:121819-121991"
     },
     {
-      "file": "re-upstream/restored/modules/index/formatDistance.js",
+      "file": "restored/modules/index/formatDistance.js",
       "lines": "383-508",
-      "origin": "unminified/index-CBEIvlV0.js:57189-57314"
+      "origin": "unminified/index.js:57189-57314"
     },
     {
-      "file": "re-upstream/restored/modules/index/local.js",
+      "file": "restored/modules/index/local.js",
       "lines": "545-571",
-      "origin": "unminified/index-CBEIvlV0.js:125817-126550"
+      "origin": "unminified/index.js:125817-126550"
     },
     {
-      "file": "re-upstream/restored/components/procedures/ProceduresAcupunctureCommonPopover.vue.js",
+      "file": "restored/components/procedures/ProceduresAcupunctureCommonPopover.vue.js",
       "lines": "244-292",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:7016-7064"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:7016-7064"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.helpers.js",
+      "file": "restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.helpers.js",
       "lines": "53-60",
-      "origin": "unminified/TreatmentViewBoardPrescriptionCarRecommendedEditModal-DTR4CfgL.js:50-146"
+      "origin": "unminified/TreatmentViewBoardPrescriptionCarRecommendedEditModal.js:50-146"
     }
   ],
   "inputSchema": {

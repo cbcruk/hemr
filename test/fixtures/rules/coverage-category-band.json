@@ -3,34 +3,34 @@
   "description": "Lists prescription lines that cannot stay on a record when its coverage type (보험구분) is set or changed, based on category code (카테고리숫자코드) bands and a few specific fee codes.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/SidePanelDeskActions/useDeskPrepaidChartsQuery.js",
+      "file": "restored/modules/SidePanelDeskActions/useDeskPrepaidChartsQuery.js",
       "lines": "49-70",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:3098-3119"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:3098-3119"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-103.js",
+      "file": "restored/modules/index/part-103.js",
       "lines": "13-106",
-      "origin": "unminified/index-CBEIvlV0.js:79755-79848"
+      "origin": "unminified/index.js:79755-79848"
     },
     {
-      "file": "re-upstream/restored/lib/index/part-102.js",
+      "file": "restored/lib/index/part-102.js",
       "lines": "9-11",
-      "origin": "unminified/index-CBEIvlV0.js:79748-79751"
+      "origin": "unminified/index.js:79748-79751"
     },
     {
-      "file": "re-upstream/restored/modules/index/수가코드.js",
+      "file": "restored/modules/index/수가코드.js",
       "lines": "211-256",
-      "origin": "unminified/index-CBEIvlV0.js:79714-79747"
+      "origin": "unminified/index.js:79714-79747"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardChangeInsuranceTypeModalContent.vue.js",
+      "file": "restored/components/treatment/TreatmentViewBoardChangeInsuranceTypeModalContent.vue.js",
       "lines": "209-231",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:24737-24773"
+      "origin": "unminified/TreatmentViewBoard.js:24737-24773"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskPatientAccept.vue.js",
+      "file": "restored/components/desk/DeskPatientAccept.vue.js",
       "lines": "825-850",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:10051-10085"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:10051-10085"
     }
   ],
   "inputSchema": {

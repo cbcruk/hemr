@@ -3,44 +3,44 @@
   "description": "Treatment-room procedure timer: client-side elapsed detection, auto-completion of elapsed procedures when the next one starts, duration adjustment limits, and timer defaults.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "file": "restored/modules/TreatmentRoomsView/duration_sec.js",
       "lines": "96-131",
-      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1089-1123"
+      "origin": "unminified/TreatmentRoomsView.js:1089-1123"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "file": "restored/modules/TreatmentRoomsView/duration_sec.js",
       "lines": "338-402",
-      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1331-1395"
+      "origin": "unminified/TreatmentRoomsView.js:1331-1395"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "file": "restored/modules/TreatmentRoomsView/duration_sec.js",
       "lines": "880-898",
-      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1873-1891"
+      "origin": "unminified/TreatmentRoomsView.js:1873-1891"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "file": "restored/modules/TreatmentRoomsView/duration_sec.js",
       "lines": "979-1016",
-      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1972-2009"
+      "origin": "unminified/TreatmentRoomsView.js:1972-2009"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "file": "restored/modules/TreatmentRoomsView/duration_sec.js",
       "lines": "1027-1062",
-      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:2020-2055"
+      "origin": "unminified/TreatmentRoomsView.js:2020-2055"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js",
+      "file": "restored/modules/TreatmentRoomsView/duration_sec.js",
       "lines": "23-25, 552-563, 610",
-      "origin": "unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326"
+      "origin": "unminified/TreatmentRoomsView.js:1010-2326"
     },
     {
-      "file": "re-upstream/restored/modules/index/useTreatmentsSnapshotQuery.js",
+      "file": "restored/modules/index/useTreatmentsSnapshotQuery.js",
       "lines": "50",
-      "origin": "unminified/index-CBEIvlV0.js:141837-141872"
+      "origin": "unminified/index.js:141837-141872"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-256.js",
+      "file": "restored/modules/index/part-256.js",
       "lines": "10-56",
-      "origin": "unminified/index-CBEIvlV0.js:141873-141917"
+      "origin": "unminified/index.js:141873-141917"
     }
   ],
   "inputSchema": {

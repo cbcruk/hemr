@@ -3,34 +3,34 @@
   "description": "Requires a 4-character 산정특례 특정기호 (MT002) when a 건보 record carries a rare/intractable-disease 산정특례 registration number (MT014), and resolves which 특정기호 candidates fit a diagnosis code via the rare-disease reference ranges.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-10.js",
       "lines": "255-282",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22602-22629"
+      "origin": "unminified/TreatmentViewBoard.js:22602-22629"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardEditHeader.vue.js",
+      "file": "restored/components/treatment/TreatmentViewBoardEditHeader.vue.js",
       "lines": "279-300",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:27261-27282"
+      "origin": "unminified/TreatmentViewBoard.js:27261-27282"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-103.js",
+      "file": "restored/modules/index/part-103.js",
       "lines": "153-406",
-      "origin": "unminified/index-CBEIvlV0.js:79877-80118"
+      "origin": "unminified/index.js:79877-80118"
     },
     {
-      "file": "re-upstream/restored/modules/ReservedProcedures/part-9.js",
+      "file": "restored/modules/ReservedProcedures/part-9.js",
       "lines": "6-8",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:4562-4563"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:4562-4563"
     },
     {
-      "file": "re-upstream/restored/modules/DiseaseInputDropdown/part-2.js",
+      "file": "restored/modules/DiseaseInputDropdown/part-2.js",
       "lines": "9-136",
-      "origin": "unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang-CzWw_49p.js:72-198"
+      "origin": "unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang.js:72-198"
     },
     {
-      "file": "re-upstream/restored/modules/DiseaseInputDropdown/part-1.js",
+      "file": "restored/modules/DiseaseInputDropdown/part-1.js",
       "lines": "3-64",
-      "origin": "unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang-CzWw_49p.js:15-71"
+      "origin": "unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang.js:15-71"
     }
   ],
   "inputSchema": {

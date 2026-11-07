@@ -8,8 +8,8 @@
 
 ## 현행 위치
 
-- 설정: `re-upstream/restored/components/setting/SettingAppointmentGeneral.vue.js` (`/setting/appointment` → `일반예약` 탭)
-- 이력 표시: `re-upstream/restored/components/appointment/AppointmentPlannerHistory.vue.js`, `re-upstream/restored/modules/index/orderSource.js`
+- 설정: `restored/components/setting/SettingAppointmentGeneral.vue.js` (`/setting/appointment` → `일반예약` 탭)
+- 이력 표시: `restored/components/appointment/AppointmentPlannerHistory.vue.js`, `restored/modules/index/orderSource.js`
 
 ## 로직
 
@@ -23,10 +23,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/setting/SettingAppointmentGeneral.vue.js:73-110, 188-207`
+`restored/components/setting/SettingAppointmentGeneral.vue.js:73-110, 188-207`
 
 ```js
-// Restored from unminified/SettingAppointment-DsssnKZ3.js:1010-1233
+// Restored from unminified/SettingAppointment.js:1010-1233
 const n = { 예약시간단위: [10, 15, 30], 부도처리시점: [10, 30, 60] };
 const f = m => {
   const e = data.value;
@@ -42,10 +42,10 @@ active: d.value?.진료마감부도처리여부 === true,
 onClick: o => f({ 진료마감부도처리여부: true })
 ```
 
-`re-upstream/restored/components/appointment/AppointmentPlannerHistory.vue.js:157-216` (발췌)
+`restored/components/appointment/AppointmentPlannerHistory.vue.js:157-216` (발췌)
 
 ```js
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:15743-16051
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:15743-16051
 if (to?.예약상태 === "부도") {
   if (from.예약일자 === to.예약일자 && from.예약시간 !== to.예약시간) return { 예약상태: "부도후_예약시간_변경", 예약이력: "기존 예약 부도 후 시간을 변경했습니다.", /* ... */ };
   if (from.예약일자 !== to.예약일자) return { 예약상태: "부도후_예약일자_변경", 예약이력: "예약 변경으로 부도 처리됐습니다.", /* ... */ };

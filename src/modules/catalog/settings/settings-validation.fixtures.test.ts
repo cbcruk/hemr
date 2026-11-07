@@ -5,7 +5,7 @@ import {
   arbitraryFormulaMessages,
   canAddToPackage,
   canAddTreatmentRoom,
-  KNOWN_SOO_RESERVED_NAMES,
+  KNOWN_LITE_RESERVED_NAMES,
   hasNameConflict,
   judgeArbitraryFormula,
   nonbenefitCode,
@@ -151,7 +151,7 @@ const RUN: Record<string, { server: (input: any) => unknown; legacy: (expected: 
       const violations = nonbenefitItemViolations(
         { name: input['처방명'], code: input['코드'] },
         existing,
-        KNOWN_SOO_RESERVED_NAMES,
+        KNOWN_LITE_RESERVED_NAMES,
       )
       return violations.length === 0
         ? { blocked: false, code: nonbenefitCode(input['코드']) }

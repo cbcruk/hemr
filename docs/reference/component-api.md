@@ -25,7 +25,7 @@
 - [components/customs](#components-customs) (1)
 - [components/desk](#components-desk) (33)
 - [components/disease](#components-disease) (2)
-- [components/doctalk](#components-doctalk) (2)
+- [components/booking](#components-booking) (2)
 - [components/doctors](#components-doctors) (2)
 - [components/document](#components-document) (22)
 - [components/editor](#components-editor) (1)
@@ -89,7 +89,7 @@
 - [components/side](#components-side) (3)
 - [components/sidebar](#components-sidebar) (2)
 - [components/signature](#components-signature) (2)
-- [components/soo](#components-soo) (3)
+- [components/lite](#components-lite) (3)
 - [components/tablet](#components-tablet) (5)
 - [components/tangjeon](#components-tangjeon) (23)
 - [components/telemedicine](#components-telemedicine) (3)
@@ -111,23 +111,23 @@
 
 ### AccountApplicationsAuth
 
-- `re-upstream/restored/components/account/AccountApplicationsAuth.vue` · 스토어 `useAccountApplicationsAuthStore`, `useMembersSignUpStore`, `useSooSignUpStore`
+- `restored/components/account/AccountApplicationsAuth.vue` · 스토어 `useAccountApplicationsAuthStore`, `useMembersSignUpStore`, `useLiteSignUpStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `usePostAccountApplicationTokenMutation` | `POST accountApplicationClient /account-application/token` |
 | `getAuthCheckSsoid` (직접) | `GET accountApplicationClient /auth/check-ssoid` |
-| `getIntegrationsOnboardingSooProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/soo/profile` |
-| `getIntegrationsSoo` (직접) | `GET accountApplicationClient /integrations/soo` |
+| `getIntegrationsOnboardingLiteProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/lite/profile` |
+| `getIntegrationsLite` (직접) | `GET accountApplicationClient /integrations/lite` |
 | `getIntegrationsMembers` (직접) | `GET accountApplicationClient <INTEGRATIONS_MEMBERS_PATH>` |
 | `getAuthMe` (직접) | `GET emrClient /auth/me` |
-| `postSsoMedistreamToken` (직접) | `POST authClient /sso/medistream/token` |
+| `postSsoPartnerToken` (직접) | `POST authClient /sso/partner/token` |
 
 <a id="c-components-account-accountapplicationsform"></a>
 
 ### AccountApplicationsForm
 
-- `re-upstream/restored/components/account/AccountApplicationsForm.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/account/AccountApplicationsForm.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -138,7 +138,7 @@
 
 ### AccountApplicationsFormAccountInfo
 
-- `re-upstream/restored/components/account/AccountApplicationsFormAccountInfo.vue`
+- `restored/components/account/AccountApplicationsFormAccountInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -148,7 +148,7 @@
 
 ### AccountApplicationsFormHospitalInfo
 
-- `re-upstream/restored/components/account/AccountApplicationsFormHospitalInfo.vue`
+- `restored/components/account/AccountApplicationsFormHospitalInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -158,7 +158,7 @@
 
 ### AccountApplicationsFormTermsAgreement
 
-- `re-upstream/restored/components/account/AccountApplicationsFormTermsAgreement.vue`
+- `restored/components/account/AccountApplicationsFormTermsAgreement.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -168,7 +168,7 @@
 
 ### AccountApplicationsRejected
 
-- `re-upstream/restored/components/account/AccountApplicationsRejected.vue` · 스토어 `useAccountApplicationsAuthStore`, `useToastNotificationStore`
+- `restored/components/account/AccountApplicationsRejected.vue` · 스토어 `useAccountApplicationsAuthStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -181,7 +181,7 @@
 
 ### AccountApplicationsRequested
 
-- `re-upstream/restored/components/account/AccountApplicationsRequested.vue` · 스토어 `useAccountApplicationsAuthStore`, `useToastNotificationStore`
+- `restored/components/account/AccountApplicationsRequested.vue` · 스토어 `useAccountApplicationsAuthStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -193,7 +193,7 @@
 
 ### AccountApplicationsStepSelectChart
 
-- `re-upstream/restored/components/account/AccountApplicationsStepSelectChart.vue`
+- `restored/components/account/AccountApplicationsStepSelectChart.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -203,7 +203,7 @@
 
 ### AccountApplicationWaiting
 
-- `re-upstream/restored/components/account/AccountApplicationWaiting.vue` · 스토어 `useAccountApplicationsAuthStore`, `useToastNotificationStore`
+- `restored/components/account/AccountApplicationWaiting.vue` · 스토어 `useAccountApplicationsAuthStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -214,7 +214,7 @@
 
 ### AccountCreateModal
 
-- `re-upstream/restored/components/account/AccountCreateModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/account/AccountCreateModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -227,7 +227,7 @@
 
 ### AccountDeactivateModal
 
-- `re-upstream/restored/components/account/AccountDeactivateModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/account/AccountDeactivateModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -239,7 +239,7 @@
 
 ### AccountEditAccountInfoModal
 
-- `re-upstream/restored/components/account/AccountEditAccountInfoModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/account/AccountEditAccountInfoModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -251,7 +251,7 @@
 
 ### AccountPermissionSetModal
 
-- `re-upstream/restored/components/account/AccountPermissionSetModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/account/AccountPermissionSetModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -262,7 +262,7 @@
 
 ### AccountPermissionsListDetail
 
-- `re-upstream/restored/components/account/AccountPermissionsListDetail.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/account/AccountPermissionsListDetail.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -277,7 +277,7 @@
 
 ### AccountPermissionsTable
 
-- `re-upstream/restored/components/account/AccountPermissionsTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/account/AccountPermissionsTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -287,7 +287,7 @@
 
 ### AccountUnlockStepPhoneVerification
 
-- `re-upstream/restored/components/account/AccountUnlockStepPhoneVerification.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/account/AccountUnlockStepPhoneVerification.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -298,7 +298,7 @@
 
 ### AccountWorkTypeRequiredForClaimModal
 
-- `re-upstream/restored/components/account/AccountWorkTypeRequiredForClaimModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/account/AccountWorkTypeRequiredForClaimModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -308,7 +308,7 @@
 
 ### AccountWorkTypeRequiredModal
 
-- `re-upstream/restored/components/account/AccountWorkTypeRequiredModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/account/AccountWorkTypeRequiredModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -322,7 +322,7 @@
 
 ### AgGridTableDoctorsCell
 
-- `re-upstream/restored/components/agGrid/AgGridTableDoctorsCell.vue`
+- `restored/components/agGrid/AgGridTableDoctorsCell.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -332,7 +332,7 @@
 
 ### AgGridTablePatientNameCell
 
-- `re-upstream/restored/components/agGrid/AgGridTablePatientNameCell.vue` · 스토어 `useTreatmentWindowStore`
+- `restored/components/agGrid/AgGridTablePatientNameCell.vue` · 스토어 `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -346,7 +346,7 @@
 
 ### AgreementsContent
 
-- `re-upstream/restored/components/agreements/AgreementsContent.vue`
+- `restored/components/agreements/AgreementsContent.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -356,7 +356,7 @@
 
 ### AgreementsContentEmr
 
-- `re-upstream/restored/components/agreements/AgreementsContentEmr.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/agreements/AgreementsContentEmr.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -367,7 +367,7 @@
 
 ### AgreementsHistoryPopover
 
-- `re-upstream/restored/components/agreements/AgreementsHistoryPopover.vue`
+- `restored/components/agreements/AgreementsHistoryPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -381,7 +381,7 @@
 
 ### AiAgent
 
-- `re-upstream/restored/components/ai/AiAgent.vue` · 스토어 `useAiAgentStore`
+- `restored/components/ai/AiAgent.vue` · 스토어 `useAiAgentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -391,7 +391,7 @@
 
 ### AiAgentMessages
 
-- `re-upstream/restored/components/ai/AiAgentMessages.vue` · 스토어 `useSocketClientStore`
+- `restored/components/ai/AiAgentMessages.vue` · 스토어 `useSocketClientStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -403,7 +403,7 @@
 
 ### AiAgentPanel
 
-- `re-upstream/restored/components/ai/AiAgentPanel.vue`
+- `restored/components/ai/AiAgentPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -417,7 +417,7 @@
 
 ### App
 
-- `re-upstream/restored/components/app/App.vue` · 스토어 `usePatientStore`, `useSocketClientStore`, `useToastNotificationStore`, `useTreatmentStore`
+- `restored/components/app/App.vue` · 스토어 `usePatientStore`, `useSocketClientStore`, `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -438,7 +438,7 @@
 
 ### AppointmentCard
 
-- `re-upstream/restored/components/appointment/AppointmentCard.vue`
+- `restored/components/appointment/AppointmentCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -448,7 +448,7 @@
 
 ### AppointmentCardDroppableAreaWrapper
 
-- `re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -459,7 +459,7 @@
 
 ### AppointmentColumnTime
 
-- `re-upstream/restored/components/appointment/AppointmentColumnTime.vue` · 스토어 `useIntakeLinkPromptStore`, `usePatientStore`, `useToastNotificationStore`
+- `restored/components/appointment/AppointmentColumnTime.vue` · 스토어 `useIntakeLinkPromptStore`, `usePatientStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -471,7 +471,7 @@
 
 ### AppointmentColumnUnscheduledCard
 
-- `re-upstream/restored/components/appointment/AppointmentColumnUnscheduledCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/appointment/AppointmentColumnUnscheduledCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -482,7 +482,7 @@
 
 ### AppointmentPlannerContent
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/appointment/AppointmentPlannerContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -499,7 +499,7 @@
 
 ### AppointmentPlannerDaily
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerDaily.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/appointment/AppointmentPlannerDaily.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -510,7 +510,7 @@
 
 ### AppointmentPlannerHeader
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerHeader.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/appointment/AppointmentPlannerHeader.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -521,7 +521,7 @@
 
 ### AppointmentPlannerHistory
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerHistory.vue`
+- `restored/components/appointment/AppointmentPlannerHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -531,19 +531,19 @@
 
 ### AppointmentPlannerSidebar
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerSidebar.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/appointment/AppointmentPlannerSidebar.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
 | `useDeskBookingRequestsQuery` | `GET emrClient /desk/booking-requests` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
 
 <a id="c-components-appointment-appointmentplannersidedetail"></a>
 
 ### AppointmentPlannerSideDetail
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerSideDetail.vue`
+- `restored/components/appointment/AppointmentPlannerSideDetail.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -555,7 +555,7 @@
 
 ### AppointmentPlannerWeekly
 
-- `re-upstream/restored/components/appointment/AppointmentPlannerWeekly.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/appointment/AppointmentPlannerWeekly.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -570,7 +570,7 @@
 
 ### AvatarLabelGroup
 
-- `re-upstream/restored/components/avatar/AvatarLabelGroup.vue`
+- `restored/components/avatar/AvatarLabelGroup.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -584,7 +584,7 @@
 
 ### BaseHerbProductSearch
 
-- `re-upstream/restored/components/base/BaseHerbProductSearch.vue`
+- `restored/components/base/BaseHerbProductSearch.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -594,7 +594,7 @@
 
 ### BaseTipTapEditor
 
-- `re-upstream/restored/components/base/BaseTipTapEditor.vue`
+- `restored/components/base/BaseTipTapEditor.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -604,7 +604,7 @@
 
 ### BaseTreatmentEditor
 
-- `re-upstream/restored/components/base/BaseTreatmentEditor.vue` · 스토어 `useTreatmentStore`
+- `restored/components/base/BaseTreatmentEditor.vue` · 스토어 `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -618,7 +618,7 @@
 
 ### BillingInvoiceSidePanel
 
-- `re-upstream/restored/components/billing/BillingInvoiceSidePanel.vue`
+- `restored/components/billing/BillingInvoiceSidePanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -629,7 +629,7 @@
 
 ### BillingPaymentMethod
 
-- `re-upstream/restored/components/billing/BillingPaymentMethod.vue`
+- `restored/components/billing/BillingPaymentMethod.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -640,7 +640,7 @@
 
 ### BillingPaymentMethodModal
 
-- `re-upstream/restored/components/billing/BillingPaymentMethodModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/billing/BillingPaymentMethodModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -654,7 +654,7 @@
 
 ### BillingPaySidePanel
 
-- `re-upstream/restored/components/billing/BillingPaySidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/billing/BillingPaySidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -673,7 +673,7 @@
 
 ### BodyInfoFormModal
 
-- `re-upstream/restored/components/body/BodyInfoFormModal.vue`
+- `restored/components/body/BodyInfoFormModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -683,7 +683,7 @@
 
 ### BodyInfoPanel
 
-- `re-upstream/restored/components/body/BodyInfoPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/body/BodyInfoPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -701,7 +701,7 @@
 
 ### CallerNumberAddModal
 
-- `re-upstream/restored/components/caller/CallerNumberAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/caller/CallerNumberAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -718,7 +718,7 @@
 
 ### CanvasTrigger
 
-- `re-upstream/restored/components/canvas/CanvasTrigger.vue.js`
+- `restored/components/canvas/CanvasTrigger.vue.js`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -728,7 +728,7 @@
 
 ### CanvasViewPatientImageList
 
-- `re-upstream/restored/components/canvas/CanvasViewPatientImageList.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/canvas/CanvasViewPatientImageList.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -740,7 +740,7 @@
 
 ### CanvasViewTemplateList
 
-- `re-upstream/restored/components/canvas/CanvasViewTemplateList.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/canvas/CanvasViewTemplateList.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -757,7 +757,7 @@
 
 ### CarInsuranceChubyakCreatePanel
 
-- `re-upstream/restored/components/car/CarInsuranceChubyakCreatePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/car/CarInsuranceChubyakCreatePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -772,7 +772,7 @@
 
 ### CarInsuranceChubyakEditor
 
-- `re-upstream/restored/components/car/CarInsuranceChubyakEditor.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/car/CarInsuranceChubyakEditor.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -785,7 +785,7 @@
 
 ### CarInsuranceChubyakReservedRow
 
-- `re-upstream/restored/components/car/CarInsuranceChubyakReservedRow.vue`
+- `restored/components/car/CarInsuranceChubyakReservedRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -795,7 +795,7 @@
 
 ### CarInsuranceChubyakRow
 
-- `re-upstream/restored/components/car/CarInsuranceChubyakRow.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/car/CarInsuranceChubyakRow.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -805,7 +805,7 @@
 
 ### CarInsuranceMedicineReservedRow
 
-- `re-upstream/restored/components/car/CarInsuranceMedicineReservedRow.vue`
+- `restored/components/car/CarInsuranceMedicineReservedRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -815,7 +815,7 @@
 
 ### CarInsuranceMedicineRow
 
-- `re-upstream/restored/components/car/CarInsuranceMedicineRow.vue`
+- `restored/components/car/CarInsuranceMedicineRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -829,21 +829,21 @@
 
 ### ChartConsultationBanner
 
-- `re-upstream/restored/components/chart/ChartConsultationBanner.vue`
+- `restored/components/chart/ChartConsultationBanner.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 
 <a id="c-components-chart-chartmanualmodal"></a>
 
 ### ChartManualModal
 
-- `re-upstream/restored/components/chart/ChartManualModal.vue`
+- `restored/components/chart/ChartManualModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 
 <a id="components-chubyak"></a>
 
@@ -853,7 +853,7 @@
 
 ### ChubyakForm
 
-- `re-upstream/restored/components/chubyak/ChubyakForm.vue`
+- `restored/components/chubyak/ChubyakForm.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -869,7 +869,7 @@
 
 ### ChubyakFormHerbEditSidePanel
 
-- `re-upstream/restored/components/chubyak/ChubyakFormHerbEditSidePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/chubyak/ChubyakFormHerbEditSidePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -882,7 +882,7 @@
 
 ### ChubyakHistory
 
-- `re-upstream/restored/components/chubyak/ChubyakHistory.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/chubyak/ChubyakHistory.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -896,7 +896,7 @@
 
 ### ChubyakJaboFormEffects
 
-- `re-upstream/restored/components/chubyak/ChubyakJaboFormEffects.vue`
+- `restored/components/chubyak/ChubyakJaboFormEffects.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -906,7 +906,7 @@
 
 ### ChubyakJaboFormHerbs
 
-- `re-upstream/restored/components/chubyak/ChubyakJaboFormHerbs.vue`
+- `restored/components/chubyak/ChubyakJaboFormHerbs.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -916,7 +916,7 @@
 
 ### ChubyakJaboFormSyndromes
 
-- `re-upstream/restored/components/chubyak/ChubyakJaboFormSyndromes.vue`
+- `restored/components/chubyak/ChubyakJaboFormSyndromes.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -926,7 +926,7 @@
 
 ### ChubyakPrescription
 
-- `re-upstream/restored/components/chubyak/ChubyakPrescription.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/chubyak/ChubyakPrescription.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -936,7 +936,7 @@
 
 ### ChubyakPrescriptionTreatmentDate
 
-- `re-upstream/restored/components/chubyak/ChubyakPrescriptionTreatmentDate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/chubyak/ChubyakPrescriptionTreatmentDate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -950,7 +950,7 @@
 
 ### ClaimCuppingEdit
 
-- `re-upstream/restored/components/claim/ClaimCuppingEdit.vue`
+- `restored/components/claim/ClaimCuppingEdit.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -962,7 +962,7 @@
 
 ### ClaimJarakHistoryEditor
 
-- `re-upstream/restored/components/claim/ClaimJarakHistoryEditor.vue`
+- `restored/components/claim/ClaimJarakHistoryEditor.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -979,7 +979,7 @@
 
 ### ClaimJarakHistoryTable
 
-- `re-upstream/restored/components/claim/ClaimJarakHistoryTable.vue`
+- `restored/components/claim/ClaimJarakHistoryTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -994,7 +994,7 @@
 
 ### ClaimJejuEntryButton
 
-- `re-upstream/restored/components/claim/ClaimJejuEntryButton.vue`
+- `restored/components/claim/ClaimJejuEntryButton.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1019,7 +1019,7 @@
 
 ### ClaimJejuModal
 
-- `re-upstream/restored/components/claim/ClaimJejuModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimJejuModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1044,7 +1044,7 @@
 
 ### ClaimResultList
 
-- `re-upstream/restored/components/claim/ClaimResultList.vue`
+- `restored/components/claim/ClaimResultList.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1054,7 +1054,7 @@
 
 ### ClaimResultMain
 
-- `re-upstream/restored/components/claim/ClaimResultMain.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimResultMain.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1068,7 +1068,7 @@
 
 ### ClaimResultViewSummary
 
-- `re-upstream/restored/components/claim/ClaimResultViewSummary.vue`
+- `restored/components/claim/ClaimResultViewSummary.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1078,7 +1078,7 @@
 
 ### ClaimV2CommonEditPanelPrototype
 
-- `re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototype.vue` · 스토어 `useClaimWarningOffStore`, `useClaimWarningStore`, `useToastNotificationStore`
+- `restored/components/claim/ClaimV2CommonEditPanelPrototype.vue` · 스토어 `useClaimWarningOffStore`, `useClaimWarningStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1089,7 +1089,7 @@
 
 ### ClaimV2CommonEditPanelPrototypeMain
 
-- `re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue` · 스토어 `useClaimWarningStore`, `useToastNotificationStore`
+- `restored/components/claim/ClaimV2CommonEditPanelPrototypeMain.vue` · 스토어 `useClaimWarningStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1122,7 +1122,7 @@
 
 ### ClaimV2CommonEditPanelPrototypePatientInfo
 
-- `re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypePatientInfo.vue`
+- `restored/components/claim/ClaimV2CommonEditPanelPrototypePatientInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1133,7 +1133,7 @@
 
 ### ClaimV2CommonEditPanelPrototypeSummary
 
-- `re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototypeSummary.vue` · 스토어 `useClaimWarningStore`
+- `restored/components/claim/ClaimV2CommonEditPanelPrototypeSummary.vue` · 스토어 `useClaimWarningStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1146,7 +1146,7 @@
 
 ### ClaimV2InboxViewCardList
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewCardList.vue`
+- `restored/components/claim/ClaimV2InboxViewCardList.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1157,7 +1157,7 @@
 
 ### ClaimV2InboxViewDangerAutoFix
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewDangerAutoFix.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimV2InboxViewDangerAutoFix.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1174,7 +1174,7 @@
 
 ### ClaimV2InboxViewDangerList
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewDangerList.vue` · 스토어 `useClaimWarningOffStore`
+- `restored/components/claim/ClaimV2InboxViewDangerList.vue` · 스토어 `useClaimWarningOffStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1184,7 +1184,7 @@
 
 ### ClaimV2InboxViewDangerManualFix
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewDangerManualFix.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimV2InboxViewDangerManualFix.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1195,7 +1195,7 @@
 
 ### ClaimV2InboxViewFooter
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewFooter.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimV2InboxViewFooter.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1211,7 +1211,7 @@
 
 ### ClaimV2InboxViewPostponeList
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewPostponeList.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimV2InboxViewPostponeList.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1222,7 +1222,7 @@
 
 ### ClaimV2InboxViewSafeList
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewSafeList.vue` · 스토어 `useClaimWarningOffStore`, `useToastNotificationStore`
+- `restored/components/claim/ClaimV2InboxViewSafeList.vue` · 스토어 `useClaimWarningOffStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1233,7 +1233,7 @@
 
 ### ClaimV2InboxViewSum
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewSum.vue` · 스토어 `useClaimWarningOffStore`
+- `restored/components/claim/ClaimV2InboxViewSum.vue` · 스토어 `useClaimWarningOffStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1243,7 +1243,7 @@
 
 ### ClaimV2InboxViewUnpaidList
 
-- `re-upstream/restored/components/claim/ClaimV2InboxViewUnpaidList.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/claim/ClaimV2InboxViewUnpaidList.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1258,7 +1258,7 @@
 
 ### CopaymentCollectionLedger
 
-- `re-upstream/restored/components/copayment/CopaymentCollectionLedger-2.vue`
+- `restored/components/copayment/CopaymentCollectionLedger-2.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1268,7 +1268,7 @@
 
 ### CopaymentCollectionLedger
 
-- `re-upstream/restored/components/copayment/CopaymentCollectionLedger.vue`
+- `restored/components/copayment/CopaymentCollectionLedger.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1278,7 +1278,7 @@
 
 ### CopaymentLedger
 
-- `re-upstream/restored/components/copayment/CopaymentLedger.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/copayment/CopaymentLedger.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1293,7 +1293,7 @@
 
 ### CrmAlimtalkTemplatesDropdown
 
-- `re-upstream/restored/components/crm/CrmAlimtalkTemplatesDropdown.vue`
+- `restored/components/crm/CrmAlimtalkTemplatesDropdown.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1303,7 +1303,7 @@
 
 ### CrmAppointmentNotificationsAlimtalkTemplateSelect
 
-- `re-upstream/restored/components/crm/CrmAppointmentNotificationsAlimtalkTemplateSelect.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmAppointmentNotificationsAlimtalkTemplateSelect.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1313,7 +1313,7 @@
 
 ### CrmAppointmentNotificationsForm
 
-- `re-upstream/restored/components/crm/CrmAppointmentNotificationsForm.vue`
+- `restored/components/crm/CrmAppointmentNotificationsForm.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1324,7 +1324,7 @@
 
 ### CrmAppointmentNotificationsSetting
 
-- `re-upstream/restored/components/crm/CrmAppointmentNotificationsSetting.vue`
+- `restored/components/crm/CrmAppointmentNotificationsSetting.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1336,7 +1336,7 @@
 
 ### CrmAppointmentNotificationsSettingModal
 
-- `re-upstream/restored/components/crm/CrmAppointmentNotificationsSettingModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmAppointmentNotificationsSettingModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1348,7 +1348,7 @@
 
 ### CrmAppointmentUpdatedNotificationFooter
 
-- `re-upstream/restored/components/crm/CrmAppointmentUpdatedNotificationFooter.vue`
+- `restored/components/crm/CrmAppointmentUpdatedNotificationFooter.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1358,7 +1358,7 @@
 
 ### CrmBrandSpecDetailModal
 
-- `re-upstream/restored/components/crm/CrmBrandSpecDetailModal.vue`
+- `restored/components/crm/CrmBrandSpecDetailModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1368,7 +1368,7 @@
 
 ### CrmCommonCallerNumbersAddModal
 
-- `re-upstream/restored/components/crm/CrmCommonCallerNumbersAddModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmCommonCallerNumbersAddModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1379,7 +1379,7 @@
 
 ### CrmCommonCallerNumberSelect
 
-- `re-upstream/restored/components/crm/CrmCommonCallerNumberSelect.vue`
+- `restored/components/crm/CrmCommonCallerNumberSelect.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1389,7 +1389,7 @@
 
 ### CrmCommonConvertLink
 
-- `re-upstream/restored/components/crm/CrmCommonConvertLink.vue`
+- `restored/components/crm/CrmCommonConvertLink.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1399,7 +1399,7 @@
 
 ### CrmCommonDocumentAttachment
 
-- `re-upstream/restored/components/crm/CrmCommonDocumentAttachment.vue`
+- `restored/components/crm/CrmCommonDocumentAttachment.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1409,7 +1409,7 @@
 
 ### CrmCommonMessageForm
 
-- `re-upstream/restored/components/crm/CrmCommonMessageForm.vue`
+- `restored/components/crm/CrmCommonMessageForm.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1420,7 +1420,7 @@
 
 ### CrmCommonMessageImageUpload
 
-- `re-upstream/restored/components/crm/CrmCommonMessageImageUpload.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmCommonMessageImageUpload.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1430,7 +1430,7 @@
 
 ### CrmCommonMessageSend
 
-- `re-upstream/restored/components/crm/CrmCommonMessageSend.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmCommonMessageSend.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1443,7 +1443,7 @@
 
 ### CrmCommonMessageSendTestConfirm
 
-- `re-upstream/restored/components/crm/CrmCommonMessageSendTestConfirm.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmCommonMessageSendTestConfirm.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1456,7 +1456,7 @@
 
 ### CrmCommonPhrases
 
-- `re-upstream/restored/components/crm/CrmCommonPhrases.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmCommonPhrases.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1469,7 +1469,7 @@
 
 ### CrmCommonStepPhoneVerification
 
-- `re-upstream/restored/components/crm/CrmCommonStepPhoneVerification.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmCommonStepPhoneVerification.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1480,7 +1480,7 @@
 
 ### CrmConsultScriptTemplatePane
 
-- `re-upstream/restored/components/crm/CrmConsultScriptTemplatePane.vue`
+- `restored/components/crm/CrmConsultScriptTemplatePane.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1492,7 +1492,7 @@
 
 ### CrmConsultTemplatesManager
 
-- `re-upstream/restored/components/crm/CrmConsultTemplatesManager.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmConsultTemplatesManager.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1508,7 +1508,7 @@
 
 ### CrmContactChannelMessagePreview
 
-- `re-upstream/restored/components/crm/CrmContactChannelMessagePreview.vue`
+- `restored/components/crm/CrmContactChannelMessagePreview.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1521,7 +1521,7 @@
 
 ### CrmContactRulesCentralProgramCard
 
-- `re-upstream/restored/components/crm/CrmContactRulesCentralProgramCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactRulesCentralProgramCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1534,7 +1534,7 @@
 
 ### CrmContactRulesEditModal
 
-- `re-upstream/restored/components/crm/CrmContactRulesEditModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/crm/CrmContactRulesEditModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1554,7 +1554,7 @@
 
 ### CrmContactRulesEditModalPrescriptionSearch
 
-- `re-upstream/restored/components/crm/CrmContactRulesEditModalPrescriptionSearch.vue`
+- `restored/components/crm/CrmContactRulesEditModalPrescriptionSearch.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1565,7 +1565,7 @@
 
 ### CrmContactRulesFilter
 
-- `re-upstream/restored/components/crm/CrmContactRulesFilter.vue`
+- `restored/components/crm/CrmContactRulesFilter.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1575,7 +1575,7 @@
 
 ### CrmContactRulesItem
 
-- `re-upstream/restored/components/crm/CrmContactRulesItem.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactRulesItem.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1587,7 +1587,7 @@
 
 ### CrmContactRulesItemRead
 
-- `re-upstream/restored/components/crm/CrmContactRulesItemRead.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactRulesItemRead.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1597,7 +1597,7 @@
 
 ### CrmContactRulesProgramCard
 
-- `re-upstream/restored/components/crm/CrmContactRulesProgramCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactRulesProgramCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1610,7 +1610,7 @@
 
 ### CrmContactRulesSidePanelContent
 
-- `re-upstream/restored/components/crm/CrmContactRulesSidePanelContent-2.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactRulesSidePanelContent-2.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1621,7 +1621,7 @@
 
 ### CrmContactRulesSidePanelContent
 
-- `re-upstream/restored/components/crm/CrmContactRulesSidePanelContent.vue`
+- `restored/components/crm/CrmContactRulesSidePanelContent.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1635,7 +1635,7 @@
 
 ### CrmContactsViewCalendar
 
-- `re-upstream/restored/components/crm/CrmContactsViewCalendar.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewCalendar.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1656,7 +1656,7 @@
 
 ### CrmContactsViewDetail
 
-- `re-upstream/restored/components/crm/CrmContactsViewDetail-2.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewDetail-2.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1670,7 +1670,7 @@
 
 ### CrmContactsViewDetail
 
-- `re-upstream/restored/components/crm/CrmContactsViewDetail.vue`
+- `restored/components/crm/CrmContactsViewDetail.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1681,7 +1681,7 @@
 
 ### CrmContactsViewDetailActionLogs
 
-- `re-upstream/restored/components/crm/CrmContactsViewDetailActionLogs-2.vue`
+- `restored/components/crm/CrmContactsViewDetailActionLogs-2.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1691,7 +1691,7 @@
 
 ### CrmContactsViewDetailActionLogs
 
-- `re-upstream/restored/components/crm/CrmContactsViewDetailActionLogs.vue`
+- `restored/components/crm/CrmContactsViewDetailActionLogs.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1701,7 +1701,7 @@
 
 ### CrmContactsViewDetailPackages
 
-- `re-upstream/restored/components/crm/CrmContactsViewDetailPackages.vue`
+- `restored/components/crm/CrmContactsViewDetailPackages.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1712,7 +1712,7 @@
 
 ### CrmContactsViewDetailScheduledContacts
 
-- `re-upstream/restored/components/crm/CrmContactsViewDetailScheduledContacts.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewDetailScheduledContacts.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1727,7 +1727,7 @@
 
 ### CrmContactsViewHeader
 
-- `re-upstream/restored/components/crm/CrmContactsViewHeader.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewHeader.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1740,7 +1740,7 @@
 
 ### CrmContactsViewList
 
-- `re-upstream/restored/components/crm/CrmContactsViewList-2.vue`
+- `restored/components/crm/CrmContactsViewList-2.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1753,7 +1753,7 @@
 
 ### CrmContactsViewList
 
-- `re-upstream/restored/components/crm/CrmContactsViewList.vue`
+- `restored/components/crm/CrmContactsViewList.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1765,7 +1765,7 @@
 
 ### CrmContactsViewListDashboard
 
-- `re-upstream/restored/components/crm/CrmContactsViewListDashboard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewListDashboard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1777,7 +1777,7 @@
 
 ### CrmContactsViewListTable
 
-- `re-upstream/restored/components/crm/CrmContactsViewListTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewListTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1788,7 +1788,7 @@
 
 ### CrmContactsViewListTableAutoSendPreview
 
-- `re-upstream/restored/components/crm/CrmContactsViewListTableAutoSendPreview.vue`
+- `restored/components/crm/CrmContactsViewListTableAutoSendPreview.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1799,7 +1799,7 @@
 
 ### CrmContactsViewListTableContactDatesPickerContent
 
-- `re-upstream/restored/components/crm/CrmContactsViewListTableContactDatesPickerContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContactsViewListTableContactDatesPickerContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1812,7 +1812,7 @@
 
 ### CrmContactsViewListTableNoRowsOverlay
 
-- `re-upstream/restored/components/crm/CrmContactsViewListTableNoRowsOverlay.vue`
+- `restored/components/crm/CrmContactsViewListTableNoRowsOverlay.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1822,7 +1822,7 @@
 
 ### CrmContentDetailPane
 
-- `re-upstream/restored/components/crm/CrmContentDetailPane.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContentDetailPane.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1835,7 +1835,7 @@
 
 ### CrmContentListDock
 
-- `re-upstream/restored/components/crm/CrmContentListDock.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContentListDock.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1846,7 +1846,7 @@
 
 ### CrmContentPatientPreview
 
-- `re-upstream/restored/components/crm/CrmContentPatientPreview.vue`
+- `restored/components/crm/CrmContentPatientPreview.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1857,7 +1857,7 @@
 
 ### CrmContentRegisterPane
 
-- `re-upstream/restored/components/crm/CrmContentRegisterPane.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContentRegisterPane.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1870,7 +1870,7 @@
 
 ### CrmContentSelectModal
 
-- `re-upstream/restored/components/crm/CrmContentSelectModal.vue`
+- `restored/components/crm/CrmContentSelectModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1881,7 +1881,7 @@
 
 ### CrmContentThumbnailUpload
 
-- `re-upstream/restored/components/crm/CrmContentThumbnailUpload.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmContentThumbnailUpload.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1891,7 +1891,7 @@
 
 ### CrmHappyCallTemplatesModal
 
-- `re-upstream/restored/components/crm/CrmHappyCallTemplatesModal.vue`
+- `restored/components/crm/CrmHappyCallTemplatesModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1901,7 +1901,7 @@
 
 ### CrmHospitalVariablesModal
 
-- `re-upstream/restored/components/crm/CrmHospitalVariablesModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmHospitalVariablesModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1912,7 +1912,7 @@
 
 ### CrmKakaoAlimtalkMessagePreview
 
-- `re-upstream/restored/components/crm/CrmKakaoAlimtalkMessagePreview.vue`
+- `restored/components/crm/CrmKakaoAlimtalkMessagePreview.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1924,7 +1924,7 @@
 
 ### CrmKakaoBrandMessagePreview
 
-- `re-upstream/restored/components/crm/CrmKakaoBrandMessagePreview.vue`
+- `restored/components/crm/CrmKakaoBrandMessagePreview.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1935,7 +1935,7 @@
 
 ### CrmKakaoChannelsAddModal
 
-- `re-upstream/restored/components/crm/CrmKakaoChannelsAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/crm/CrmKakaoChannelsAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1952,7 +1952,7 @@
 
 ### CrmKakaoChannelsSelect
 
-- `re-upstream/restored/components/crm/CrmKakaoChannelsSelect.vue`
+- `restored/components/crm/CrmKakaoChannelsSelect.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1962,7 +1962,7 @@
 
 ### CrmKakaoFallbackInfoModal
 
-- `re-upstream/restored/components/crm/CrmKakaoFallbackInfoModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmKakaoFallbackInfoModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1975,7 +1975,7 @@
 
 ### CrmKakaoTemplateHoverPreviewById
 
-- `re-upstream/restored/components/crm/CrmKakaoTemplateHoverPreviewById.vue`
+- `restored/components/crm/CrmKakaoTemplateHoverPreviewById.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1985,7 +1985,7 @@
 
 ### CrmKakaoTemplatesDropdown
 
-- `re-upstream/restored/components/crm/CrmKakaoTemplatesDropdown.vue`
+- `restored/components/crm/CrmKakaoTemplatesDropdown.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -1996,7 +1996,7 @@
 
 ### CrmKakaoTemplatesUsed
 
-- `re-upstream/restored/components/crm/CrmKakaoTemplatesUsed.vue`
+- `restored/components/crm/CrmKakaoTemplatesUsed.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2006,7 +2006,7 @@
 
 ### CrmLiteTriggerKakaoLinkVarModal
 
-- `re-upstream/restored/components/crm/CrmLiteTriggerKakaoLinkVarModal.vue`
+- `restored/components/crm/CrmLiteTriggerKakaoLinkVarModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2016,7 +2016,7 @@
 
 ### CrmLiteTriggerRulesGroupCard
 
-- `re-upstream/restored/components/crm/CrmLiteTriggerRulesGroupCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmLiteTriggerRulesGroupCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2026,7 +2026,7 @@
 
 ### CrmLiteTriggerSchedulerSetupModal
 
-- `re-upstream/restored/components/crm/CrmLiteTriggerSchedulerSetupModal.vue`
+- `restored/components/crm/CrmLiteTriggerSchedulerSetupModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2036,7 +2036,7 @@
 
 ### CrmLiteTriggerTemplatePreviewIcon
 
-- `re-upstream/restored/components/crm/CrmLiteTriggerTemplatePreviewIcon.vue`
+- `restored/components/crm/CrmLiteTriggerTemplatePreviewIcon.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2046,7 +2046,7 @@
 
 ### CrmLiteTriggerVariableInputModal
 
-- `re-upstream/restored/components/crm/CrmLiteTriggerVariableInputModal.vue`
+- `restored/components/crm/CrmLiteTriggerVariableInputModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2057,7 +2057,7 @@
 
 ### CrmMessageTemplateRegisterSidePanelContent
 
-- `re-upstream/restored/components/crm/CrmMessageTemplateRegisterSidePanelContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmMessageTemplateRegisterSidePanelContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2067,7 +2067,7 @@
 
 ### CrmMessageTemplatesDropdown
 
-- `re-upstream/restored/components/crm/CrmMessageTemplatesDropdown.vue`
+- `restored/components/crm/CrmMessageTemplatesDropdown.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2077,7 +2077,7 @@
 
 ### CrmMessageTemplatesManager
 
-- `re-upstream/restored/components/crm/CrmMessageTemplatesManager.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmMessageTemplatesManager.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2097,7 +2097,7 @@
 
 ### CrmPatientMessageSendEstimate
 
-- `re-upstream/restored/components/crm/CrmPatientMessageSendEstimate.vue`
+- `restored/components/crm/CrmPatientMessageSendEstimate.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2107,7 +2107,7 @@
 
 ### CrmPatientMessageSendSidePanel
 
-- `re-upstream/restored/components/crm/CrmPatientMessageSendSidePanel.vue`
+- `restored/components/crm/CrmPatientMessageSendSidePanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2118,7 +2118,7 @@
 
 ### CrmPatientMessageSendSidePanelConfirm
 
-- `re-upstream/restored/components/crm/CrmPatientMessageSendSidePanelConfirm.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmPatientMessageSendSidePanelConfirm.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2129,7 +2129,7 @@
 
 ### CrmPatientMessageSendSidePanelContent
 
-- `re-upstream/restored/components/crm/CrmPatientMessageSendSidePanelContent.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/crm/CrmPatientMessageSendSidePanelContent.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2151,7 +2151,7 @@
 
 ### CrmProgramGroupOptInBanner
 
-- `re-upstream/restored/components/crm/CrmProgramGroupOptInBanner.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmProgramGroupOptInBanner.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2162,7 +2162,7 @@
 
 ### CrmProgramGroupOptInModal
 
-- `re-upstream/restored/components/crm/CrmProgramGroupOptInModal.vue`
+- `restored/components/crm/CrmProgramGroupOptInModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2178,7 +2178,7 @@
 
 ### CrmRefusalViewList080
 
-- `re-upstream/restored/components/crm/CrmRefusalViewList080.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRefusalViewList080.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2189,7 +2189,7 @@
 
 ### CrmRefusalViewListHospital
 
-- `re-upstream/restored/components/crm/CrmRefusalViewListHospital.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRefusalViewListHospital.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2200,7 +2200,7 @@
 
 ### CrmRefusalViewListHospitalRegisterPanel
 
-- `re-upstream/restored/components/crm/CrmRefusalViewListHospitalRegisterPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRefusalViewListHospitalRegisterPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2211,7 +2211,7 @@
 
 ### CrmRefusalViewListTableHospitalActionCell
 
-- `re-upstream/restored/components/crm/CrmRefusalViewListTableHospitalActionCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRefusalViewListTableHospitalActionCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2221,7 +2221,7 @@
 
 ### CrmRoutineCanvasExecuteModal
 
-- `re-upstream/restored/components/crm/CrmRoutineCanvasExecuteModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineCanvasExecuteModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2232,7 +2232,7 @@
 
 ### CrmRoutineCanvasViewPanelRoutineHappyCall
 
-- `re-upstream/restored/components/crm/CrmRoutineCanvasViewPanelRoutineHappyCall.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineCanvasViewPanelRoutineHappyCall.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2242,7 +2242,7 @@
 
 ### CrmRoutineCanvasViewPanelRoutineMessage
 
-- `re-upstream/restored/components/crm/CrmRoutineCanvasViewPanelRoutineMessage.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineCanvasViewPanelRoutineMessage.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2252,7 +2252,7 @@
 
 ### CrmRoutineViewBasicInfoModal
 
-- `re-upstream/restored/components/crm/CrmRoutineViewBasicInfoModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineViewBasicInfoModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2262,7 +2262,7 @@
 
 ### CrmRoutineViewOperationInfoPopover
 
-- `re-upstream/restored/components/crm/CrmRoutineViewOperationInfoPopover.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineViewOperationInfoPopover.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2272,7 +2272,7 @@
 
 ### CrmRoutineViewRoutines
 
-- `re-upstream/restored/components/crm/CrmRoutineViewRoutines.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineViewRoutines.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2284,7 +2284,7 @@
 
 ### CrmRoutineViewStartWithScratch
 
-- `re-upstream/restored/components/crm/CrmRoutineViewStartWithScratch.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineViewStartWithScratch.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2295,7 +2295,7 @@
 
 ### CrmRoutineViewStartWithTemplate
 
-- `re-upstream/restored/components/crm/CrmRoutineViewStartWithTemplate.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmRoutineViewStartWithTemplate.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2308,7 +2308,7 @@
 
 ### CrmScheduleAddContactPopover
 
-- `re-upstream/restored/components/crm/CrmScheduleAddContactPopover.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/crm/CrmScheduleAddContactPopover.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2323,7 +2323,7 @@
 
 ### CrmScheduleAddPatientContactButton
 
-- `re-upstream/restored/components/crm/CrmScheduleAddPatientContactButton.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmScheduleAddPatientContactButton.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2334,7 +2334,7 @@
 
 ### CrmScheduleCalendarModal
 
-- `re-upstream/restored/components/crm/CrmScheduleCalendarModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmScheduleCalendarModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2356,7 +2356,7 @@
 
 ### CrmSchedulePatientSearch
 
-- `re-upstream/restored/components/crm/CrmSchedulePatientSearch.vue`
+- `restored/components/crm/CrmSchedulePatientSearch.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2366,7 +2366,7 @@
 
 ### CrmScheduleRescheduleDatePopover
 
-- `re-upstream/restored/components/crm/CrmScheduleRescheduleDatePopover.vue`
+- `restored/components/crm/CrmScheduleRescheduleDatePopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2377,7 +2377,7 @@
 
 ### CrmSettingCallerNumbers
 
-- `re-upstream/restored/components/crm/CrmSettingCallerNumbers.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/crm/CrmSettingCallerNumbers.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2390,7 +2390,7 @@
 
 ### CrmSettingCallerNumbersTableCellAction
 
-- `re-upstream/restored/components/crm/CrmSettingCallerNumbersTableCellAction.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmSettingCallerNumbersTableCellAction.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2401,7 +2401,7 @@
 
 ### CrmSettingCallerNumbersTableCellRemove
 
-- `re-upstream/restored/components/crm/CrmSettingCallerNumbersTableCellRemove.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/crm/CrmSettingCallerNumbersTableCellRemove.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2413,7 +2413,7 @@
 
 ### CrmSettingContentsSidebar
 
-- `re-upstream/restored/components/crm/CrmSettingContentsSidebar.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmSettingContentsSidebar.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2427,38 +2427,38 @@
 
 ### CrmSmsFallbackBadge
 
-- `re-upstream/restored/components/crm/CrmSmsFallbackBadge.vue`
+- `restored/components/crm/CrmSmsFallbackBadge.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useMessagesKakaoTemplatesByIdQuery` | `GET crmClient /messages/kakao-templates/{args.id}` |
 | `useMessagesTemplatesByTemplateTypeAndIdQuery_2` | `GET crmClient /messages/templates/{args.templateType}/{args.id}` |
 
-<a id="c-components-crm-crmsooschedulernorowsoverlay"></a>
+<a id="c-components-crm-crmliteschedulernorowsoverlay"></a>
 
-### CrmSooSchedulerNoRowsOverlay
+### CrmLiteSchedulerNoRowsOverlay
 
-- `re-upstream/restored/components/crm/CrmSooSchedulerNoRowsOverlay.vue`
+- `restored/components/crm/CrmLiteSchedulerNoRowsOverlay.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useCrmContactListRulesQuery` | `GET emrClient /crm/contact-list/rules` |
 
-<a id="c-components-crm-crmsooschedulerrulespanel"></a>
+<a id="c-components-crm-crmliteschedulerrulespanel"></a>
 
-### CrmSooSchedulerRulesPanel
+### CrmLiteSchedulerRulesPanel
 
-- `re-upstream/restored/components/crm/CrmSooSchedulerRulesPanel.vue`
+- `restored/components/crm/CrmLiteSchedulerRulesPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useCrmLiteTriggerRulesQuery` | `GET emrClient /crm/lite-trigger/rules` |
 
-<a id="c-components-crm-crmsooschedulerviewheader"></a>
+<a id="c-components-crm-crmliteschedulerviewheader"></a>
 
-### CrmSooSchedulerViewHeader
+### CrmLiteSchedulerViewHeader
 
-- `re-upstream/restored/components/crm/CrmSooSchedulerViewHeader.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmLiteSchedulerViewHeader.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2467,11 +2467,11 @@
 | `Aln` (직접) | `POST emrClient /crm/lite-trigger/events/{n.id}/opt-out` |
 | `Iln` (직접) | `POST emrClient /crm/lite-trigger/events/{r.id}/opt-in` |
 
-<a id="c-components-crm-crmsooschedulerviewlist"></a>
+<a id="c-components-crm-crmliteschedulerviewlist"></a>
 
-### CrmSooSchedulerViewList
+### CrmLiteSchedulerViewList
 
-- `re-upstream/restored/components/crm/CrmSooSchedulerViewList.vue`
+- `restored/components/crm/CrmLiteSchedulerViewList.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2482,7 +2482,7 @@
 
 ### CrmTemplateFormPanel
 
-- `re-upstream/restored/components/crm/CrmTemplateFormPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmTemplateFormPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2499,7 +2499,7 @@
 
 ### CrmTemplateGroupSelect
 
-- `re-upstream/restored/components/crm/CrmTemplateGroupSelect.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmTemplateGroupSelect.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2512,7 +2512,7 @@
 
 ### CrmTemplateLibraryDetailPreview
 
-- `re-upstream/restored/components/crm/CrmTemplateLibraryDetailPreview.vue`
+- `restored/components/crm/CrmTemplateLibraryDetailPreview.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2523,7 +2523,7 @@
 
 ### CrmTemplateLibraryMessageDetail
 
-- `re-upstream/restored/components/crm/CrmTemplateLibraryMessageDetail.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmTemplateLibraryMessageDetail.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2536,7 +2536,7 @@
 
 ### CrmTemplateLibraryModal
 
-- `re-upstream/restored/components/crm/CrmTemplateLibraryModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/crm/CrmTemplateLibraryModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2555,7 +2555,7 @@
 
 ### CrmTemplateLibraryTree
 
-- `re-upstream/restored/components/crm/CrmTemplateLibraryTree.vue`
+- `restored/components/crm/CrmTemplateLibraryTree.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2568,7 +2568,7 @@
 
 ### CrmTrialExpiryAlert
 
-- `re-upstream/restored/components/crm/CrmTrialExpiryAlert.vue`
+- `restored/components/crm/CrmTrialExpiryAlert.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2578,7 +2578,7 @@
 
 ### CrmTrialIntroModal
 
-- `re-upstream/restored/components/crm/CrmTrialIntroModal.vue`
+- `restored/components/crm/CrmTrialIntroModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2592,7 +2592,7 @@
 
 ### CustomsCertificate
 
-- `re-upstream/restored/components/customs/CustomsCertificate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/customs/CustomsCertificate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2607,7 +2607,7 @@
 
 ### DeskPatientAccept
 
-- `re-upstream/restored/components/desk/DeskPatientAccept.vue` · 스토어 `useDeskDateStore`, `useIntakeLinkPromptStore`, `usePatientStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskPatientAccept.vue` · 스토어 `useDeskDateStore`, `useIntakeLinkPromptStore`, `usePatientStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2652,7 +2652,7 @@
 
 ### DeskPatientAcceptCar
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptCar.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskPatientAcceptCar.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2671,7 +2671,7 @@
 
 ### DeskPatientAcceptCarHistory
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptCarHistory.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskPatientAcceptCarHistory.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2683,7 +2683,7 @@
 
 ### DeskPatientAcceptIndustrial
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptIndustrial.vue`
+- `restored/components/desk/DeskPatientAcceptIndustrial.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2695,7 +2695,7 @@
 
 ### DeskPatientAcceptIndustrialHistory
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptIndustrialHistory.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskPatientAcceptIndustrialHistory.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2705,7 +2705,7 @@
 
 ### DeskPatientAcceptInsuranceIdentityVerification
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptInsuranceIdentityVerification.vue`
+- `restored/components/desk/DeskPatientAcceptInsuranceIdentityVerification.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2715,7 +2715,7 @@
 
 ### DeskPatientAcceptInsuranceType
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptInsuranceType.vue`
+- `restored/components/desk/DeskPatientAcceptInsuranceType.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2726,7 +2726,7 @@
 
 ### DeskPatientAcceptJejuSupport
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptJejuSupport.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskPatientAcceptJejuSupport.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2751,7 +2751,7 @@
 
 ### DeskPatientAcceptNhicChunaSummary
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptNhicChunaSummary.vue`
+- `restored/components/desk/DeskPatientAcceptNhicChunaSummary.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2765,7 +2765,7 @@
 
 ### DeskPatientAcceptPatientInfo
 
-- `re-upstream/restored/components/desk/DeskPatientAcceptPatientInfo.vue`
+- `restored/components/desk/DeskPatientAcceptPatientInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2791,7 +2791,7 @@
 
 ### DeskPatientInfoBasicInfo
 
-- `re-upstream/restored/components/desk/DeskPatientInfoBasicInfo.vue`
+- `restored/components/desk/DeskPatientInfoBasicInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2822,7 +2822,7 @@
 
 ### DeskPatientRegister
 
-- `re-upstream/restored/components/desk/DeskPatientRegister.vue` · 스토어 `useDeskDateStore`, `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskPatientRegister.vue` · 스토어 `useDeskDateStore`, `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2862,7 +2862,7 @@
 
 ### DeskPatientRegisterChartNumber
 
-- `re-upstream/restored/components/desk/DeskPatientRegisterChartNumber.vue`
+- `restored/components/desk/DeskPatientRegisterChartNumber.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2872,7 +2872,7 @@
 
 ### DeskPatientRelationships
 
-- `re-upstream/restored/components/desk/DeskPatientRelationships.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskPatientRelationships.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2884,7 +2884,7 @@
 
 ### DeskPaymentsCashBalance
 
-- `re-upstream/restored/components/desk/DeskPaymentsCashBalance.vue`
+- `restored/components/desk/DeskPaymentsCashBalance.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2895,7 +2895,7 @@
 
 ### DeskPaymentsCashBalanceForm
 
-- `re-upstream/restored/components/desk/DeskPaymentsCashBalanceForm.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskPaymentsCashBalanceForm.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2906,7 +2906,7 @@
 
 ### DeskPaymentsCashBalanceSettlement
 
-- `re-upstream/restored/components/desk/DeskPaymentsCashBalanceSettlement.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskPaymentsCashBalanceSettlement.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2916,7 +2916,7 @@
 
 ### DeskPaymentsDashboard
 
-- `re-upstream/restored/components/desk/DeskPaymentsDashboard.vue` · 스토어 `useDeskDateStore`
+- `restored/components/desk/DeskPaymentsDashboard.vue` · 스토어 `useDeskDateStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2926,7 +2926,7 @@
 
 ### DeskPaymentsExpenseHistory
 
-- `re-upstream/restored/components/desk/DeskPaymentsExpenseHistory.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskPaymentsExpenseHistory.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2941,7 +2941,7 @@
 
 ### DeskPaymentsHistoryTable
 
-- `re-upstream/restored/components/desk/DeskPaymentsHistoryTable.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskPaymentsHistoryTable.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2955,7 +2955,7 @@
 
 ### DeskPaymentsUnusualPatientsPanel
 
-- `re-upstream/restored/components/desk/DeskPaymentsUnusualPatientsPanel.vue`
+- `restored/components/desk/DeskPaymentsUnusualPatientsPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2965,7 +2965,7 @@
 
 ### DeskViewAutoCompleteSearch
 
-- `re-upstream/restored/components/desk/DeskViewAutoCompleteSearch.vue`
+- `restored/components/desk/DeskViewAutoCompleteSearch.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2975,7 +2975,7 @@
 
 ### DeskViewPatientAppointment
 
-- `re-upstream/restored/components/desk/DeskViewPatientAppointment.vue` · 스토어 `useDeskDateStore`, `usePatientStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskViewPatientAppointment.vue` · 스토어 `useDeskDateStore`, `usePatientStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -2999,7 +2999,7 @@
 
 ### DeskViewPatientAppointmentHistory
 
-- `re-upstream/restored/components/desk/DeskViewPatientAppointmentHistory.vue`
+- `restored/components/desk/DeskViewPatientAppointmentHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3011,7 +3011,7 @@
 
 ### DeskViewPatientAppointmentHistoryCard
 
-- `re-upstream/restored/components/desk/DeskViewPatientAppointmentHistoryCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskViewPatientAppointmentHistoryCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3022,7 +3022,7 @@
 
 ### DeskViewPatientAppointmentPatientInput
 
-- `re-upstream/restored/components/desk/DeskViewPatientAppointmentPatientInput.vue`
+- `restored/components/desk/DeskViewPatientAppointmentPatientInput.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3033,7 +3033,7 @@
 
 ### DeskVisitPatientCardMemoEditor
 
-- `re-upstream/restored/components/desk/DeskVisitPatientCardMemoEditor.vue`
+- `restored/components/desk/DeskVisitPatientCardMemoEditor.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3043,7 +3043,7 @@
 
 ### DeskVisitPatientCardMemoPopover
 
-- `re-upstream/restored/components/desk/DeskVisitPatientCardMemoPopover.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskVisitPatientCardMemoPopover.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3053,7 +3053,7 @@
 
 ### DeskVisitPaymentCheckOut
 
-- `re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
+- `restored/components/desk/DeskVisitPaymentCheckOut.vue` · 스토어 `useDeskDateStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3072,7 +3072,7 @@
 
 ### DeskVisitPaymentCheckOutFooter
 
-- `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutFooter.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskVisitPaymentCheckOutFooter.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3091,7 +3091,7 @@
 
 ### DeskVisitPaymentCheckOutTreatmentCard
 
-- `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskVisitPaymentCheckOutTreatmentCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3117,7 +3117,7 @@
 
 ### DeskVisitPaymentCheckOutTreatmentCardDetail
 
-- `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/desk/DeskVisitPaymentCheckOutTreatmentCardDetail.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3146,7 +3146,7 @@
 
 ### DeskVisitTelemedicineCard
 
-- `re-upstream/restored/components/desk/DeskVisitTelemedicineCard.vue`
+- `restored/components/desk/DeskVisitTelemedicineCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3160,7 +3160,7 @@
 
 ### DiseaseInputDropdown
 
-- `re-upstream/restored/components/disease/DiseaseInputDropdown.vue`
+- `restored/components/disease/DiseaseInputDropdown.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3170,22 +3170,22 @@
 
 ### DiseaseSearchModal
 
-- `re-upstream/restored/components/disease/DiseaseSearchModal.vue`
+- `restored/components/disease/DiseaseSearchModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useChartKcdRecentQuery` | `GET emrClient chart/kcd/recent` |
 | `useKoicd20260101JsonQuery` | `GET staticClient <KOICD_20240829_JSON_PATH>`<br>`GET staticClient <KOICD_20260101_JSON_PATH>` |
 
-<a id="components-doctalk"></a>
+<a id="components-booking"></a>
 
-## components/doctalk
+## components/booking
 
-<a id="c-components-doctalk-doctalknotificationdropdown"></a>
+<a id="c-components-booking-bookingnotificationdropdown"></a>
 
-### DoctalkNotificationDropdown
+### BookingNotificationDropdown
 
-- `re-upstream/restored/components/doctalk/DoctalkNotificationDropdown.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/booking/BookingNotificationDropdown.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3193,11 +3193,11 @@
 | `usePostDeskBookingRequestsConfirmMutation` | `POST emrClient /desk/booking-requests/confirm` |
 | `usePostDeskBookingRequestsRejectMutation` | `POST emrClient /desk/booking-requests/reject` |
 
-<a id="c-components-doctalk-doctalksignupmodal"></a>
+<a id="c-components-booking-bookingsignupmodal"></a>
 
-### DoctalkSignupModal
+### BookingSignupModal
 
-- `re-upstream/restored/components/doctalk/DoctalkSignupModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/booking/BookingSignupModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3212,7 +3212,7 @@
 
 ### DoctorsButtonGroup
 
-- `re-upstream/restored/components/doctors/DoctorsButtonGroup.vue`
+- `restored/components/doctors/DoctorsButtonGroup.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3222,7 +3222,7 @@
 
 ### DoctorsDropdown
 
-- `re-upstream/restored/components/doctors/DoctorsDropdown.vue`
+- `restored/components/doctors/DoctorsDropdown.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3236,7 +3236,7 @@
 
 ### DocumentAddressSelector
 
-- `re-upstream/restored/components/document/DocumentAddressSelector.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentAddressSelector.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3248,7 +3248,7 @@
 
 ### DocumentDiseasePeriodImportModal
 
-- `re-upstream/restored/components/document/DocumentDiseasePeriodImportModal.vue`
+- `restored/components/document/DocumentDiseasePeriodImportModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3258,7 +3258,7 @@
 
 ### DocumentDiseaseSearchModal
 
-- `re-upstream/restored/components/document/DocumentDiseaseSearchModal.vue`
+- `restored/components/document/DocumentDiseaseSearchModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3270,7 +3270,7 @@
 
 ### DocumentDiseaseSelector
 
-- `re-upstream/restored/components/document/DocumentDiseaseSelector.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentDiseaseSelector.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3281,7 +3281,7 @@
 
 ### DocumentDoctorSelector
 
-- `re-upstream/restored/components/document/DocumentDoctorSelector.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentDoctorSelector.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3293,7 +3293,7 @@
 
 ### DocumentDraftHistoryAll
 
-- `re-upstream/restored/components/document/DocumentDraftHistoryAll.vue`
+- `restored/components/document/DocumentDraftHistoryAll.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3303,7 +3303,7 @@
 
 ### DocumentDraftHistoryPatient
 
-- `re-upstream/restored/components/document/DocumentDraftHistoryPatient.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/components/document/DocumentDraftHistoryPatient.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3314,7 +3314,7 @@
 
 ### DocumentHerbalPrescriptionSelectModal
 
-- `re-upstream/restored/components/document/DocumentHerbalPrescriptionSelectModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentHerbalPrescriptionSelectModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3325,7 +3325,7 @@
 
 ### DocumentHistorySidebar
 
-- `re-upstream/restored/components/document/DocumentHistorySidebar.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/document/DocumentHistorySidebar.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3338,7 +3338,7 @@
 
 ### DocumentHospitalEnglishAddressRegister
 
-- `re-upstream/restored/components/document/DocumentHospitalEnglishAddressRegister.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentHospitalEnglishAddressRegister.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3348,7 +3348,7 @@
 
 ### DocumentHospitalEnglishNameRegister
 
-- `re-upstream/restored/components/document/DocumentHospitalEnglishNameRegister.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentHospitalEnglishNameRegister.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3358,7 +3358,7 @@
 
 ### DocumentIssuedHistory
 
-- `re-upstream/restored/components/document/DocumentIssuedHistory.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/document/DocumentIssuedHistory.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3368,7 +3368,7 @@
 
 ### DocumentIssueViewContainer
 
-- `re-upstream/restored/components/document/DocumentIssueViewContainer.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/components/document/DocumentIssueViewContainer.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3414,7 +3414,7 @@
 
 ### DocumentIssueViewFooter
 
-- `re-upstream/restored/components/document/DocumentIssueViewFooter.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/document/DocumentIssueViewFooter.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3447,7 +3447,7 @@
 
 ### DocumentIssueViewFormRenderer
 
-- `re-upstream/restored/components/document/DocumentIssueViewFormRenderer.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/document/DocumentIssueViewFormRenderer.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3458,7 +3458,7 @@
 
 ### DocumentIssueViewHeader
 
-- `re-upstream/restored/components/document/DocumentIssueViewHeader.vue`
+- `restored/components/document/DocumentIssueViewHeader.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3469,7 +3469,7 @@
 
 ### DocumentLatinNameInput
 
-- `re-upstream/restored/components/document/DocumentLatinNameInput.vue`
+- `restored/components/document/DocumentLatinNameInput.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3479,7 +3479,7 @@
 
 ### DocumentNumberEditModal
 
-- `re-upstream/restored/components/document/DocumentNumberEditModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/document/DocumentNumberEditModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3489,7 +3489,7 @@
 
 ### DocumentPhrasePanel
 
-- `re-upstream/restored/components/document/DocumentPhrasePanel.vue`
+- `restored/components/document/DocumentPhrasePanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3500,7 +3500,7 @@
 
 ### DocumentRecordHistory
 
-- `re-upstream/restored/components/document/DocumentRecordHistory.vue`
+- `restored/components/document/DocumentRecordHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3510,7 +3510,7 @@
 
 ### DocumentSerialNumber
 
-- `re-upstream/restored/components/document/DocumentSerialNumber.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/document/DocumentSerialNumber.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3520,7 +3520,7 @@
 
 ### DocumentTreatmentPeriod
 
-- `re-upstream/restored/components/document/DocumentTreatmentPeriod.vue`
+- `restored/components/document/DocumentTreatmentPeriod.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3534,7 +3534,7 @@
 
 ### EditorTemplateCard
 
-- `re-upstream/restored/components/editor/EditorTemplateCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/editor/EditorTemplateCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3548,7 +3548,7 @@
 
 ### EmrDatePicker
 
-- `re-upstream/restored/components/emr/EmrDatePicker.vue`
+- `restored/components/emr/EmrDatePicker.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3558,7 +3558,7 @@
 
 ### EmrPatientsViewTable
 
-- `re-upstream/restored/components/emr/EmrPatientsViewTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/emr/EmrPatientsViewTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3572,7 +3572,7 @@
 
 ### EtcPrescriptionsPicker
 
-- `re-upstream/restored/components/etc/EtcPrescriptionsPicker.vue`
+- `restored/components/etc/EtcPrescriptionsPicker.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3588,7 +3588,7 @@
 
 ### FutureMedicalCostEstimate
 
-- `re-upstream/restored/components/future/FutureMedicalCostEstimate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/future/FutureMedicalCostEstimate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3602,7 +3602,7 @@
 
 ### GeneralHerbalPrescription
 
-- `re-upstream/restored/components/general/GeneralHerbalPrescription.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/general/GeneralHerbalPrescription.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3614,7 +3614,7 @@
 
 ### GeneralHerbalPrescriptionDosage
 
-- `re-upstream/restored/components/general/GeneralHerbalPrescriptionDosage.vue`
+- `restored/components/general/GeneralHerbalPrescriptionDosage.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3624,7 +3624,7 @@
 
 ### GeneralHerbalPrescriptionHerbEditRow
 
-- `re-upstream/restored/components/general/GeneralHerbalPrescriptionHerbEditRow.vue`
+- `restored/components/general/GeneralHerbalPrescriptionHerbEditRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3634,7 +3634,7 @@
 
 ### GeneralHerbalPrescriptionHerbEditTable
 
-- `re-upstream/restored/components/general/GeneralHerbalPrescriptionHerbEditTable.vue`
+- `restored/components/general/GeneralHerbalPrescriptionHerbEditTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3645,7 +3645,7 @@
 
 ### GeneralHerbalPrescriptionTreatmentDate
 
-- `re-upstream/restored/components/general/GeneralHerbalPrescriptionTreatmentDate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/general/GeneralHerbalPrescriptionTreatmentDate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3661,7 +3661,7 @@
 
 ### HeaderLayout
 
-- `re-upstream/restored/components/header/HeaderLayout.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/header/HeaderLayout.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3679,7 +3679,7 @@
 
 ### HealthInsuranceEligibilityPilotChubyak
 
-- `re-upstream/restored/components/health/HealthInsuranceEligibilityPilotChubyak.vue`
+- `restored/components/health/HealthInsuranceEligibilityPilotChubyak.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3693,7 +3693,7 @@
 
 ### HealthInsuranceEligibilityPilotSelect
 
-- `re-upstream/restored/components/health/HealthInsuranceEligibilityPilotSelect.vue`
+- `restored/components/health/HealthInsuranceEligibilityPilotSelect.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3705,7 +3705,7 @@
 
 ### HealthInsuranceEligibilitySpecialAid
 
-- `re-upstream/restored/components/health/HealthInsuranceEligibilitySpecialAid.vue`
+- `restored/components/health/HealthInsuranceEligibilitySpecialAid.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3719,7 +3719,7 @@
 
 ### HerbEditorSidePanel
 
-- `re-upstream/restored/components/herb/HerbEditorSidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/herb/HerbEditorSidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3730,7 +3730,7 @@
 
 ### HerbTableEditor
 
-- `re-upstream/restored/components/herb/HerbTableEditor.vue`
+- `restored/components/herb/HerbTableEditor.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3744,7 +3744,7 @@
 
 ### HerbalMedicineReciptTreatmentDate
 
-- `re-upstream/restored/components/herbal/HerbalMedicineReciptTreatmentDate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/herbal/HerbalMedicineReciptTreatmentDate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3754,7 +3754,7 @@
 
 ### HerbalPrescriptionUnassignedIssuePanel
 
-- `re-upstream/restored/components/herbal/HerbalPrescriptionUnassignedIssuePanel.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/components/herbal/HerbalPrescriptionUnassignedIssuePanel.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3771,7 +3771,7 @@
 
 ### HiraSubmitItemsViewChubyakJaboModifyContent
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChubyakJaboModifyContent.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
+- `restored/components/hira/HiraSubmitItemsViewChubyakJaboModifyContent.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3788,7 +3788,7 @@
 
 ### HiraSubmitItemsViewChubyakJaboTableActionCell
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChubyakJaboTableActionCell.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
+- `restored/components/hira/HiraSubmitItemsViewChubyakJaboTableActionCell.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3801,7 +3801,7 @@
 
 ### HiraSubmitItemsViewChubyakModifyContent
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChubyakModifyContent.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
+- `restored/components/hira/HiraSubmitItemsViewChubyakModifyContent.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3818,7 +3818,7 @@
 
 ### HiraSubmitItemsViewChubyakTable
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChubyakTable.vue`
+- `restored/components/hira/HiraSubmitItemsViewChubyakTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3829,7 +3829,7 @@
 
 ### HiraSubmitItemsViewChubyakTableActionCell
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChubyakTableActionCell.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
+- `restored/components/hira/HiraSubmitItemsViewChubyakTableActionCell.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3841,7 +3841,7 @@
 
 ### HiraSubmitItemsViewChubyakTableDetailRow
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChubyakTableDetailRow.vue`
+- `restored/components/hira/HiraSubmitItemsViewChubyakTableDetailRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3851,7 +3851,7 @@
 
 ### HiraSubmitItemsViewChunaTable
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChunaTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/hira/HiraSubmitItemsViewChunaTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3862,7 +3862,7 @@
 
 ### HiraSubmitItemsViewChunaTableActionCell
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChunaTableActionCell.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
+- `restored/components/hira/HiraSubmitItemsViewChunaTableActionCell.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3875,7 +3875,7 @@
 
 ### HiraSubmitItemsViewChunaTableDetailRow
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewChunaTableDetailRow.vue`
+- `restored/components/hira/HiraSubmitItemsViewChunaTableDetailRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3885,7 +3885,7 @@
 
 ### HiraSubmitItemsViewMainChuna
 
-- `re-upstream/restored/components/hira/HiraSubmitItemsViewMainChuna.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
+- `restored/components/hira/HiraSubmitItemsViewMainChuna.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3902,7 +3902,7 @@
 
 ### HistoryPlanUsage
 
-- `re-upstream/restored/components/history/HistoryPlanUsage.vue`
+- `restored/components/history/HistoryPlanUsage.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3916,15 +3916,15 @@
 
 ### HolidayPrepBanner
 
-- `re-upstream/restored/components/holiday/HolidayPrepBanner.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/holiday/HolidayPrepBanner.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useDoctalkProductsBookableTimesQuery` | `GET emrClient /doctalk/products/bookable-times` |
-| `useDoctalkProductsQuery` | `GET emrClient /doctalk/products` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
-| `usePostDoctalkSsoTokenMutation` | `POST emrClient /doctalk/sso/token` |
+| `useBookingProductsBookableTimesQuery` | `GET emrClient /booking/products/bookable-times` |
+| `useBookingProductsQuery` | `GET emrClient /booking/products` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
+| `usePostBookingSsoTokenMutation` | `POST emrClient /booking/sso/token` |
 | `useSettingsAppointmentsQuery` | `GET emrClient /settings/appointments` |
 | `useSettingsClinicCalendarYearQuery_2` | `GET emrClient /settings/clinic-calendar/year/{input}` |
 | `useSettingsHolidaysScheduleBannerQuery` | `GET emrClient /settings/holidays/schedule-banner` |
@@ -3937,7 +3937,7 @@
 
 ### HospitalTermsConsentScreen
 
-- `re-upstream/restored/components/hospital/HospitalTermsConsentScreen.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/hospital/HospitalTermsConsentScreen.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3951,7 +3951,7 @@
 
 ### InjuryCertificate
 
-- `re-upstream/restored/components/injury/InjuryCertificate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/injury/InjuryCertificate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3965,7 +3965,7 @@
 
 ### InquiryBot
 
-- `re-upstream/restored/components/inquiry/InquiryBot.vue` · 스토어 `useInquiryBotStore`
+- `restored/components/inquiry/InquiryBot.vue` · 스토어 `useInquiryBotStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3975,7 +3975,7 @@
 
 ### InquiryBotPanel
 
-- `re-upstream/restored/components/inquiry/InquiryBotPanel.vue` · 스토어 `useInquiryBotStore`
+- `restored/components/inquiry/InquiryBotPanel.vue` · 스토어 `useInquiryBotStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -3992,7 +3992,7 @@
 
 ### InsuranceInquiryWorkbench
 
-- `re-upstream/restored/components/insurance/InsuranceInquiryWorkbench.vue` · 스토어 `useSocketClientStore`, `useToastNotificationStore`
+- `restored/components/insurance/InsuranceInquiryWorkbench.vue` · 스토어 `useSocketClientStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4010,7 +4010,7 @@
 
 ### InsuranceMedicinesPrescriptionPicker
 
-- `re-upstream/restored/components/insurance/InsuranceMedicinesPrescriptionPicker.vue`
+- `restored/components/insurance/InsuranceMedicinesPrescriptionPicker.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4022,12 +4022,12 @@
 
 ### InsurancePaymentMethodModal
 
-- `re-upstream/restored/components/insurance/InsurancePaymentMethodModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/insurance/InsurancePaymentMethodModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useHospitalPaymentMethodsMedipayQuery` | `GET insuranceClient /hospital/payment-methods/medipay` |
+| `useHospitalPaymentMethodsPartnerPayQuery` | `GET insuranceClient /hospital/payment-methods/partner-pay` |
 | `usePostHospitalPaymentMethodsMutation` | `POST insuranceClient /hospital/payment-methods` |
 | `usePutHospitalPaymentMethodsMutation` | `PUT insuranceClient /hospital/payment-methods` |
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
@@ -4036,7 +4036,7 @@
 
 ### InsurancePaymentMethodRow
 
-- `re-upstream/restored/components/insurance/InsurancePaymentMethodRow.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/insurance/InsurancePaymentMethodRow.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4050,7 +4050,7 @@
 
 ### InsurancePlanChangeDialog
 
-- `re-upstream/restored/components/insurance/InsurancePlanChangeDialog.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/insurance/InsurancePlanChangeDialog.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4062,12 +4062,12 @@
 
 ### InsurancePlanPaymentModal
 
-- `re-upstream/restored/components/insurance/InsurancePlanPaymentModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/insurance/InsurancePlanPaymentModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useHospitalPaymentMethodsMedipayQuery` | `GET insuranceClient /hospital/payment-methods/medipay` |
+| `useHospitalPaymentMethodsPartnerPayQuery` | `GET insuranceClient /hospital/payment-methods/partner-pay` |
 | `useHospitalPaymentMethodsQuery` | `GET insuranceClient /hospital/payment-methods` |
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
 
@@ -4075,7 +4075,7 @@
 
 ### InsuranceSubscriptionModal
 
-- `re-upstream/restored/components/insurance/InsuranceSubscriptionModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/insurance/InsuranceSubscriptionModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4090,7 +4090,7 @@
 
 ### IntakeLinkSendModal
 
-- `re-upstream/restored/components/intake/IntakeLinkSendModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/intake/IntakeLinkSendModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4107,7 +4107,7 @@
 
 ### KakaoMessageSend
 
-- `re-upstream/restored/components/kakao/KakaoMessageSend.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/kakao/KakaoMessageSend.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4123,7 +4123,7 @@
 
 ### KakaoMessageSendAlimTalk
 
-- `re-upstream/restored/components/kakao/KakaoMessageSendAlimTalk.vue`
+- `restored/components/kakao/KakaoMessageSendAlimTalk.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4137,7 +4137,7 @@
 
 ### LinkSendPanel
 
-- `re-upstream/restored/components/link/LinkSendPanel.vue`
+- `restored/components/link/LinkSendPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4151,7 +4151,7 @@
 
 ### LookupExecutionForm
 
-- `re-upstream/restored/components/lookup/LookupExecutionForm.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/lookup/LookupExecutionForm.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4170,7 +4170,7 @@
 
 ### MCPTokens
 
-- `re-upstream/restored/components/m/MCPTokens.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/m/MCPTokens.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4188,7 +4188,7 @@
 
 ### McpApprovalContactsSidePanel
 
-- `re-upstream/restored/components/mcp/McpApprovalContactsSidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/mcp/McpApprovalContactsSidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4199,7 +4199,7 @@
 
 ### McpApprovalContactsTab
 
-- `re-upstream/restored/components/mcp/McpApprovalContactsTab.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/mcp/McpApprovalContactsTab.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4216,7 +4216,7 @@
 
 ### McpApprovalNotesTab
 
-- `re-upstream/restored/components/mcp/McpApprovalNotesTab.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/mcp/McpApprovalNotesTab.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4235,7 +4235,7 @@
 
 ### MedicalAidsM3M4InfoDisplay
 
-- `re-upstream/restored/components/medical/MedicalAidsM3M4InfoDisplay.vue`
+- `restored/components/medical/MedicalAidsM3M4InfoDisplay.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4245,7 +4245,7 @@
 
 ### MedicalAidsM3ModifyModalContent
 
-- `re-upstream/restored/components/medical/MedicalAidsM3ModifyModalContent.vue` · 스토어 `useMedicalAidsStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
+- `restored/components/medical/MedicalAidsM3ModifyModalContent.vue` · 스토어 `useMedicalAidsStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4260,7 +4260,7 @@
 
 ### MedicalAidsM3SidePanelRight
 
-- `re-upstream/restored/components/medical/MedicalAidsM3SidePanelRight.vue` · 스토어 `useMedicalAidsStore`, `useToastNotificationStore`
+- `restored/components/medical/MedicalAidsM3SidePanelRight.vue` · 스토어 `useMedicalAidsStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4275,7 +4275,7 @@
 
 ### MedicalAidsViewTableActionsCell
 
-- `re-upstream/restored/components/medical/MedicalAidsViewTableActionsCell.vue` · 스토어 `useMedicalAidsStore`
+- `restored/components/medical/MedicalAidsViewTableActionsCell.vue` · 스토어 `useMedicalAidsStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4288,7 +4288,7 @@
 
 ### MedicalCertificate
 
-- `re-upstream/restored/components/medical/MedicalCertificate.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/medical/MedicalCertificate.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4299,7 +4299,7 @@
 
 ### MedicalPaymentReceipts
 
-- `re-upstream/restored/components/medical/MedicalPaymentReceipts.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/medical/MedicalPaymentReceipts.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4309,7 +4309,7 @@
 
 ### MedicalRecord
 
-- `re-upstream/restored/components/medical/MedicalRecord-2.vue`
+- `restored/components/medical/MedicalRecord-2.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4320,7 +4320,7 @@
 
 ### MedicalRecord
 
-- `re-upstream/restored/components/medical/MedicalRecord.vue`
+- `restored/components/medical/MedicalRecord.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4331,7 +4331,7 @@
 
 ### MedicalStatement
 
-- `re-upstream/restored/components/medical/MedicalStatement.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/medical/MedicalStatement.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4345,7 +4345,7 @@
 
 ### MedicationOpinion
 
-- `re-upstream/restored/components/medication/MedicationOpinion.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/components/medication/MedicationOpinion.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4359,7 +4359,7 @@
 
 ### MembersRetroTermsGate
 
-- `re-upstream/restored/components/members/MembersRetroTermsGate.vue`
+- `restored/components/members/MembersRetroTermsGate.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4374,7 +4374,7 @@
 
 ### MessageResultsDashboard
 
-- `re-upstream/restored/components/message/MessageResultsDashboard.vue`
+- `restored/components/message/MessageResultsDashboard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4384,7 +4384,7 @@
 
 ### MessageResultsDetail
 
-- `re-upstream/restored/components/message/MessageResultsDetail.vue` · 스토어 `useCrmMessageResultLinksStore`
+- `restored/components/message/MessageResultsDetail.vue` · 스토어 `useCrmMessageResultLinksStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4395,7 +4395,7 @@
 
 ### MessageResultsDetailReceivers
 
-- `re-upstream/restored/components/message/MessageResultsDetailReceivers.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageResultsDetailReceivers.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4407,7 +4407,7 @@
 
 ### MessageResultsDetailSidePanel
 
-- `re-upstream/restored/components/message/MessageResultsDetailSidePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageResultsDetailSidePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4418,7 +4418,7 @@
 
 ### MessageResultsDetailSidePanelFooter
 
-- `re-upstream/restored/components/message/MessageResultsDetailSidePanelFooter.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageResultsDetailSidePanelFooter.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4431,7 +4431,7 @@
 
 ### MessageResultsList
 
-- `re-upstream/restored/components/message/MessageResultsList.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageResultsList.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4443,7 +4443,7 @@
 
 ### MessageResultsListTableResultCell
 
-- `re-upstream/restored/components/message/MessageResultsListTableResultCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageResultsListTableResultCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4453,7 +4453,7 @@
 
 ### MessageResultsReservedAtConfirm
 
-- `re-upstream/restored/components/message/MessageResultsReservedAtConfirm.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageResultsReservedAtConfirm.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4463,7 +4463,7 @@
 
 ### MessageViewContactGroupMembers
 
-- `re-upstream/restored/components/message/MessageViewContactGroupMembers.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewContactGroupMembers.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4475,7 +4475,7 @@
 
 ### MessageViewContactGroups
 
-- `re-upstream/restored/components/message/MessageViewContactGroups.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewContactGroups.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4487,7 +4487,7 @@
 
 ### MessageViewContactGroupSave
 
-- `re-upstream/restored/components/message/MessageViewContactGroupSave.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewContactGroupSave.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4499,7 +4499,7 @@
 
 ### MessageViewExcelUpload
 
-- `re-upstream/restored/components/message/MessageViewExcelUpload.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewExcelUpload.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4509,7 +4509,7 @@
 
 ### MessageViewPatientInput
 
-- `re-upstream/restored/components/message/MessageViewPatientInput.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewPatientInput.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4521,7 +4521,7 @@
 
 ### MessageViewReceivers
 
-- `re-upstream/restored/components/message/MessageViewReceivers.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewReceivers.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4535,7 +4535,7 @@
 
 ### MessageViewReceiversTable
 
-- `re-upstream/restored/components/message/MessageViewReceiversTable.vue`
+- `restored/components/message/MessageViewReceiversTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4545,7 +4545,7 @@
 
 ### MessageViewReceiversTableActionCell
 
-- `re-upstream/restored/components/message/MessageViewReceiversTableActionCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewReceiversTableActionCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4556,7 +4556,7 @@
 
 ### MessageViewReceiversTableDuplicate
 
-- `re-upstream/restored/components/message/MessageViewReceiversTableDuplicate.vue`
+- `restored/components/message/MessageViewReceiversTableDuplicate.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4566,7 +4566,7 @@
 
 ### MessageViewRecentConditions
 
-- `re-upstream/restored/components/message/MessageViewRecentConditions.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewRecentConditions.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4577,7 +4577,7 @@
 
 ### MessageViewSearchConditionsModal
 
-- `re-upstream/restored/components/message/MessageViewSearchConditionsModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewSearchConditionsModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4587,7 +4587,7 @@
 
 ### MessageViewSearchConditionsSaveConfirm
 
-- `re-upstream/restored/components/message/MessageViewSearchConditionsSaveConfirm.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewSearchConditionsSaveConfirm.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4597,7 +4597,7 @@
 
 ### MessageViewSearchFilterConditions
 
-- `re-upstream/restored/components/message/MessageViewSearchFilterConditions.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/message/MessageViewSearchFilterConditions.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4609,7 +4609,7 @@
 
 ### MessageViewSend
 
-- `re-upstream/restored/components/message/MessageViewSend.vue`
+- `restored/components/message/MessageViewSend.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4624,14 +4624,14 @@
 
 ### MobileGnb
 
-- `re-upstream/restored/components/mobile/MobileGnb.vue`
+- `restored/components/mobile/MobileGnb.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useApiSurachalCohortQuery` | `GET biClient /api/surachal/cohort` |
 | `useApiSurachalMeQuery` | `GET biClient /api/surachal/me` |
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
 
 <a id="components-moxa"></a>
 
@@ -4641,7 +4641,7 @@
 
 ### MoxaCuppingCupSelector
 
-- `re-upstream/restored/components/moxa/MoxaCuppingCupSelector.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/moxa/MoxaCuppingCupSelector.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4656,7 +4656,7 @@
 
 ### NaverReservationDetail
 
-- `re-upstream/restored/components/naver/NaverReservationDetail.vue`
+- `restored/components/naver/NaverReservationDetail.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4667,7 +4667,7 @@
 
 ### NaverReservationHistory
 
-- `re-upstream/restored/components/naver/NaverReservationHistory.vue`
+- `restored/components/naver/NaverReservationHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4678,13 +4678,13 @@
 
 ### NaverReservationPanel
 
-- `re-upstream/restored/components/naver/NaverReservationPanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/naver/NaverReservationPanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useDeskBookingRequestsQuery` | `GET emrClient /desk/booking-requests` |
 | `useDeskBookingRequestsQuery` | `GET emrClient /desk/booking-requests` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
 | `usePostDeskBookingRequestsConfirmMutation` | `POST emrClient /desk/booking-requests/confirm` |
 | `usePostDeskBookingRequestsRejectMutation` | `POST emrClient /desk/booking-requests/reject` |
 
@@ -4692,7 +4692,7 @@
 
 ### NaverSignModal
 
-- `re-upstream/restored/components/naver/NaverSignModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/naver/NaverSignModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4712,7 +4712,7 @@
 
 ### NonBenefitPackageReservedRow
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPackageReservedRow.vue`
+- `restored/components/nonBenefit/NonBenefitPackageReservedRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4722,17 +4722,17 @@
 
 ### NonBenefitPatientsViewCancelledTelemedicineModal
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPatientsViewCancelledTelemedicineModal.vue`
+- `restored/components/nonBenefit/NonBenefitPatientsViewCancelledTelemedicineModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `getMembersUpstreamOrders` (직접) | `GET thesooClient members/upstream/orders/{input}` |
+| `getMembersEmrOrders` (직접) | `GET liteClient members/emr/orders/{input}` |
 
 <a id="c-components-nonbenefit-nonbenefitpatientsviewtable"></a>
 
 ### NonBenefitPatientsViewTable
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPatientsViewTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/nonBenefit/NonBenefitPatientsViewTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4743,7 +4743,7 @@
 
 ### NonBenefitPatientsViewTelemedicineBanner
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPatientsViewTelemedicineBanner.vue`
+- `restored/components/nonBenefit/NonBenefitPatientsViewTelemedicineBanner.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4753,7 +4753,7 @@
 
 ### NonBenefitPatientsViewTelemedicineMemo
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPatientsViewTelemedicineMemo.vue`
+- `restored/components/nonBenefit/NonBenefitPatientsViewTelemedicineMemo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4765,11 +4765,11 @@
 
 ### NonBenefitPatientsViewTelemedicineModal
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPatientsViewTelemedicineModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/nonBenefit/NonBenefitPatientsViewTelemedicineModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useMembersUpstreamOrdersQuery` | `GET thesooClient members/upstream/orders/{input}` |
+| `useMembersEmrOrdersQuery` | `GET liteClient members/emr/orders/{input}` |
 | `usePatchDeskTelemedicineConsultationsStatusMutation` | `PATCH emrClient /desk/telemedicine-consultations/{input}/status` |
 | `usePatientsQuery` | `GET emrClient /patients/{input}` |
 
@@ -4777,7 +4777,7 @@
 
 ### NonBenefitPrescriptionPicker
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPrescriptionPicker.vue`
+- `restored/components/nonBenefit/NonBenefitPrescriptionPicker.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4788,7 +4788,7 @@
 
 ### NonBenefitPrescriptionQuantityWithFeePopover
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPrescriptionQuantityWithFeePopover.vue`
+- `restored/components/nonBenefit/NonBenefitPrescriptionQuantityWithFeePopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4799,7 +4799,7 @@
 
 ### NonBenefitPrescriptionTable
 
-- `re-upstream/restored/components/nonBenefit/NonBenefitPrescriptionTable.vue`
+- `restored/components/nonBenefit/NonBenefitPrescriptionTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4813,7 +4813,7 @@
 
 ### NormalOpinion
 
-- `re-upstream/restored/components/normal/NormalOpinion.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/normal/NormalOpinion.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4827,7 +4827,7 @@
 
 ### NotificationSettingModal
 
-- `re-upstream/restored/components/notification/NotificationSettingModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/notification/NotificationSettingModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4843,7 +4843,7 @@
 
 ### OcsViewContent
 
-- `re-upstream/restored/components/ocs/OcsViewContent.vue`
+- `restored/components/ocs/OcsViewContent.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4854,7 +4854,7 @@
 
 ### OcsViewList
 
-- `re-upstream/restored/components/ocs/OcsViewList.vue`
+- `restored/components/ocs/OcsViewList.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4864,7 +4864,7 @@
 
 ### OcsViewListTable
 
-- `re-upstream/restored/components/ocs/OcsViewListTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocs/OcsViewListTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4875,7 +4875,7 @@
 
 ### OcsViewListTableDetailRow
 
-- `re-upstream/restored/components/ocs/OcsViewListTableDetailRow.vue`
+- `restored/components/ocs/OcsViewListTableDetailRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4885,7 +4885,7 @@
 
 ### OcsViewListTableDispensingStatusCell
 
-- `re-upstream/restored/components/ocs/OcsViewListTableDispensingStatusCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocs/OcsViewListTableDispensingStatusCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4895,7 +4895,7 @@
 
 ### OcsViewListTablePrescriptionSidePanel
 
-- `re-upstream/restored/components/ocs/OcsViewListTablePrescriptionSidePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocs/OcsViewListTablePrescriptionSidePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4907,7 +4907,7 @@
 
 ### OcsViewListTableReceiveTypeCell
 
-- `re-upstream/restored/components/ocs/OcsViewListTableReceiveTypeCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocs/OcsViewListTableReceiveTypeCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4920,7 +4920,7 @@
 
 ### OcsViewListTableReceiveTypeDelivery
 
-- `re-upstream/restored/components/ocs/OcsViewListTableReceiveTypeDelivery.vue`
+- `restored/components/ocs/OcsViewListTableReceiveTypeDelivery.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4932,7 +4932,7 @@
 
 ### OcsViewPrescriptionBasicInfo
 
-- `re-upstream/restored/components/ocs/OcsViewPrescriptionBasicInfo.vue`
+- `restored/components/ocs/OcsViewPrescriptionBasicInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4942,7 +4942,7 @@
 
 ### OcsViewPrescriptionHistoryList
 
-- `re-upstream/restored/components/ocs/OcsViewPrescriptionHistoryList.vue`
+- `restored/components/ocs/OcsViewPrescriptionHistoryList.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4952,7 +4952,7 @@
 
 ### OcsViewPrescriptionHistoryListItem
 
-- `re-upstream/restored/components/ocs/OcsViewPrescriptionHistoryListItem.vue`
+- `restored/components/ocs/OcsViewPrescriptionHistoryListItem.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4962,7 +4962,7 @@
 
 ### OcsViewPrescriptionOcsDictionary
 
-- `re-upstream/restored/components/ocs/OcsViewPrescriptionOcsDictionary.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocs/OcsViewPrescriptionOcsDictionary.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4975,7 +4975,7 @@
 
 ### OcsViewPrescriptionPanel
 
-- `re-upstream/restored/components/ocs/OcsViewPrescriptionPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocs/OcsViewPrescriptionPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -4993,7 +4993,7 @@
 
 ### OcsV2DecoctionOrderAsideAccordion
 
-- `re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5018,7 +5018,7 @@
 | `useSettingsHospitalsQuery` | `GET emrClient /settings/hospitals` |
 | `useSettingsNonreimbursedHerbTemplatesQuery` | `GET emrClient <SETTINGS_NONREIMBURSED_HERB_TEMPLATES_PATH>` |
 | `useSettingsNonreimbursedHerbTemplatesQuery_2` | `GET emrClient {SETTINGS_NONREIMBURSED_HERB_TEMPLATES_PATH}/{input}` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 | `useTangjeonTreatmentPrescriptionsDraftQuery` | `GET emrClient /tangjeon/treatment-prescriptions/{input}/draft` |
 | `getSettingsReferenceFormulas` (직접) | `GET emrClient {SETTINGS_REFERENCE_FORMULAS_PATH}/{source}/{id}` |
 | `getSettingsReferenceFormulasSearch` (직접) | `GET emrClient {SETTINGS_REFERENCE_FORMULAS_PATH}/search` |
@@ -5032,7 +5032,7 @@
 
 ### OcsV2DecoctionOrderDispensingInline
 
-- `re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderDispensingInline.vue`
+- `restored/components/ocsV2/OcsV2DecoctionOrderDispensingInline.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5042,7 +5042,7 @@
 
 ### OcsV2DecoctionOrderShippingInline
 
-- `re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderShippingInline.vue`
+- `restored/components/ocsV2/OcsV2DecoctionOrderShippingInline.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5055,7 +5055,7 @@
 
 ### OcsV2MedicationGuideEditModal
 
-- `re-upstream/restored/components/ocsV2/OcsV2MedicationGuideEditModal.vue`
+- `restored/components/ocsV2/OcsV2MedicationGuideEditModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5068,7 +5068,7 @@
 
 ### OcsV2OrderCreateDispensingSection
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderCreateDispensingSection.vue`
+- `restored/components/ocsV2/OcsV2OrderCreateDispensingSection.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5078,7 +5078,7 @@
 
 ### OcsV2OrderCreateHerbDictionaryCard
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderCreateHerbDictionaryCard.vue`
+- `restored/components/ocsV2/OcsV2OrderCreateHerbDictionaryCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5088,7 +5088,7 @@
 
 ### OcsV2OrderCreateMedicationGuidePreviewModal
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderCreateMedicationGuidePreviewModal.vue`
+- `restored/components/ocsV2/OcsV2OrderCreateMedicationGuidePreviewModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5101,7 +5101,7 @@
 
 ### OcsV2OrderCreateShippingCard
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderCreateShippingCard.vue`
+- `restored/components/ocsV2/OcsV2OrderCreateShippingCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5114,7 +5114,7 @@
 
 ### OcsV2OrderCreateSnippetTextArea
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderCreateSnippetTextArea.vue`
+- `restored/components/ocsV2/OcsV2OrderCreateSnippetTextArea.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5124,7 +5124,7 @@
 
 ### OcsV2OrderCreateTaxInvoiceCard
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderCreateTaxInvoiceCard.vue`
+- `restored/components/ocsV2/OcsV2OrderCreateTaxInvoiceCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5134,7 +5134,7 @@
 
 ### OcsV2OrderListMedicationGuideModal
 
-- `re-upstream/restored/components/ocsV2/OcsV2OrderListMedicationGuideModal.vue`
+- `restored/components/ocsV2/OcsV2OrderListMedicationGuideModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5151,7 +5151,7 @@
 
 ### OnboardingGuidePanel
 
-- `re-upstream/restored/components/onboarding/OnboardingGuidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/onboarding/OnboardingGuidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5167,18 +5167,18 @@
 
 ### OndangContractRequiredModal
 
-- `re-upstream/restored/components/ondang/OndangContractRequiredModal.vue`
+- `restored/components/ondang/OndangContractRequiredModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 
 <a id="c-components-ondang-ondangsignupstepaccount"></a>
 
 ### OndangSignUpStepAccount
 
-- `re-upstream/restored/components/ondang/OndangSignUpStepAccount.vue`
+- `restored/components/ondang/OndangSignUpStepAccount.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5188,7 +5188,7 @@
 
 ### OndangSignUpStepTerms
 
-- `re-upstream/restored/components/ondang/OndangSignUpStepTerms.vue`
+- `restored/components/ondang/OndangSignUpStepTerms.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5202,7 +5202,7 @@
 
 ### OutpatientMedicalCertificate
 
-- `re-upstream/restored/components/outpatient/OutpatientMedicalCertificate.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/components/outpatient/OutpatientMedicalCertificate.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5216,7 +5216,7 @@
 
 ### PackageReviewSidePanel
 
-- `re-upstream/restored/components/package/PackageReviewSidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/package/PackageReviewSidePanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5235,7 +5235,7 @@
 
 ### PasswordResetNoticeHost
 
-- `re-upstream/restored/components/password/PasswordResetNoticeHost.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/password/PasswordResetNoticeHost.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5251,7 +5251,7 @@
 
 ### PatientAddModal
 
-- `re-upstream/restored/components/patient/PatientAddModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientAddModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5261,7 +5261,7 @@
 
 ### PatientAutoCompleteSearchCrm
 
-- `re-upstream/restored/components/patient/PatientAutoCompleteSearchCrm.vue`
+- `restored/components/patient/PatientAutoCompleteSearchCrm.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5271,7 +5271,7 @@
 
 ### PatientCard
 
-- `re-upstream/restored/components/patient/PatientCard.vue`
+- `restored/components/patient/PatientCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5281,7 +5281,7 @@
 
 ### PatientCardAppointment
 
-- `re-upstream/restored/components/patient/PatientCardAppointment.vue`
+- `restored/components/patient/PatientCardAppointment.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5291,7 +5291,7 @@
 
 ### PatientCardDetail
 
-- `re-upstream/restored/components/patient/PatientCardDetail.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientCardDetail.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5303,7 +5303,7 @@
 
 ### PatientCardFolded
 
-- `re-upstream/restored/components/patient/PatientCardFolded.vue`
+- `restored/components/patient/PatientCardFolded.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5313,7 +5313,7 @@
 
 ### PatientCardFoldedAppointment
 
-- `re-upstream/restored/components/patient/PatientCardFoldedAppointment.vue`
+- `restored/components/patient/PatientCardFoldedAppointment.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5323,7 +5323,7 @@
 
 ### PatientCarHistoryModal
 
-- `re-upstream/restored/components/patient/PatientCarHistoryModal.vue`
+- `restored/components/patient/PatientCarHistoryModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5333,7 +5333,7 @@
 
 ### PatientDepositHistoryPanel
 
-- `re-upstream/restored/components/patient/PatientDepositHistoryPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientDepositHistoryPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5346,7 +5346,7 @@
 
 ### PatientDepositRefundModal
 
-- `re-upstream/restored/components/patient/PatientDepositRefundModal.vue`
+- `restored/components/patient/PatientDepositRefundModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5357,7 +5357,7 @@
 
 ### PatientDetailPanel
 
-- `re-upstream/restored/components/patient/PatientDetailPanel.vue`
+- `restored/components/patient/PatientDetailPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5367,7 +5367,7 @@
 
 ### PatientHealthInsuranceEligibilityTable
 
-- `re-upstream/restored/components/patient/PatientHealthInsuranceEligibilityTable.vue`
+- `restored/components/patient/PatientHealthInsuranceEligibilityTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5380,7 +5380,7 @@
 
 ### PatientHero
 
-- `re-upstream/restored/components/patient/PatientHero.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientHero.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5390,7 +5390,7 @@
 
 ### PatientInfo
 
-- `re-upstream/restored/components/patient/PatientInfo.vue`
+- `restored/components/patient/PatientInfo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5405,7 +5405,7 @@
 
 ### PatientInfoAppointmentHistory
 
-- `re-upstream/restored/components/patient/PatientInfoAppointmentHistory.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientInfoAppointmentHistory.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5419,7 +5419,7 @@
 
 ### PatientInfoAppointmentHistoryCard
 
-- `re-upstream/restored/components/patient/PatientInfoAppointmentHistoryCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientInfoAppointmentHistoryCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5430,7 +5430,7 @@
 
 ### PatientInfoCarVisitSummary
 
-- `re-upstream/restored/components/patient/PatientInfoCarVisitSummary.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientInfoCarVisitSummary.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5446,7 +5446,7 @@
 
 ### PatientInfoConsentDocumentRenderer
 
-- `re-upstream/restored/components/patient/PatientInfoConsentDocumentRenderer.vue.js`
+- `restored/components/patient/PatientInfoConsentDocumentRenderer.vue.js`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5456,7 +5456,7 @@
 
 ### PatientInfoConsentHistory
 
-- `re-upstream/restored/components/patient/PatientInfoConsentHistory.vue`
+- `restored/components/patient/PatientInfoConsentHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5466,7 +5466,7 @@
 
 ### PatientInfoDepositChargeModal
 
-- `re-upstream/restored/components/patient/PatientInfoDepositChargeModal.vue`
+- `restored/components/patient/PatientInfoDepositChargeModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5477,7 +5477,7 @@
 
 ### PatientInfoDetail
 
-- `re-upstream/restored/components/patient/PatientInfoDetail.vue`
+- `restored/components/patient/PatientInfoDetail.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5489,7 +5489,7 @@
 
 ### PatientInfoDetailRecordsListLastRecordMedicines
 
-- `re-upstream/restored/components/patient/PatientInfoDetailRecordsListLastRecordMedicines.vue`
+- `restored/components/patient/PatientInfoDetailRecordsListLastRecordMedicines.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5500,7 +5500,7 @@
 
 ### PatientInfoFamilyMember
 
-- `re-upstream/restored/components/patient/PatientInfoFamilyMember.vue`
+- `restored/components/patient/PatientInfoFamilyMember.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5511,7 +5511,7 @@
 
 ### PatientInfoPackageContainer
 
-- `re-upstream/restored/components/patient/PatientInfoPackageContainer.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientInfoPackageContainer.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5524,7 +5524,7 @@
 
 ### PatientInfoQuestionnaireHistory
 
-- `re-upstream/restored/components/patient/PatientInfoQuestionnaireHistory.vue`
+- `restored/components/patient/PatientInfoQuestionnaireHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5536,7 +5536,7 @@
 
 ### PatientInfoReceiptContainer
 
-- `re-upstream/restored/components/patient/PatientInfoReceiptContainer.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientInfoReceiptContainer.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5553,7 +5553,7 @@
 
 ### PatientInfoReferrer
 
-- `re-upstream/restored/components/patient/PatientInfoReferrer.vue`
+- `restored/components/patient/PatientInfoReferrer.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5564,7 +5564,7 @@
 
 ### PatientInfoTreatment
 
-- `re-upstream/restored/components/patient/PatientInfoTreatment.vue`
+- `restored/components/patient/PatientInfoTreatment.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5574,7 +5574,7 @@
 
 ### PatientMemo
 
-- `re-upstream/restored/components/patient/PatientMemo.vue`
+- `restored/components/patient/PatientMemo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5585,7 +5585,7 @@
 
 ### PatientMemoListItem
 
-- `re-upstream/restored/components/patient/PatientMemoListItem.vue`
+- `restored/components/patient/PatientMemoListItem.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5595,7 +5595,7 @@
 
 ### PatientMemoNewMemo
 
-- `re-upstream/restored/components/patient/PatientMemoNewMemo.vue`
+- `restored/components/patient/PatientMemoNewMemo.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5605,7 +5605,7 @@
 
 ### PatientMemoToolbar
 
-- `re-upstream/restored/components/patient/PatientMemoToolbar.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientMemoToolbar.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5616,7 +5616,7 @@
 
 ### PatientPackageCard
 
-- `re-upstream/restored/components/patient/PatientPackageCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientPackageCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5626,7 +5626,7 @@
 
 ### PatientPackageDetail
 
-- `re-upstream/restored/components/patient/PatientPackageDetail.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientPackageDetail.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5638,7 +5638,7 @@
 
 ### PatientPackageExpirationHistoryPopover
 
-- `re-upstream/restored/components/patient/PatientPackageExpirationHistoryPopover.vue`
+- `restored/components/patient/PatientPackageExpirationHistoryPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5648,7 +5648,7 @@
 
 ### PatientPackageExpirationModal
 
-- `re-upstream/restored/components/patient/PatientPackageExpirationModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientPackageExpirationModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5659,7 +5659,7 @@
 
 ### PatientPackagePanel
 
-- `re-upstream/restored/components/patient/PatientPackagePanel.vue`
+- `restored/components/patient/PatientPackagePanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5670,7 +5670,7 @@
 
 ### PatientPackageTerminateModal
 
-- `re-upstream/restored/components/patient/PatientPackageTerminateModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientPackageTerminateModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5680,7 +5680,7 @@
 
 ### PatientPackageUsageHistoryTable
 
-- `re-upstream/restored/components/patient/PatientPackageUsageHistoryTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientPackageUsageHistoryTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5693,7 +5693,7 @@
 
 ### PatientProfileAvatarById
 
-- `re-upstream/restored/components/patient/PatientProfileAvatarById.vue`
+- `restored/components/patient/PatientProfileAvatarById.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5703,7 +5703,7 @@
 
 ### PatientProfileAvatarUpload
 
-- `re-upstream/restored/components/patient/PatientProfileAvatarUpload.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientProfileAvatarUpload.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5714,7 +5714,7 @@
 
 ### PatientReceiptDeleteModal
 
-- `re-upstream/restored/components/patient/PatientReceiptDeleteModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientReceiptDeleteModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5726,7 +5726,7 @@
 
 ### PatientReceiptDetailPanel
 
-- `re-upstream/restored/components/patient/PatientReceiptDetailPanel.vue`
+- `restored/components/patient/PatientReceiptDetailPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5736,7 +5736,7 @@
 
 ### PatientReceiptEditModal
 
-- `re-upstream/restored/components/patient/PatientReceiptEditModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientReceiptEditModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5747,7 +5747,7 @@
 
 ### PatientReceiptRefundEditModal
 
-- `re-upstream/restored/components/patient/PatientReceiptRefundEditModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientReceiptRefundEditModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5758,7 +5758,7 @@
 
 ### PatientReceiptRefundModal
 
-- `re-upstream/restored/components/patient/PatientReceiptRefundModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientReceiptRefundModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5771,7 +5771,7 @@
 
 ### PatientReceiptSelectModal
 
-- `re-upstream/restored/components/patient/PatientReceiptSelectModal.vue`
+- `restored/components/patient/PatientReceiptSelectModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5781,7 +5781,7 @@
 
 ### PatientRecord
 
-- `re-upstream/restored/components/patient/PatientRecord.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/patient/PatientRecord.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5792,7 +5792,7 @@
 
 ### PatientSearch
 
-- `re-upstream/restored/components/patient/PatientSearch.vue`
+- `restored/components/patient/PatientSearch.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5802,7 +5802,7 @@
 
 ### PatientSearchDropDownCrm
 
-- `re-upstream/restored/components/patient/PatientSearchDropDownCrm.vue`
+- `restored/components/patient/PatientSearchDropDownCrm.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5812,7 +5812,7 @@
 
 ### PatientSearchDropDownEmr
 
-- `re-upstream/restored/components/patient/PatientSearchDropDownEmr.vue`
+- `restored/components/patient/PatientSearchDropDownEmr.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5822,7 +5822,7 @@
 
 ### PatientsMiniDashboard
 
-- `re-upstream/restored/components/patient/PatientsMiniDashboard.vue`
+- `restored/components/patient/PatientsMiniDashboard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5834,7 +5834,7 @@
 
 ### PatientsStatusAppointments
 
-- `re-upstream/restored/components/patient/PatientsStatusAppointments.vue`
+- `restored/components/patient/PatientsStatusAppointments.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5845,7 +5845,7 @@
 
 ### PatientTable
 
-- `re-upstream/restored/components/patient/PatientTable.vue`
+- `restored/components/patient/PatientTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5855,7 +5855,7 @@
 
 ### PatientTreatmentCostDetail
 
-- `re-upstream/restored/components/patient/PatientTreatmentCostDetail.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/patient/PatientTreatmentCostDetail.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5869,7 +5869,7 @@
 
 ### PaymentCalculator
 
-- `re-upstream/restored/components/payment/PaymentCalculator.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/payment/PaymentCalculator.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5881,7 +5881,7 @@
 
 ### PaymentColumn
 
-- `re-upstream/restored/components/payment/PaymentColumn.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/payment/PaymentColumn.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5892,7 +5892,7 @@
 
 ### PaymentCompleteColumn
 
-- `re-upstream/restored/components/payment/PaymentCompleteColumn.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/payment/PaymentCompleteColumn.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5907,7 +5907,7 @@
 
 ### PersonalFormulaHerbRowsEditor
 
-- `re-upstream/restored/components/personal/PersonalFormulaHerbRowsEditor.vue`
+- `restored/components/personal/PersonalFormulaHerbRowsEditor.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5921,7 +5921,7 @@
 
 ### PlannerDragBlockingDialog
 
-- `re-upstream/restored/components/planner/PlannerDragBlockingDialog.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/planner/PlannerDragBlockingDialog.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5931,7 +5931,7 @@
 
 ### PlannerDragMarkingContextMenu
 
-- `re-upstream/restored/components/planner/PlannerDragMarkingContextMenu.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/planner/PlannerDragMarkingContextMenu.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5941,7 +5941,7 @@
 
 ### PlannerMarkingBlockingArea
 
-- `re-upstream/restored/components/planner/PlannerMarkingBlockingArea.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/planner/PlannerMarkingBlockingArea.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5956,7 +5956,7 @@
 
 ### PrescriptionInputSearch
 
-- `re-upstream/restored/components/prescription/PrescriptionInputSearch.vue`
+- `restored/components/prescription/PrescriptionInputSearch.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5974,7 +5974,7 @@
 
 ### PrescriptionInputSearchCrm
 
-- `re-upstream/restored/components/prescription/PrescriptionInputSearchCrm.vue`
+- `restored/components/prescription/PrescriptionInputSearchCrm.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -5989,7 +5989,7 @@
 
 ### PrescriptionInputSearchTreatment
 
-- `re-upstream/restored/components/prescription/PrescriptionInputSearchTreatment.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/prescription/PrescriptionInputSearchTreatment.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6006,7 +6006,7 @@
 
 ### PrescriptionProceduresSelectButton
 
-- `re-upstream/restored/components/prescription/PrescriptionProceduresSelectButton.vue`
+- `restored/components/prescription/PrescriptionProceduresSelectButton.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6021,7 +6021,7 @@
 
 ### PresetDuplicateDialog
 
-- `re-upstream/restored/components/preset/PresetDuplicateDialog.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/preset/PresetDuplicateDialog.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6036,7 +6036,7 @@
 
 ### ProceduresAcupuncture
 
-- `re-upstream/restored/components/procedures/ProceduresAcupuncture.vue`
+- `restored/components/procedures/ProceduresAcupuncture.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6046,7 +6046,7 @@
 
 ### ProceduresAcupunctureBunkuPopover
 
-- `re-upstream/restored/components/procedures/ProceduresAcupunctureBunkuPopover.vue`
+- `restored/components/procedures/ProceduresAcupunctureBunkuPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6057,7 +6057,7 @@
 
 ### ProceduresAcupunctureCommonPopover
 
-- `re-upstream/restored/components/procedures/ProceduresAcupunctureCommonPopover.vue`
+- `restored/components/procedures/ProceduresAcupunctureCommonPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6069,7 +6069,7 @@
 
 ### ProceduresAcupunctureETC
 
-- `re-upstream/restored/components/procedures/ProceduresAcupunctureETC.vue`
+- `restored/components/procedures/ProceduresAcupunctureETC.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6080,7 +6080,7 @@
 
 ### ProceduresAcupunctureSpecials
 
-- `re-upstream/restored/components/procedures/ProceduresAcupunctureSpecials.vue`
+- `restored/components/procedures/ProceduresAcupunctureSpecials.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6092,7 +6092,7 @@
 
 ### ProceduresAcupunctureSpecialsPopover
 
-- `re-upstream/restored/components/procedures/ProceduresAcupunctureSpecialsPopover.vue`
+- `restored/components/procedures/ProceduresAcupunctureSpecialsPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6104,7 +6104,7 @@
 
 ### ProceduresAcupunctureYakchim
 
-- `re-upstream/restored/components/procedures/ProceduresAcupunctureYakchim.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/procedures/ProceduresAcupunctureYakchim.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6115,7 +6115,7 @@
 
 ### ProceduresHotIR
 
-- `re-upstream/restored/components/procedures/ProceduresHotIR.vue`
+- `restored/components/procedures/ProceduresHotIR.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6127,7 +6127,7 @@
 
 ### ProceduresMoxaCupping
 
-- `re-upstream/restored/components/procedures/ProceduresMoxaCupping.vue`
+- `restored/components/procedures/ProceduresMoxaCupping.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6137,7 +6137,7 @@
 
 ### ProceduresMoxaCuppingWet
 
-- `re-upstream/restored/components/procedures/ProceduresMoxaCuppingWet.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/procedures/ProceduresMoxaCuppingWet.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6148,7 +6148,7 @@
 
 ### ProceduresSonar
 
-- `re-upstream/restored/components/procedures/ProceduresSonar.vue`
+- `restored/components/procedures/ProceduresSonar.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6160,7 +6160,7 @@
 
 ### ProceduresTest
 
-- `re-upstream/restored/components/procedures/ProceduresTest.vue`
+- `restored/components/procedures/ProceduresTest.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6172,7 +6172,7 @@
 
 ### ProceduresTestIctTens
 
-- `re-upstream/restored/components/procedures/ProceduresTestIctTens.vue`
+- `restored/components/procedures/ProceduresTestIctTens.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6186,7 +6186,7 @@
 
 ### QrOutputModal
 
-- `re-upstream/restored/components/qr/QrOutputModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/qr/QrOutputModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6201,7 +6201,7 @@
 
 ### QuestionnaireCorrectionModal
 
-- `re-upstream/restored/components/questionnaire/QuestionnaireCorrectionModal.vue`
+- `restored/components/questionnaire/QuestionnaireCorrectionModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6212,7 +6212,7 @@
 
 ### QuestionnairePanelBody
 
-- `re-upstream/restored/components/questionnaire/QuestionnairePanelBody.vue`
+- `restored/components/questionnaire/QuestionnairePanelBody.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6228,7 +6228,7 @@
 
 ### ReceiptHerbalMedicine
 
-- `re-upstream/restored/components/receipt/ReceiptHerbalMedicine.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/components/receipt/ReceiptHerbalMedicine.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6243,7 +6243,7 @@
 
 ### RegisterAddress
 
-- `re-upstream/restored/components/register/RegisterAddress.vue`
+- `restored/components/register/RegisterAddress.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6257,11 +6257,11 @@
 
 ### RemoteSettlementContent
 
-- `re-upstream/restored/components/remote/RemoteSettlementContent.vue`
+- `restored/components/remote/RemoteSettlementContent.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useSettlementUpstreamSettlementsQuery` | `GET thesooClient /settlement/upstream/settlements` |
+| `useSettlementEmrSettlementsQuery` | `GET liteClient /settlement/emr/settlements` |
 
 <a id="components-reserved"></a>
 
@@ -6271,7 +6271,7 @@
 
 ### ReservedDisease
 
-- `re-upstream/restored/components/reserved/ReservedDisease.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/reserved/ReservedDisease.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6284,7 +6284,7 @@
 
 ### ReservedPrescriptionsBudgetSection
 
-- `re-upstream/restored/components/reserved/ReservedPrescriptionsBudgetSection.vue`
+- `restored/components/reserved/ReservedPrescriptionsBudgetSection.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6295,7 +6295,7 @@
 
 ### ReservedPrescriptionsEditPanel
 
-- `re-upstream/restored/components/reserved/ReservedPrescriptionsEditPanel.vue`
+- `restored/components/reserved/ReservedPrescriptionsEditPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6306,7 +6306,7 @@
 
 ### ReservedPrescriptionsEditPanelCarJaboTab
 
-- `re-upstream/restored/components/reserved/ReservedPrescriptionsEditPanelCarJaboTab.vue`
+- `restored/components/reserved/ReservedPrescriptionsEditPanelCarJaboTab.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6317,7 +6317,7 @@
 
 ### ReservedPrescriptionsEditPanelEtcTab
 
-- `re-upstream/restored/components/reserved/ReservedPrescriptionsEditPanelEtcTab.vue`
+- `restored/components/reserved/ReservedPrescriptionsEditPanelEtcTab.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6328,7 +6328,7 @@
 
 ### ReservedPrescriptionsEditPanelInsuranceMedicinesTab
 
-- `re-upstream/restored/components/reserved/ReservedPrescriptionsEditPanelInsuranceMedicinesTab.vue`
+- `restored/components/reserved/ReservedPrescriptionsEditPanelInsuranceMedicinesTab.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6339,7 +6339,7 @@
 
 ### ReservedPrescriptionsEditPanelPackageTab
 
-- `re-upstream/restored/components/reserved/ReservedPrescriptionsEditPanelPackageTab.vue`
+- `restored/components/reserved/ReservedPrescriptionsEditPanelPackageTab.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6349,7 +6349,7 @@
 
 ### ReservedProcedures
 
-- `re-upstream/restored/components/reserved/ReservedProcedures.vue`
+- `restored/components/reserved/ReservedProcedures.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6361,7 +6361,7 @@
 
 ### ReservedWarmColdTwoParts
 
-- `re-upstream/restored/components/reserved/ReservedWarmColdTwoParts.vue`
+- `restored/components/reserved/ReservedWarmColdTwoParts.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6375,7 +6375,7 @@
 
 ### ResultWorkspace
 
-- `re-upstream/restored/components/result/ResultWorkspace.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/result/ResultWorkspace.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6390,7 +6390,7 @@
 
 ### ScheduleViewCalendar
 
-- `re-upstream/restored/components/schedule/ScheduleViewCalendar.vue`
+- `restored/components/schedule/ScheduleViewCalendar.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6402,7 +6402,7 @@
 
 ### ScheduleViewCalendarController
 
-- `re-upstream/restored/components/schedule/ScheduleViewCalendarController.vue`
+- `restored/components/schedule/ScheduleViewCalendarController.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6413,7 +6413,7 @@
 
 ### ScheduleViewCalendarDoctorScheduleSettingModal
 
-- `re-upstream/restored/components/schedule/ScheduleViewCalendarDoctorScheduleSettingModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/schedule/ScheduleViewCalendarDoctorScheduleSettingModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6425,7 +6425,7 @@
 
 ### ScheduleViewCalendarScheduleSettingModal
 
-- `re-upstream/restored/components/schedule/ScheduleViewCalendarScheduleSettingModal.vue`
+- `restored/components/schedule/ScheduleViewCalendarScheduleSettingModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6436,7 +6436,7 @@
 
 ### ScheduleViewController
 
-- `re-upstream/restored/components/schedule/ScheduleViewController.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/schedule/ScheduleViewController.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6453,7 +6453,7 @@
 
 ### SearchAddress
 
-- `re-upstream/restored/components/search/SearchAddress.vue`
+- `restored/components/search/SearchAddress.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6467,7 +6467,7 @@
 
 ### SendMethodSettingsModal
 
-- `re-upstream/restored/components/send/SendMethodSettingsModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/send/SendMethodSettingsModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6482,20 +6482,20 @@
 
 ### ServiceManageModal
 
-- `re-upstream/restored/components/service/ServiceManageModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/service/ServiceManageModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 | `patchSettingsHospitals` (직접) | `PATCH emrClient /settings/hospitals` |
 
 <a id="c-components-service-servicesignupaddresssearchmodal"></a>
 
 ### ServiceSignUpAddressSearchModal
 
-- `re-upstream/restored/components/service/ServiceSignUpAddressSearchModal.vue`
+- `restored/components/service/ServiceSignUpAddressSearchModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6509,7 +6509,7 @@
 
 ### SettingAppointment
 
-- `re-upstream/restored/components/setting/SettingAppointment.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingAppointment.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6519,20 +6519,20 @@
 
 ### SettingAppointmentExternalChannel
 
-- `re-upstream/restored/components/setting/SettingAppointmentExternalChannel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingAppointmentExternalChannel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useDeskBookingRequestsQuery` | `GET emrClient /desk/booking-requests` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
-| `usePostDoctalkSignupMutation` | `POST emrClient /doctalk/signup` |
-| `usePostDoctalkSsoTokenMutation` | `POST emrClient /doctalk/sso/token` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
+| `usePostBookingSignupMutation` | `POST emrClient /booking/signup` |
+| `usePostBookingSsoTokenMutation` | `POST emrClient /booking/sso/token` |
 
 <a id="c-components-setting-settingappointmentgeneral"></a>
 
 ### SettingAppointmentGeneral
 
-- `re-upstream/restored/components/setting/SettingAppointmentGeneral.vue`
+- `restored/components/setting/SettingAppointmentGeneral.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6543,7 +6543,7 @@
 
 ### SettingAppointmentTreatmentTime
 
-- `re-upstream/restored/components/setting/SettingAppointmentTreatmentTime.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingAppointmentTreatmentTime.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6555,7 +6555,7 @@
 
 ### SettingCommonViewClinicHoursConfig
 
-- `re-upstream/restored/components/setting/SettingCommonViewClinicHoursConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingCommonViewClinicHoursConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6570,7 +6570,7 @@
 
 ### SettingCommonViewPatientResidentNumberDisplay
 
-- `re-upstream/restored/components/setting/SettingCommonViewPatientResidentNumberDisplay.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingCommonViewPatientResidentNumberDisplay.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6581,7 +6581,7 @@
 
 ### SettingCommonViewPatientSettings
 
-- `re-upstream/restored/components/setting/SettingCommonViewPatientSettings.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingCommonViewPatientSettings.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6600,7 +6600,7 @@
 
 ### SettingCommonViewPatientVisitPathConfig
 
-- `re-upstream/restored/components/setting/SettingCommonViewPatientVisitPathConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingCommonViewPatientVisitPathConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6615,23 +6615,23 @@
 
 ### SettingCommonViewTelemedicineConfig
 
-- `re-upstream/restored/components/setting/SettingCommonViewTelemedicineConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingCommonViewTelemedicineConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useMembersUpstreamClinicsCheckLocalQuery` | `GET thesooClient /members/upstream/clinics/check-local` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
-| `usePatchMembersUpstreamClinicsMyMutation` | `PATCH thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsCheckLocalQuery` | `GET liteClient /members/emr/clinics/check-local` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
+| `usePatchMembersEmrClinicsMyMutation` | `PATCH liteClient /members/emr/clinics/my` |
 | `useSettingsHospitalsQuery` | `GET emrClient /settings/hospitals` |
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
-| `postMembersUpstreamClinicsMyProfile` (직접) | `POST thesooClient /members/upstream/clinics/my/profile` |
+| `postMembersEmrClinicsMyProfile` (직접) | `POST liteClient /members/emr/clinics/my/profile` |
 
 <a id="c-components-setting-settingcommonviewtreatmentlistconfig"></a>
 
 ### SettingCommonViewTreatmentListConfig
 
-- `re-upstream/restored/components/setting/SettingCommonViewTreatmentListConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingCommonViewTreatmentListConfig.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6646,7 +6646,7 @@
 
 ### SettingEditorTemplatesMain
 
-- `re-upstream/restored/components/setting/SettingEditorTemplatesMain.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingEditorTemplatesMain.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6673,7 +6673,7 @@
 
 ### SettingEditorTemplatesPrescriptionSelect
 
-- `re-upstream/restored/components/setting/SettingEditorTemplatesPrescriptionSelect.vue`
+- `restored/components/setting/SettingEditorTemplatesPrescriptionSelect.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6685,7 +6685,7 @@
 
 ### SettingEditorTemplatesSidebar
 
-- `re-upstream/restored/components/setting/SettingEditorTemplatesSidebar.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingEditorTemplatesSidebar.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6708,7 +6708,7 @@
 
 ### SettingHospitalJejuClaim
 
-- `re-upstream/restored/components/setting/SettingHospitalJejuClaim.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingHospitalJejuClaim.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6733,7 +6733,7 @@
 
 ### SettingPrescriptionViewChubyakDispensaryRooms
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakDispensaryRooms.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakDispensaryRooms.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6745,7 +6745,7 @@
 
 ### SettingPrescriptionViewChubyakDispensaryRoomsAddModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakDispensaryRoomsAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakDispensaryRoomsAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6759,7 +6759,7 @@
 
 ### SettingPrescriptionViewChubyakDispensaryRoomsCard
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakDispensaryRoomsCard.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakDispensaryRoomsCard.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6771,7 +6771,7 @@
 
 ### SettingPrescriptionViewChubyakHerbs
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbs.vue`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbs.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6781,7 +6781,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsConfigGroupByCode
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByCode.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByCode.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6794,7 +6794,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsConfigGroupByCodeTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByCodeTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByCodeTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6807,7 +6807,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsConfigGroupByDate
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByDate.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByDate.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6820,7 +6820,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsConfigGroupByDateTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByDateTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigGroupByDateTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6833,7 +6833,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsConfigHeader
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigHeader.vue`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsConfigHeader.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6843,7 +6843,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsExcelCheckModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsExcelCheckModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsExcelCheckModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingHerbStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6856,7 +6856,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsExcelConfirmModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsExcelConfirmModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsExcelConfirmModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6867,7 +6867,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsSideExcel
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsSideExcel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsSideExcel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6878,7 +6878,7 @@
 
 ### SettingPrescriptionViewChubyakHerbsSideManual
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakHerbsSideManual.vue` · 스토어 `useSettingHerbStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakHerbsSideManual.vue` · 스토어 `useSettingHerbStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6890,7 +6890,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptions
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakPrescriptions.vue`
+- `restored/components/setting/SettingPrescriptionViewChubyakPrescriptions.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6900,7 +6900,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptionsConfigHeader
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsConfigHeader.vue`
+- `restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsConfigHeader.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6910,7 +6910,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptionsConfigTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsConfigTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsConfigTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6924,7 +6924,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptionsConfigTableAlias
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsConfigTableAlias.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsConfigTableAlias.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6937,7 +6937,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptionsSide
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsSide.vue` · 스토어 `useSettingChubyakPrescriptionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsSide.vue` · 스토어 `useSettingChubyakPrescriptionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6947,7 +6947,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptionsSideTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsSideTable.vue`
+- `restored/components/setting/SettingPrescriptionViewChubyakPrescriptionsSideTable.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6957,7 +6957,7 @@
 
 ### SettingPrescriptionViewExpendable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewExpendable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewExpendable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6970,7 +6970,7 @@
 
 ### SettingPrescriptionViewExpendableHistory
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewExpendableHistory.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewExpendableHistory.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -6986,7 +6986,7 @@
 
 ### SettingPrescriptionViewInsuranceChubyak
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceChubyak.vue`
+- `restored/components/setting/SettingPrescriptionViewInsuranceChubyak.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7003,7 +7003,7 @@
 
 ### SettingPrescriptionViewInsuranceChubyakList
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceChubyakList.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceChubyakList.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7022,7 +7022,7 @@
 
 ### SettingPrescriptionViewInsuranceChubyakNameDialog
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceChubyakNameDialog.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceChubyakNameDialog.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7041,7 +7041,7 @@
 
 ### SettingPrescriptionViewInsuranceChubyakRegisterDialog
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceChubyakRegisterDialog.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceChubyakRegisterDialog.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7060,7 +7060,7 @@
 
 ### SettingPrescriptionViewInsuranceChubyakTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceChubyakTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceChubyakTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7079,7 +7079,7 @@
 
 ### SettingPrescriptionViewInsuranceMedicineCustomPrescription
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7093,7 +7093,7 @@
 
 ### SettingPrescriptionViewInsuranceMedicines
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicines.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceMedicines.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7104,7 +7104,7 @@
 
 ### SettingPrescriptionViewInsuranceMedicinesActivesTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicinesActivesTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceMedicinesActivesTable.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7119,7 +7119,7 @@
 
 ### SettingPrescriptionViewInsuranceMedicinesDosages
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicinesDosages.vue`
+- `restored/components/setting/SettingPrescriptionViewInsuranceMedicinesDosages.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7130,7 +7130,7 @@
 
 ### SettingPrescriptionViewInsuranceMedicinesTable
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicinesTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewInsuranceMedicinesTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7141,7 +7141,7 @@
 
 ### SettingPrescriptionViewJaboMedicine
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboMedicine.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewJaboMedicine.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7154,7 +7154,7 @@
 
 ### SettingPrescriptionViewJaboMedicineTableRow
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboMedicineTableRow.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewJaboMedicineTableRow.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7165,7 +7165,7 @@
 
 ### SettingPrescriptionViewJaboProcedure
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboProcedure.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewJaboProcedure.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7176,7 +7176,7 @@
 
 ### SettingPrescriptionViewJaboYakchim
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboYakchim.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewJaboYakchim.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7189,7 +7189,7 @@
 
 ### SettingPrescriptionViewJaboYakchimCollapsible
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboYakchimCollapsible.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewJaboYakchimCollapsible.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7203,7 +7203,7 @@
 
 ### SettingPrescriptionViewJaboYakchimEditModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboYakchimEditModal.vue`
+- `restored/components/setting/SettingPrescriptionViewJaboYakchimEditModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7213,7 +7213,7 @@
 
 ### SettingPrescriptionViewJaboYakchimRegisterModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboYakchimRegisterModal.vue`
+- `restored/components/setting/SettingPrescriptionViewJaboYakchimRegisterModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7223,7 +7223,7 @@
 
 ### SettingPrescriptionViewJaboYakchimTableRow
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewJaboYakchimTableRow.vue`
+- `restored/components/setting/SettingPrescriptionViewJaboYakchimTableRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7233,7 +7233,7 @@
 
 ### SettingPrescriptionViewNonBenefit
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefit.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewNonBenefit.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7256,7 +7256,7 @@
 
 ### SettingPrescriptionViewNonBenefitCategoryModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitCategoryModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewNonBenefitCategoryModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7269,7 +7269,7 @@
 
 ### SettingPrescriptionViewNonBenefitDeleteConfirmModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitDeleteConfirmModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewNonBenefitDeleteConfirmModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7280,7 +7280,7 @@
 
 ### SettingPrescriptionViewNonBenefitEditModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitEditModal.vue`
+- `restored/components/setting/SettingPrescriptionViewNonBenefitEditModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7295,7 +7295,7 @@
 
 ### SettingPrescriptionViewNonBenefitHerbAddModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitHerbAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewNonBenefitHerbAddModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7314,7 +7314,7 @@
 
 ### SettingPrescriptionViewNonBenefitRegistrationPanel
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7327,7 +7327,7 @@
 
 ### SettingPrescriptionViewNonBenefitTableRow
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitTableRow.vue`
+- `restored/components/setting/SettingPrescriptionViewNonBenefitTableRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7337,7 +7337,7 @@
 
 ### SettingPrescriptionViewPackage
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPackage.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPackage.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7356,7 +7356,7 @@
 
 ### SettingPrescriptionViewPackageEditPanel
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPackageEditPanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPackageEditPanel.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7367,7 +7367,7 @@
 
 ### SettingPrescriptionViewPackageGroupModal
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPackageGroupModal.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewPackageGroupModal.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7379,7 +7379,7 @@
 
 ### SettingPrescriptionViewPersonalFormula
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormula.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormula.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7390,7 +7390,7 @@
 
 ### SettingPrescriptionViewPersonalFormulaCreateDialog
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateDialog.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateDialog.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7401,7 +7401,7 @@
 
 ### SettingPrescriptionViewPersonalFormulaCreateSidePanel
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7413,7 +7413,7 @@
 
 ### SettingPrescriptionViewPersonalFormulaHerbEditSidePanel
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaHerbEditSidePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormulaHerbEditSidePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7426,7 +7426,7 @@
 
 ### SettingPrescriptionViewPersonalFormulaItem
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaItem.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormulaItem.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7440,7 +7440,7 @@
 
 ### SettingPrescriptionViewPersonalFormulaMain
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaMain.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormulaMain.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7452,7 +7452,7 @@
 
 ### SettingPrescriptionViewPersonalFormulaSidebar
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaSidebar.vue`
+- `restored/components/setting/SettingPrescriptionViewPersonalFormulaSidebar.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7462,7 +7462,7 @@
 
 ### SettingPrescriptionViewReservedGroupAddDialog
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewReservedGroupAddDialog.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewReservedGroupAddDialog.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7473,7 +7473,7 @@
 
 ### SettingPrescriptionViewReservedMain
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewReservedMain.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewReservedMain.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7489,7 +7489,7 @@
 
 ### SettingPrescriptionViewReservedPrescription
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewReservedPrescription.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingPrescriptionViewReservedPrescription.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7501,7 +7501,7 @@
 
 ### SettingPrescriptionViewReservedSidebar
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewReservedSidebar.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewReservedSidebar.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7515,7 +7515,7 @@
 
 ### SettingPrescriptionViewReservedSidebarCollapsible
 
-- `re-upstream/restored/components/setting/SettingPrescriptionViewReservedSidebarCollapsible.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingPrescriptionViewReservedSidebarCollapsible.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7532,20 +7532,20 @@
 
 ### SettingSubNavPanel
 
-- `re-upstream/restored/components/setting/SettingSubNavPanel.vue`
+- `restored/components/setting/SettingSubNavPanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useApiSurachalCohortQuery` | `GET biClient /api/surachal/cohort` |
 | `useApiSurachalMeQuery` | `GET biClient /api/surachal/me` |
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
 
 <a id="c-components-setting-settingtabletconsent"></a>
 
 ### SettingTabletConsent
 
-- `re-upstream/restored/components/setting/SettingTabletConsent.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingTabletConsent.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7562,7 +7562,7 @@
 
 ### SettingTabletConsentEditor
 
-- `re-upstream/restored/components/setting/SettingTabletConsentEditor.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingTabletConsentEditor.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7576,7 +7576,7 @@
 
 ### SettingTabletDocumentQuestion
 
-- `re-upstream/restored/components/setting/SettingTabletDocumentQuestion.vue`
+- `restored/components/setting/SettingTabletDocumentQuestion.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7586,7 +7586,7 @@
 
 ### SettingTabletQuestionnaire
 
-- `re-upstream/restored/components/setting/SettingTabletQuestionnaire.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingTabletQuestionnaire.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7603,7 +7603,7 @@
 
 ### SettingTabletQuestionnaireEditor
 
-- `re-upstream/restored/components/setting/SettingTabletQuestionnaireEditor.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingTabletQuestionnaireEditor.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7617,7 +7617,7 @@
 
 ### SettingTreatmentViewAcupuncturePositions
 
-- `re-upstream/restored/components/setting/SettingTreatmentViewAcupuncturePositions.vue`
+- `restored/components/setting/SettingTreatmentViewAcupuncturePositions.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7629,7 +7629,7 @@
 
 ### SettingTreatmentViewExaminationClaim
 
-- `re-upstream/restored/components/setting/SettingTreatmentViewExaminationClaim.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/setting/SettingTreatmentViewExaminationClaim.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7644,7 +7644,7 @@
 
 ### SettingTreatmentViewProcedureTest
 
-- `re-upstream/restored/components/setting/SettingTreatmentViewProcedureTest.vue`
+- `restored/components/setting/SettingTreatmentViewProcedureTest.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7657,7 +7657,7 @@
 
 ### SettingTreatmentViewVitalTreatmentRoomsVital
 
-- `re-upstream/restored/components/setting/SettingTreatmentViewVitalTreatmentRoomsVital.vue`
+- `restored/components/setting/SettingTreatmentViewVitalTreatmentRoomsVital.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7668,7 +7668,7 @@
 
 ### SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms
 
-- `re-upstream/restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7686,7 +7686,7 @@
 
 ### SidePanelDeskActionsPatientAppointment
 
-- `re-upstream/restored/components/side/SidePanelDeskActionsPatientAppointment.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/side/SidePanelDeskActionsPatientAppointment.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7697,7 +7697,7 @@
 
 ### SidePanelDeskActionsPatientRegisterOrModify
 
-- `re-upstream/restored/components/side/SidePanelDeskActionsPatientRegisterOrModify.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/side/SidePanelDeskActionsPatientRegisterOrModify.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7708,7 +7708,7 @@
 
 ### SidePanelPatientDescriptionHeaderContent
 
-- `re-upstream/restored/components/side/SidePanelPatientDescriptionHeaderContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/side/SidePanelPatientDescriptionHeaderContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7740,7 +7740,7 @@
 
 ### SidebarLayout
 
-- `re-upstream/restored/components/sidebar/SidebarLayout.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/components/sidebar/SidebarLayout.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7751,7 +7751,7 @@
 
 ### SidebarNav
 
-- `re-upstream/restored/components/sidebar/SidebarNav.vue` · 스토어 `useInquiryBotStore`
+- `restored/components/sidebar/SidebarNav.vue` · 스토어 `useInquiryBotStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7760,7 +7760,7 @@
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
 | `useBillingPaymentMethodsDefaultQuery` | `GET crmClient /billing/payment-methods/default` |
 | `useCrmLiteTriggerEventsQuery` | `GET emrClient /crm/lite-trigger/events` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
 | `useSettingsHospitalsQuery` | `GET emrClient /settings/hospitals` |
 | `getV1Banners` (직접) | `GET portalClient /v1/banners` |
 
@@ -7772,7 +7772,7 @@
 
 ### SignatureDocsContent
 
-- `re-upstream/restored/components/signature/SignatureDocsContent.vue`
+- `restored/components/signature/SignatureDocsContent.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7784,22 +7784,22 @@
 
 ### SignatureSideBar
 
-- `re-upstream/restored/components/signature/SignatureSideBar.vue`
+- `restored/components/signature/SignatureSideBar.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useSigningMedicalRecordsCountQuery` | `GET emrClient /signing/medical-records/count` |
 | `useSigningMedicalRecordsSignableByDoctorIdQuery` | `GET emrClient /signing/medical-records/signable/{params.doctor_id}` |
 
-<a id="components-soo"></a>
+<a id="components-lite"></a>
 
-## components/soo
+## components/lite
 
-<a id="c-components-soo-soochartcreatepanel"></a>
+<a id="c-components-lite-litechartcreatepanel"></a>
 
-### SooChartCreatePanel
+### LiteChartCreatePanel
 
-- `re-upstream/restored/components/soo/SooChartCreatePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/lite/LiteChartCreatePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7823,11 +7823,11 @@
 | `useSettingsVisitPathwaysQuery` | `GET emrClient /settings/visit-pathways` |
 | `Nl` (직접) | `GET emrClient /patients/{t}/packages` |
 
-<a id="c-components-soo-sooprescriptionsection"></a>
+<a id="c-components-lite-liteprescriptionsection"></a>
 
-### SooPrescriptionSection
+### LitePrescriptionSection
 
-- `re-upstream/restored/components/soo/SooPrescriptionSection.vue`
+- `restored/components/lite/LitePrescriptionSection.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7838,11 +7838,11 @@
 | `useSettingsNonbenefitsQuery` | `GET emrClient /settings/nonbenefits` |
 | `useSettingsNonbenefitsV2Query` | `GET emrClient /settings/nonbenefits/v2` |
 
-<a id="c-components-soo-soorisingmaterialspane"></a>
+<a id="c-components-lite-literisingmaterialspane"></a>
 
-### SooRisingMaterialsPane
+### LiteRisingMaterialsPane
 
-- `re-upstream/restored/components/soo/SooRisingMaterialsPane.vue`
+- `restored/components/lite/LiteRisingMaterialsPane.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7860,7 +7860,7 @@
 
 ### TabletAdminPinCard
 
-- `re-upstream/restored/components/tablet/TabletAdminPinCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tablet/TabletAdminPinCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7871,7 +7871,7 @@
 
 ### TabletLanguageCard
 
-- `re-upstream/restored/components/tablet/TabletLanguageCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tablet/TabletLanguageCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7882,7 +7882,7 @@
 
 ### TabletPhotoRequestModal
 
-- `re-upstream/restored/components/tablet/TabletPhotoRequestModal.vue`
+- `restored/components/tablet/TabletPhotoRequestModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7896,7 +7896,7 @@
 
 ### TabletReviewQrCard
 
-- `re-upstream/restored/components/tablet/TabletReviewQrCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tablet/TabletReviewQrCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7907,7 +7907,7 @@
 
 ### TabletTreatmentItemCard
 
-- `re-upstream/restored/components/tablet/TabletTreatmentItemCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tablet/TabletTreatmentItemCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7923,7 +7923,7 @@
 
 ### TangjeonClaimHerbPanel
 
-- `re-upstream/restored/components/tangjeon/TangjeonClaimHerbPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonClaimHerbPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7935,7 +7935,7 @@
 
 ### TangjeonCreateDictionaryCard
 
-- `re-upstream/restored/components/tangjeon/TangjeonCreateDictionaryCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonCreateDictionaryCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7948,7 +7948,7 @@
 
 ### TangjeonCreateHistoryStrip
 
-- `re-upstream/restored/components/tangjeon/TangjeonCreateHistoryStrip.vue`
+- `restored/components/tangjeon/TangjeonCreateHistoryStrip.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7958,7 +7958,7 @@
 
 ### TangjeonCreateInsuranceFields
 
-- `re-upstream/restored/components/tangjeon/TangjeonCreateInsuranceFields.vue`
+- `restored/components/tangjeon/TangjeonCreateInsuranceFields.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7968,7 +7968,7 @@
 
 ### TangjeonCreatePatientCard
 
-- `re-upstream/restored/components/tangjeon/TangjeonCreatePatientCard.vue`
+- `restored/components/tangjeon/TangjeonCreatePatientCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7978,7 +7978,7 @@
 
 ### TangjeonCreatePrescriptionCard
 
-- `re-upstream/restored/components/tangjeon/TangjeonCreatePrescriptionCard.vue`
+- `restored/components/tangjeon/TangjeonCreatePrescriptionCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7988,7 +7988,7 @@
 
 ### TangjeonCreateTreatmentRecordCard
 
-- `re-upstream/restored/components/tangjeon/TangjeonCreateTreatmentRecordCard.vue`
+- `restored/components/tangjeon/TangjeonCreateTreatmentRecordCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -7998,7 +7998,7 @@
 
 ### TangjeonDocumentLedgerFilters
 
-- `re-upstream/restored/components/tangjeon/TangjeonDocumentLedgerFilters.vue`
+- `restored/components/tangjeon/TangjeonDocumentLedgerFilters.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8008,7 +8008,7 @@
 
 ### TangjeonLinkedPrescriptions
 
-- `re-upstream/restored/components/tangjeon/TangjeonLinkedPrescriptions.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonLinkedPrescriptions.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8019,7 +8019,7 @@
 
 ### TangjeonListDeliveryCell
 
-- `re-upstream/restored/components/tangjeon/TangjeonListDeliveryCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonListDeliveryCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8032,7 +8032,7 @@
 
 ### TangjeonListFilters
 
-- `re-upstream/restored/components/tangjeon/TangjeonListFilters.vue`
+- `restored/components/tangjeon/TangjeonListFilters.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8042,7 +8042,7 @@
 
 ### TangjeonListMemoCell
 
-- `re-upstream/restored/components/tangjeon/TangjeonListMemoCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonListMemoCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8052,7 +8052,7 @@
 
 ### TangjeonListQuantityCell
 
-- `re-upstream/restored/components/tangjeon/TangjeonListQuantityCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonListQuantityCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8062,7 +8062,7 @@
 
 ### TangjeonListSidePanel
 
-- `re-upstream/restored/components/tangjeon/TangjeonListSidePanel.vue`
+- `restored/components/tangjeon/TangjeonListSidePanel.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8072,7 +8072,7 @@
 
 ### TangjeonListStatusCell
 
-- `re-upstream/restored/components/tangjeon/TangjeonListStatusCell.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonListStatusCell.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8082,7 +8082,7 @@
 
 ### TangjeonListTable
 
-- `re-upstream/restored/components/tangjeon/TangjeonListTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonListTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8092,7 +8092,7 @@
 
 ### TangjeonOcsV2OrderModal
 
-- `re-upstream/restored/components/tangjeon/TangjeonOcsV2OrderModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonOcsV2OrderModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8102,7 +8102,7 @@
 
 ### TangjeonPrescriptionCreateContent
 
-- `re-upstream/restored/components/tangjeon/TangjeonPrescriptionCreateContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonPrescriptionCreateContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8123,7 +8123,7 @@
 
 ### TangjeonPrescriptionHistory
 
-- `re-upstream/restored/components/tangjeon/TangjeonPrescriptionHistory.vue`
+- `restored/components/tangjeon/TangjeonPrescriptionHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8133,7 +8133,7 @@
 
 ### TangjeonPrescriptionIssueHistory
 
-- `re-upstream/restored/components/tangjeon/TangjeonPrescriptionIssueHistory.vue`
+- `restored/components/tangjeon/TangjeonPrescriptionIssueHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8143,7 +8143,7 @@
 
 ### TangjeonPrescriptionIssuePanels
 
-- `re-upstream/restored/components/tangjeon/TangjeonPrescriptionIssuePanels.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonPrescriptionIssuePanels.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8155,7 +8155,7 @@
 
 ### TangjeonPrescriptionListContent
 
-- `re-upstream/restored/components/tangjeon/TangjeonPrescriptionListContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonPrescriptionListContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8175,7 +8175,7 @@
 
 ### TangjeonPrescriptionReprintButton
 
-- `re-upstream/restored/components/tangjeon/TangjeonPrescriptionReprintButton.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/tangjeon/TangjeonPrescriptionReprintButton.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8191,7 +8191,7 @@
 
 ### TelemedicineSignupStep1Time
 
-- `re-upstream/restored/components/telemedicine/TelemedicineSignupStep1Time.vue`
+- `restored/components/telemedicine/TelemedicineSignupStep1Time.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8201,21 +8201,21 @@
 
 ### TelemedicineSignupStep2Info
 
-- `re-upstream/restored/components/telemedicine/TelemedicineSignupStep2Info.vue`
+- `restored/components/telemedicine/TelemedicineSignupStep2Info.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useMembersUpstreamClinicsCheckLocalQuery` | `GET thesooClient /members/upstream/clinics/check-local` |
+| `useMembersEmrClinicsCheckLocalQuery` | `GET liteClient /members/emr/clinics/check-local` |
 
 <a id="c-components-telemedicine-telemedicinesignupwizard"></a>
 
 ### TelemedicineSignupWizard
 
-- `re-upstream/restored/components/telemedicine/TelemedicineSignupWizard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/telemedicine/TelemedicineSignupWizard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `usePostMembersUpstreamClinicsMySignupTelemedicineMutation` | `POST thesooClient /members/upstream/clinics/my/signup-telemedicine` |
+| `usePostMembersEmrClinicsMySignupTelemedicineMutation` | `POST liteClient /members/emr/clinics/my/signup-telemedicine` |
 
 <a id="components-temporary"></a>
 
@@ -8225,15 +8225,15 @@
 
 ### TemporaryHoursOrMonthlyHoliday
 
-- `re-upstream/restored/components/temporary/TemporaryHoursOrMonthlyHoliday.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/temporary/TemporaryHoursOrMonthlyHoliday.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useDoctalkProductsBookableTimesQuery` | `GET emrClient /doctalk/products/bookable-times` |
-| `useDoctalkProductsQuery` | `GET emrClient /doctalk/products` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
-| `usePostDoctalkSsoTokenMutation` | `POST emrClient /doctalk/sso/token` |
+| `useBookingProductsBookableTimesQuery` | `GET emrClient /booking/products/bookable-times` |
+| `useBookingProductsQuery` | `GET emrClient /booking/products` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
+| `usePostBookingSsoTokenMutation` | `POST emrClient /booking/sso/token` |
 | `usePutSettingsClinicCalendarDaysMutation` | `PUT emrClient /settings/clinic-calendar/days` |
 | `useSettingsAppointmentsQuery` | `GET emrClient /settings/appointments` |
 | `useSettingsClinicCalendarYearQuery_2` | `GET emrClient /settings/clinic-calendar/year/{input}` |
@@ -8249,7 +8249,7 @@
 
 ### TodaySummaryBar
 
-- `re-upstream/restored/components/today/TodaySummaryBar.vue`
+- `restored/components/today/TodaySummaryBar.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8265,7 +8265,7 @@
 
 ### TreatmentCarInsuranceMedicines
 
-- `re-upstream/restored/components/treatment/TreatmentCarInsuranceMedicines.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentCarInsuranceMedicines.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8277,7 +8277,7 @@
 
 ### TreatmentChuna
 
-- `re-upstream/restored/components/treatment/TreatmentChuna.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentChuna.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8291,7 +8291,7 @@
 
 ### TreatmentColumn
 
-- `re-upstream/restored/components/treatment/TreatmentColumn.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentColumn.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8302,7 +8302,7 @@
 
 ### TreatmentDisease
 
-- `re-upstream/restored/components/treatment/TreatmentDisease.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentDisease.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8313,7 +8313,7 @@
 
 ### TreatmentEtcPrescriptions
 
-- `re-upstream/restored/components/treatment/TreatmentEtcPrescriptions.vue`
+- `restored/components/treatment/TreatmentEtcPrescriptions.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8325,7 +8325,7 @@
 
 ### TreatmentEtcPrescriptionsRow
 
-- `re-upstream/restored/components/treatment/TreatmentEtcPrescriptionsRow.vue`
+- `restored/components/treatment/TreatmentEtcPrescriptionsRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8336,7 +8336,7 @@
 
 ### TreatmentInsuranceMedicines
 
-- `re-upstream/restored/components/treatment/TreatmentInsuranceMedicines.vue`
+- `restored/components/treatment/TreatmentInsuranceMedicines.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8348,7 +8348,7 @@
 
 ### TreatmentInsuranceMedicinesRow
 
-- `re-upstream/restored/components/treatment/TreatmentInsuranceMedicinesRow.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentInsuranceMedicinesRow.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8360,7 +8360,7 @@
 
 ### TreatmentNonBenefitPackage
 
-- `re-upstream/restored/components/treatment/TreatmentNonBenefitPackage.vue`
+- `restored/components/treatment/TreatmentNonBenefitPackage.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8370,7 +8370,7 @@
 
 ### TreatmentNonBenefitPackageRow
 
-- `re-upstream/restored/components/treatment/TreatmentNonBenefitPackageRow.vue`
+- `restored/components/treatment/TreatmentNonBenefitPackageRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8380,7 +8380,7 @@
 
 ### TreatmentNonBenefitPrescriptions
 
-- `re-upstream/restored/components/treatment/TreatmentNonBenefitPrescriptions.vue`
+- `restored/components/treatment/TreatmentNonBenefitPrescriptions.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8392,7 +8392,7 @@
 
 ### TreatmentNonBenefitPrescriptionsRow
 
-- `re-upstream/restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue`
+- `restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8408,7 +8408,7 @@
 
 ### TreatmentPayment
 
-- `re-upstream/restored/components/treatment/TreatmentPayment.vue`
+- `restored/components/treatment/TreatmentPayment.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8422,7 +8422,7 @@
 
 ### TreatmentProcedures
 
-- `re-upstream/restored/components/treatment/TreatmentProcedures.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentProcedures.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8432,7 +8432,7 @@
 
 ### TreatmentRoomBedAssignModal
 
-- `re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentRoomBedAssignModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8454,7 +8454,7 @@
 
 ### TreatmentRoomRegisterOrModifyModal
 
-- `re-upstream/restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8466,7 +8466,7 @@
 
 ### TreatmentRoomsBedCard
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsBedCard.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentRoomsBedCard.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8482,7 +8482,7 @@
 
 ### TreatmentRoomsDisplaySettingsPopover
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsDisplaySettingsPopover.vue`
+- `restored/components/treatment/TreatmentRoomsDisplaySettingsPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8493,7 +8493,7 @@
 
 ### TreatmentRoomsHeaderActingOrder
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsHeaderActingOrder.vue`
+- `restored/components/treatment/TreatmentRoomsHeaderActingOrder.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8503,7 +8503,7 @@
 
 ### TreatmentRoomsNeedleRemovalPopover
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsNeedleRemovalPopover.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentRoomsNeedleRemovalPopover.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8515,7 +8515,7 @@
 
 ### TreatmentRoomsTxColumn
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsTxColumn.vue`
+- `restored/components/treatment/TreatmentRoomsTxColumn.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8525,7 +8525,7 @@
 
 ### TreatmentRoomsTxColumnNeedleRemover
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsTxColumnNeedleRemover.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentRoomsTxColumnNeedleRemover.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8537,7 +8537,7 @@
 
 ### TreatmentRoomsTxColumnPopover
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsTxColumnPopover.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentRoomsTxColumnPopover.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8550,7 +8550,7 @@
 
 ### TreatmentRoomsTxRow
 
-- `re-upstream/restored/components/treatment/TreatmentRoomsTxRow.vue`
+- `restored/components/treatment/TreatmentRoomsTxRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8560,7 +8560,7 @@
 
 ### TreatmentViewBoard
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.vue` · 스토어 `useHiraSubmissionStore`, `useMedicalAidsStore`, `useToastNotificationStore`, `useTreatmentStore`
+- `restored/components/treatment/TreatmentViewBoard.vue` · 스토어 `useHiraSubmissionStore`, `useMedicalAidsStore`, `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8575,7 +8575,7 @@
 | `useChartMedicalTreatmentsQuery` | `GET emrClient /chart/medical-treatments` |
 | `useDeleteNhicM5ConfirmationMutation` | `DELETE emrClient /nhic/m5/{treatmentId}/confirmation/{진료확인번호}` |
 | `useDeskWaitingQuery` | `GET emrClient <"/desk/waiting?date=" + toValue(input)>` |
-| `useMembersUpstreamOrdersQuery` | `GET thesooClient members/upstream/orders/{input}` |
+| `useMembersEmrOrdersQuery` | `GET liteClient members/emr/orders/{input}` |
 | `useNhicM3Query` | `GET emrClient /nhic/m3/{input}` |
 | `useNhicM4InternalDataQuery` | `GET emrClient /nhic/m4/internal-data/{input}` |
 | `usePatchDeskNonbenefitIntakeMutation` | `GET emrClient <SETTINGS_NONREIMBURSED_HERB_TEMPLATES_PATH>`<br>`GET emrClient {SETTINGS_NONREIMBURSED_HERB_TEMPLATES_PATH}/{input}`<br>`PATCH emrClient /desk/nonbenefit-intake/{input}` |
@@ -8620,7 +8620,7 @@
 
 ### TreatmentViewBoardAside
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAside.vue` · 스토어 `useIntakeLinkPromptStore`
+- `restored/components/treatment/TreatmentViewBoardAside.vue` · 스토어 `useIntakeLinkPromptStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8650,7 +8650,7 @@
 
 ### TreatmentViewBoardAsideChunaHistory
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideChunaHistory.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideChunaHistory.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8664,7 +8664,7 @@
 
 ### TreatmentViewBoardAsideChunaHistoryDetail
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideChunaHistoryDetail.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideChunaHistoryDetail.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8680,11 +8680,11 @@
 
 ### TreatmentViewBoardAsideDmSchedules
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideDmSchedules.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideDmSchedules.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useMembersUpstreamInPersonConsultationsDmSchedulesQuery` | `GET thesooClient /members/upstream/in-person-consultations/{input}/dm-schedules` |
+| `useMembersEmrInPersonConsultationsDmSchedulesQuery` | `GET liteClient /members/emr/in-person-consultations/{input}/dm-schedules` |
 | `useSettingsNonbenefitGroupsQuery` | `GET emrClient /settings/nonbenefit-groups` |
 | `useSettingsNonbenefitsV2Query` | `GET emrClient /settings/nonbenefits/v2` |
 
@@ -8692,7 +8692,7 @@
 
 ### TreatmentViewBoardAsideEditorTemplates
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideEditorTemplates.vue`
+- `restored/components/treatment/TreatmentViewBoardAsideEditorTemplates.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8708,7 +8708,7 @@
 
 ### TreatmentViewBoardAsideInsuranceInfo
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideInsuranceInfo.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
+- `restored/components/treatment/TreatmentViewBoardAsideInsuranceInfo.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8721,7 +8721,7 @@
 
 ### TreatmentViewBoardAsideInsuranceInquiry
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideInsuranceInquiry.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideInsuranceInquiry.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8734,7 +8734,7 @@
 
 ### TreatmentViewBoardAsideJaboChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideJaboChubyak.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideJaboChubyak.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8749,7 +8749,7 @@
 
 ### TreatmentViewBoardAsideMedicalAids
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideMedicalAids.vue`
+- `restored/components/treatment/TreatmentViewBoardAsideMedicalAids.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8762,7 +8762,7 @@
 
 ### TreatmentViewBoardAsideNhicChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideNhicChubyak.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideNhicChubyak.vue` · 스토어 `useHiraSubmissionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8780,7 +8780,7 @@
 
 ### TreatmentViewBoardAsideNonBenefitChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideNonBenefitChubyak.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideNonBenefitChubyak.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8796,7 +8796,7 @@
 
 ### TreatmentViewBoardAsideNonBenefitChubyakPrescriptionSidePanel
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideNonBenefitChubyakPrescriptionSidePanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideNonBenefitChubyakPrescriptionSidePanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8807,7 +8807,7 @@
 
 ### TreatmentViewBoardAsideReserved
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideReserved.vue`
+- `restored/components/treatment/TreatmentViewBoardAsideReserved.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8819,7 +8819,7 @@
 
 ### TreatmentViewBoardAsideReservedCollapsible
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideReservedCollapsible.vue`
+- `restored/components/treatment/TreatmentViewBoardAsideReservedCollapsible.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8829,7 +8829,7 @@
 
 ### TreatmentViewBoardAsideSanjaeChubyakHistory
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideSanjaeChubyakHistory.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardAsideSanjaeChubyakHistory.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8841,7 +8841,7 @@
 
 ### TreatmentViewBoardAsideSanjaeChunaHistory
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardAsideSanjaeChunaHistory.vue`
+- `restored/components/treatment/TreatmentViewBoardAsideSanjaeChunaHistory.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8851,7 +8851,7 @@
 
 ### TreatmentViewBoardChangeInsuranceTypeButton
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardChangeInsuranceTypeButton.vue` · 스토어 `useMedicalAidsStore`, `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardChangeInsuranceTypeButton.vue` · 스토어 `useMedicalAidsStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8868,7 +8868,7 @@
 
 ### TreatmentViewBoardChangeInsuranceTypeModalContent
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardChangeInsuranceTypeModalContent.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardChangeInsuranceTypeModalContent.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8879,7 +8879,7 @@
 
 ### TreatmentViewBoardChubyakAddButton
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardChubyakAddButton.vue`
+- `restored/components/treatment/TreatmentViewBoardChubyakAddButton.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8889,7 +8889,7 @@
 
 ### TreatmentViewBoardChubyakDiseaseAdd
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardChubyakDiseaseAdd.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardChubyakDiseaseAdd.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8899,7 +8899,7 @@
 
 ### TreatmentViewBoardEditHeader
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardEditHeader.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardEditHeader.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8911,7 +8911,7 @@
 
 ### TreatmentViewBoardEditHeaderJabo2ndVisitBanner
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8923,7 +8923,7 @@
 
 ### TreatmentViewBoardFooter
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardFooter.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
+- `restored/components/treatment/TreatmentViewBoardFooter.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8957,7 +8957,7 @@
 
 ### TreatmentViewBoardHomeVisitAddButton
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardHomeVisitAddButton.vue`
+- `restored/components/treatment/TreatmentViewBoardHomeVisitAddButton.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8969,7 +8969,7 @@
 
 ### TreatmentViewBoardJejuSupportPanel
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardJejuSupportPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardJejuSupportPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -8994,7 +8994,7 @@
 
 ### TreatmentViewBoardNewChart
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardNewChart.vue`
+- `restored/components/treatment/TreatmentViewBoardNewChart.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9005,7 +9005,7 @@
 
 ### TreatmentViewBoardNewChartCarInsurance
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardNewChartCarInsurance.vue`
+- `restored/components/treatment/TreatmentViewBoardNewChartCarInsurance.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9015,7 +9015,7 @@
 
 ### TreatmentViewBoardNewChartIndustrial
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardNewChartIndustrial.vue`
+- `restored/components/treatment/TreatmentViewBoardNewChartIndustrial.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9025,7 +9025,7 @@
 
 ### TreatmentViewBoardPatientInfo
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPatientInfo.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPatientInfo.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9060,7 +9060,7 @@
 
 ### TreatmentViewBoardPatientInfoNhicChubyakModal
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPatientInfoNhicChubyakModal.vue`
+- `restored/components/treatment/TreatmentViewBoardPatientInfoNhicChubyakModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9075,7 +9075,7 @@
 
 ### TreatmentViewBoardPrescriptionCarHeader
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarHeader.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionCarHeader.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9090,7 +9090,7 @@
 
 ### TreatmentViewBoardPrescriptionCarRecommendedEditModal
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionCarRecommendedEditModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9115,7 +9115,7 @@
 
 ### TreatmentViewBoardPrescriptionNhicChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionNhicChubyak.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionNhicChubyak.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9125,7 +9125,7 @@
 
 ### TreatmentViewBoardPrescriptionNhicChubyakAllModal
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionNhicChubyakAllModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionNhicChubyakAllModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9140,7 +9140,7 @@
 
 ### TreatmentViewBoardPrescriptionNhicChubyakRow
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionNhicChubyakRow.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionNhicChubyakRow.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9153,7 +9153,7 @@
 
 ### TreatmentViewBoardPrescriptionNhicInsuranceStatus
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionNhicInsuranceStatus.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionNhicInsuranceStatus.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9167,7 +9167,7 @@
 
 ### TreatmentViewBoardPrescriptionSanjaeChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeChubyak.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeChubyak.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9178,7 +9178,7 @@
 
 ### TreatmentViewBoardPrescriptionSanjaeChubyakComponentsCreate
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeChubyakComponentsCreate.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeChubyakComponentsCreate.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9192,7 +9192,7 @@
 
 ### TreatmentViewBoardPrescriptionSanjaeChubyakRow
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeChubyakRow.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeChubyakRow.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9202,7 +9202,7 @@
 
 ### TreatmentViewBoardPrescriptionSanjaeInsuranceStatus
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeInsuranceStatus.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionSanjaeInsuranceStatus.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9213,7 +9213,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowAcupunctureCommon
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowAcupunctureCommon.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowAcupunctureCommon.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9223,7 +9223,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowChubyak.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowChubyak.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9235,7 +9235,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowChuna
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowChuna.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowChuna.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9247,7 +9247,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowCommon
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowCommon.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowCommon.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9258,7 +9258,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowInsuranceMedicine
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowInsuranceMedicine.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowInsuranceMedicine.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9269,7 +9269,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowNhicChubyak
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowNhicChubyak.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowNhicChubyak.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9279,7 +9279,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowNonBenefit
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowNonBenefit.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowNonBenefit.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9293,7 +9293,7 @@
 
 ### TreatmentViewBoardPrescriptionTableRowPackageDeduction
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableRowPackageDeduction.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableRowPackageDeduction.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9303,7 +9303,7 @@
 
 ### TreatmentViewBoardPrescriptionTableV2
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionTableV2.vue`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionTableV2.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9314,7 +9314,7 @@
 
 ### TreatmentViewBoardPrescriptionV2
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.vue` · 스토어 `useClaimWarningStore`
+- `restored/components/treatment/TreatmentViewBoardPrescriptionV2.vue` · 스토어 `useClaimWarningStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9334,7 +9334,7 @@
 
 ### TreatmentViewBoardRecordsList
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsList.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
+- `restored/components/treatment/TreatmentViewBoardRecordsList.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9350,7 +9350,7 @@
 
 ### TreatmentViewBoardRecordsListHeader
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsListHeader.vue`
+- `restored/components/treatment/TreatmentViewBoardRecordsListHeader.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9360,7 +9360,7 @@
 
 ### TreatmentViewBoardRecordsListHeaderFilterPopover
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsListHeaderFilterPopover.vue`
+- `restored/components/treatment/TreatmentViewBoardRecordsListHeaderFilterPopover.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9370,7 +9370,7 @@
 
 ### TreatmentViewBoardRecordsListItem
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsListItem.vue`
+- `restored/components/treatment/TreatmentViewBoardRecordsListItem.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9398,7 +9398,7 @@
 
 ### TreatmentViewBoardRecordsListMultiRepeatModal
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsListMultiRepeatModal.vue` · 스토어 `useRepeatedTreatmentStore`, `useToastNotificationStore`, `useTreatmentStore`
+- `restored/components/treatment/TreatmentViewBoardRecordsListMultiRepeatModal.vue` · 스토어 `useRepeatedTreatmentStore`, `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9422,7 +9422,7 @@
 
 ### TreatmentViewBoardRecordsListMultiRepeatModalListItem
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRecordsListMultiRepeatModalListItem.vue`
+- `restored/components/treatment/TreatmentViewBoardRecordsListMultiRepeatModalListItem.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9437,7 +9437,7 @@
 
 ### TreatmentViewBoardRegisterReservedPrescriptionModal
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardRegisterReservedPrescriptionModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardRegisterReservedPrescriptionModal.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9446,24 +9446,24 @@
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
 | `queryFn$` (직접) | `GET emrClient /settings/appointed-prescriptions/groups` |
 
-<a id="c-components-treatment-treatmentviewboardsooorderpanel"></a>
+<a id="c-components-treatment-treatmentviewboardliteorderpanel"></a>
 
-### TreatmentViewBoardSooOrderPanel
+### TreatmentViewBoardLiteOrderPanel
 
-- `re-upstream/restored/components/treatment/TreatmentViewBoardSooOrderPanel.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewBoardLiteOrderPanel.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useMembersUpstreamOrdersQuery` | `GET thesooClient members/upstream/orders/{input}` |
-| `usePatchMembersUpstreamConsultationsOrdersShippingInfoMutation` | `PATCH thesooClient members/upstream/consultations/orders/{input}/shipping-info` |
-| `usePatchMembersUpstreamConsultationsOrdersShippingMethodMutation` | `PATCH thesooClient members/upstream/consultations/orders/{input}/shipping-method` |
-| `usePatchMembersUpstreamConsultationsOrdersVisitScheduleMutation` | `PATCH thesooClient members/upstream/consultations/orders/{input}/visit-schedule` |
+| `useMembersEmrOrdersQuery` | `GET liteClient members/emr/orders/{input}` |
+| `usePatchMembersEmrConsultationsOrdersShippingInfoMutation` | `PATCH liteClient members/emr/consultations/orders/{input}/shipping-info` |
+| `usePatchMembersEmrConsultationsOrdersShippingMethodMutation` | `PATCH liteClient members/emr/consultations/orders/{input}/shipping-method` |
+| `usePatchMembersEmrConsultationsOrdersVisitScheduleMutation` | `PATCH liteClient members/emr/consultations/orders/{input}/visit-schedule` |
 
 <a id="c-components-treatment-treatmentviewprescriptionsidepanelmaximumprocedures"></a>
 
 ### TreatmentViewPrescriptionSidePanelMaximumProcedures
 
-- `re-upstream/restored/components/treatment/TreatmentViewPrescriptionSidePanelMaximumProcedures.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentViewPrescriptionSidePanelMaximumProcedures.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9479,7 +9479,7 @@
 
 ### TreatmentVisibilitySettingsModal
 
-- `re-upstream/restored/components/treatment/TreatmentVisibilitySettingsModal.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/treatment/TreatmentVisibilitySettingsModal.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9494,7 +9494,7 @@
 
 ### UnifiedTermsConsentScreen
 
-- `re-upstream/restored/components/unified/UnifiedTermsConsentScreen.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/unified/UnifiedTermsConsentScreen.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9509,7 +9509,7 @@
 
 ### UnscheduledAppointmentCard
 
-- `re-upstream/restored/components/unscheduled/UnscheduledAppointmentCard.vue`
+- `restored/components/unscheduled/UnscheduledAppointmentCard.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9523,7 +9523,7 @@
 
 ### WaitingColumn
 
-- `re-upstream/restored/components/waiting/WaitingColumn.vue` · 스토어 `usePatientStore`, `useToastNotificationStore`
+- `restored/components/waiting/WaitingColumn.vue` · 스토어 `usePatientStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9540,7 +9540,7 @@
 
 ### WorkAbilityDiagnosis
 
-- `re-upstream/restored/components/work/WorkAbilityDiagnosis.vue` · 스토어 `useDocumentIssueStore`
+- `restored/components/work/WorkAbilityDiagnosis.vue` · 스토어 `useDocumentIssueStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9554,7 +9554,7 @@
 
 ### YearSettlementByTreatmentTable
 
-- `re-upstream/restored/components/year/YearSettlementByTreatmentTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/year/YearSettlementByTreatmentTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9566,7 +9566,7 @@
 
 ### YearSettlementByTreatmentTableDetailRow
 
-- `re-upstream/restored/components/year/YearSettlementByTreatmentTableDetailRow.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/year/YearSettlementByTreatmentTableDetailRow.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9577,7 +9577,7 @@
 
 ### YearSettlementContainer
 
-- `re-upstream/restored/components/year/YearSettlementContainer.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/year/YearSettlementContainer.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9587,7 +9587,7 @@
 
 ### YearSettlementHeader
 
-- `re-upstream/restored/components/year/YearSettlementHeader.vue`
+- `restored/components/year/YearSettlementHeader.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9597,7 +9597,7 @@
 
 ### YearSettlementHospitalInfoModal
 
-- `re-upstream/restored/components/year/YearSettlementHospitalInfoModal.vue`
+- `restored/components/year/YearSettlementHospitalInfoModal.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9607,7 +9607,7 @@
 
 ### YearSettlementTable
 
-- `re-upstream/restored/components/year/YearSettlementTable.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/year/YearSettlementTable.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9619,7 +9619,7 @@
 
 ### YearSettlementTableDetailRow
 
-- `re-upstream/restored/components/year/YearSettlementTableDetailRow.vue` · 스토어 `useToastNotificationStore`
+- `restored/components/year/YearSettlementTableDetailRow.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9634,7 +9634,7 @@
 
 ### AccountPermissionsView
 
-- `re-upstream/restored/views/AccountPermissionsView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/views/AccountPermissionsView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9650,7 +9650,7 @@
 
 ### AppointmentColumnUnscheduledCardView
 
-- `re-upstream/restored/views/AppointmentColumnUnscheduledCardView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/AppointmentColumnUnscheduledCardView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9661,7 +9661,7 @@
 
 ### CanvasView
 
-- `re-upstream/restored/views/CanvasView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/CanvasView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9677,7 +9677,7 @@
 
 ### ChallengeView
 
-- `re-upstream/restored/views/ChallengeView.vue`
+- `restored/views/ChallengeView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9688,7 +9688,7 @@
 
 ### ClaimHomeVisitView
 
-- `re-upstream/restored/views/ClaimHomeVisitView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/ClaimHomeVisitView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9699,7 +9699,7 @@
 
 ### ClaimResultView
 
-- `re-upstream/restored/views/ClaimResultView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/ClaimResultView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9713,7 +9713,7 @@
 
 ### ClaimTelemedicinePilotView
 
-- `re-upstream/restored/views/ClaimTelemedicinePilotView.vue`
+- `restored/views/ClaimTelemedicinePilotView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9724,7 +9724,7 @@
 
 ### ClaimV2InboxView
 
-- `re-upstream/restored/views/ClaimV2InboxView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/ClaimV2InboxView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9736,7 +9736,7 @@
 
 ### CrmBillingView
 
-- `re-upstream/restored/views/CrmBillingView.vue`
+- `restored/views/CrmBillingView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9747,7 +9747,7 @@
 
 ### CrmConsultScriptView
 
-- `re-upstream/restored/views/CrmConsultScriptView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/CrmConsultScriptView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9760,7 +9760,7 @@
 
 ### CrmContactsView
 
-- `re-upstream/restored/views/CrmContactsView.vue`
+- `restored/views/CrmContactsView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9771,7 +9771,7 @@
 
 ### CrmRoutineCanvasView
 
-- `re-upstream/restored/views/CrmRoutineCanvasView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/CrmRoutineCanvasView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9782,7 +9782,7 @@
 
 ### CrmView
 
-- `re-upstream/restored/views/CrmView.vue`
+- `restored/views/CrmView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9792,7 +9792,7 @@
 
 ### DeskPaymentsView
 
-- `re-upstream/restored/views/DeskPaymentsView.vue` · 스토어 `useDeskDateStore`
+- `restored/views/DeskPaymentsView.vue` · 스토어 `useDeskDateStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9804,7 +9804,7 @@
 
 ### DeskVisitView
 
-- `re-upstream/restored/views/DeskVisitView.vue` · 스토어 `useDeskDateStore`
+- `restored/views/DeskVisitView.vue` · 스토어 `useDeskDateStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9817,7 +9817,7 @@
 
 ### DocumentIssueView
 
-- `re-upstream/restored/views/DocumentIssueView.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
+- `restored/views/DocumentIssueView.vue` · 스토어 `useDocumentIssueStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9828,7 +9828,7 @@
 
 ### ElectronicSignatureView
 
-- `re-upstream/restored/views/ElectronicSignatureView.vue`
+- `restored/views/ElectronicSignatureView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9838,7 +9838,7 @@
 
 ### EmrPatientsView
 
-- `re-upstream/restored/views/EmrPatientsView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/EmrPatientsView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9852,7 +9852,7 @@
 
 ### HiraSubmitItemsView
 
-- `re-upstream/restored/views/HiraSubmitItemsView.vue` · 스토어 `useTreatmentWindowStore`
+- `restored/views/HiraSubmitItemsView.vue` · 스토어 `useTreatmentWindowStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9869,7 +9869,7 @@
 
 ### InsuranceInquiryView
 
-- `re-upstream/restored/views/InsuranceInquiryView.vue`
+- `restored/views/InsuranceInquiryView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9880,7 +9880,7 @@
 
 ### InsuranceSubscriptionView
 
-- `re-upstream/restored/views/InsuranceSubscriptionView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/views/InsuranceSubscriptionView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9892,14 +9892,14 @@
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
 | `useSubscriptionsQuery` | `GET insuranceClient /subscriptions` |
 | `getHospitalPaymentMethods` (직접) | `GET insuranceClient /hospital/payment-methods` |
-| `getHospitalPaymentMethodsMedipay` (직접) | `GET insuranceClient /hospital/payment-methods/medipay` |
+| `getHospitalPaymentMethodsPartnerPay` (직접) | `GET insuranceClient /hospital/payment-methods/partner-pay` |
 | `getSubscriptionsChangePreview` (직접) | `GET insuranceClient /subscriptions/change-preview` |
 
 <a id="c-views-layoutview"></a>
 
 ### LayoutView
 
-- `re-upstream/restored/views/LayoutView.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/views/LayoutView.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9918,7 +9918,7 @@
 
 ### LoginView
 
-- `re-upstream/restored/views/LoginView.vue` · 스토어 `useDeskDateStore`
+- `restored/views/LoginView.vue` · 스토어 `useDeskDateStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9930,7 +9930,7 @@
 
 ### MedicalAidsView
 
-- `re-upstream/restored/views/MedicalAidsView.vue`
+- `restored/views/MedicalAidsView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9940,7 +9940,7 @@
 
 ### MembersView
 
-- `re-upstream/restored/views/MembersView.vue`
+- `restored/views/MembersView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9951,7 +9951,7 @@
 
 ### MessageSendCompletedView
 
-- `re-upstream/restored/views/MessageSendCompletedView.vue`
+- `restored/views/MessageSendCompletedView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9961,7 +9961,7 @@
 
 ### MessageView
 
-- `re-upstream/restored/views/MessageView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/views/MessageView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -9990,13 +9990,13 @@
 
 ### NonBenefitPatientsView
 
-- `re-upstream/restored/views/NonBenefitPatientsView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/NonBenefitPatientsView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useDeskAppointmentsOrderSooQuery` | `GET emrClient /desk/appointments/order/soo/{input}` |
+| `useDeskAppointmentsOrderLiteQuery` | `GET emrClient /desk/appointments/order/lite/{input}` |
 | `useDeskAppointmentsTelemedicineCancelledQuery` | `GET emrClient /desk/appointments/telemedicine/cancelled` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
 | `usePatchCrmNonbenefitPatientsRestartMutation` | `PATCH emrClient /crm/nonbenefit-patients/restart` |
 | `usePatchCrmNonbenefitPatientsTerminateMutation` | `PATCH emrClient /crm/nonbenefit-patients/terminate` |
 | `useSettingsNonbenefitsV2Query` | `GET emrClient /settings/nonbenefits/v2` |
@@ -10009,7 +10009,7 @@
 
 ### OcsV2OrderCreateView
 
-- `re-upstream/restored/views/OcsV2OrderCreateView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/OcsV2OrderCreateView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10031,7 +10031,7 @@
 | `usePostOcsv2OrderMutation` | `POST emrClient {u}/order` |
 | `usePostOcsv2QuoteMutation` | `POST emrClient {u}/quote` |
 | `useSettingsHospitalsQuery` | `GET emrClient /settings/hospitals` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 | `getSettingsNonreimbursedHerbTemplates_2` (직접) | `GET emrClient {SETTINGS_NONREIMBURSED_HERB_TEMPLATES_PATH}/{input}` |
 | `getSettingsReferenceFormulas` (직접) | `GET emrClient {SETTINGS_REFERENCE_FORMULAS_PATH}/{source}/{id}` |
 | `getSettingsReferenceFormulasSearch` (직접) | `GET emrClient {SETTINGS_REFERENCE_FORMULAS_PATH}/search` |
@@ -10052,7 +10052,7 @@
 
 ### OcsV2OrderListView
 
-- `re-upstream/restored/views/OcsV2OrderListView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/OcsV2OrderListView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10068,7 +10068,7 @@
 
 ### OnboardingView
 
-- `re-upstream/restored/views/OnboardingView.vue` · 스토어 `useSooSignUpStore`
+- `restored/views/OnboardingView.vue` · 스토어 `useLiteSignUpStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10079,34 +10079,34 @@
 
 ### OndangGateView
 
-- `re-upstream/restored/views/OndangGateView.vue`
+- `restored/views/OndangGateView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 
 <a id="c-views-ondangsignupformview"></a>
 
 ### OndangSignUpFormView
 
-- `re-upstream/restored/views/OndangSignUpFormView.vue` · 스토어 `useOndangSignUpStore`
+- `restored/views/OndangSignUpFormView.vue` · 스토어 `useOndangSignUpStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useIntegrationsOnboardingWontangProfileQuery` | `GET accountApplicationClient {INTEGRATIONS_ONBOARDING_WONTANG_PATH}/profile` |
 | `useTermsQuery` | `GET accountApplicationClient /terms` |
-| `getIntegrationsOnboardingSooProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/soo/profile` |
+| `getIntegrationsOnboardingLiteProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/lite/profile` |
 | `getAuthMe` (직접) | `GET emrClient /auth/me` |
 | `postIntegrationsOnboardingWontangSignup` (직접) | `POST accountApplicationClient {INTEGRATIONS_ONBOARDING_WONTANG_PATH}/signup` |
 | `postAuthCheckUsernameOnboarding` (직접) | `POST accountApplicationClient /auth/check-username-onboarding` |
-| `postIntegrationsOnboardingSooSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/soo/signup` |
+| `postIntegrationsOnboardingLiteSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/lite/signup` |
 
 <a id="c-views-remotesettlementview"></a>
 
 ### RemoteSettlementView
 
-- `re-upstream/restored/views/RemoteSettlementView.vue`
+- `restored/views/RemoteSettlementView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10116,7 +10116,7 @@
 
 ### RequiredView
 
-- `re-upstream/restored/views/RequiredView.vue`
+- `restored/views/RequiredView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10128,7 +10128,7 @@
 
 ### ServiceSignUpFormView
 
-- `re-upstream/restored/views/ServiceSignUpFormView.vue`
+- `restored/views/ServiceSignUpFormView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10138,13 +10138,13 @@
 
 ### SettingHospitalView
 
-- `re-upstream/restored/views/SettingHospitalView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/views/SettingHospitalView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
-| `usePatchMembersUpstreamClinicsMyMutation` | `PATCH thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
+| `usePatchMembersEmrClinicsMyMutation` | `PATCH liteClient /members/emr/clinics/my` |
 | `usePatchSettingsHospitalsMutation` | `PATCH emrClient /settings/hospitals` |
 | `usePatchSettingsHospitalsMutation_2` | `PATCH emrClient /settings/hospitals` |
 | `usePostNhicCertFilesMutation` | `POST emrClient /nhic/cert-files` |
@@ -10160,7 +10160,7 @@
 
 ### SettingPrescriptionView
 
-- `re-upstream/restored/views/SettingPrescriptionView.vue` · 스토어 `useOnboardingGuideSessionStore`
+- `restored/views/SettingPrescriptionView.vue` · 스토어 `useOnboardingGuideSessionStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10172,7 +10172,7 @@
 
 ### SettingPrescriptionViewChubyakPrescriptionsConfigListView
 
-- `re-upstream/restored/views/SettingPrescriptionViewChubyakPrescriptionsConfigListView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingChubyakPrescriptionStore`, `useToastNotificationStore`
+- `restored/views/SettingPrescriptionViewChubyakPrescriptionsConfigListView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSettingChubyakPrescriptionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10186,44 +10186,44 @@
 
 ### SettingServiceIntegrationView
 
-- `re-upstream/restored/views/SettingServiceIntegrationView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useSooSignUpStore`
+- `restored/views/SettingServiceIntegrationView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useLiteSignUpStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `usePostIntegrationsSooLinkMutation` | `POST accountClient /integrations/soo/link` |
+| `usePostIntegrationsLiteLinkMutation` | `POST accountClient /integrations/lite/link` |
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
 
 <a id="c-views-settingview"></a>
 
 ### SettingView
 
-- `re-upstream/restored/views/SettingView.vue`
+- `restored/views/SettingView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
 
-<a id="c-views-soosignupformview"></a>
+<a id="c-views-litesignupformview"></a>
 
-### SooSignUpFormView
+### LiteSignUpFormView
 
-- `re-upstream/restored/views/SooSignUpFormView.vue` · 스토어 `useSooSignUpStore`
+- `restored/views/LiteSignUpFormView.vue` · 스토어 `useLiteSignUpStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useTermsQuery` | `GET accountApplicationClient /terms` |
-| `getIntegrationsOnboardingSooEmployees` (직접) | `GET accountApplicationClient /integrations/onboarding/soo/employees` |
+| `getIntegrationsOnboardingLiteEmployees` (직접) | `GET accountApplicationClient /integrations/onboarding/lite/employees` |
 | `postAuthCheckUsernameOnboarding` (직접) | `POST accountApplicationClient /auth/check-username-onboarding` |
 | `postIntegrationsOnboardingInsuranceSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/insurance/signup` |
-| `postIntegrationsOnboardingSooSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/soo/signup` |
-| `postIntegrationsSooLink` (직접) | `POST accountClient /integrations/soo/link` |
+| `postIntegrationsOnboardingLiteSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/lite/signup` |
+| `postIntegrationsLiteLink` (직접) | `POST accountClient /integrations/lite/link` |
 
 <a id="c-views-tabletaccountview"></a>
 
 ### TabletAccountView
 
-- `re-upstream/restored/views/TabletAccountView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
+- `restored/views/TabletAccountView.vue` · 스토어 `useOnboardingGuideSessionStore`, `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10243,7 +10243,7 @@
 
 ### TabletAuthLinkView
 
-- `re-upstream/restored/views/TabletAuthLinkView.vue` · 스토어 `useDeskDateStore`
+- `restored/views/TabletAuthLinkView.vue` · 스토어 `useDeskDateStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10254,17 +10254,17 @@
 
 ### TermsContentView
 
-- `re-upstream/restored/views/TermsContentView.vue`
+- `restored/views/TermsContentView.vue`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useMarketingAgreementTermsListQuery` | `GET medistreamClient /marketing-agreement/terms/list` |
+| `useMarketingAgreementTermsListQuery` | `GET ssoClient /marketing-agreement/terms/list` |
 
 <a id="c-views-treatmentrepeatresultsview"></a>
 
 ### TreatmentRepeatResultsView
 
-- `re-upstream/restored/views/TreatmentRepeatResultsView.vue` · 스토어 `useRepeatedTreatmentStore`
+- `restored/views/TreatmentRepeatResultsView.vue` · 스토어 `useRepeatedTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10275,7 +10275,7 @@
 
 ### TreatmentRoomsView
 
-- `re-upstream/restored/views/TreatmentRoomsView.vue` · 스토어 `useToastNotificationStore`
+- `restored/views/TreatmentRoomsView.vue` · 스토어 `useToastNotificationStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
@@ -10309,12 +10309,12 @@
 
 ### TreatmentView
 
-- `re-upstream/restored/views/TreatmentView.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
+- `restored/views/TreatmentView.vue` · 스토어 `useToastNotificationStore`, `useTreatmentStore`
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useDeskWaitingQuery` | `GET emrClient <"/desk/waiting?date=" + toValue(input)>` |
-| `useMembersUpstreamConsultationsOrdersInvoiceQuery` | `GET thesooClient members/upstream/consultations/orders/{input}/invoice` |
-| `useMembersUpstreamOrdersQuery` | `GET thesooClient members/upstream/orders/{input}` |
+| `useMembersEmrConsultationsOrdersInvoiceQuery` | `GET liteClient members/emr/consultations/orders/{input}/invoice` |
+| `useMembersEmrOrdersQuery` | `GET liteClient members/emr/orders/{input}` |
 | `usePatchDeskTelemedicineConsultationsStatusMutation` | `PATCH emrClient /desk/telemedicine-consultations/{input}/status` |
 | `postDeskTelemedicineConsultationsInvoice` (직접) | `POST emrClient /desk/telemedicine-consultations/{input}/invoice` |

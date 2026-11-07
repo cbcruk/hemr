@@ -9,17 +9,17 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/첩건본인부담률구분코드.js`
+- `restored/modules/index/첩건본인부담률구분코드.js`
   - 상수 `_U = 8`, `SU = 60`, `xU = 600` (677-681)
   - `HLt` 한도 초과 여부 (699-703), `Edn` 남은 횟수 (745-749), `Tdn` 경고 문구 (751-763), `$dn` 본인부담률구분코드 결정 (765-818)
-- `re-upstream/restored/modules/DeskPatientRegister/part-4.js` 컴포저블 `kc` (13-153)
+- `restored/modules/DeskPatientRegister/part-4.js` 컴포저블 `kc` (13-153)
   - `useRecordListPcmdCountDoctorByDateAndDoctorIdQuery({ date: 오늘, doctorId: 진료의Id })`로 횟수를 받습니다.
   - `watch(첩건기간별진료횟수)`: `HLt`가 참이면 즉시 `첩건본인부담률구분코드 = "U"`.
   - `watch(첩건질환코드, immediate)`: `$dn` 결과로 본인부담률구분코드와 `본인일부부담이지만전액부담선택가능함`을 설정합니다.
 - 호출 화면
   - 접수: `HealthInsuranceEligibilityPilotChubyak` (자격조회 영역의 첩건 질환·본인부담 선택)
   - 진료: `TreatmentViewBoardPatientInfoNhicChubyakModal` (건보 첩약 추가/변경 모달). `"원장 처방 가능 횟수 일/월/년"`과 `Tdn` 문구를 표시합니다.
-- API: `GET /record/list/pcmd-count/{yyyyMMdd}/doctor/{doctorId}` → `data.results.한방첩약시범사업승인횟수` = `{ 일, 월, 년 }` (`re-upstream/restored/api/record/records.js:17`)
+- API: `GET /record/list/pcmd-count/{yyyyMMdd}/doctor/{doctorId}` → `data.results.한방첩약시범사업승인횟수` = `{ 일, 월, 년 }` (`restored/api/record/records.js:17`)
 
 ## 로직
 
@@ -41,7 +41,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:677-818` (`// Restored from unminified/index-CBEIvlV0.js:121672-123969`, 해당 부분은 `unminified/index-CBEIvlV0.js:122310-122442`)
+`restored/modules/index/첩건본인부담률구분코드.js:677-818` (`// Restored from unminified/index.js:121672-123969`, 해당 부분은 `unminified/index.js:122310-122442`)
 
 ```js
 const _U = 8;
@@ -85,7 +85,7 @@ const $dn = e => {
 };
 ```
 
-`re-upstream/restored/modules/DeskPatientRegister/part-4.js:34-65` (`// Restored from unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1431-1575`)
+`restored/modules/DeskPatientRegister/part-4.js:34-65` (`// Restored from unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang.js:1431-1575`)
 
 ```js
 const { data: 첩건기간별진료횟수 } = useRecordListPcmdCountDoctorByDateAndDoctorIdQuery(() => ({

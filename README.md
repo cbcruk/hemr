@@ -13,7 +13,7 @@ Backend API server for a Korean medicine clinic EMR, redesigned from a static an
 | `src/shared/` | Cross-cutting conventions: prefixed ids, RFC 9457 problem details, job types |
 | `src/modules/` | Bounded contexts as modules of a modular monolith |
 
-Paths written as `re-upstream/restored/...` point to the reverse-engineered client tree used during analysis. That tree is not part of this repository; the rule documents quote the code they depend on.
+Paths written as `restored/...` point to the reverse-engineered client tree used during analysis. That tree is not part of this repository; the rule documents quote the code they depend on.
 
 ## Development
 

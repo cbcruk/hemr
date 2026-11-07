@@ -9,7 +9,7 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/첩건본인부담률구분코드.js`
+- `restored/modules/index/첩건본인부담률구분코드.js`
   - `Gt`(174-185): 코드 분류. `10`으로 시작하면 진찰료, `30` 투약·조제료, `40` 시술
   - `_t`(186-347): 8자리 코드 해석 (`야간임`, `토요일임`, `공휴일임`, `만1세미만임` …)
   - `zk`(453-594): 자리별 가산 적용·제거
@@ -19,8 +19,8 @@
   - `QLt`(1374-1487): 초진/재진 판정 후 라인 생성. `Vdn`(1650-1680)이 감쌉니다
   - `lee`(1577-1648): 가산 계산. 이 문서의 핵심 함수입니다
   - `JLt`(1489-1575): 시술·투약 라인의 연령·야간·공휴 산정코드. 전체 규칙은 [procedure-fee-modifiers](procedure-fee-modifiers.md)에 있고, 이 픽스처에는 몇 건만 넣었습니다
-- `re-upstream/restored/modules/index/part-213.js` `mt`(5-29): `야간임`, `토요일임`, `심야임`(22시 이후)
-- `re-upstream/restored/modules/index/formatDistance.js` `sn`(382-515): 만 나이 계산과 연령 구간
+- `restored/modules/index/part-213.js` `mt`(5-29): `야간임`, `토요일임`, `심야임`(22시 이후)
+- `restored/modules/index/formatDistance.js` `sn`(382-515): 만 나이 계산과 연령 구간
 - 호출 시점
   - **자동 삽입:** `TreatmentViewBoardPrescriptionV2.helpers.js:84-115`. 진료 화면에서 처방 목록이 바뀌거나 진료를 열 때 `Vdn`을 부릅니다. `자보1일2차여부`면 건너뜁니다. 결과 라인은 기존 처방 앞에 붙습니다
   - **수동 토글:** `TreatmentPayment.vue.js`. 초진/재진/변증/야간/공휴/토요일/대리수령 버튼. 토요일 버튼은 `토요가산강제적용: true`로 `lee`를 부릅니다(85-108). 야간·공휴·대리수령 버튼은 `zk`로 현재 코드의 한 자리만 바꿉니다(254-380)
@@ -76,7 +76,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:1577-1648` (`// Restored from unminified/index-CBEIvlV0.js:121672-123969`, 해당 함수는 `unminified/index-CBEIvlV0.js:123178-123249`)
+`restored/modules/index/첩건본인부담률구분코드.js:1577-1648` (`// Restored from unminified/index.js:121672-123969`, 해당 함수는 `unminified/index.js:123178-123249`)
 
 ```js
 const lee = e => {
@@ -121,7 +121,7 @@ const lee = e => {
 };
 ```
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:944-950` (`unminified/index-CBEIvlV0.js:122560-122566`). `qNe`는 date-fns `min`입니다.
+`restored/modules/index/첩건본인부담률구분코드.js:944-950` (`unminified/index.js:122560-122566`). `qNe`는 date-fns `min`입니다.
 
 ```js
 const YLt = (e, t) => {
@@ -133,7 +133,7 @@ const YLt = (e, t) => {
 };
 ```
 
-`re-upstream/restored/modules/index/part-213.js:5-26` (`// Restored from unminified/index-CBEIvlV0.js:119846-119909`)
+`restored/modules/index/part-213.js:5-26` (`// Restored from unminified/index.js:119846-119909`)
 
 ```js
 static 야간임(t, n) {
@@ -153,7 +153,7 @@ static 심야임(t) {
 }
 ```
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:1374-1403` (`unminified/index-CBEIvlV0.js:122977-123006`). 초진/재진 판정 부분입니다. `UO`는 date-fns `subDays`입니다.
+`restored/modules/index/첩건본인부담률구분코드.js:1374-1403` (`unminified/index.js:122977-123006`). 초진/재진 판정 부분입니다. `UO`는 date-fns `subDays`입니다.
 
 ```js
 const QLt = e => {
@@ -175,7 +175,7 @@ const QLt = e => {
   // h ? 재진(10200) : 초진(10100) → lee → l_ → aee, 초진이면 변증기술료(40400) 조건부 추가
 ```
 
-`re-upstream/restored/modules/index/formatDistance.js:480-508` (`unminified/index-CBEIvlV0.js:57286-57314`). 만 나이 계산입니다. `Hu`는 date-fns `isAfter`입니다.
+`restored/modules/index/formatDistance.js:480-508` (`unminified/index.js:57286-57314`). 만 나이 계산입니다. `Hu`는 date-fns `isAfter`입니다.
 
 ```js
 static 만나이계산_일곱자리(t) {

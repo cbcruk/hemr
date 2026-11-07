@@ -11,11 +11,11 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/첩건본인부담률구분코드.js`
+- `restored/modules/index/첩건본인부담률구분코드.js`
   - `JLt`(1489-1575): 코드 한 개의 산정코드 계산
   - `ZLt`(1682-1718): 처방 목록에 `JLt`를 적용하고 수가 마스터로 교체
   - `Gt`(174-185): 코드 분류. `30` 투약및조제료, `40` 시술, `10` 진찰료
-- 나이 계산: `re-upstream/restored/modules/index/formatDistance.js` `sn`(383-508). `신생아임`은 생후 28일 이하입니다
+- 나이 계산: `restored/modules/index/formatDistance.js` `sn`(383-508). `신생아임`은 생후 28일 이하입니다
 - 호출 시점
   - 진료 처방 변경: `modules/index/local.js:545-571` `진료내용수정`. 처방 배열 전체를 넣거나 바꾸는 JSON-patch(`path === ["처방"]`)에만 `ZLt`를 적용합니다. 호출자가 `산정코드계산안함`을 주거나(`산정코드추가안함` 옵션에서 바뀜, `TreatmentViewBoard.helpers-9.js:133`) `vx` 모드면 건너뜁니다
   - 경혈침 혈자리 팝오버: `components/procedures/ProceduresAcupunctureCommonPopover.vue.js:244-292`. 침법을 고르면 `JLt`에 침법 플래그를 넘깁니다. 바뀐 코드가 마스터에 있으면 그 라인을 `산정코드추가안함: true`로 내보내 `ZLt`가 다시 돌지 않게 합니다
@@ -53,7 +53,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:1489-1575` (`// Restored from unminified/index-CBEIvlV0.js:121672-123969`, 함수는 `unminified/index-CBEIvlV0.js:123091-123177`)
+`restored/modules/index/첩건본인부담률구분코드.js:1489-1575` (`// Restored from unminified/index.js:121672-123969`, 함수는 `unminified/index.js:123091-123177`)
 
 ```js
 const JLt = e => {
@@ -99,7 +99,7 @@ const JLt = e => {
 };
 ```
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:1682-1718` (`unminified/index-CBEIvlV0.js:123281-123317`)
+`restored/modules/index/첩건본인부담률구분코드.js:1682-1718` (`unminified/index.js:123281-123317`)
 
 ```js
 const ZLt = e => {

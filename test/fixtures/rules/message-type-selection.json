@@ -3,19 +3,19 @@
   "description": "SMS/LMS/MMS selection by attachment, title and EUC-KR-like byte length (90 bytes), plus the (광고) header and 080 opt-out footer applied to advertising text.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/byteString.js",
+      "file": "restored/modules/byteString.js",
       "lines": "3-17",
-      "origin": "unminified/byteString-W_gkmtJP.js:11-25"
+      "origin": "unminified/byteString.js:11-25"
     },
     {
-      "file": "re-upstream/restored/modules/CrmMessagePreview/part-1.js",
+      "file": "restored/modules/CrmMessagePreview/part-1.js",
       "lines": "8-93",
-      "origin": "unminified/CrmMessagePreview.vue_vue_type_script_setup_true_lang-Mahdgzip.js:19-97"
+      "origin": "unminified/CrmMessagePreview.vue_vue_type_script_setup_true_lang.js:19-97"
     },
     {
-      "file": "re-upstream/restored/components/crm/CrmCommonMessageForm.helpers.js",
+      "file": "restored/components/crm/CrmCommonMessageForm.helpers.js",
       "lines": "39-61",
-      "origin": "unminified/templatePermission-BWKgEo8f.js:111-133"
+      "origin": "unminified/templatePermission.js:111-133"
     }
   ],
   "inputSchema": {
@@ -205,11 +205,11 @@
         "check": "applyAdHeaderFooter",
         "messageType": "광고",
         "text": "할인 안내",
-        "hospitalName": "업스트림한의원",
+        "hospitalName": "테스트용한의원",
         "hospitalRefusalCode": "1234"
       },
       "expected": {
-        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
+        "text": "(광고) 테스트용한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
       },
       "derivation": "executed"
     },
@@ -218,12 +218,12 @@
       "input": {
         "check": "applyAdHeaderFooter",
         "messageType": "광고",
-        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234",
-        "hospitalName": "업스트림한의원",
+        "text": "(광고) 테스트용한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234",
+        "hospitalName": "테스트용한의원",
         "hospitalRefusalCode": "1234"
       },
       "expected": {
-        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
+        "text": "(광고) 테스트용한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
       },
       "derivation": "executed"
     },
@@ -256,7 +256,7 @@
       "input": {
         "check": "stripAdHeaderFooter",
         "messageType": "광고",
-        "text": "(광고) 업스트림한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
+        "text": "(광고) 테스트용한의원\n할인 안내\n\n무료거부: 080-877-8900\n인증: 1234"
       },
       "expected": {
         "text": "할인 안내"
@@ -304,7 +304,7 @@
       "input": {
         "check": "adWrappedBytesDecideType",
         "body": "할인",
-        "hospitalName": "업스트림한의원",
+        "hospitalName": "테스트용한의원",
         "hospitalRefusalCode": "1234"
       },
       "expected": {

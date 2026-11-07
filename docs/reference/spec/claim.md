@@ -8,10 +8,10 @@
 - **목적:** 청구 하위 화면의 권한 게이트이자 레이아웃입니다.
 - **접근 조건:** `meta { requiresAuth, usesGlobalLayout, permissionCode: 청구(chunggu), permissionRequired }`
   - `l0e()`는 **현재 경로와 정확히 일치하는** 라우트의 `meta.permissionCode`를 `canAccess$`로 확인합니다. 그래서 `/claim/hira`는 `chunggu`가 아니라 `spw_chunggu`로 판단됩니다
-  - EMR이 아닌 구성의 계정(홈이 `desk`가 아님)은 `claim-hira`, `claim-hira-submit-items`, `claim-medical-aids` 진입 시 홈으로 돌려보내집니다 (`re-upstream/restored/lib/index/part-261.js` `WQt`)
-- **화면 구성:** 권한 확인 중이면 `LoadingBoxWithSpinner`, 통과하면 `SooProV2FeatureRestrictionBanner` + `RouterView`, 실패하면 `AccessDeniedNotice`("접근 권한이 없습니다. 대표원장에게 권한을 요청해 주세요.")
+  - EMR이 아닌 구성의 계정(홈이 `desk`가 아님)은 `claim-hira`, `claim-hira-submit-items`, `claim-medical-aids` 진입 시 홈으로 돌려보내집니다 (`restored/lib/index/part-261.js` `WQt`)
+- **화면 구성:** 권한 확인 중이면 `LoadingBoxWithSpinner`, 통과하면 `LiteProV2FeatureRestrictionBanner` + `RouterView`, 실패하면 `AccessDeniedNotice`("접근 권한이 없습니다. 대표원장에게 권한을 요청해 주세요.")
   - `KeepAlive :max="3"`로 하위 화면을 캐시합니다. `HiraSubmitItemsView`는 캐시에서 뺍니다
-- **근거:** `re-upstream/restored/views/ClaimView.vue`, `re-upstream/restored/router/routes.js`, [access-control.md](../access-control.md)
+- **근거:** `restored/views/ClaimView.vue`, `restored/router/routes.js`, [access-control.md](../access-control.md)
 
 | 경로 | route name | permissionCode (표시명 → 코드) |
 |---|---|---|
@@ -24,11 +24,11 @@
 
 ## 심평원 청구 — `/claim/hira` (`claim-hira`)
 - **목적:** 진료 데이터로 서버가 모아 둔 청구서를 검토·수정한 뒤 심평원(건보·의료급여·자보)으로 전송하고, 근로복지공단(산재) 청구서는 내려받게 합니다. 전송한 뒤에는 심사결과를 받아 오고 보완청구를 만듭니다.
-- **접근 조건:** `spw_chunggu` (access). 전송·사전점검·심사결과 불러오기는 Electron 앱(`isElectron`)에서만 됩니다. 웹에서는 "청구서 전송은 업스트림 앱에서만 가능합니다." / "심사결과 불러오기는 업스트림 앱에서만 가능합니다." 대화상자를 띄웁니다
+- **접근 조건:** `spw_chunggu` (access). 전송·사전점검·심사결과 불러오기는 Electron 앱(`isElectron`)에서만 됩니다. 웹에서는 "청구서 전송은 현행 앱에서만 가능합니다." / "심사결과 불러오기는 현행 앱에서만 가능합니다." 대화상자를 띄웁니다
 - **화면 구성:** `BaseTabBar` 탭 `청구필요` / `청구결과` (쿼리 `?tab=`, `replace`). 오른쪽 위에 `ClaimJejuEntryButton`이 있습니다
   - `청구필요` → `ClaimV2InboxView`
   - `청구결과` → `ClaimResultView`
-- **근거:** `re-upstream/restored/views/ClaimHiraView.vue`
+- **근거:** `restored/views/ClaimHiraView.vue`
 
 ### 청구필요 탭 (`ClaimV2InboxView`)
 - **화면 구성:**
@@ -47,7 +47,7 @@
     - 상세 응답의 `에러코드 === "N0002"`는 클라이언트가 빈 문자열로 바꿉니다
   - `?selectedClaimId=`로 카드를 미리 선택합니다
   - **삭감위험 목록:** `청구진료`를 `에러코드`별로 묶습니다. 무시한 코드(`useClaimWarningOffStore`)와 `미루기여부=true`는 뺍니다
-    - 에러코드 카탈로그 `os(code)`(`re-upstream/restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js`)에는 `경고문구`, `안내문구`, `위험도`(`높음`/`중간`), `자동수정가능`이 들어 있습니다. 88개 코드 중 21개가 자동수정 가능합니다
+    - 에러코드 카탈로그 `os(code)`(`restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js`)에는 `경고문구`, `안내문구`, `위험도`(`높음`/`중간`), `자동수정가능`이 들어 있습니다. 88개 코드 중 21개가 자동수정 가능합니다
     - 자동수정 가능 → `ClaimV2InboxViewDangerAutoFix`: 진료 기록과 환자 정보를 가져와 `jf()`로 수정안을 만들고 `POST /record/{rid}/save`로 저장한 뒤 청구 쿼리를 무효화합니다. `N0028`은 별도 경로를 탑니다
     - 자동수정 불가 → `ClaimV2InboxViewDangerManualFix`: `진료일자수정`(`ClaimJarakHistoryEditor`) 또는 `차트직접수정`(`ClaimV2CommonEditPanelPrototype` 사이드패널)
     - `ClaimCutBackWarningTable`의 버튼은 `수정` / `수정 안함`(이 청구서에서 코드 무시) / `청구 미루기`입니다
@@ -75,7 +75,7 @@
   - query keys `chungguKeys`: `["chunggu","document-list"]`(목록), `["chunggu","document", id]`(상세)
   - Pinia `claimWarningOff`(`errorCodesToIgnore: Map<청구Id, Set<에러코드>>`, 메모리에만 있음), `claimWarning`
   - localStorage `claim:unsentGuard`: 점검했지만 아직 전송하지 않은 청구서 메모입니다 (`gh`/`Ur`/`_a`)
-- **근거:** `re-upstream/restored/views/ClaimV2InboxView.vue`, `re-upstream/restored/components/claim/ClaimV2InboxViewFooter.vue.js`, `re-upstream/restored/api/chunggu/queries.js`, `re-upstream/restored/api/chunggu/query-keys.js`, `re-upstream/restored/components/claim/ClaimV2InboxViewDangerAutoFix.vue`, `re-upstream/restored/components/claim/ClaimV2CommonEditPanelPrototype.vue`, `re-upstream/restored/modules/ClaimHiraView/part-2.js`
+- **근거:** `restored/views/ClaimV2InboxView.vue`, `restored/components/claim/ClaimV2InboxViewFooter.vue.js`, `restored/api/chunggu/queries.js`, `restored/api/chunggu/query-keys.js`, `restored/components/claim/ClaimV2InboxViewDangerAutoFix.vue`, `restored/components/claim/ClaimV2CommonEditPanelPrototype.vue`, `restored/modules/ClaimHiraView/part-2.js`
 
 ### 청구결과 탭 (`ClaimResultView`)
 - **화면 구성:**
@@ -110,7 +110,7 @@
   - `GET /chunggu/after/{id}?limit&offset` (infinite) → `patients`, `청구`
   - `POST /chunggu/examresult` (일괄) → 404면 `POST /chunggu/examresult/{청구Id}`로 다시 보냅니다
 - **상태 저장:** `chungguKeys_2`: `["chunggu","after","list",params]`, `[…,"examresult",청구Id]`, `[…,"examresult-patients",{from,to}]`, `[…,"supplementary-targets",원청구Id]`. 월 범위는 `wC()`(모듈 단위 공유 ref (추정))에 둡니다
-- **근거:** `re-upstream/restored/views/ClaimResultView.vue`, `re-upstream/restored/components/claim/ClaimResultMain.vue.js`, `re-upstream/restored/components/claim/ClaimResultMain.helpers.js`, `re-upstream/restored/modules/ClaimHiraView/progressText.js`, `re-upstream/restored/components/claim/ClaimSummaryCard.vue`
+- **근거:** `restored/views/ClaimResultView.vue`, `restored/components/claim/ClaimResultMain.vue.js`, `restored/components/claim/ClaimResultMain.helpers.js`, `restored/modules/ClaimHiraView/progressText.js`, `restored/components/claim/ClaimSummaryCard.vue`
 
 ### 청구 상태 값
 
@@ -121,7 +121,7 @@
 | `전송대기` | 청구필요 | 회색 배지 |
 | `전송완료` | 청구결과 | 다시 청구·심사결과 불러오기가 가능합니다. 산재는 체크박스로 직접 설정합니다 |
 | `보완청구` | 청구결과 | 심사결과 불러오기가 가능합니다 |
-| `심사중` | 카드 목록 판정에 사용 | `["심사중","심사완료"]` 검사 (`re-upstream/restored/components/claim/ClaimV2InboxViewCardList.vue.js`) |
+| `심사중` | 카드 목록 판정에 사용 | `["심사중","심사완료"]` 검사 (`restored/components/claim/ClaimV2InboxViewCardList.vue.js`) |
 | `심사완료` | 청구결과 | 파란 배지. 다시 청구는 불가하고 보완청구로 처리합니다 |
 
 - `청구유형`: `원청구`(기본값), `보완청구`. 재청구는 `재청구원본청구번호`가 있는 카드입니다
@@ -143,7 +143,7 @@
   - 문서 생성 `POST /chunggu/jeju/documents`, 제출 표시 `PUT /chunggu/jeju/submitted`
   - 이미 제출한 달이면 "정정본이 필요한 경우에만 다시 생성하세요."라고 경고합니다. 지급 계좌가 비면 경고만 하고 생성은 됩니다
 - **상태 저장:** `jejuKeys.claimSetting()`, `chungguBadge()`, `chungguSummary(월, 사업)`
-- **근거:** `re-upstream/restored/components/claim/ClaimJejuEntryButton.vue`, `re-upstream/restored/components/claim/ClaimJejuModal.vue`, `re-upstream/restored/api/patients/requests-4.js`, `re-upstream/restored/modules/useJejuSupport/part-1.js`
+- **근거:** `restored/components/claim/ClaimJejuEntryButton.vue`, `restored/components/claim/ClaimJejuModal.vue`, `restored/api/patients/requests-4.js`, `restored/modules/useJejuSupport/part-1.js`
 
 ## 추나·첩약 제출 현황 — `/claim/hira-submit-items` (`claim-hira-submit-items`)
 - **목적:** 추나요법, 자보 첩약, 첩약 건보(시범사업) 건을 심평원 측 등록 데이터와 차트 데이터로 맞춰 보고, 승인 요청·제출·삭제를 합니다.
@@ -180,7 +180,7 @@
 | 첩약 건보 | 전체, `승인필요`(표시 "제출필요"), `체크리스트 작성 필요`, `차트내역 없음`, `차트내역 불일치` |
 
 - **상태 저장:** `recordKeys.pcmdRecordsAll()` 등, 라우트 쿼리 `selectedTab`, `startDate`, `endDate`
-- **근거:** `re-upstream/restored/views/HiraSubmitItemsView.vue`, `re-upstream/restored/views/HiraSubmitItemsView.helpers.js`, `re-upstream/restored/views/HiraSubmitItemsView.helpers-2.js`, `re-upstream/restored/api/hira/query-keys.js` (`p0e`)
+- **근거:** `restored/views/HiraSubmitItemsView.vue`, `restored/views/HiraSubmitItemsView.helpers.js`, `restored/views/HiraSubmitItemsView.helpers-2.js`, `restored/api/hira/query-keys.js` (`p0e`)
 
 ## 의료급여 진료 승인 현황 — `/claim/medical-aids` (`claim-medical-aids`)
 - **목적:** 의료급여 수급자 진료건을 공단(NHIC) 온라인 자격·진료 승인(M3/M4/M5 전문)으로 승인 요청하거나 취소합니다.
@@ -203,7 +203,7 @@
   - 일괄 "모두 승인 요청"
   - 각 작업 뒤에는 `medicalReceipts`, `m3`, `m4`, `treatmentRecord`, `chungguKeys.all`을 무효화합니다
 - **상태 저장:** `medicalAidsStore`(행별 승인/취소 로딩), `deskKeys_2.m3/m4(진료Id)`
-- **근거:** `re-upstream/restored/views/MedicalAidsView.vue`, `re-upstream/restored/modules/useMedicalAidsU001ToB005/part-2.js`, `re-upstream/restored/modules/useMedicalAidsU001ToB005/part-4.js`, `re-upstream/restored/components/medical/MedicalAidsM3M4Form.vue`
+- **근거:** `restored/views/MedicalAidsView.vue`, `restored/modules/useMedicalAidsU001ToB005/part-2.js`, `restored/modules/useMedicalAidsU001ToB005/part-4.js`, `restored/components/medical/MedicalAidsM3M4Form.vue`
 
 ## 일차의료 방문 현황 — `/claim/home-visit` (`claim-home-visit`)
 - **목적:** 일차의료 방문진료 건마다 심평원 점검서식을 작성했는지 관리합니다. 작성완료로 표시해야 청구에 포함됩니다.
@@ -218,7 +218,7 @@
   - "작성"/"점검서식 보기"는 외부 심평원 사이트(`hdn`)를 새 창으로 엽니다
   - "작성 완료" → `PATCH /record/home-visit/{rid}/form-status` `{ 점검서식상태: "작성완료" }`
 - **상태 값(`mdn`):** `작성필요`, `제출필요`, `작성완료`
-- **근거:** `re-upstream/restored/views/ClaimHomeVisitView.vue`, `re-upstream/restored/views/ClaimHomeVisitView.helpers.js`
+- **근거:** `restored/views/ClaimHomeVisitView.vue`, `restored/views/ClaimHomeVisitView.helpers.js`
 
 ## 비대면진료 현황 — `/claim/telemedicine-pilot` (`claim-telemedicine-pilot`)
 - **목적:** 비대면진료 시범사업에서 기관의 비대면 비율 상한과 환자별 월 산정 한도를 점검합니다.
@@ -232,7 +232,7 @@
   - `GET /record/telemedicine-pilot/ratio?yearMonth` → `{ 전체건수, 비대면건수, 비율, 상한 }`. 상한 기본값은 0.3입니다
     - `비율 > 상한`이면 "이번 달 비대면진료 비율이 N%를 넘었습니다."를 표시합니다
   - `GET /record/telemedicine-pilot/records?startDate&endDate` → `{ 목록, 환자월한도 }`
-- **근거:** `re-upstream/restored/views/ClaimTelemedicinePilotView.vue`, `re-upstream/restored/views/ClaimTelemedicinePilotView.helpers.js`
+- **근거:** `restored/views/ClaimTelemedicinePilotView.vue`, `restored/views/ClaimTelemedicinePilotView.helpers.js`
 
 ## 연말정산 — `/claim/year-settlement` (`year-settlement`)
 - **목적:** 국세청 연말정산 의료비 간소화 자료를 만듭니다. 수납 내역별로 공제 포함·제외를 정하고 제출 파일을 내려받습니다.
@@ -247,16 +247,16 @@
   - `GET /documents/year-end-tax-settlement`, `…/details`, `…/details/count`(→ `herbalCount`, `taxableCount`), 모두 `start_date`, `end_date`
   - 포함/제외: `PATCH /documents/receipt-details/deduction-exclusion` `{ 제외할수납상세Ids, 포함할수납상세Ids }`
   - 다운로드: `POST /documents/year-end-tax-settlement/download?start_date&end_date` body `{ 병원정보 }` → `{ downloadUrl, fileName }`
-- **근거:** `re-upstream/restored/components/year/YearSettlement.vue`, `re-upstream/restored/components/year/YearSettlementHeader.vue`, `re-upstream/restored/components/year/YearSettlementTable.vue`
+- **근거:** `restored/components/year/YearSettlement.vue`, `restored/components/year/YearSettlementHeader.vue`, `restored/components/year/YearSettlementTable.vue`
 
 ## 실손보험 조회 — `/insurance-inquiry` (`insurance-inquiry`)
-- **목적:** 환자의 실손보험 가입·보장 내역을 조회하는 별도 서비스(`insuranceClient`, 업스트림 실손)의 작업 화면입니다.
+- **목적:** 환자의 실손보험 가입·보장 내역을 조회하는 별도 서비스(`insuranceClient`, 현행 실손)의 작업 화면입니다.
 - **접근 조건:**
   - `meta { requiresAuth, usesGlobalLayout, personalInfoKoPageName: "실손보험 조회" }`. permissionCode는 없습니다
   - 연동 `insurance` 계정의 홈이 이 화면입니다. 사이드바 메뉴 id 75는 `insurance` 연동이 있을 때만 보입니다
   - 게이트 1 (`Nu`/`Jd`): `GET /hospital/terms` → `needsAgreement`면, `canAgree`일 때 `consent`(`HospitalTermsConsentScreen`), 아니면 `waiting`(`HospitalTermsWaitingScreen`)
     - 약관 동의는 대표원장만 할 수 있습니다: `POST /hospital/terms/agreements` `{ termsIds }`
-  - 게이트 2 (`Vu`/`Du`): `GET /subscriptions/usage` → `planCode`가 없으면 `error`, 특정 코드(`us`)면 `subscriptionRequired`(`InsuranceSubscriptionRequiredScreen` "업스트림 실손 구독이 필요합니다")
+  - 게이트 2 (`Vu`/`Du`): `GET /subscriptions/usage` → `planCode`가 없으면 `error`, 특정 코드(`us`)면 `subscriptionRequired`(`InsuranceSubscriptionRequiredScreen` "현행 실손 구독이 필요합니다")
 - **화면 구성:** `InsuranceInquiryWorkbench` = `PatientHistoryPanel`(조회 목록, 320px) + `PatientDetailPanel`(선택 환자 상세) + `PatientAddModal`(조회 환자 등록) + `QrOutputModal` + `ClaimMigrationModal`
 - **동작:**
   - 환자: `GET/POST /patients`, `GET/PATCH/DELETE /patients/{id}`, `GET /patients/search`
@@ -264,10 +264,10 @@
     - 본인인증 후 조회하는 순서로 보입니다 (추정)
   - `POST /patients/{id}/claim`: 용도 미확인
   - **이전 실손 기록 불러오기(`ClaimMigrationModal`):**
-    - 메디스트림 실손 계정으로 로그인하면 최근 1년간 완료된 조회 결과를 가져옵니다
+    - 통합 계정 실손 계정으로 로그인하면 최근 1년간 완료된 조회 결과를 가져옵니다
     - `POST {HOSPITAL_CLAIM_MIGRATION_PATH}/jobs` `{ claimAccessToken }` → `GET …/jobs/current`(진행·미리보기) → `POST …/jobs/{id}/confirm` 또는 `/cancel`
     - 결과는 기존 환자와 연결 / 신규 등록 / 보류 / 제외로 분류됩니다
-- **근거:** `re-upstream/restored/views/InsuranceInquiryView.vue`, `re-upstream/restored/components/insurance/InsuranceInquiryWorkbench.vue`, `re-upstream/restored/lib/InsuranceInquiryView/part-1.js`, `re-upstream/restored/lib/InsuranceInquiryView/part-2.js`, `re-upstream/restored/api/patients/requests-2.js`, `re-upstream/restored/components/claim/ClaimMigrationModal.vue`
+- **근거:** `restored/views/InsuranceInquiryView.vue`, `restored/components/insurance/InsuranceInquiryWorkbench.vue`, `restored/lib/InsuranceInquiryView/part-1.js`, `restored/lib/InsuranceInquiryView/part-2.js`, `restored/api/patients/requests-2.js`, `restored/components/claim/ClaimMigrationModal.vue`
 
 ## 전자서명 — `/electronic-signature` (`electronic-signature`)
 - **목적:** 진료기록부와 본인부담금 수납대장에 의사가 네이버 인증서로 전자서명합니다.
@@ -291,7 +291,7 @@
     - 응답은 `{ 서명Id, txExpiresAt }`입니다
   - `GET /signing/{id}/status`를 5초마다 폴링합니다. `SUCCESS`면 `POST /signing/{id}/finish` → `txStatus`에 따라 성공 / "인증이 완료되지 않았습니다." / "인증 기한이 만료되었습니다."
   - 모달에서 내 정보(이름·생년월일·휴대폰)를 확인하고 수정할 수 있습니다: `PATCH accountClient /users/{userId}`, OTP
-- **근거:** `re-upstream/restored/views/ElectronicSignatureView.vue`, `re-upstream/restored/views/RequiredView.vue`, `re-upstream/restored/components/naver/NaverSignModal.vue.js`, `re-upstream/restored/api/signing/requests.js`
+- **근거:** `restored/views/ElectronicSignatureView.vue`, `restored/views/RequiredView.vue`, `restored/components/naver/NaverSignModal.vue.js`, `restored/api/signing/requests.js`
 
 ## 진료 화면의 청구 경고 — `useClaimWarningStore`
 - **목적:** 진료 작성 중 삭감위험 경고를 실시간으로 보여줍니다. 청구 수정 패널과 같은 스토어를 씁니다.
@@ -300,7 +300,7 @@
   - `TreatmentViewBoardPrescriptionV2`는 지표 경고를 `setIndicatorWarnings`로 넣습니다
   - `warnings = [...treatment, ...indicator]`입니다. `currentWarning`은 `defaultErrorCode`와 일치하는 경고를 우선하고, 없으면 `warningIdx` 위치의 경고입니다
   - 표시는 `TreatmentViewBoardFooter` → `ClaimWarningCardsPopover`, `…ClaimWarning` 컴포넌트들이 맡습니다
-- **근거:** `re-upstream/restored/stores/claimWarning.js`, `re-upstream/restored/stores/claimWarningOff.js`, `re-upstream/restored/modules/index/local.js`
+- **근거:** `restored/stores/claimWarning.js`, `restored/stores/claimWarningOff.js`, `restored/modules/index/local.js`
 - 참고: `components/car/`(자보 이력·자보 첩약 편집), `components/jabo/`(내원일 달력), `components/eligibility/`(건보 자격 표)는 데스크 접수와 진료 화면에서 쓰입니다(`DeskPatientAcceptCarHistory`, `PatientHealthInsuranceEligibilityTable` 등). 그래서 이 문서에서는 다루지 않습니다.
 
 ## 흐름
@@ -344,13 +344,13 @@
    - `전송완료`인 건은 "다시 청구하기"(`POST /chunggu/after/{id}/retry`)로 청구필요에 새 청구서를 만들 수 있습니다
    - `심사완료`인 건은 "보완 청구서 생성"(`POST /chunggu/after/{id}/supplementary`)으로 지급불능 명세서를 보완청구합니다. 재심사·이의신청 기한은 통보일 + 90일로 안내합니다
 
-## 레거시 차트(OK차트) 대비
-이 절은 한메디 OK차트 매뉴얼을 근거로 하며, 현행 Upstream 코드에서 확인한 내용이 아닙니다.
+## 레거시 차트 대비
+이 절은 레거시 차트 매뉴얼을 근거로 하며, 현행 코드에서 확인한 내용이 아닙니다.
 
 ### 현행 스펙에 없는 업무
-- **누락분 원청구:** 그 달 원청구를 보낸 뒤 빠진 환자나 빠진 진료일만 모아 별도 명세서로 청구합니다. 건보·급여는 대상 환자를 모르면 "모두추가 → 기청구여부검사"로 이미 청구한 건과 대조해 고릅니다. 자보는 새 청구서를 만들면 누락된 환자·진료일이 자동으로 체크됩니다. 현행 스펙의 청구 유형은 `원청구`/`보완청구`뿐입니다 ([OK차트: 보험, 급여 - 누락분 원청구](https://www.okmedi.net/Manual/?idx=767), [OK차트: 자동차보험 - 누락분 원청구](https://www.okmedi.net/Manual/?idx=941))
-- **추가청구:** 이미 청구한 진료일에 시술·처방 일부(예: 직접애주구, 자보 한약)를 더 기록해서 차액분만 청구합니다. 원청구서를 골라 추가된 진료내역만 명세서에 넣고, 원 접수번호와 사유코드 `00`을 적습니다. 자보는 기존 명세서일련번호를 손으로 넣습니다 ([OK차트: 보험, 급여 - 추가청구](https://www.okmedi.net/Manual/?idx=766), [OK차트: 자동차보험 - 추가청구](https://www.okmedi.net/Manual/?idx=772))
-- **청구 유형 4종 정리:** OK차트는 청구를 다음 넷으로 나눕니다. 재설계 백엔드의 `청구유형`에 누락분·추가청구를 더해야 할 수 있습니다 (추정) ([OK차트: Part 10. 보험 / 자보 / 산재 진료비 청구](https://www.okmedi.net/Manual/?idx=377))
+- **누락분 원청구:** 그 달 원청구를 보낸 뒤 빠진 환자나 빠진 진료일만 모아 별도 명세서로 청구합니다. 건보·급여는 대상 환자를 모르면 "모두추가 → 기청구여부검사"로 이미 청구한 건과 대조해 고릅니다. 자보는 새 청구서를 만들면 누락된 환자·진료일이 자동으로 체크됩니다. 현행 스펙의 청구 유형은 `원청구`/`보완청구`뿐입니다 (레거시 차트 매뉴얼 「보험, 급여 - 누락분 원청구」, 레거시 차트 매뉴얼 「자동차보험 - 누락분 원청구」)
+- **추가청구:** 이미 청구한 진료일에 시술·처방 일부(예: 직접애주구, 자보 한약)를 더 기록해서 차액분만 청구합니다. 원청구서를 골라 추가된 진료내역만 명세서에 넣고, 원 접수번호와 사유코드 `00`을 적습니다. 자보는 기존 명세서일련번호를 손으로 넣습니다 (레거시 차트 매뉴얼 「보험, 급여 - 추가청구」, 레거시 차트 매뉴얼 「자동차보험 - 추가청구」)
+- **청구 유형 4종 정리:** 레거시 차트는 청구를 다음 넷으로 나눕니다. 재설계 백엔드의 `청구유형`에 누락분·추가청구를 더해야 할 수 있습니다 (추정) (레거시 차트 매뉴얼 「Part 10. 보험 / 자보 / 산재 진료비 청구」)
 
 | 유형 | 대상 | 비고 |
 |---|---|---|
@@ -359,32 +359,32 @@
 | 누락분 원청구 | 원청구에서 빠진 환자·진료일 | 특정일 하나만도 됩니다 |
 | 추가청구 | 이미 청구한 진료일에 빠진 항목 | 진찰료·침술료·약 처방 등 |
 
-- **주단위 청구:** 기본은 월단위지만, 한의원 설정에 따라 주단위(월~일)로 청구할 수 있습니다. 자보는 주단위 원청구·보완청구·추가청구가 모두 있습니다 ([OK차트: 보험, 급여, 첩약 - 청구 및 수신](https://www.okmedi.net/Manual/?idx=378), [OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
-- **자보 환자별 청구:** 자보는 한의원 전체 청구서 말고도 환자 한 명씩 청구서를 만들어 보낼 수 있습니다. 추가청구는 이 환자별 청구 경로로만 합니다 ([OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770), [OK차트: 자동차보험 - 추가청구](https://www.okmedi.net/Manual/?idx=772))
-- **이전 청구서를 재사용하는 보완청구:** 진료기록은 그대로 두고 명세서 항목 일부만 바꿀 때(예: 대진의 신고가 잘못돼 의사 면허번호만 바꾸는 경우) 이전 청구서를 불러와 해당 명세서만 고쳐 보완청구합니다. 진료기록을 고친 경우에는 수가를 다시 계산한 뒤 새로 만듭니다 ([OK차트: 보험, 급여, 첩약 - 지급불능건 보완청구](https://www.okmedi.net/Manual/?idx=765))
-- **환수 대응:** 심평원이 환수를 통보하면 해당 청구월의 청구서에서 환자의 명세서일련번호와 청구액을 찾아 포털에서 환수를 진행합니다. 이때 청구액은 이의신청금액 항목에 들어갑니다. 환수가 끝나면 사유에 맞게 진료기록·보험 자격을 고칩니다. 백엔드에는 명세서 단위로 청구액을 조회하는 기능이 필요합니다 (추정) ([OK차트: 환수 진행 과정](https://www.okmedi.net/Manual/?idx=1099))
-- **이의신청(재심사조정청구):** OK차트도 직접 보내지 않고, 심평원 요양기관 업무포털에서 처리하도록 안내합니다. 자보 심사조정은 조정사유가 영문 코드인 건을 가립니다 ([OK차트: 보험, 급여, 첩약 - 심사조정건 이의신청](https://www.okmedi.net/Manual/?idx=768), [OK차트: 자동차보험 - 심사조정건 이의신청](https://www.okmedi.net/Manual/?idx=775))
-- **첩약 시범 조제·탕전 정보 점검:** 첩약 건보 청구 전에 처방기록 제출 여부, 체크리스트 제출 여부와 함께 **탕전일자·조제인력 정보**를 점검·저장합니다. 연동된 공동이용탕전실이면 OCS에서 탕전일자를 받아 오고, 연동되지 않은 탕전실이면 손으로 적습니다. 현행 추나·첩약 제출 현황의 첩약 건보 탭에는 체크리스트 상태만 있습니다 ([OK차트: 4. 첩약 시범사업 청구하기](https://www.okmedi.net/Manual/?idx=1162))
-- **자보 약침술 진료 환자 점검:** 자보 청구 전에 약침액별 조제탕전실 기관기호가 비었거나 약침술 시술명이 규정 형식과 다른 건을 기간별 목록에서 빨간색으로 보여 주고 고치게 합니다. 기관기호는 자보 기초자료(약침액)에 한 번 등록하면 기존 기록에도 자동으로 붙습니다. 2부위 이상 시술은 부위별로 나눠 입력합니다 ([OK차트: 자보 약침술 청구시 기재 형식 오류, 필수 정보 누락 건 수정하기](https://www.okmedi.net/Manual/?idx=1272))
-- **추나 제출 정보 동기화:** 차트에 기록된 제출 상태가 심평원 서버와 다를 때(서버에는 제출됐는데 차트에는 미제출, 서버에서 지웠는데 차트에는 제출 등) 환자·날짜 단위로 서버 상태를 다시 받아 맞춥니다. 자보 첩약 처방·조제내역에도 같은 동기화가 있습니다 ([OK차트: 추나요법 진료기록 심평원 제출 정보 동기화 활용 안내](https://www.okmedi.net/Manual/?idx=895), [OK차트: 자동차보험 첩약 처방 조제내역 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우](https://www.okmedi.net/Manual/?idx=1269))
-- **추나 진료 현황 조회:** 추나를 하기 전에 심평원에서 환자의 연간 실시 횟수를, 한의원 쪽에서 진료의별 당일 추나 건수를 조회해 급여 적용이 되는지 판단합니다. 다른 한의원이 제출한 횟수까지 합친 값입니다 ([OK차트: 추나진료 현황 조회](https://www.okmedi.net/Manual/?idx=934), [OK차트: 추나요법 실시 횟수가 20회 이상인 경우 진료기록 방법](https://www.okmedi.net/Manual/?idx=899))
-- **의료급여 승인을 공단 홈페이지에서 취소한 경우:** 차트 밖에서 취소하면 차트의 승인정보가 남습니다. 그 날짜의 의료급여 진료승인정보를 초기화한 뒤 다시 승인을 요청합니다. 현행 스펙은 앱 안에서의 취소(`DELETE /nhic/m5/...`)만 다룹니다 ([OK차트: 의료급여환자의 진료승인취소를 공단 홈페이지에서 취소한 경우](https://www.okmedi.net/Manual/?idx=936))
-- **차상위 자격 불일치 보완청구:** 공단 요양기관정보마당의 지급내역에서 차상위 자격 불일치로 지급되지 않은 건을 확인합니다. 그 날짜로 자격을 다시 조회해 보험 정보를 고친 뒤 사유코드 `35`로 보완청구합니다 ([OK차트: 차상위 자격 불일치 - 보완청구](https://www.okmedi.net/Manual/?idx=1092), [OK차트: 차상위 자격 불일치 반송내역 확인](https://www.okmedi.net/Manual/?idx=989))
-- **EDI노트(심사 참고사항):** 진찰료(검사료 포함)만 청구하거나 자주 내원하는 등 심사에서 오해받기 쉬운 경우, 사유를 적어 명세서에 실어 보냅니다. 진찰료만 기록하면 안내 메시지를 띄우고, 당일 진료메모를 EDI노트로 복사하는 기능이 있습니다. 특정내역 `MX999`(기타내역)에 적어도 됩니다 ([OK차트: 진찰료만 청구하는 경우, 자주 내원하는 경우 EDI노트 메모 기록 안내](https://www.okmedi.net/Manual/?idx=745))
-- **자보 미군공제 청구서 출력:** 미군공제이거나 보험사가 요청하면 자보 청구서를 종이로 출력합니다 ([OK차트: 자동차보험 - 청구서 출력(미군공제)](https://www.okmedi.net/Manual/?idx=776), [OK차트: 자보회사 요구에 의한 자보청구서 출력 안내](https://www.okmedi.net/Manual/?idx=738))
-- **노인장기요양 의사소견서 발급비용:** 본인부담분은 비급여 소견서 항목(공제제외)으로 기록·수납하고, 나머지는 공단 요양기관정보마당에서 따로 청구합니다. 금액은 해마다 바뀌어 OK차트가 정해 두지 않습니다 ([OK차트: 노인장기요양보험 의사소견서발급비용 청구](https://www.okmedi.net/Manual/?idx=1079))
-- **비급여 보고자료 생성:** 매년 지정된 달(2026년은 3월 진료분)의 비급여 진료내역을 건보공단 한의과 표준코드로 분류해 보고 파일(엑셀)을 만듭니다. 제출은 한의원이 요양기관정보마당에서 직접 합니다. 처리 규칙은 다음과 같습니다 ([OK차트: 비급여 보고자료 및 가격공개자료 제출 방법](https://www.okmedi.net/Manual/?idx=1168), [OK차트: 비급여보고 다빈도 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1253))
+- **주단위 청구:** 기본은 월단위지만, 한의원 설정에 따라 주단위(월~일)로 청구할 수 있습니다. 자보는 주단위 원청구·보완청구·추가청구가 모두 있습니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 청구 및 수신」, 레거시 차트 매뉴얼 「자동차보험 - 원청구」)
+- **자보 환자별 청구:** 자보는 한의원 전체 청구서 말고도 환자 한 명씩 청구서를 만들어 보낼 수 있습니다. 추가청구는 이 환자별 청구 경로로만 합니다 (레거시 차트 매뉴얼 「자동차보험 - 원청구」, 레거시 차트 매뉴얼 「자동차보험 - 추가청구」)
+- **이전 청구서를 재사용하는 보완청구:** 진료기록은 그대로 두고 명세서 항목 일부만 바꿀 때(예: 대진의 신고가 잘못돼 의사 면허번호만 바꾸는 경우) 이전 청구서를 불러와 해당 명세서만 고쳐 보완청구합니다. 진료기록을 고친 경우에는 수가를 다시 계산한 뒤 새로 만듭니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 지급불능건 보완청구」)
+- **환수 대응:** 심평원이 환수를 통보하면 해당 청구월의 청구서에서 환자의 명세서일련번호와 청구액을 찾아 포털에서 환수를 진행합니다. 이때 청구액은 이의신청금액 항목에 들어갑니다. 환수가 끝나면 사유에 맞게 진료기록·보험 자격을 고칩니다. 백엔드에는 명세서 단위로 청구액을 조회하는 기능이 필요합니다 (추정) (레거시 차트 매뉴얼 「환수 진행 과정」)
+- **이의신청(재심사조정청구):** 레거시 차트도 직접 보내지 않고, 심평원 요양기관 업무포털에서 처리하도록 안내합니다. 자보 심사조정은 조정사유가 영문 코드인 건을 가립니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 심사조정건 이의신청」, 레거시 차트 매뉴얼 「자동차보험 - 심사조정건 이의신청」)
+- **첩약 시범 조제·탕전 정보 점검:** 첩약 건보 청구 전에 처방기록 제출 여부, 체크리스트 제출 여부와 함께 **탕전일자·조제인력 정보**를 점검·저장합니다. 연동된 공동이용탕전실이면 OCS에서 탕전일자를 받아 오고, 연동되지 않은 탕전실이면 손으로 적습니다. 현행 추나·첩약 제출 현황의 첩약 건보 탭에는 체크리스트 상태만 있습니다 (레거시 차트 매뉴얼 「4. 첩약 시범사업 청구하기」)
+- **자보 약침술 진료 환자 점검:** 자보 청구 전에 약침액별 조제탕전실 기관기호가 비었거나 약침술 시술명이 규정 형식과 다른 건을 기간별 목록에서 빨간색으로 보여 주고 고치게 합니다. 기관기호는 자보 기초자료(약침액)에 한 번 등록하면 기존 기록에도 자동으로 붙습니다. 2부위 이상 시술은 부위별로 나눠 입력합니다 (레거시 차트 매뉴얼 「자보 약침술 청구시 기재 형식 오류, 필수 정보 누락 건 수정하기」)
+- **추나 제출 정보 동기화:** 차트에 기록된 제출 상태가 심평원 서버와 다를 때(서버에는 제출됐는데 차트에는 미제출, 서버에서 지웠는데 차트에는 제출 등) 환자·날짜 단위로 서버 상태를 다시 받아 맞춥니다. 자보 첩약 처방·조제내역에도 같은 동기화가 있습니다 (레거시 차트 매뉴얼 「추나요법 진료기록 심평원 제출 정보 동기화 활용 안내」, 레거시 차트 매뉴얼 「자동차보험 첩약 처방 조제내역 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우」)
+- **추나 진료 현황 조회:** 추나를 하기 전에 심평원에서 환자의 연간 실시 횟수를, 한의원 쪽에서 진료의별 당일 추나 건수를 조회해 급여 적용이 되는지 판단합니다. 다른 한의원이 제출한 횟수까지 합친 값입니다 (레거시 차트 매뉴얼 「추나진료 현황 조회」, 레거시 차트 매뉴얼 「추나요법 실시 횟수가 20회 이상인 경우 진료기록 방법」)
+- **의료급여 승인을 공단 홈페이지에서 취소한 경우:** 차트 밖에서 취소하면 차트의 승인정보가 남습니다. 그 날짜의 의료급여 진료승인정보를 초기화한 뒤 다시 승인을 요청합니다. 현행 스펙은 앱 안에서의 취소(`DELETE /nhic/m5/...`)만 다룹니다 (레거시 차트 매뉴얼 「의료급여환자의 진료승인취소를 공단 홈페이지에서 취소한 경우」)
+- **차상위 자격 불일치 보완청구:** 공단 요양기관정보마당의 지급내역에서 차상위 자격 불일치로 지급되지 않은 건을 확인합니다. 그 날짜로 자격을 다시 조회해 보험 정보를 고친 뒤 사유코드 `35`로 보완청구합니다 (레거시 차트 매뉴얼 「차상위 자격 불일치 - 보완청구」, 레거시 차트 매뉴얼 「차상위 자격 불일치 반송내역 확인」)
+- **EDI노트(심사 참고사항):** 진찰료(검사료 포함)만 청구하거나 자주 내원하는 등 심사에서 오해받기 쉬운 경우, 사유를 적어 명세서에 실어 보냅니다. 진찰료만 기록하면 안내 메시지를 띄우고, 당일 진료메모를 EDI노트로 복사하는 기능이 있습니다. 특정내역 `MX999`(기타내역)에 적어도 됩니다 (레거시 차트 매뉴얼 「진찰료만 청구하는 경우, 자주 내원하는 경우 EDI노트 메모 기록 안내」)
+- **자보 미군공제 청구서 출력:** 미군공제이거나 보험사가 요청하면 자보 청구서를 종이로 출력합니다 (레거시 차트 매뉴얼 「자동차보험 - 청구서 출력(미군공제)」, 레거시 차트 매뉴얼 「자보회사 요구에 의한 자보청구서 출력 안내」)
+- **노인장기요양 의사소견서 발급비용:** 본인부담분은 비급여 소견서 항목(공제제외)으로 기록·수납하고, 나머지는 공단 요양기관정보마당에서 따로 청구합니다. 금액은 해마다 바뀌어 레거시 차트가 정해 두지 않습니다 (레거시 차트 매뉴얼 「노인장기요양보험 의사소견서발급비용 청구」)
+- **비급여 보고자료 생성:** 매년 지정된 달(2026년은 3월 진료분)의 비급여 진료내역을 건보공단 한의과 표준코드로 분류해 보고 파일(엑셀)을 만듭니다. 제출은 한의원이 요양기관정보마당에서 직접 합니다. 처리 규칙은 다음과 같습니다 (레거시 차트 매뉴얼 「비급여 보고자료 및 가격공개자료 제출 방법」, 레거시 차트 매뉴얼 「비급여보고 다빈도 질의응답(Q&A)」)
   - 비급여 항목마다 표준코드를 고르거나 "보고하지 않음"으로 둡니다. 직전 연도 분류를 이어 받거나, OMS·OCS로 처방한 첩약을 한꺼번에 지정할 수 있습니다. 비만·탈모 같은 미용 약침은 대상이 아닙니다
   - 단가는 수납액이 아니라 비급여 기초자료에 등록된 단가를 먼저 씁니다. 기초자료에 단가가 없는 첩약은 총액을 실시빈도(일투 × 일수)로 나눠 계산합니다. 일투·일수가 불분명하면 실시빈도 1로 내도 됩니다
   - 추나+약침처럼 여러 항목을 묶은 비급여는 세트 처방으로 만들어 표준코드를 붙입니다
   - 0원(무료)인 항목도 보고 대상입니다. 첩약은 처방일이 속한 달로 보고합니다(월을 넘겨 복용해도 나누지 않습니다)
   - 원내·원외탕전에서 조제한 첩약은 한약첩약(`7Z0200001`), 제약사가 만든 기성 제제는 한방생약제제(`7X0200002`)로 분류합니다
   - 가격공개자료는 진료내역과 관계없이 한의원이 고지하는 항목으로, 한의원이 따로 작성해 제출합니다
-- **실손24 연동:** 진료·수납이 끝나면 환자가 실손24 앱·웹에서 진료내역을 골라 보험사에 청구서를 냅니다. 이때 한의원 메인 PC가 켜져 있어야 합니다(로컬 PC가 자료를 내주는 구조로 보임 (추정)). 예전 카카오페이 기반 "실손보험 바로청구"는 2025-08-14에 실손24로 통합되며 종료됐습니다 ([OK차트: 실손24 서비스](https://www.okmedi.net/Manual/?idx=1275), [OK차트: 실손보험 바로청구 서비스(지원 종료)](https://www.okmedi.net/Manual/?idx=1304))
+- **실손24 연동:** 진료·수납이 끝나면 환자가 실손24 앱·웹에서 진료내역을 골라 보험사에 청구서를 냅니다. 이때 한의원 메인 PC가 켜져 있어야 합니다(로컬 PC가 자료를 내주는 구조로 보임 (추정)). 예전 카카오페이 기반 "실손보험 바로청구"는 2025-08-14에 실손24로 통합되며 종료됐습니다 (레거시 차트 매뉴얼 「실손24 서비스」, 레거시 차트 매뉴얼 「실손보험 바로청구 서비스(지원 종료)」)
 
 ### 업무 규칙
-- **청구 가능 시점:** 월단위는 해당 월 마지막 날 18시부터, 주단위(월~일)는 그 주 일요일 18시부터 청구할 수 있습니다 ([OK차트: 보험, 급여, 첩약 - 청구 및 수신](https://www.okmedi.net/Manual/?idx=378))
-- **같은 달 청구 단위 혼용 금지:** 한 진료월의 요양급여비용은 첩약과 그 밖의 진료를 가리지 않고 주단위 또는 월단위 중 하나로만 청구합니다 (첩약 시범사업 Q&A, (한)약국 사례 기준) ([OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
+- **청구 가능 시점:** 월단위는 해당 월 마지막 날 18시부터, 주단위(월~일)는 그 주 일요일 18시부터 청구할 수 있습니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 청구 및 수신」)
+- **같은 달 청구 단위 혼용 금지:** 한 진료월의 요양급여비용은 첩약과 그 밖의 진료를 가리지 않고 주단위 또는 월단위 중 하나로만 청구합니다 (첩약 시범사업 Q&A, (한)약국 사례 기준) (레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
 - **수신·처리 기한 (매뉴얼 기준):**
 
 | 항목 | 기한 | 비고 |
@@ -396,13 +396,13 @@
 | 자보 이의제기 | 통보서 받은 날부터 90일 이내 | 자동차손해배상보장법 시행규칙 제6조의4, 「자동차보험진료수가 심사업무처리에 관한 규정」 별지 제17호 서식. 심사조정 안내 FAQ에는 "25일 이내"로 적혀 있어 문서마다 다릅니다 |
 | 청구 소멸시효 | 3년 | 첩약 시범은 청구 가능일부터 2개월 이내 청구를 권장합니다 |
 
-  - 출처: ([OK차트: 보험, 급여, 첩약 - 수신](https://www.okmedi.net/Manual/?idx=763), [OK차트: 보험, 급여, 첩약 - 원청구](https://www.okmedi.net/Manual/?idx=762), [OK차트: 자동차보험 - 청구 및 수신](https://www.okmedi.net/Manual/?idx=379), [OK차트: 자동차보험 - 심사조정건 이의신청](https://www.okmedi.net/Manual/?idx=775), [OK차트: 심사조정 내역 안내](https://www.okmedi.net/Manual/?idx=724), [OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
-- **보완청구 기재 항목:** 청구구분에 보완청구 코드(`1`), 원 접수번호, 명세서일련번호, 심사불능사유코드를 적습니다. 명세서일련번호는 수신한 통보서의 명일련번호를 그대로 써야 합니다. 현행 `POST /chunggu/after/{id}/supplementary`의 `{ 청구진료Id, 명세서일련번호, 심사불능사유코드 }`와 맞습니다 ([OK차트: 보험, 급여, 첩약 - 지급불능건 보완청구](https://www.okmedi.net/Manual/?idx=765), [OK차트: 심사조정 내역 안내](https://www.okmedi.net/Manual/?idx=724))
-  - 포털에서 명세서 반송을 요청한 전산입력착오 건은 심사불능 `64-04`로 통보됩니다 ([OK차트: 심사조정 내역 안내](https://www.okmedi.net/Manual/?idx=724))
-  - 자보 보완청구가 다시 반송되면 원청구가 아니라 보완청구를 다시 합니다 ([OK차트: 자동차보험 - 반송건 다시 원청구](https://www.okmedi.net/Manual/?idx=773))
-- **반송 사유 예:** 자보 반송코드 `J3-01`은 사고접수번호 누락·착오입니다. 자보 자격(사고번호·지급보증번호)을 고친 뒤 해당 청구서를 다시 원청구합니다 ([OK차트: 자동차보험 - 반송건 다시 원청구](https://www.okmedi.net/Manual/?idx=773))
-- **건보 청구 문서 분리:** 건강보험, 의료급여, 첩약시범은 각각 따로 청구서를 만들어 보냅니다. 첩약시범 청구서는 **건보 청구서를 먼저 만들어 송신한 뒤** 작성합니다. 진료의 1인당 1일 진료 환자수(차등지수) 계산 때문입니다 ([OK차트: 4. 첩약 시범사업 청구하기](https://www.okmedi.net/Manual/?idx=1162), [OK차트: 보험, 급여, 첩약 - 원청구](https://www.okmedi.net/Manual/?idx=762))
-- **진찰료 차등수가(차등지수):** 청구 기간(월 또는 주)의 진찰 건수를 진료의 수와 진료일수로 나눈 1일 평균으로 진찰료 지급률을 정합니다. 기준은 진료의 1인당 1일 75건이고, 대부분의 한의원은 차등지수 `1`입니다. 75건을 넘으면 1보다 작은 소수(예: `0.912121`)가 되며, 청구용 파일을 만들 때 청구서에 표기됩니다 ([OK차트: (용어) - 차등수가제 : 차등지수](https://www.okmedi.net/Manual/?idx=746))
+  - 출처: (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 수신」, 레거시 차트 매뉴얼 「보험, 급여, 첩약 - 원청구」, 레거시 차트 매뉴얼 「자동차보험 - 청구 및 수신」, 레거시 차트 매뉴얼 「자동차보험 - 심사조정건 이의신청」, 레거시 차트 매뉴얼 「심사조정 내역 안내」, 레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
+- **보완청구 기재 항목:** 청구구분에 보완청구 코드(`1`), 원 접수번호, 명세서일련번호, 심사불능사유코드를 적습니다. 명세서일련번호는 수신한 통보서의 명일련번호를 그대로 써야 합니다. 현행 `POST /chunggu/after/{id}/supplementary`의 `{ 청구진료Id, 명세서일련번호, 심사불능사유코드 }`와 맞습니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 지급불능건 보완청구」, 레거시 차트 매뉴얼 「심사조정 내역 안내」)
+  - 포털에서 명세서 반송을 요청한 전산입력착오 건은 심사불능 `64-04`로 통보됩니다 (레거시 차트 매뉴얼 「심사조정 내역 안내」)
+  - 자보 보완청구가 다시 반송되면 원청구가 아니라 보완청구를 다시 합니다 (레거시 차트 매뉴얼 「자동차보험 - 반송건 다시 원청구」)
+- **반송 사유 예:** 자보 반송코드 `J3-01`은 사고접수번호 누락·착오입니다. 자보 자격(사고번호·지급보증번호)을 고친 뒤 해당 청구서를 다시 원청구합니다 (레거시 차트 매뉴얼 「자동차보험 - 반송건 다시 원청구」)
+- **건보 청구 문서 분리:** 건강보험, 의료급여, 첩약시범은 각각 따로 청구서를 만들어 보냅니다. 첩약시범 청구서는 **건보 청구서를 먼저 만들어 송신한 뒤** 작성합니다. 진료의 1인당 1일 진료 환자수(차등지수) 계산 때문입니다 (레거시 차트 매뉴얼 「4. 첩약 시범사업 청구하기」, 레거시 차트 매뉴얼 「보험, 급여, 첩약 - 원청구」)
+- **진찰료 차등수가(차등지수):** 청구 기간(월 또는 주)의 진찰 건수를 진료의 수와 진료일수로 나눈 1일 평균으로 진찰료 지급률을 정합니다. 기준은 진료의 1인당 1일 75건이고, 대부분의 한의원은 차등지수 `1`입니다. 75건을 넘으면 1보다 작은 소수(예: `0.912121`)가 되며, 청구용 파일을 만들 때 청구서에 표기됩니다 (레거시 차트 매뉴얼 「(용어) - 차등수가제 : 차등지수」)
 
   | 1인당 1일 진찰 건수 | 진찰료 지급률 |
   |---|---|
@@ -411,9 +411,9 @@
   | 101~150건 | 75% |
   | 151건 이상 | 50% |
 
-  - 진료의 인원은 근무형태로 셉니다. 상근(주 5일·40시간 이상, 3개월 이상 계약) 1인, 비상근(주 3일·20시간 이상) 0.5인, 기타(주 20시간 미만) 0인입니다. 근무형태는 진료의 정보에 저장합니다 ([settings.md](settings.md#레거시-차트ok차트-대비))
-- **청구 전 단계 (OK차트):** 인적사항 오류검사(예비심사) → 보험 수가 재계산 → 진료의별 진료일수 등록 → 청구서·명세서 작성과 화면검증 → SAM 생성·변환·송신 순서입니다. 예비심사는 의료급여 승인번호 누락, 첩약시범 정보 미비, 추나 미제출을 오류로 잡습니다 ([OK차트: 보험, 급여, 첩약 - 원청구](https://www.okmedi.net/Manual/?idx=762))
-- **심평원 수신처:** 건보·급여 EDI는 요양기관 소재지의 심평원 지원으로, 자보는 심평원 본원으로 갑니다. 2024-07-01부터 부산·제주, 경기북부·강원 지원이 나뉘었습니다 ([OK차트: 보험청구시 지역별 수신처 안내](https://www.okmedi.net/Manual/?idx=712), [OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
+  - 진료의 인원은 근무형태로 셉니다. 상근(주 5일·40시간 이상, 3개월 이상 계약) 1인, 비상근(주 3일·20시간 이상) 0.5인, 기타(주 20시간 미만) 0인입니다. 근무형태는 진료의 정보에 저장합니다 ([settings.md](settings.md#레거시-차트-대비))
+- **청구 전 단계 (레거시 차트):** 인적사항 오류검사(예비심사) → 보험 수가 재계산 → 진료의별 진료일수 등록 → 청구서·명세서 작성과 화면검증 → SAM 생성·변환·송신 순서입니다. 예비심사는 의료급여 승인번호 누락, 첩약시범 정보 미비, 추나 미제출을 오류로 잡습니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 원청구」)
+- **심평원 수신처:** 건보·급여 EDI는 요양기관 소재지의 심평원 지원으로, 자보는 심평원 본원으로 갑니다. 2024-07-01부터 부산·제주, 경기북부·강원 지원이 나뉘었습니다 (레거시 차트 매뉴얼 「보험청구시 지역별 수신처 안내」, 레거시 차트 매뉴얼 「자동차보험 - 원청구」)
 
 | 지원 | 관할 (2024-07-01부터) |
 |---|---|
@@ -425,40 +425,40 @@
 | 경기남부 | 수원·성남·안양·부천·광명·평택·안산·과천·오산·시흥·군포·의왕·하남·용인·이천·안성·김포·화성·광주·여주시, 양평군 |
 | 경기북부 | 의정부·동두천·고양·구리·남양주·파주·양주·포천시, 연천·가평군 |
 
-- **사전점검:** 사전점검으로 보낸 것은 실제 청구가 아닙니다. 결과를 확인한 뒤 실청구를 따로 해야 합니다 ([OK차트: 사전점검서비스 청구 방법 - (사전심사)](https://www.okmedi.net/Manual/?idx=1122))
-- **자보 비용산정목록표:** 자보 청구 7일 전까지 고시·비고시 항목과 의료장비 등을 비용산정목록표로 심평원에 내야 하고, 비용이 바뀌면 다시 냅니다. 처음 청구할 때는 실구입가 증빙자료도 냅니다 ([OK차트: 자동차보험 - 청구 및 수신](https://www.okmedi.net/Manual/?idx=379), [OK차트: 자동차보험 진료수가 다빈도 청구착오 항목 안내](https://www.okmedi.net/Manual/?idx=1090))
+- **사전점검:** 사전점검으로 보낸 것은 실제 청구가 아닙니다. 결과를 확인한 뒤 실청구를 따로 해야 합니다 (레거시 차트 매뉴얼 「사전점검서비스 청구 방법 - (사전심사)」)
+- **자보 비용산정목록표:** 자보 청구 7일 전까지 고시·비고시 항목과 의료장비 등을 비용산정목록표로 심평원에 내야 하고, 비용이 바뀌면 다시 냅니다. 처음 청구할 때는 실구입가 증빙자료도 냅니다 (레거시 차트 매뉴얼 「자동차보험 - 청구 및 수신」, 레거시 차트 매뉴얼 「자동차보험 진료수가 다빈도 청구착오 항목 안내」)
 - **자보 청구서 분할·자격 기간:**
-  - 한 환자가 같은 달에 보험사 두 곳에 사고 접수되면 청구서를 보험사별로 따로 만듭니다. 보험사별 적용 시작·종료일이 겹치지 않아야 합니다 ([OK차트: 자동차보험 청구월에 한 환자에게 보험사가 2개일 경우](https://www.okmedi.net/Manual/?idx=841), [OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
-  - 사고접수번호는 같은데 지급보증번호가 계속 바뀌면(예: 전국렌터카공제조합) 앞 보증의 적용종료일을 다음 보증 시작 전날로 닫고, 정보를 복사해 새 기간을 추가합니다 ([OK차트: 전국렌터카공제조합의 지급보증번호가 계속 변경되는 경](https://www.okmedi.net/Manual/?idx=1078))
-  - 양도양수가 있으면 양도양수 일자를 기준으로 청구 기간을 나눕니다 ([OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
-- **자보 1일 2차 진료:** 치료 중 다른 사고가 나서 진료일이 겹치고, 보험사가 다르고 상해부위·진단명도 다르면 2차 진료를 청구할 수 있습니다. 2차는 별도 차트로 기록하고 진찰료는 1차에서만 1일 1회 산정합니다. 2차 명세서에는 상해외인(`MT001`)에 `U`, 내원일수 `0`이 자동으로 들어갑니다. 단일 사고에 보험사가 둘이면 같은 날 한 보험사만 기록합니다 ([OK차트: 자동차보험에서 1일 2차 진료기록 및 청구 지원](https://www.okmedi.net/Manual/?idx=986), [OK차트: 자동차보험 청구월에 한 환자에게 보험사가 2개일 경우](https://www.okmedi.net/Manual/?idx=841))
-- **같은 날 자보·건보 병행:** 같은 날 자보와 건보 진료가 함께 있으면 차트를 나눠 기록하고, 명세서도 따로 송신합니다. 날짜가 다르면 한 차트에서 해도 청구 때 날짜별로 나뉩니다 ([OK차트: 자보치료와 건보치료가 병행된 경우 진료기록](https://www.okmedi.net/Manual/?idx=1049))
-- **촉탁의 진료:** 약제비·조제료만 산정하고 진찰료는 뺍니다. 명세서 상해외인(`MT001`)에 `J`, 내원일수 `1`이 자동으로 들어갑니다(2016-09-06 시행 기준) ([OK차트: 촉탁의 진료기록 및 청구](https://www.okmedi.net/Manual/?idx=750))
+  - 한 환자가 같은 달에 보험사 두 곳에 사고 접수되면 청구서를 보험사별로 따로 만듭니다. 보험사별 적용 시작·종료일이 겹치지 않아야 합니다 (레거시 차트 매뉴얼 「자동차보험 청구월에 한 환자에게 보험사가 2개일 경우」, 레거시 차트 매뉴얼 「자동차보험 - 원청구」)
+  - 사고접수번호는 같은데 지급보증번호가 계속 바뀌면(예: 전국렌터카공제조합) 앞 보증의 적용종료일을 다음 보증 시작 전날로 닫고, 정보를 복사해 새 기간을 추가합니다 (레거시 차트 매뉴얼 「전국렌터카공제조합의 지급보증번호가 계속 변경되는 경」)
+  - 양도양수가 있으면 양도양수 일자를 기준으로 청구 기간을 나눕니다 (레거시 차트 매뉴얼 「자동차보험 - 원청구」)
+- **자보 1일 2차 진료:** 치료 중 다른 사고가 나서 진료일이 겹치고, 보험사가 다르고 상해부위·진단명도 다르면 2차 진료를 청구할 수 있습니다. 2차는 별도 차트로 기록하고 진찰료는 1차에서만 1일 1회 산정합니다. 2차 명세서에는 상해외인(`MT001`)에 `U`, 내원일수 `0`이 자동으로 들어갑니다. 단일 사고에 보험사가 둘이면 같은 날 한 보험사만 기록합니다 (레거시 차트 매뉴얼 「자동차보험에서 1일 2차 진료기록 및 청구 지원」, 레거시 차트 매뉴얼 「자동차보험 청구월에 한 환자에게 보험사가 2개일 경우」)
+- **같은 날 자보·건보 병행:** 같은 날 자보와 건보 진료가 함께 있으면 차트를 나눠 기록하고, 명세서도 따로 송신합니다. 날짜가 다르면 한 차트에서 해도 청구 때 날짜별로 나뉩니다 (레거시 차트 매뉴얼 「자보치료와 건보치료가 병행된 경우 진료기록」)
+- **촉탁의 진료:** 약제비·조제료만 산정하고 진찰료는 뺍니다. 명세서 상해외인(`MT001`)에 `J`, 내원일수 `1`이 자동으로 들어갑니다(2016-09-06 시행 기준) (레거시 차트 매뉴얼 「촉탁의 진료기록 및 청구」)
 - **추나 제출·청구 규칙:**
-  - 건보 추나는 대한한의사협회 추나 급여 사전교육을 이수하고 심평원 보건의료자원통합신고포털에 신고해야 합니다 ([OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
-  - 추나 제출 뒤 바로 청구하지 않고 기다립니다. 자보 청구·보완청구 안내는 10분, 추나 진료환자 관리 안내는 30분입니다 ([OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770), [OK차트: 추나요법 진료환자 관리](https://www.okmedi.net/Manual/?idx=1017), [OK차트: 보험, 급여, 첩약 - 지급불능건 보완청구](https://www.okmedi.net/Manual/?idx=765))
-  - 건보: 환자당 연간 20회, 한의사 1인당 1일 18명까지입니다. 넘으면 심평원이 제출을 받지 않고, 비급여로 기록해야 합니다 ([OK차트: 추나진료 현황 조회](https://www.okmedi.net/Manual/?idx=934), [OK차트: 추나요법 실시 횟수가 20회 이상인 경우 진료기록 방법](https://www.okmedi.net/Manual/?idx=899))
-  - 자보: 치료기간 중 20회까지 인정하고, 넘으면 사례별로 인정합니다. 시행 이유·부위·기법을 EDI노트에 자세히 남깁니다 ([OK차트: 추나요법 실시 횟수가 20회 이상인 경우 진료기록 방법](https://www.okmedi.net/Manual/?idx=899))
-  - 단순·전문·특수추나 중 둘 이상을 해도 주된 것 1회만, 1일 1회 산정합니다. 건보 추나는 건강보험 환자만 대상이었습니다(2017 시범사업 기준) ([OK차트: 추나요법 시범사업 안내](https://www.okmedi.net/Manual/?idx=751), [OK차트: 심사조정 내역 안내](https://www.okmedi.net/Manual/?idx=724))
-  - 본인부담금은 추나분 50%, 나머지 진료분 30%로 따로 계산해 합칩니다. 65세 이상도 이 방식입니다 ([OK차트: 추나요법 본인부담금 계산방식 예시](https://www.okmedi.net/Manual/?idx=889))
-  - 자보 추나 제출 때 자보 자격에 저장된 사고접수번호가 자동으로 들어갑니다(2019-04-29부터). 제출할 때 번호와 명세서 번호가 다르면 "사고접수번호 불일치"로 청구서 작성을 막고, 제출 정보를 지운 뒤 다시 제출하게 합니다. 자보 자격의 사고번호를 고칠 때도 같은 경고가 뜹니다 ([OK차트: 추나요법 한방추나요법API 분리 적용](https://www.okmedi.net/Manual/?idx=896), [OK차트: 자동차보험 추나요법 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우](https://www.okmedi.net/Manual/?idx=915))
-  - 새 자보 청구서를 만들 때 "추나 실시 한의사별 근무일수"를 확인합니다. 이전 정보와 다르면 새 정보로 진행합니다 ([OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
+  - 건보 추나는 대한한의사협회 추나 급여 사전교육을 이수하고 심평원 보건의료자원통합신고포털에 신고해야 합니다 (레거시 차트 매뉴얼 「자동차보험 - 원청구」)
+  - 추나 제출 뒤 바로 청구하지 않고 기다립니다. 자보 청구·보완청구 안내는 10분, 추나 진료환자 관리 안내는 30분입니다 (레거시 차트 매뉴얼 「자동차보험 - 원청구」, 레거시 차트 매뉴얼 「추나요법 진료환자 관리」, 레거시 차트 매뉴얼 「보험, 급여, 첩약 - 지급불능건 보완청구」)
+  - 건보: 환자당 연간 20회, 한의사 1인당 1일 18명까지입니다. 넘으면 심평원이 제출을 받지 않고, 비급여로 기록해야 합니다 (레거시 차트 매뉴얼 「추나진료 현황 조회」, 레거시 차트 매뉴얼 「추나요법 실시 횟수가 20회 이상인 경우 진료기록 방법」)
+  - 자보: 치료기간 중 20회까지 인정하고, 넘으면 사례별로 인정합니다. 시행 이유·부위·기법을 EDI노트에 자세히 남깁니다 (레거시 차트 매뉴얼 「추나요법 실시 횟수가 20회 이상인 경우 진료기록 방법」)
+  - 단순·전문·특수추나 중 둘 이상을 해도 주된 것 1회만, 1일 1회 산정합니다. 건보 추나는 건강보험 환자만 대상이었습니다(2017 시범사업 기준) (레거시 차트 매뉴얼 「추나요법 시범사업 안내」, 레거시 차트 매뉴얼 「심사조정 내역 안내」)
+  - 본인부담금은 추나분 50%, 나머지 진료분 30%로 따로 계산해 합칩니다. 65세 이상도 이 방식입니다 (레거시 차트 매뉴얼 「추나요법 본인부담금 계산방식 예시」)
+  - 자보 추나 제출 때 자보 자격에 저장된 사고접수번호가 자동으로 들어갑니다(2019-04-29부터). 제출할 때 번호와 명세서 번호가 다르면 "사고접수번호 불일치"로 청구서 작성을 막고, 제출 정보를 지운 뒤 다시 제출하게 합니다. 자보 자격의 사고번호를 고칠 때도 같은 경고가 뜹니다 (레거시 차트 매뉴얼 「추나요법 한방추나요법API 분리 적용」, 레거시 차트 매뉴얼 「자동차보험 추나요법 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우」)
+  - 새 자보 청구서를 만들 때 "추나 실시 한의사별 근무일수"를 확인합니다. 이전 정보와 다르면 새 정보로 진행합니다 (레거시 차트 매뉴얼 「자동차보험 - 원청구」)
 - **추나·자보 첩약 제출 정보 삭제 조건:**
   - 삭제할 수 있는 건: 진료일 기준 93일(제출일 기준 3개월) 이내 자료. 청구 전이면 모두, 심사결정 뒤에는 불능·반송 건만 지울 수 있습니다
   - 삭제할 수 없는 건: 접수·심사 중인 명세서, 심사결정으로 지급받은 건
   - 차트에서 지워지지 않으면 심평원(1644-2000)에 삭제를 요청하고, 동기화한 뒤 다시 제출합니다. 이미 지급불능이 났으면 다시 제출한 뒤 보완청구로 보냅니다
-  - 출처: ([OK차트: 자동차보험 추나요법 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우](https://www.okmedi.net/Manual/?idx=915), [OK차트: 자동차보험 첩약 처방 조제내역 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우](https://www.okmedi.net/Manual/?idx=1269), [OK차트: 추나요법 삭제 관련 안내](https://www.okmedi.net/Manual/?idx=930))
+  - 출처: (레거시 차트 매뉴얼 「자동차보험 추나요법 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우」, 레거시 차트 매뉴얼 「자동차보험 첩약 처방 조제내역 제출 후, 사고접수번호가 잘 못 되어 다시 제출하여야 할 경우」, 레거시 차트 매뉴얼 「추나요법 삭제 관련 안내」)
 - **첩약 건보 시범 제출 규칙:**
-  - 수진자 진료정보는 처방할 때 실시간으로 내는 것이 원칙이고, 늦어도 청구 전까지는 내야 합니다. 미제출이면 심사불능입니다. 다른 기관이 같은 환자를 먼저 등록하면 나중 처방은 급여가 안 되고 심사불능이 됩니다 ([OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
-  - 표준 진단체크리스트는 전액본인부담(100분의 100) 처방이라도 내야 하고, "최종제출"을 해야 제출로 인정됩니다. 제출 뒤에는 주민번호·진료일자를 고칠 수 없어 지우고 다시 써야 합니다. 나머지 항목은 기한 없이 고칠 수 있습니다 ([OK차트: 첩약 시범사업 주요내용](https://www.okmedi.net/Manual/?idx=1155), [OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
-  - 수진자 진료정보·체크리스트의 제출 정보는 진료일 다음 달 말일까지 삭제할 수 있습니다 ([OK차트: 첩약 시범사업 주요내용](https://www.okmedi.net/Manual/?idx=1155))
-  - 두 정보가 모두 제출됐는데 체크리스트 제출여부가 `N`이면 진료일자·성명·주민번호가 서로 맞지 않는 것이므로, 잘못 낸 쪽을 지우고 다시 냅니다 ([OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
-  - 조제·탕전 특정내역: 자체탕전은 `JT027` = `탕전일자/…/탕전실연번`, 공동이용탕전은 `JT028` = `설치기관기호/탕전일자/…/연번` 형식입니다. 날짜는 처방일이 아니라 실제 탕전일이고, 원내 탕전실 연번이 없으면 `01`을 씁니다 ([OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
-  - 시범사업 명세서는 서식버전 `561`, 그 밖의 심사청구서는 `091`을 씁니다. 같은 날 시범 외 진료(진찰료 등)는 명세서를 나누고, 특정내역 `S027`(시범분) / `S028`(비시범분)으로 구분합니다 ([OK차트: 첩약 시범사업 질의응답(Q&A)](https://www.okmedi.net/Manual/?idx=1156))
-- **산재 청구:** 일반 산재와 합병증 등 예방관리를 나눠 각각 청구서를 만들어 접수합니다. 산재에는 보완청구·추가청구·누락분 청구가 없습니다. 생성되는 SAM 파일은 6개이고, 근로복지공단 토탈서비스에 서식 `072` 버전으로 올린 뒤 사전점검을 거쳐 접수합니다 ([OK차트: 산재보험 - 청구](https://www.okmedi.net/Manual/?idx=380))
+  - 수진자 진료정보는 처방할 때 실시간으로 내는 것이 원칙이고, 늦어도 청구 전까지는 내야 합니다. 미제출이면 심사불능입니다. 다른 기관이 같은 환자를 먼저 등록하면 나중 처방은 급여가 안 되고 심사불능이 됩니다 (레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
+  - 표준 진단체크리스트는 전액본인부담(100분의 100) 처방이라도 내야 하고, "최종제출"을 해야 제출로 인정됩니다. 제출 뒤에는 주민번호·진료일자를 고칠 수 없어 지우고 다시 써야 합니다. 나머지 항목은 기한 없이 고칠 수 있습니다 (레거시 차트 매뉴얼 「첩약 시범사업 주요내용」, 레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
+  - 수진자 진료정보·체크리스트의 제출 정보는 진료일 다음 달 말일까지 삭제할 수 있습니다 (레거시 차트 매뉴얼 「첩약 시범사업 주요내용」)
+  - 두 정보가 모두 제출됐는데 체크리스트 제출여부가 `N`이면 진료일자·성명·주민번호가 서로 맞지 않는 것이므로, 잘못 낸 쪽을 지우고 다시 냅니다 (레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
+  - 조제·탕전 특정내역: 자체탕전은 `JT027` = `탕전일자/…/탕전실연번`, 공동이용탕전은 `JT028` = `설치기관기호/탕전일자/…/연번` 형식입니다. 날짜는 처방일이 아니라 실제 탕전일이고, 원내 탕전실 연번이 없으면 `01`을 씁니다 (레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
+  - 시범사업 명세서는 서식버전 `561`, 그 밖의 심사청구서는 `091`을 씁니다. 같은 날 시범 외 진료(진찰료 등)는 명세서를 나누고, 특정내역 `S027`(시범분) / `S028`(비시범분)으로 구분합니다 (레거시 차트 매뉴얼 「첩약 시범사업 질의응답(Q&A)」)
+- **산재 청구:** 일반 산재와 합병증 등 예방관리를 나눠 각각 청구서를 만들어 접수합니다. 산재에는 보완청구·추가청구·누락분 청구가 없습니다. 생성되는 SAM 파일은 6개이고, 근로복지공단 토탈서비스에 서식 `072` 버전으로 올린 뒤 사전점검을 거쳐 접수합니다 (레거시 차트 매뉴얼 「산재보험 - 청구」)
 - **제주 지원사업:**
-  - 해녀: 건강보험·의료급여 외래 본인부담금 전액을 지원합니다(예산에 따라 조정될 수 있음). 매월 말일 기준으로 다음 달 15일까지 청구서(별지 제8호)와 내역서(별지 제9호)를 내고, 제주시·서귀포시를 나눠 따로 작성해 우편으로 보냅니다 ([OK차트: 제주 해녀 진료비 청구](https://www.okmedi.net/Manual/?idx=381))
-  - 4·3: **유족**과 **며느리**를 나눠 각각 청구서를 만들고, 진료 다음 달 15일까지 4·3평화재단 의료비 지원시스템에 올립니다 ([OK차트: 제주4·3 유족 및 며느리 진료비 청구](https://www.okmedi.net/Manual/?idx=382))
+  - 해녀: 건강보험·의료급여 외래 본인부담금 전액을 지원합니다(예산에 따라 조정될 수 있음). 매월 말일 기준으로 다음 달 15일까지 청구서(별지 제8호)와 내역서(별지 제9호)를 내고, 제주시·서귀포시를 나눠 따로 작성해 우편으로 보냅니다 (레거시 차트 매뉴얼 「제주 해녀 진료비 청구」)
+  - 4·3: **유족**과 **며느리**를 나눠 각각 청구서를 만들고, 진료 다음 달 15일까지 4·3평화재단 의료비 지원시스템에 올립니다 (레거시 차트 매뉴얼 「제주4·3 유족 및 며느리 진료비 청구」)
 - **한의 방문진료 시범사업 (매뉴얼 기준):**
 
 | 항목 | 2025년 | 2026-01-01부터 |
@@ -473,33 +473,33 @@
   - 의료접근성 취약지·소아는 가산합니다. 취약지 기관, 재택의료센터 참여 여부는 병원 설정에 둡니다
   - 초·재진 진찰료, 행위·약제·치료재료, 한약제제, 첩약 건보, 추나, 동반인력 비용은 함께 산정할 수 없습니다. 100분의 100 본인부담 여부는 진료 한의사가 정합니다
   - 소요시간·편도 이동거리·진료내용은 진료메모에 남깁니다
-  - 같은 날 같은 환자를 외래로 보고 방문진료도 했다면 명세서를 나눠야 합니다(OK차트는 차트를 하나 더 만들어 처리합니다)
+  - 같은 날 같은 환자를 외래로 보고 방문진료도 했다면 명세서를 나눠야 합니다(레거시 차트는 차트를 하나 더 만들어 처리합니다)
   - 청구 자체는 기존 EDI로 하고, 시범사업 자료제출 시스템에 점검서식을 따로 냅니다. 환자 개인정보 제3자 제공 동의서를 받아 둡니다
-  - 출처: ([OK차트: OK차트에서 한의 방문진료 기록하기](https://www.okmedi.net/Manual/?idx=1060), [OK차트: 한의 방문진료 시범사업 자료제출 시스템](https://www.okmedi.net/Manual/?idx=1057))
-- **비대면진료 시범사업 관리료 (2025-10-27부터):** 같은 기관에서 같은 환자에게 월 2회를 넘겨 산정하지 않습니다(예외 조항이 없어졌습니다). 진찰료·관리료에 가산은 붙지 않고, 시간대별 수가코드는 정보 수집용이라 금액이 같습니다 ([OK차트: 비대면진료 시범사업 관리료 진료기록 방법](https://www.okmedi.net/Manual/?idx=1132))
+  - 출처: (레거시 차트 매뉴얼 「레거시 차트에서 한의 방문진료 기록하기」, 레거시 차트 매뉴얼 「한의 방문진료 시범사업 자료제출 시스템」)
+- **비대면진료 시범사업 관리료 (2025-10-27부터):** 같은 기관에서 같은 환자에게 월 2회를 넘겨 산정하지 않습니다(예외 조항이 없어졌습니다). 진찰료·관리료에 가산은 붙지 않고, 시간대별 수가코드는 정보 수집용이라 금액이 같습니다 (레거시 차트 매뉴얼 「비대면진료 시범사업 관리료 진료기록 방법」)
 - **연말정산 의료비 자료 (2025년 귀속 매뉴얼 기준):**
   - 대상 기간은 1월 1일~12월 31일이고, 연중 개설·양수했으면 개설일부터입니다
   - 제출은 다음 해 1월 1~7일(06~22시)이고, 부득이하면 1월 13일 22시까지 낼 수 있습니다. 수정·추가 제출은 1월 15~18일(18~22시)입니다
   - 공제제외 대상: 미용·성형, 건강증진 목적 한약, 국민행복카드 결제, 과세 진료, 제증명 수수료(진단서·소견서 등). 치료 목적 한약은 포함합니다. 환자에게 미리 알려야 합니다
   - 수납내역 기준과 진료기록 기준 두 가지로 모을 수 있습니다. 진료기록 기준은 공제제외 표시를 무시하고 모두 포함하므로, 수납내역 기준을 권장합니다
   - 생성 파일 이름은 `G0003_{사업자번호}{요양기관기호}{작성일자}`입니다. 입원실 프로그램 자료와 외래 자료는 홈택스에서 합쳐 냅니다
-  - 출처: ([OK차트: 연말정산 의료비 세액공제자료 제출방법](https://www.okmedi.net/Manual/?idx=403), [OK차트: 노인장기요양보험 의사소견서발급비용 청구](https://www.okmedi.net/Manual/?idx=1079))
+  - 출처: (레거시 차트 매뉴얼 「연말정산 의료비 세액공제자료 제출방법」, 레거시 차트 매뉴얼 「노인장기요양보험 의사소견서발급비용 청구」)
 - **전자서명 원칙 (매뉴얼 안내):**
   - 진료기록은 기록한 진료의가 각자 서명하고, 본인부담금 수납대장은 수납 책임자(보통 대표원장)가 서명합니다
   - 서명은 서명 시점까지의 기록을 인증하므로, 서명한 뒤 고친 기록은 다시 서명하는 것이 좋습니다. 기간을 정해 한꺼번에 서명하는 기능도 있습니다
   - 서명자를 가릴 수 있도록 의료기관용이 아닌 개인용 인증서를 권장합니다
   - 서명 기록에는 문서(진료기록·수납대장) 번호, 환자, 기록 내용과 시점, 서명자(직종·자격·면허), 서명값, 인증서(발급기관·일련번호·유효 상태)를 남깁니다. 타임스탬프는 RFC 3161 TSA 방식입니다
-  - 출처: ([OK차트: 전자서명서비스 안내](https://www.okmedi.net/Manual/?idx=898))
+  - 출처: (레거시 차트 매뉴얼 「전자서명서비스 안내」)
 
 ### 현행과 다른 점
-- **청구서 생성 주체:** OK차트는 사용자가 단계마다(오류검사 → 재계산 → 진료일수 → 작성 → 검증 → 송신) 직접 실행합니다. 현행은 서버가 월별 청구서를 자동으로 모으고, 화면에서는 삭감위험만 검토합니다 ([OK차트: 보험, 급여, 첩약 - 원청구](https://www.okmedi.net/Manual/?idx=762))
-- **청구 단위:** 현행 청구서는 `보험구분`별 한 장(건보 카드 안에 건보/의료급여 건수)입니다. OK차트는 건강보험·의료급여·첩약시범 청구서를 따로 만들어 보내고, 자보는 보험사별·환자별로도 나눕니다 ([OK차트: 보험, 급여, 첩약 - 원청구](https://www.okmedi.net/Manual/?idx=762), [OK차트: 자동차보험 - 원청구](https://www.okmedi.net/Manual/?idx=770))
-- **반송 재청구:** 현행 "다시 청구하기"는 `전송완료` 상태 청구서를 통째로 새로 만듭니다. OK차트는 접수증에서 반송 건과 사유를 확인하고, 기록을 고친 뒤 해당 청구서(자보는 반송된 청구서를 골라서)만 다시 원청구합니다 ([OK차트: 보험, 급여, 첩약 - 반송건 다시 원청구](https://www.okmedi.net/Manual/?idx=764), [OK차트: 자동차보험 - 반송건 다시 원청구](https://www.okmedi.net/Manual/?idx=773))
-- **추나 행 상태:** 현행 추나 탭 상태는 `승인필요`/`차트내역 없음`/`차트내역 불일치`입니다. OK차트는 미제출과 **자보 사고번호 불일치**를 따로 보여 주고, 불일치 건에는 "삭제 → 재제출" 순서를 강제합니다 ([OK차트: 추나요법 진료환자 관리](https://www.okmedi.net/Manual/?idx=1017), [OK차트: 추나요법 진료기록 환자 - 심평원 미제출 목록 확인 & 제출하기](https://www.okmedi.net/Manual/?idx=894))
-- **제주 4·3:** 현행 모달은 사업 탭이 `해녀`/`제주 4·3` 둘입니다. OK차트는 4·3 안에서 유족과 며느리 청구서를 나눕니다(현행 모달 안에서 나누는지는 미확인) ([OK차트: 제주4·3 유족 및 며느리 진료비 청구](https://www.okmedi.net/Manual/?idx=382))
-- **연말정산 제외 처리:** 현행은 수납상세 단위로 포함·제외를 바꾸고, 첩약·과세는 "제외할 내역 검토"로 고릅니다. OK차트는 수납할 때 "공제제외"를 체크해 두는 방식이고, 진료기록 기준으로 모으면 그 체크가 반영되지 않습니다 ([OK차트: 연말정산 의료비 세액공제자료 제출방법](https://www.okmedi.net/Manual/?idx=403))
-- **실손 조회 업체:** 현행은 자체 `insuranceClient`(업스트림 실손)를 씁니다. OK차트는 제휴사(엠슈어) 서비스를 씁니다. 환자에게 카카오 알림톡으로 동의를 받고, 조회 항목은 가입 여부·보험사·상품명·실손 세대·보장한도·자기부담금·치료 항목별 보장 여부(상해/질병, 통원/입원)입니다. 동의서는 제휴사 양식으로 출력해 보관합니다 ([OK차트: 실손보험 조회 서비스](https://www.okmedi.net/Manual/?idx=1303))
-- **전자서명 인증 수단:** 현행은 네이버 인증서로 서명을 요청하고 상태를 폴링합니다. OK차트는 한국정보인증 전자서명 서비스(공동인증서 기반)를 쓰고, 대표원장이 가입한 뒤 추가 한의사는 따로 등록합니다 ([OK차트: 전자서명서비스 안내](https://www.okmedi.net/Manual/?idx=898), [OK차트: 전자서명서비스 가입](https://www.okmedi.net/Manual/?idx=972))
+- **청구서 생성 주체:** 레거시 차트는 사용자가 단계마다(오류검사 → 재계산 → 진료일수 → 작성 → 검증 → 송신) 직접 실행합니다. 현행은 서버가 월별 청구서를 자동으로 모으고, 화면에서는 삭감위험만 검토합니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 원청구」)
+- **청구 단위:** 현행 청구서는 `보험구분`별 한 장(건보 카드 안에 건보/의료급여 건수)입니다. 레거시 차트는 건강보험·의료급여·첩약시범 청구서를 따로 만들어 보내고, 자보는 보험사별·환자별로도 나눕니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 원청구」, 레거시 차트 매뉴얼 「자동차보험 - 원청구」)
+- **반송 재청구:** 현행 "다시 청구하기"는 `전송완료` 상태 청구서를 통째로 새로 만듭니다. 레거시 차트는 접수증에서 반송 건과 사유를 확인하고, 기록을 고친 뒤 해당 청구서(자보는 반송된 청구서를 골라서)만 다시 원청구합니다 (레거시 차트 매뉴얼 「보험, 급여, 첩약 - 반송건 다시 원청구」, 레거시 차트 매뉴얼 「자동차보험 - 반송건 다시 원청구」)
+- **추나 행 상태:** 현행 추나 탭 상태는 `승인필요`/`차트내역 없음`/`차트내역 불일치`입니다. 레거시 차트는 미제출과 **자보 사고번호 불일치**를 따로 보여 주고, 불일치 건에는 "삭제 → 재제출" 순서를 강제합니다 (레거시 차트 매뉴얼 「추나요법 진료환자 관리」, 레거시 차트 매뉴얼 「추나요법 진료기록 환자 - 심평원 미제출 목록 확인 & 제출하기」)
+- **제주 4·3:** 현행 모달은 사업 탭이 `해녀`/`제주 4·3` 둘입니다. 레거시 차트는 4·3 안에서 유족과 며느리 청구서를 나눕니다(현행 모달 안에서 나누는지는 미확인) (레거시 차트 매뉴얼 「제주4·3 유족 및 며느리 진료비 청구」)
+- **연말정산 제외 처리:** 현행은 수납상세 단위로 포함·제외를 바꾸고, 첩약·과세는 "제외할 내역 검토"로 고릅니다. 레거시 차트는 수납할 때 "공제제외"를 체크해 두는 방식이고, 진료기록 기준으로 모으면 그 체크가 반영되지 않습니다 (레거시 차트 매뉴얼 「연말정산 의료비 세액공제자료 제출방법」)
+- **실손 조회 업체:** 현행은 자체 `insuranceClient`(현행 실손)를 씁니다. 레거시 차트는 제휴사(엠슈어) 서비스를 씁니다. 환자에게 카카오 알림톡으로 동의를 받고, 조회 항목은 가입 여부·보험사·상품명·실손 세대·보장한도·자기부담금·치료 항목별 보장 여부(상해/질병, 통원/입원)입니다. 동의서는 제휴사 양식으로 출력해 보관합니다 (레거시 차트 매뉴얼 「실손보험 조회 서비스」)
+- **전자서명 인증 수단:** 현행은 네이버 인증서로 서명을 요청하고 상태를 폴링합니다. 레거시 차트는 한국정보인증 전자서명 서비스(공동인증서 기반)를 쓰고, 대표원장이 가입한 뒤 추가 한의사는 따로 등록합니다 (레거시 차트 매뉴얼 「전자서명서비스 안내」, 레거시 차트 매뉴얼 「전자서명서비스 가입」)
 
 ## 미확인·추정
 - `ClaimV2InboxViewFloatingBar`의 다중 선택 "청구서 전송"은 `console.info`만 남깁니다. 카드 체크박스 노출 조건(`i`)도 확인하지 못했습니다. 미완성 기능으로 보입니다 (추정)

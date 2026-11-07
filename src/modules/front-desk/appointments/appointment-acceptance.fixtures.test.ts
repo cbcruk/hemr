@@ -44,7 +44,7 @@ const fixture = JSON.parse(
 ) as { cases: FixtureCase[] }
 
 const NOW = { date: '2026-11-01', time: '14:30' }
-const EXTERNAL_ORIGINS = new Set(['naver_doctalk', 'kakao_doctalk'])
+const EXTERNAL_ORIGINS = new Set(['naver_booking', 'kakao_booking'])
 const DECIDED = new Set(['등록', '승인', '거절', '부도', '내원', '예약취소'])
 const DOCTOR_OFF: Record<string, DoctorOff> = { 휴진: 'FULL_DAY', '오전 휴진': 'MORNING', '오후 휴진': 'AFTERNOON' }
 const PERIOD: Record<string, DayPeriod> = { 오전: 'MORNING', 오후: 'AFTERNOON', 야간: 'EVENING' }

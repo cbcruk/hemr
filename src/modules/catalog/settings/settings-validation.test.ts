@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  KNOWN_SOO_RESERVED_NAMES,
+  KNOWN_LITE_RESERVED_NAMES,
   canAddTreatmentRoom,
   hasNameConflict,
   judgeArbitraryFormula,
@@ -135,20 +135,20 @@ describe('비급여 항목 검증 (nonbenefitItemViolations)', () => {
   const existing = [{ id: 'n1', name: '약침A', code: '비001' }]
 
   it('이름 중복과 코드 중복을 함께 적습니다', () => {
-    expect(nonbenefitItemViolations({ name: '약침A', code: '001' }, existing, KNOWN_SOO_RESERVED_NAMES)).toEqual([
+    expect(nonbenefitItemViolations({ name: '약침A', code: '001' }, existing, KNOWN_LITE_RESERVED_NAMES)).toEqual([
       { field: 'name', code: 'SETTING_NAME_DUPLICATE' },
       { field: 'code', code: 'SETTING_NAME_DUPLICATE' },
     ])
   })
 
   it('수정할 때는 자기 자신을 뺍니다', () => {
-    expect(nonbenefitItemViolations({ name: '약침A', code: '001' }, existing, KNOWN_SOO_RESERVED_NAMES, 'n1')).toEqual(
+    expect(nonbenefitItemViolations({ name: '약침A', code: '001' }, existing, KNOWN_LITE_RESERVED_NAMES, 'n1')).toEqual(
       [],
     )
   })
 
-  it('코드 필수 위반과 수 서비스 전용 이름 위반을 함께 모읍니다', () => {
-    expect(nonbenefitItemViolations({ name: ' 경옥고 ', code: ' ' }, [], KNOWN_SOO_RESERVED_NAMES)).toEqual([
+  it('코드 필수 위반과 라이트 서비스 전용 이름 위반을 함께 모읍니다', () => {
+    expect(nonbenefitItemViolations({ name: ' 경옥고 ', code: ' ' }, [], KNOWN_LITE_RESERVED_NAMES)).toEqual([
       { field: 'code', code: 'REQUIRED' },
       { field: 'name', code: 'NONBENEFIT_NAME_RESERVED' },
     ])

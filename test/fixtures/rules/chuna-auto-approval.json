@@ -3,29 +3,29 @@
   "description": "On encounter completion, automatically submits the first unapproved chuna line to HIRA when the clinic policy allows it, the annual limit is not exhausted and no same-day chuna is already on record.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-2.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-2.js",
       "lines": "53-130",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:19462-19538"
+      "origin": "unminified/TreatmentViewBoard.js:19462-19538"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentViewBoard/part-16.js",
+      "file": "restored/modules/TreatmentViewBoard/part-16.js",
       "lines": "192-262",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:19297-19365"
+      "origin": "unminified/TreatmentViewBoard.js:19297-19365"
     },
     {
-      "file": "re-upstream/restored/modules/hiraChuna.js",
+      "file": "restored/modules/hiraChuna.js",
       "lines": "5-39",
-      "origin": "unminified/hiraChuna-gwDnfLOu.js:12-39"
+      "origin": "unminified/hiraChuna.js:12-39"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-11.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-11.js",
       "lines": "68-82",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22836-22852"
+      "origin": "unminified/TreatmentViewBoard.js:22836-22852"
     },
     {
-      "file": "re-upstream/restored/api/chart/query-keys.js",
+      "file": "restored/api/chart/query-keys.js",
       "lines": "17-81",
-      "origin": "unminified/dispensaryRoomType-C2K7HUhv.js:22-83"
+      "origin": "unminified/dispensaryRoomType.js:22-83"
     }
   ],
   "inputSchema": {

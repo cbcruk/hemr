@@ -68,14 +68,14 @@ describe('처음 승인 상태 (initialHiraApprovalStatus)', () => {
 
 describe('시범사업 줄 거부 (pilotHerbalLineRejection)', () => {
   it('EMR 제품이 없는 테넌트는 시범사업 카테고리 줄을 모두 거부합니다', () => {
-    expect(pilotHerbalLineRejection('35003001', ['SOO'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
-    expect(pilotHerbalLineRejection('35001001', ['SOO', 'EMR'])).toBeNull()
-    expect(pilotHerbalLineRejection('31001001', ['SOO'])).toBeNull()
+    expect(pilotHerbalLineRejection('35003001', ['LITE'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
+    expect(pilotHerbalLineRejection('35001001', ['LITE', 'EMR'])).toBeNull()
+    expect(pilotHerbalLineRejection('31001001', ['LITE'])).toBeNull()
     for (const category of ['35001002', '35002001', '35004001']) {
-      expect(pilotHerbalLineRejection(category, ['SOO'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
+      expect(pilotHerbalLineRejection(category, ['LITE'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
     }
-    // EMR이 없으면 SOO가 아닌 조합도 거부합니다
+    // EMR이 없으면 LITE가 아닌 조합도 거부합니다
     expect(pilotHerbalLineRejection('35001001', [])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
-    expect(pilotHerbalLineRejection('35001001', ['SOO', 'CRM'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
+    expect(pilotHerbalLineRejection('35001001', ['LITE', 'CRM'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
   })
 })

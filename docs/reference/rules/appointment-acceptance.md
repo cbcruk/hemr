@@ -11,15 +11,15 @@
 
 | 화면 | 파일 | 역할 |
 |---|---|---|
-| 예약 플래너 일간 셀 | `re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue.js` | 한도·예약 수·초과 판정, 과거 시간, 의사 휴진 |
-| 예약 플래너 주간 셀 | `re-upstream/restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js` | 일간과 같은 식 |
-| 예약 플래너 일간 | `re-upstream/restored/components/appointment/AppointmentPlannerDaily.vue.js` | 점심 휴게 판정, 진료시간 슬롯 집합 |
-| 드래그 이동 | `re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js` | 이동 허용 여부 |
-| 진료시간 슬롯 | `re-upstream/restored/modules/AppointmentPlannerView/part-2.js` | 요일별 진료시간 → 슬롯 목록 |
-| 유효 예약 필터 | `re-upstream/restored/modules/index/orderSource.js` | `mrn` |
-| 예약 사이드 패널 | `re-upstream/restored/components/desk/DeskViewPatientAppointment.vue.js`, `.helpers.js`, `.helpers-2.js` | 슬롯 그리드, 추가예약제한 표시, 선택 규칙 |
-| 진료의 근무 슬롯 | `re-upstream/restored/api/crm/requests-5.js` (`gg`) | 오늘이면 지금 이후만 |
-| 병원 휴진일 | `re-upstream/restored/lib/index/part-251.js` (`OHt.checkOffDay`) | `GET /settings/closed-days/{yyyy}` 목록 포함 여부 |
+| 예약 플래너 일간 셀 | `restored/components/appointment/AppointmentPlannerDailyCell.vue.js` | 한도·예약 수·초과 판정, 과거 시간, 의사 휴진 |
+| 예약 플래너 주간 셀 | `restored/components/appointment/AppointmentPlannerWeeklyCell.vue.js` | 일간과 같은 식 |
+| 예약 플래너 일간 | `restored/components/appointment/AppointmentPlannerDaily.vue.js` | 점심 휴게 판정, 진료시간 슬롯 집합 |
+| 드래그 이동 | `restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js` | 이동 허용 여부 |
+| 진료시간 슬롯 | `restored/modules/AppointmentPlannerView/part-2.js` | 요일별 진료시간 → 슬롯 목록 |
+| 유효 예약 필터 | `restored/modules/index/orderSource.js` | `mrn` |
+| 예약 사이드 패널 | `restored/components/desk/DeskViewPatientAppointment.vue.js`, `.helpers.js`, `.helpers-2.js` | 슬롯 그리드, 추가예약제한 표시, 선택 규칙 |
+| 진료의 근무 슬롯 | `restored/api/crm/requests-5.js` (`gg`) | 오늘이면 지금 이후만 |
+| 병원 휴진일 | `restored/lib/index/part-251.js` (`OHt.checkOffDay`) | `GET /settings/closed-days/{yyyy}` 목록 포함 여부 |
 
 ## 로직
 
@@ -34,9 +34,9 @@
 
 **플래너 셀 (일간·주간 동일)**
 
-- 유효 예약 `mrn`: `!취소여부 && !부도여부`이고, 외부 주문출처(`naver_doctalk`, `kakao_doctalk`)라면 거절되지 않았고 대기 요청도 아니어야 합니다
+- 유효 예약 `mrn`: `!취소여부 && !부도여부`이고, 외부 주문출처(`naver_booking`, `kakao_booking`)라면 거절되지 않았고 대기 요청도 아니어야 합니다
   - 대기 요청: 외부 출처인데 `예약변경내역`에 `등록/승인/거절/부도/내원/예약취소`가 하나도 없는 경우
-  - 다른 출처(`daangn_doctalk` 포함)는 원내 예약처럼 셉니다
+  - 다른 출처(`daangn_booking` 포함)는 원내 예약처럼 셉니다
 - 예약 수 = 유효 예약 수 + `점유내역.length`
 - 한도는 다음 둘 중 하나가 참이면 1이고, 아니면 `예약가능건수`입니다
   - `예약내역` 중 `!취소여부 && !부도여부 && 추가예약제한`인 것이 있음 (**`mrn`이 아님**)
@@ -83,11 +83,11 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/orderSource.js:54, 197-213`
+`restored/modules/index/orderSource.js:54, 197-213`
 
 ```js
-// Restored from unminified/index-CBEIvlV0.js:70299-70816
-const eB = e => Bde.some(t => t.orderSource === e); // naver_doctalk | kakao_doctalk
+// Restored from unminified/index.js:70299-70816
+const eB = e => Bde.some(t => t.orderSource === e); // naver_booking | kakao_booking
 const Dnt = ["등록", "승인", "거절", "부도", "내원", "예약취소"];
 const Lnt = (e, t) => {
   if (!eB(e)) return false;
@@ -100,10 +100,10 @@ const Fde = (e, t) => eB(e) ? (t ?? []).some(n => n.to.예약상태 === "거절"
 const mrn = e => !e.취소여부 && !e.부도여부 && !Fde(e.주문출처, e.예약변경내역) && !Lnt(e.주문출처, e.예약변경내역);
 ```
 
-`re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue.js:81-90, 107-117`
+`restored/components/appointment/AppointmentPlannerDailyCell.vue.js:81-90, 107-117`
 
 ```js
-// Restored from unminified/AppointmentPlannerView-DLL_lCp9.js:5254-5518
+// Restored from unminified/AppointmentPlannerView.js:5254-5518
 const y = computed(() => props.appointments ? props.appointments.예약내역?.some(b => !b.취소여부 && !b.부도여부 && b.추가예약제한) || props.appointments.점유내역?.some(b => b.추가예약제한) ? 1 : props.appointments.예약가능건수 : 0);
 const u = computed(() => {
   if (!props.appointments) return 0;
@@ -123,7 +123,7 @@ const N = computed(() => {
 });
 ```
 
-`re-upstream/restored/components/appointment/AppointmentPlannerDailyCell.vue.js:118-145` (의사 휴진)
+`restored/components/appointment/AppointmentPlannerDailyCell.vue.js:118-145` (의사 휴진)
 
 ```js
 const z = computed(() => {
@@ -146,10 +146,10 @@ const C = computed(() => {
 });
 ```
 
-`re-upstream/restored/modules/AppointmentPlannerView/part-2.js:312-365` (진료시간 슬롯)
+`restored/modules/AppointmentPlannerView/part-2.js:312-365` (진료시간 슬롯)
 
 ```js
-// Restored from unminified/AppointmentPlannerView-DLL_lCp9.js:2298-2652
+// Restored from unminified/AppointmentPlannerView.js:2298-2652
 const ip = (n, t, e = 30) => {
   if (!n || !t || e <= 0) return [];
   const s = Vb(n); const a = Vb(t);   // "HH:mm" -> minutes
@@ -168,10 +168,10 @@ const mi = (n, t, e) => {
 const vi = ({ apiTimes, treatmentDays, dateString, unitMinutes }) => new Set([...apiTimes, ...mi(treatmentDays, dateString, unitMinutes)]);
 ```
 
-`re-upstream/restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js:160-168`
+`restored/components/appointment/AppointmentCardDroppableAreaWrapper.vue.js:160-168`
 
 ```js
-// Restored from unminified/AppointmentPlannerView-DLL_lCp9.js:4726-4895
+// Restored from unminified/AppointmentPlannerView.js:4726-4895
 const i = async () => canUpdate$(PermissionCode$.예약수정) ? props.isTimeSlotAvailable ? props.hasHospitalHoliday ? (s.error("병원 휴진일에는 예약을 이동할 수 없습니다."), false) : props.isDoctorOffDay ? (s.error("의사 휴진일에는 예약을 이동할 수 없습니다."), false) : props.isPastDateTime ? (s.error("과거 시간으로 예약을 이동할 수 없습니다."), false) : props.isBreakTime ? (s.error("휴게 시간에는 예약을 이동할 수 없습니다."), false) : !props.hasBlockingTime || !!(await a.show(BaseConfirmDialog, {
   title: "선택한 시간은 예약 차단된 시간입니다.",
   description: "그래도 예약하시겠습니까?",
@@ -179,10 +179,10 @@ const i = async () => canUpdate$(PermissionCode$.예약수정) ? props.isTimeSlo
 })) : (s.error("진료시간이 아닌 경우 예약을 이동할 수 없습니다."), false) : (e(), false);
 ```
 
-`re-upstream/restored/components/desk/DeskViewPatientAppointment.vue.js:492-519` (사이드 패널 추가예약제한 표시)
+`restored/components/desk/DeskViewPatientAppointment.vue.js:492-519` (사이드 패널 추가예약제한 표시)
 
 ```js
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:14350-15476
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:14350-15476
 for (const 예약내역항목$ of X.예약내역) {
   const Pe = 예약내역항목$.진료의별예약내역?.find(Wt => Wt.진료의Id === V.value);
   if (!Pe) continue;
@@ -201,13 +201,13 @@ for (const 예약내역항목$ of X.예약내역) {
 }
 ```
 
-`re-upstream/restored/components/desk/DeskViewPatientAppointment.helpers.js:97-102`, `.helpers-2.js:8, 14, 24-30`
+`restored/components/desk/DeskViewPatientAppointment.helpers.js:97-102`, `.helpers-2.js:8, 14, 24-30`
 
 ```js
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:12214-12333
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:12214-12333
 const f = 예약건수$ + 점유건수$;
 const C = f >= $.예약가능건수;           // tone: C ? "danger" : "default"
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:12334-12472
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:12334-12472
 const fE = 120;
 const Qr = t => !!t && !t.disabled && t.variant !== "disabled";   // selectable
 const maxSlotCount = computed(() => { const v = toValue(t.cellMinutes); return !v || v <= 0 ? 1 : Math.max(1, Math.floor(fE / v)); });
@@ -242,7 +242,7 @@ const maxSlotCount = computed(() => { const v = toValue(t.cellMinutes); return !
   - 플래너: `예약 수 > 한도`면 초과
   - 사이드 패널: `예약 수 >= 한도`면 가득 참 (새 예약 1건이 더해지기 전 기준)
 - **필터가 서로 다릅니다.** 한도를 1로 줄이는 판정은 `!취소 && !부도`만 보고, 예약 수는 `mrn`(외부 대기·거절 제외)으로 셉니다. 그래서 거절된 외부 요청이 `추가예약제한`이면 한도만 1로 줄고 자기 자신은 세지 않습니다. 사이드 패널은 예약 수도 `!취소 && !부도`로 셉니다. 버그로 보이며 고치지 않고 기록만 합니다
-- **`추가예약제한` 위치가 둘입니다.** 플래너는 예약 항목의 `추가예약제한`(예약 단위)을 보고, 사이드 패널은 `진료항목목록[].추가예약제한`(진료항목 단위)을 봅니다. 서버 스키마 주석에는 `점유건수`가 "추가예약제한 OFF=1, ON=예약가능건수 만큼 가중"으로 계산된다고 되어 있습니다(`re-upstream/restored/modules/sanjaeInsurances.js:1489`). 이 가중 규칙은 서버에만 있습니다
+- **`추가예약제한` 위치가 둘입니다.** 플래너는 예약 항목의 `추가예약제한`(예약 단위)을 보고, 사이드 패널은 `진료항목목록[].추가예약제한`(진료항목 단위)을 봅니다. 서버 스키마 주석에는 `점유건수`가 "추가예약제한 OFF=1, ON=예약가능건수 만큼 가중"으로 계산된다고 되어 있습니다(`restored/modules/sanjaeInsurances.js:1489`). 이 가중 규칙은 서버에만 있습니다
 - **과거 시간 경계가 둘입니다.** 플래너는 현재 분 슬롯을 과거로 보고(`<=`), 사이드 패널의 오늘 컷오프는 현재 분 슬롯을 보여 줍니다(`>=`)
 - **의사 휴진의 효과가 화면마다 다릅니다.** 드래그 이동은 막고, 사이드 패널은 경고만 합니다. 반나절 휴진은 그날 점심 휴게로 오전·오후를 나누므로, 점심 설정이 없으면 `오전 휴진`은 하루 전체를 막고 `오후 휴진`은 아무것도 막지 않습니다
 - **차단 시간의 효과도 다릅니다.** 사이드 패널은 고를 수 없게 하고, 드래그 이동은 확인 후 허용합니다
