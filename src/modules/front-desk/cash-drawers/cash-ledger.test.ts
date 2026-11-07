@@ -55,8 +55,8 @@ const expense = (id: string, overrides: Partial<Expense> = {}): Expense => ({
 const flowOn = (date: string, payments: Payment[], expenses: Expense[] = []) =>
   cashFlow(50_000, cashLedger(date, payments, expenses))
 
-describe('cashLedger', () => {
-  it('counts cash received, cash refunds and expenses of the day', () => {
+describe('현금 원장 (cashLedger)', () => {
+  it('그날 현금 수납·현금 환불·지출을 셉니다', () => {
     const payments = [
       payment('1'),
       payment('2', { method: 'CARD', status: 'CAPTURED' }),
@@ -75,7 +75,7 @@ describe('cashLedger', () => {
     })
   })
 
-  it('counts each movement on the day the money moved', () => {
+  it('돈이 실제로 오간 날에 셉니다', () => {
     const refunded = payment('1', {
       status: 'PARTIALLY_REFUNDED',
       refunds: [refund(4_000, 'CASH', DAY2)],
@@ -85,7 +85,7 @@ describe('cashLedger', () => {
     expect(flowOn('2026-11-08', [refunded])).toMatchObject({ cashIn: 0, cashRefunds: 4_000 })
   })
 
-  it('treats a voided cash payment as the rest handed back on a later void day and nets out a same-day void', () => {
+  it('뒷날 결제 취소는 그날 남은 금액을 돌려준 환불이고 받은 날 결제 취소는 상쇄합니다', () => {
     // 받은 날 취소한 금액은 오가지 않은 돈입니다. 그날 환불한 만큼만 받고 돌려준 것으로 셉니다
     const sameDay = payment('1', { status: 'VOIDED', updatedAt: DAY1 })
     expect(cashLedger('2026-11-07', [sameDay], [])).toEqual([])
@@ -105,15 +105,15 @@ describe('cashLedger', () => {
     expect(flowOn('2026-11-08', [nextDay])).toMatchObject({ cashIn: 0, cashRefunds: 6_000 })
   })
 
-  it('leaves out unapplied payments, deleted expenses and expenses of other days', () => {
+  it('미적용 결제·지운 지출·다른 날 지출은 넣지 않습니다', () => {
     const unapplied = payment('1', { method: 'CARD', status: 'UNAPPLIED', receiptId: null })
     const expenses = [expense('1', { deleted: { at: DAY1, by: user } }), expense('2', { date: '2026-11-08' })]
     expect(cashLedger('2026-11-07', [unapplied], expenses)).toEqual([])
   })
 })
 
-describe('ledgerFingerprint', () => {
-  it('changes only with cash movements and not with their order', () => {
+describe('원장 지문 (ledgerFingerprint)', () => {
+  it('현금이 오간 기록이 바뀔 때만 바뀌고 순서와는 상관없습니다', () => {
     const cash = cashLedger('2026-11-07', [payment('1'), payment('2', { method: 'CARD' })], [expense('1')])
     const withoutCard = cashLedger('2026-11-07', [payment('1')], [expense('1')])
     expect(ledgerFingerprint(cash)).toBe(ledgerFingerprint(withoutCard))

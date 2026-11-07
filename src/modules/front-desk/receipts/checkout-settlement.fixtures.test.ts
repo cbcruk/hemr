@@ -113,8 +113,8 @@ const NOT_PORTED: Record<string, string> = {
     '화면 토글입니다. 서버에서는 결제 없이 acknowledge: ["OUTSTANDING"]을 보내는 것과 같습니다',
 }
 
-describe('checkout-settlement fixture', () => {
-  describe('settle (결정 1·2·3·4)', () => {
+describe('수납 결산 픽스처', () => {
+  describe('결산 (결정 1·2·3·4)', () => {
     it.each(cases('settle').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const settlement = settleCheckout({
         encounters: [toEncounter(input['받을금액_비과세'], input['받을금액_과세'], input['제주지원금'])],
@@ -146,7 +146,7 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  describe('Jeju subsidy line (결정 4: 급여 본인부담까지)', () => {
+  describe('제주 지원금 행 (결정 4: 급여 본인부담까지)', () => {
     it.each(cases('jejuSubsidyLine').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const settlement = settleCheckout({
         encounters: selectedEncounters(input),
@@ -162,14 +162,14 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  describe('due split', () => {
+  describe('받을 금액 과세·비과세 나누기', () => {
     it.each(cases('dueSplit').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const { due } = sumEncounters(selectedEncounters({ ...input, edits: {} }))
       expect(due).toEqual({ taxExempt: expected.비과세, taxable: expected.과세 })
     })
   })
 
-  describe('outstanding confirmation (결정 8: 결산과 같은 계산)', () => {
+  describe('미수 확인 (결정 8: 결산과 같은 계산)', () => {
     it.each(cases('needsOutstandingConfirm').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const settlement = settleCheckout({
         encounters: [toEncounter(input['a'], 0, input['n'])],
@@ -187,7 +187,7 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  describe('overpaid credit', () => {
+  describe('과수납금 사용', () => {
     it.each(cases('overpaidCreditApplied').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const due = { taxExempt: input['받을금액_비과세'], taxable: input['받을금액_과세'] }
       expect(overpaidCreditApplied(due, input['과수금액'], creditTarget(input['과수납금사용여부']))).toEqual({
@@ -197,7 +197,7 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  describe('payment rows (결정 6: 선수금 계열 분할은 제안이고 수납은 잔액을 검사)', () => {
+  describe('결제 행 (결정 6: 선수금 계열 분할은 제안이고 수납은 잔액을 검사)', () => {
     it.each(cases('toPaymentRows').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const balances = { CASH_LIKE: input['선수금잔액']['현금'], CARD_LIKE: input['선수금잔액']['카드'] }
       const payments = toPayments(input['결제내역']).flatMap((payment) =>
@@ -222,7 +222,7 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  describe('grade discount (결정 7: 정수 반올림)', () => {
+  describe('환자 등급 할인 (결정 7: 정수 반올림)', () => {
     it.each(cases('gradeDiscount').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const result = gradeDiscount({
         unitPrice: input['단가'],
@@ -239,7 +239,7 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  describe('write-off while overpaid (결정 2)', () => {
+  describe('과수납일 때 손비처리 (결정 2)', () => {
     /** 현행 손비 체크박스를 막던 남은 금액 상태를 서버 결산 입력으로 만듭니다. */
     const PAYMENT_FOR_STATUS: Record<string, number> = { 과수납: 12_000, 미수: 5000 }
 
@@ -257,7 +257,7 @@ describe('checkout-settlement fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처 사례마다 옮겼거나 옮기지 않은 이유를 적었고 따로 적은 사례 이름은 모두 픽스처에 있습니다', () => {
     const ported = new Set([
       'settle',
       'jejuSubsidyLine',

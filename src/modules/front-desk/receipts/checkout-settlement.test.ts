@@ -14,12 +14,12 @@ function input(overrides: Partial<CheckoutInput> = {}): CheckoutInput {
   }
 }
 
-describe('settleCheckout', () => {
-  it('settles exactly paid checkouts as PAID', () => {
+describe('수납 결산 (settleCheckout)', () => {
+  it('받을 금액을 다 받으면 PAID입니다', () => {
     expect(settleCheckout(input())).toMatchObject({ result: 'PAID', remaining: 0, accepted: true })
   })
 
-  it('caps the Jeju subsidy at the insured copay, not the whole tax-exempt due', () => {
+  it('제주 지원금은 비과세 받을 금액 전체가 아니라 급여 본인부담까지입니다', () => {
     const encounters = [
       { encounterId: 'enc_1', due: { taxable: 0, taxExempt: 10_000 }, insuredCopay: 6000, jejuSubsidy: 9000 },
     ]
@@ -28,19 +28,19 @@ describe('settleCheckout', () => {
     expect(settlement.effectiveDue).toEqual({ taxable: 0, taxExempt: 4000 })
   })
 
-  it('reports outstanding and overpaid amounts', () => {
+  it('미수 금액과 과수납 금액을 알립니다', () => {
     const short = settleCheckout(input({ payments: [{ method: 'CARD', amount: { taxable: 0, taxExempt: 10_000 } }] }))
     expect(short).toMatchObject({ result: 'OUTSTANDING', outstanding: 5000, overpaid: 0, accepted: true })
     const over = settleCheckout(input({ payments: [{ method: 'CARD', amount: { taxable: 6000, taxExempt: 10_000 } }] }))
     expect(over).toMatchObject({ result: 'OVERPAID', outstanding: 0, overpaid: 1000 })
   })
 
-  it('writes off a positive remainder', () => {
+  it('남은 금액이 양수면 손비처리합니다', () => {
     const settlement = settleCheckout(input({ payments: [], writeOffRemainder: true }))
     expect(settlement).toMatchObject({ result: 'WRITTEN_OFF', warnings: [], accepted: true })
   })
 
-  it('asks to confirm outstanding when nothing is paid, even with overpaid credit', () => {
+  it('입력 결제가 없으면 과수납금을 써도 미수 확인을 받습니다', () => {
     const settlement = settleCheckout(
       input({ payments: [], overpaidCreditBalance: 3000, useOverpaidCredit: 'TAX_EXEMPT' }),
     )
@@ -48,7 +48,7 @@ describe('settleCheckout', () => {
     expect(settlement.overpaidCreditApplied).toEqual({ taxable: 0, taxExempt: 3000 })
   })
 
-  it('does not ask when overpaid credit covers the whole due', () => {
+  it('과수납금이 받을 금액을 모두 덮으면 미수 확인을 받지 않습니다', () => {
     const encounters = [
       { encounterId: 'enc_1', due: { taxable: 0, taxExempt: 2000 }, insuredCopay: 2000, jejuSubsidy: 0 },
     ]
@@ -58,7 +58,7 @@ describe('settleCheckout', () => {
     expect(settlement).toMatchObject({ result: 'PAID', warnings: [], accepted: true })
   })
 
-  it('ignores zero-amount payments when deciding to ask', () => {
+  it('미수 확인을 정할 때 0원 결제는 없는 것으로 봅니다', () => {
     const settlement = settleCheckout(input({ payments: [{ method: 'CASH', amount: { taxable: 0, taxExempt: 0 } }] }))
     expect(settlement.warnings).toEqual(['OUTSTANDING'])
   })
@@ -68,17 +68,17 @@ describe('settleCheckout', () => {
     [{ method: 'OVERPAID_CREDIT' as const, amount: { taxable: 0, taxExempt: 1000 } }, 'PAYMENT_METHOD_NOT_ALLOWED'],
     [{ method: 'PACKAGE' as const, amount: { taxable: 0, taxExempt: 1000 } }, 'PAYMENT_METHOD_NOT_ALLOWED'],
     [{ method: 'PREPAID' as const, amount: { taxable: 0, taxExempt: 1000 } }, 'PREPAID_KIND_REQUIRED'],
-  ])('rejects %o with %s', (payment, code) => {
+  ])('결제 %o는 %s로 거절합니다', (payment, code) => {
     expect(settleCheckout(input({ payments: [payment] })).errors).toEqual([code])
   })
 
-  it.each([-1, 0.5])('throws on a payment amount of %s that the schema should have rejected', (taxable) => {
+  it.each([-1, 0.5])('요청 스키마가 막았어야 할 결제 금액 %s는 예외를 던집니다', (taxable) => {
     expect(() => settleCheckout(input({ payments: [{ method: 'CASH', amount: { taxable, taxExempt: 0 } }] }))).toThrow(
       RangeError,
     )
   })
 
-  it('sums a negative part from an edit with the other part', () => {
+  it('처방 수정으로 음수가 된 부분은 다른 부분과 합산합니다', () => {
     const encounters = [
       { encounterId: 'enc_1', due: { taxable: 5000, taxExempt: -2000 }, insuredCopay: 0, jejuSubsidy: 0 },
     ]
@@ -86,7 +86,7 @@ describe('settleCheckout', () => {
     expect(settleCheckout(input({ encounters, payments }))).toMatchObject({ result: 'PAID', remaining: 0 })
   })
 
-  it('applies Jeju before overpaid credit and keeps due − received consistent', () => {
+  it('제주 지원금을 과수납금보다 먼저 빼고 받을 금액 − 받은 금액이 맞습니다', () => {
     const encounters = [
       { encounterId: 'enc_1', due: { taxable: 0, taxExempt: 6000 }, insuredCopay: 6000, jejuSubsidy: 4000 },
     ]
@@ -102,7 +102,7 @@ describe('settleCheckout', () => {
     })
   })
 
-  it('sums subsidies before capping them', () => {
+  it('제주 지원금은 진료별로 상한을 잡지 않고 합한 뒤 잡습니다', () => {
     const encounters = [
       { encounterId: 'enc_1', due: { taxable: 0, taxExempt: 5000 }, insuredCopay: 5000, jejuSubsidy: -1000 },
       { encounterId: 'enc_2', due: { taxable: 0, taxExempt: 5000 }, insuredCopay: 5000, jejuSubsidy: 3000 },
@@ -110,7 +110,7 @@ describe('settleCheckout', () => {
     expect(settleCheckout(input({ encounters, payments: [], acknowledge: ['OUTSTANDING'] })).jejuSubsidy).toBe(2000)
   })
 
-  it('records the written-off amount and the acknowledged warning', () => {
+  it('손비 금액과 확인받은 경고를 남깁니다', () => {
     expect(settleCheckout(input({ payments: [], writeOffRemainder: true })).writtenOff).toBe(15_000)
     expect(settleCheckout(input({ payments: [], acknowledge: ['OUTSTANDING'] }))).toMatchObject({
       acknowledged: ['OUTSTANDING'],
@@ -118,7 +118,7 @@ describe('settleCheckout', () => {
     })
   })
 
-  it('checks each prepaid kind against its own balance', () => {
+  it('선수금은 계열마다 그 계열 잔액과 견줍니다', () => {
     const prepaidBalances = { CASH_LIKE: 10_000, CARD_LIKE: 5000 }
     const fits = settleCheckout(
       input({
@@ -140,8 +140,8 @@ describe('settleCheckout', () => {
   })
 })
 
-describe('gradeDiscount', () => {
-  it('rounds a fractional dose only once', () => {
+describe('환자 등급 할인 (gradeDiscount)', () => {
+  it('일투여량이 소수여도 한 번만 반올림합니다', () => {
     // 1001 × 0.5 × 0.9 = 450.45 → 450. 원금액(500.5 → 501)을 먼저 반올림하면 451이 됩니다
     expect(gradeDiscount({ unitPrice: 1001, tax: 0, dailyDose: 0.5, days: 1, rate: 10 })).toEqual({
       original: 501,
@@ -150,7 +150,7 @@ describe('gradeDiscount', () => {
     })
   })
 
-  it.each([-1, 101, 12.5])('rejects a %s% rate', (rate) => {
+  it.each([-1, 101, 12.5])('할인율 %s%는 예외를 던집니다', (rate) => {
     expect(() => gradeDiscount({ unitPrice: 1000, tax: 0, dailyDose: 1, days: 1, rate })).toThrow(RangeError)
   })
 })

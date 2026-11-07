@@ -73,8 +73,8 @@ const CHANGED: Record<string, Record<string, number>> = {
   'fallback: refund on mixed cash+card receipt is not counted as cash refund': { 현금환불: 2000, 예상마감금액: 8000 },
 }
 
-describe('cash-drawer-expected-closing fixture', () => {
-  describe('expected closing (결정 1·2·3: 늘 원장으로 계산)', () => {
+describe('시재 예상 마감 금액 픽스처', () => {
+  describe('예상 마감 금액 (결정 1·2·3: 늘 원장으로 계산)', () => {
     it.each(cases('expectedClosing').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const register = input['cashRegister']
       const movements = register['현금흐름']
@@ -101,7 +101,7 @@ describe('cash-drawer-expected-closing fixture', () => {
     })
   })
 
-  describe('drawer status (결정 5)', () => {
+  describe('시재 상태 (결정 5)', () => {
     it.each(cases('cashRegisterState').map((c) => [c.name, c] as const))('%s', (_, { input, expected }) => {
       const status = cashDrawerStatus({
         opened: input['시작금액'] !== null,
@@ -112,7 +112,7 @@ describe('cash-drawer-expected-closing fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('픽스처 사례를 모두 옮겼고 바꾼 사례는 모두 픽스처에 있습니다', () => {
     const ported = new Set(['expectedClosing', 'cashRegisterState'])
     expect(fixture.cases.filter((testCase) => !ported.has(testCase.input['check'])).map((c) => c.name)).toEqual([])
     expect(Object.keys(CHANGED).filter((name) => !fixture.cases.some((c) => c.name === name))).toEqual([])

@@ -17,18 +17,18 @@ import type {
 } from './appointment-acceptance.types.ts'
 
 /** 한도와 예약 수를 셀 때 쓰는 상태입니다 (결정 2). 취소·부도는 자리를 차지하지 않습니다. */
-const ACTIVE_STATUSES: ReadonlySet<AppointmentStatus> = new Set(['BOOKED', 'ARRIVED'])
+const 유효예약상태: ReadonlySet<AppointmentStatus> = new Set(['BOOKED', 'ARRIVED'])
 
 /** 한 번에 잡을 수 있는 최대 예약 길이입니다 (결정 9). */
 export const MAX_DURATION_MINUTES = 120
 
 /** 시간대 구분도 점심 휴게도 없을 때 오전·오후를 나누는 시각입니다 (결정 5). */
-const NOON: ClockTime = '12:00'
+const 오후시작시각: ClockTime = '12:00'
 
 const WEEKDAYS: readonly Weekday[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
 /** 막는 오류의 순서입니다. 현행 드래그 이동의 검사 순서를 따르고, 길이 검사를 맨 앞에 둡니다. */
-const ERROR_ORDER: readonly [keyof SlotFacts, SlotErrorCode][] = [
+const 막는오류순서: readonly [keyof SlotFacts, SlotErrorCode][] = [
   ['durationInvalid', 'APPOINTMENT_DURATION_INVALID'],
   ['outsideHours', 'OUTSIDE_HOURS'],
   ['clinicClosed', 'CLINIC_CLOSED'],
@@ -37,7 +37,7 @@ const ERROR_ORDER: readonly [keyof SlotFacts, SlotErrorCode][] = [
   ['breakTime', 'BREAK_TIME'],
 ]
 
-const ACKNOWLEDGE_ORDER: readonly [keyof SlotFacts, AcknowledgeCode][] = [
+const 확인경고순서: readonly [keyof SlotFacts, AcknowledgeCode][] = [
   ['blocked', 'SLOT_BLOCKED'],
   ['overCapacity', 'CAPACITY_EXCEEDED'],
 ]
@@ -49,10 +49,10 @@ const ACKNOWLEDGE_ORDER: readonly [keyof SlotFacts, AcknowledgeCode][] = [
  * 그 집합에 `exclusive` 예약이 하나라도 있으면 한도는 1입니다. 점유는 가중 없이 1건으로 셉니다 (결정 8).
  */
 export function slotCapacity(cell: SlotCell): SlotCapacity {
-  const active = [...cell.bookings, ...cell.occupancies].filter((booking) => ACTIVE_STATUSES.has(booking.status))
+  const 유효예약점유 = [...cell.bookings, ...cell.occupancies].filter((건) => 유효예약상태.has(건.status))
   return {
-    capacity: active.some((booking) => booking.exclusive) ? 1 : cell.capacityPerSlot,
-    booked: active.length,
+    capacity: 유효예약점유.some((건) => 건.exclusive) ? 1 : cell.capacityPerSlot,
+    booked: 유효예약점유.length,
   }
 }
 
@@ -63,8 +63,8 @@ export function slotCapacity(cell: SlotCell): SlotCapacity {
  * "셀에 `exclusive` 예약이 있으면 한도 1"이 되게 하려는 것입니다 (결정 8).
  */
 export function exceedsCapacity(cell: SlotCell, exclusive = false): boolean {
-  const { capacity, booked } = slotCapacity(cell)
-  return booked + 1 > (exclusive ? 1 : capacity)
+  const { capacity: 한도, booked: 예약수 } = slotCapacity(cell)
+  return 예약수 + 1 > (exclusive ? 1 : 한도)
 }
 
 /** 과거 시각인지입니다. 현재 분의 슬롯은 과거가 아닙니다 (결정 4). */
@@ -105,7 +105,7 @@ export function halfDayOf(
     if (time >= lunch.end) return 'AFTERNOON'
     return null
   }
-  return time < NOON ? 'MORNING' : 'AFTERNOON'
+  return time < 오후시작시각 ? 'MORNING' : 'AFTERNOON'
 }
 
 /** 의사 휴진에 걸리는 시각인지입니다. 반나절 휴진은 `halfDayOf`로 나눕니다. */
@@ -131,15 +131,15 @@ export function clinicSlotTimes(
   unitMinutes: number,
   extraTimes: readonly ClockTime[] = [],
 ): ClockTime[] {
-  const times = new Set(extraTimes)
+  const 슬롯시각 = new Set(extraTimes)
   if (day !== null && !day.closed && unitMinutes > 0) {
-    for (const range of Object.values(day.periods)) {
-      for (let minute = toMinutes(range.start); minute < toMinutes(range.end); minute += unitMinutes) {
-        times.add(fromMinutes(minute))
+    for (const 진료구간 of Object.values(day.periods)) {
+      for (let minute = toMinutes(진료구간.start); minute < toMinutes(진료구간.end); minute += unitMinutes) {
+        슬롯시각.add(fromMinutes(minute))
       }
     }
   }
-  return [...times].sort()
+  return [...슬롯시각].sort()
 }
 
 /** 예약 길이가 예약시간단위의 배수이고 120분 이하인지입니다 (결정 9). */
@@ -155,10 +155,10 @@ export function isValidDuration(durationMinutes: number, unitMinutes: number): b
 
 /** 사실을 오류·경고로 바꿉니다. 확인을 받은 경고는 `acknowledged`로 옮깁니다. */
 export function judgeSlot(facts: SlotFacts, acknowledge: readonly AcknowledgeCode[] = []): SlotJudgement {
-  const errors = ERROR_ORDER.filter(([fact]) => facts[fact] === true).map(([, code]) => code)
-  const raised = ACKNOWLEDGE_ORDER.filter(([fact]) => facts[fact] === true).map(([, code]) => code)
-  const warnings = raised.filter((code) => !acknowledge.includes(code))
-  const acknowledged = raised.filter((code) => acknowledge.includes(code))
+  const errors = 막는오류순서.filter(([fact]) => facts[fact] === true).map(([, code]) => code)
+  const 발생경고 = 확인경고순서.filter(([fact]) => facts[fact] === true).map(([, code]) => code)
+  const warnings = 발생경고.filter((code) => !acknowledge.includes(code))
+  const acknowledged = 발생경고.filter((code) => acknowledge.includes(code))
   return { errors, warnings, acknowledged, accepted: errors.length === 0 && warnings.length === 0 }
 }
 
@@ -183,19 +183,19 @@ export function checkAppointmentSlot(input: AppointmentSlotInput): SlotJudgement
     return judgeSlot(facts, input.acknowledge)
   }
 
-  const available = new Set(clinicSlotTimes(input.clinicDay, input.unitMinutes, input.extraTimes))
-  const covered = facts.durationInvalid
+  const 진료시간슬롯 = new Set(clinicSlotTimes(input.clinicDay, input.unitMinutes, input.extraTimes))
+  const 덮는슬롯 = facts.durationInvalid
     ? [input.startTime]
-    : coveredTimes(input.startTime, input.durationMinutes, input.unitMinutes)
+    : 덮는슬롯시각(input.startTime, input.durationMinutes, input.unitMinutes)
   facts.past = isPastSlot(input.date, input.startTime, input.now)
-  for (const time of covered) {
-    const open = available.has(time)
-    if (!open) facts.outsideHours = true
+  for (const time of 덮는슬롯) {
+    const 진료시간안 = 진료시간슬롯.has(time)
+    if (!진료시간안) facts.outsideHours = true
     if (isDoctorOff(input.doctorOff, time, input.doctorPeriods, input.breaks.lunch)) facts.doctorOff = true
     if (isBreakTime(time, input.breaks)) facts.breakTime = true
     if (input.blocks.some((range) => isWithin(time, range))) facts.blocked = true
     // 진료시간 밖 시각(하루를 넘긴 `24:00` 포함)은 셀이 없어 한도를 보지 않습니다
-    if (open && exceedsCapacity(input.cellAt(time), input.exclusive)) facts.overCapacity = true
+    if (진료시간안 && exceedsCapacity(input.cellAt(time), input.exclusive)) facts.overCapacity = true
   }
   return judgeSlot(facts, input.acknowledge)
 }
@@ -208,9 +208,9 @@ export function weekdayOf(date: string): Weekday {
 }
 
 /** 시작 시각부터 길이만큼 덮는 슬롯 시각입니다. 길이가 올바를 때만 부릅니다. */
-function coveredTimes(start: ClockTime, durationMinutes: number, unitMinutes: number): ClockTime[] {
-  const count = durationMinutes / unitMinutes
-  return Array.from({ length: count }, (_, index) => fromMinutes(toMinutes(start) + index * unitMinutes))
+function 덮는슬롯시각(시작시각: ClockTime, 예약길이: number, 예약시간단위: number): ClockTime[] {
+  const 슬롯수 = 예약길이 / 예약시간단위
+  return Array.from({ length: 슬롯수 }, (_, index) => fromMinutes(toMinutes(시작시각) + index * 예약시간단위))
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/

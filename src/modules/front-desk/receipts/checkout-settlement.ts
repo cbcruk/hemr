@@ -14,7 +14,7 @@ import type {
 } from './checkout-settlement.types.ts'
 
 /** 서버가 만드는 결제 수단입니다. 요청의 `payments`에 넣으면 422입니다. 패키지 차감도 서버가 계산합니다. */
-const SERVER_MADE_METHODS: ReadonlySet<PaymentMethod> = new Set(['JEJU_SUBSIDY', 'OVERPAID_CREDIT', 'PACKAGE'])
+const 서버생성결제수단: ReadonlySet<PaymentMethod> = new Set(['JEJU_SUBSIDY', 'OVERPAID_CREDIT', 'PACKAGE'])
 
 const ZERO: SplitAmount = { taxable: 0, taxExempt: 0 }
 
@@ -25,10 +25,10 @@ export function sumEncounters(encounters: readonly EncounterDue[]): {
   jejuSubsidy: number
 } {
   return encounters.reduce(
-    (sum, encounter) => ({
-      due: add(sum.due, encounter.due),
-      insuredCopay: sum.insuredCopay + encounter.insuredCopay,
-      jejuSubsidy: sum.jejuSubsidy + encounter.jejuSubsidy,
+    (합, 진료) => ({
+      due: add(합.due, 진료.due),
+      insuredCopay: 합.insuredCopay + 진료.insuredCopay,
+      jejuSubsidy: 합.jejuSubsidy + 진료.jejuSubsidy,
     }),
     { due: ZERO, insuredCopay: 0, jejuSubsidy: 0 },
   )
@@ -50,9 +50,9 @@ export function overpaidCreditApplied(
   balance: number,
   target: CheckoutInput['useOverpaidCredit'],
 ): SplitAmount {
-  const credit = Math.max(0, balance)
-  if (target === 'TAX_EXEMPT') return { taxable: 0, taxExempt: Math.min(credit, Math.max(0, due.taxExempt)) }
-  if (target === 'TAXABLE') return { taxable: Math.min(credit, Math.max(0, due.taxable)), taxExempt: 0 }
+  const 과수납금잔액 = Math.max(0, balance)
+  if (target === 'TAX_EXEMPT') return { taxable: 0, taxExempt: Math.min(과수납금잔액, Math.max(0, due.taxExempt)) }
+  if (target === 'TAXABLE') return { taxable: Math.min(과수납금잔액, Math.max(0, due.taxable)), taxExempt: 0 }
   return ZERO
 }
 
@@ -68,40 +68,40 @@ export function overpaidCreditApplied(
  */
 export function settleCheckout(input: CheckoutInput): CheckoutSettlement {
   assertPayments(input.payments)
-  const payments = normalizedPayments(input.payments)
-  const errors = paymentErrors(payments, input.prepaidBalances)
+  const 입력결제 = normalizedPayments(input.payments)
+  const errors = 결제오류(입력결제, input.prepaidBalances)
 
-  const { due, insuredCopay, jejuSubsidy: subsidy } = sumEncounters(input.encounters)
-  const jejuSubsidy = jejuSubsidyAmount(subsidy, Math.min(insuredCopay, due.taxExempt))
-  const afterJeju = { taxable: due.taxable, taxExempt: due.taxExempt - jejuSubsidy }
-  const credit = overpaidCreditApplied(afterJeju, input.overpaidCreditBalance, input.useOverpaidCredit)
-  const effectiveDue = subtract(afterJeju, credit)
-  const entered = payments.reduce((sum, payment) => add(sum, payment.amount), ZERO)
-  const received = add(add(entered, credit), { taxable: 0, taxExempt: jejuSubsidy })
-  const remaining = total(due) - total(received)
+  const { due: 받을금액, insuredCopay: 급여본인부담, jejuSubsidy: 제주지원금합 } = sumEncounters(input.encounters)
+  const 제주지원금 = jejuSubsidyAmount(제주지원금합, Math.min(급여본인부담, 받을금액.taxExempt))
+  const 제주지원금뺀금액 = { taxable: 받을금액.taxable, taxExempt: 받을금액.taxExempt - 제주지원금 }
+  const 과수납금사용액 = overpaidCreditApplied(제주지원금뺀금액, input.overpaidCreditBalance, input.useOverpaidCredit)
+  const 실효액 = subtract(제주지원금뺀금액, 과수납금사용액)
+  const 입력금액 = 입력결제.reduce((sum, payment) => add(sum, payment.amount), ZERO)
+  const 받은금액 = add(add(입력금액, 과수납금사용액), { taxable: 0, taxExempt: 제주지원금 })
+  const 남은금액 = total(받을금액) - total(받은금액)
 
-  const writeOff = input.writeOffRemainder === true
-  if (remaining < 0 && writeOff) errors.push('WRITE_OFF_OVERPAID')
-  const result: SettlementResult =
-    remaining < 0 ? 'OVERPAID' : remaining === 0 ? 'PAID' : writeOff ? 'WRITTEN_OFF' : 'OUTSTANDING'
+  const 손비처리 = input.writeOffRemainder === true
+  if (남은금액 < 0 && 손비처리) errors.push('WRITE_OFF_OVERPAID')
+  const 결산결과: SettlementResult =
+    남은금액 < 0 ? 'OVERPAID' : 남은금액 === 0 ? 'PAID' : 손비처리 ? 'WRITTEN_OFF' : 'OUTSTANDING'
 
-  const needsConfirm = result === 'OUTSTANDING' && payments.length === 0
-  const confirmed = input.acknowledge?.includes('OUTSTANDING') === true
-  const warnings: 'OUTSTANDING'[] = needsConfirm && !confirmed ? ['OUTSTANDING'] : []
-  const acknowledged: 'OUTSTANDING'[] = needsConfirm && confirmed ? ['OUTSTANDING'] : []
+  const 미수확인필요 = 결산결과 === 'OUTSTANDING' && 입력결제.length === 0
+  const 미수확인받음 = input.acknowledge?.includes('OUTSTANDING') === true
+  const warnings: 'OUTSTANDING'[] = 미수확인필요 && !미수확인받음 ? ['OUTSTANDING'] : []
+  const acknowledged: 'OUTSTANDING'[] = 미수확인필요 && 미수확인받음 ? ['OUTSTANDING'] : []
 
   return {
-    jejuSubsidy,
-    overpaidCreditApplied: credit,
-    due,
-    effectiveDue,
-    entered,
-    received,
-    remaining,
-    result,
-    outstanding: result === 'OUTSTANDING' ? remaining : 0,
-    overpaid: result === 'OVERPAID' ? -remaining : 0,
-    writtenOff: result === 'WRITTEN_OFF' ? remaining : 0,
+    jejuSubsidy: 제주지원금,
+    overpaidCreditApplied: 과수납금사용액,
+    due: 받을금액,
+    effectiveDue: 실효액,
+    entered: 입력금액,
+    received: 받은금액,
+    remaining: 남은금액,
+    result: 결산결과,
+    outstanding: 결산결과 === 'OUTSTANDING' ? 남은금액 : 0,
+    overpaid: 결산결과 === 'OVERPAID' ? -남은금액 : 0,
+    writtenOff: 결산결과 === 'WRITTEN_OFF' ? 남은금액 : 0,
     errors,
     warnings,
     acknowledged,
@@ -120,19 +120,19 @@ export function normalizedPayments(payments: readonly CheckoutPayment[]): Checko
  * 현금 계열 잔액에서 비과세, 과세 순으로 채우고 나머지를 카드 계열로 보냅니다. 0원 결제는 만들지 않습니다.
  */
 export function suggestPrepaidSplit(amount: SplitAmount, balances: Record<PrepaidKind, number>): CheckoutPayment[] {
-  let cash = Math.max(0, balances.CASH_LIKE)
-  const cashTaxExempt = Math.min(amount.taxExempt, cash)
-  cash -= cashTaxExempt
-  const cashTaxable = Math.min(amount.taxable, cash)
-  const split: CheckoutPayment[] = [
-    { method: 'PREPAID', prepaidKind: 'CASH_LIKE', amount: { taxable: cashTaxable, taxExempt: cashTaxExempt } },
+  let 현금계열잔액 = Math.max(0, balances.CASH_LIKE)
+  const 현금계열비과세 = Math.min(amount.taxExempt, 현금계열잔액)
+  현금계열잔액 -= 현금계열비과세
+  const 현금계열과세 = Math.min(amount.taxable, 현금계열잔액)
+  const 제안: CheckoutPayment[] = [
+    { method: 'PREPAID', prepaidKind: 'CASH_LIKE', amount: { taxable: 현금계열과세, taxExempt: 현금계열비과세 } },
     {
       method: 'PREPAID',
       prepaidKind: 'CARD_LIKE',
-      amount: { taxable: amount.taxable - cashTaxable, taxExempt: amount.taxExempt - cashTaxExempt },
+      amount: { taxable: amount.taxable - 현금계열과세, taxExempt: amount.taxExempt - 현금계열비과세 },
     },
   ]
-  return normalizedPayments(split)
+  return normalizedPayments(제안)
 }
 
 /**
@@ -149,11 +149,11 @@ export function gradeDiscount(input: GradeDiscountInput): GradeDiscount {
   for (const value of [input.unitPrice, input.tax, input.days]) {
     if (!Number.isInteger(value) || value < 0) throw new RangeError(`Expected a non-negative integer, got ${value}`)
   }
-  const { numerator: dose, denominator } = decimalFraction(input.dailyDose)
-  const base = (input.unitPrice + input.tax) * dose * input.days
-  const original = divideHalfUp(base, denominator)
-  const discounted = divideHalfUp(base * (100 - input.rate), denominator * 100)
-  return { original, discounted, discount: original - discounted }
+  const { numerator: 일투여량분자, denominator } = decimalFraction(input.dailyDose)
+  const 원금액분자 = (input.unitPrice + input.tax) * 일투여량분자 * input.days
+  const 원금액 = divideHalfUp(원금액분자, denominator)
+  const 할인후금액 = divideHalfUp(원금액분자 * (100 - input.rate), denominator * 100)
+  return { original: 원금액, discounted: 할인후금액, discount: 원금액 - 할인후금액 }
 }
 
 /**
@@ -168,23 +168,20 @@ function assertPayments(payments: readonly CheckoutPayment[]): void {
   }
 }
 
-function paymentErrors(
-  payments: readonly CheckoutPayment[],
-  balances: Record<PrepaidKind, number>,
-): CheckoutErrorCode[] {
+function 결제오류(결제목록: readonly CheckoutPayment[], 선수금잔액: Record<PrepaidKind, number>): CheckoutErrorCode[] {
   const errors = new Set<CheckoutErrorCode>()
-  const used: Record<PrepaidKind, number> = { CASH_LIKE: 0, CARD_LIKE: 0 }
-  for (const payment of payments) {
-    if (SERVER_MADE_METHODS.has(payment.method)) errors.add('PAYMENT_METHOD_NOT_ALLOWED')
-    if (payment.method !== 'PREPAID') continue
-    if (payment.prepaidKind === undefined) {
+  const 선수금사용액: Record<PrepaidKind, number> = { CASH_LIKE: 0, CARD_LIKE: 0 }
+  for (const 결제 of 결제목록) {
+    if (서버생성결제수단.has(결제.method)) errors.add('PAYMENT_METHOD_NOT_ALLOWED')
+    if (결제.method !== 'PREPAID') continue
+    if (결제.prepaidKind === undefined) {
       errors.add('PREPAID_KIND_REQUIRED')
       continue
     }
-    used[payment.prepaidKind] += total(payment.amount)
+    선수금사용액[결제.prepaidKind] += total(결제.amount)
   }
-  for (const kind of ['CASH_LIKE', 'CARD_LIKE'] as const) {
-    if (used[kind] > Math.max(0, balances[kind])) errors.add('PREPAID_BALANCE_INSUFFICIENT')
+  for (const 계열 of ['CASH_LIKE', 'CARD_LIKE'] as const) {
+    if (선수금사용액[계열] > Math.max(0, 선수금잔액[계열])) errors.add('PREPAID_BALANCE_INSUFFICIENT')
   }
   return [...errors]
 }

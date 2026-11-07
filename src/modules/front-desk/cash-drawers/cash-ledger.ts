@@ -28,40 +28,40 @@ export function cashLedger(
   payments: ReadonlyArray<Payment>,
   expenses: ReadonlyArray<Expense>,
 ): LedgerEntry[] {
-  const entries: LedgerEntry[] = []
-  for (const payment of payments) {
-    const refunded = payment.refunds.reduce((sum, refund) => sum + total(refund.amount), 0)
-    const voided = payment.status === 'VOIDED' ? dayOf(payment.updatedAt) : null
-    if (payment.status !== 'UNAPPLIED' && dayOf(payment.createdAt) === date) {
+  const 원장: LedgerEntry[] = []
+  for (const 결제 of payments) {
+    const 환불한금액 = 결제.refunds.reduce((sum, 환불) => sum + total(환불.amount), 0)
+    const 결제취소일 = 결제.status === 'VOIDED' ? dayOf(결제.updatedAt) : null
+    if (결제.status !== 'UNAPPLIED' && dayOf(결제.createdAt) === date) {
       // 받은 날 취소했으면 남은 금액은 오가지 않은 돈이라, 그날 환불한 만큼만 받은 것으로 셉니다
-      const received = voided === date ? refunded : total(payment.amount)
-      if (received > 0) entries.push({ kind: 'PAYMENT', method: payment.method, amount: received, ref: payment.id })
+      const 받은금액 = 결제취소일 === date ? 환불한금액 : total(결제.amount)
+      if (받은금액 > 0) 원장.push({ kind: 'PAYMENT', method: 결제.method, amount: 받은금액, ref: 결제.id })
     }
-    payment.refunds.forEach((refund, index) => {
-      if (dayOf(refund.at) === date) {
-        entries.push({
+    결제.refunds.forEach((환불, index) => {
+      if (dayOf(환불.at) === date) {
+        원장.push({
           kind: 'REFUND',
-          method: refund.method,
-          amount: total(refund.amount),
-          ref: `${payment.id}/${index}`,
+          method: 환불.method,
+          amount: total(환불.amount),
+          ref: `${결제.id}/${index}`,
         })
       }
     })
-    if (voided === date && dayOf(payment.createdAt) !== date) {
-      entries.push({
+    if (결제취소일 === date && dayOf(결제.createdAt) !== date) {
+      원장.push({
         kind: 'REFUND',
-        method: payment.method,
-        amount: total(payment.amount) - refunded,
-        ref: `${payment.id}/void`,
+        method: 결제.method,
+        amount: total(결제.amount) - 환불한금액,
+        ref: `${결제.id}/void`,
       })
     }
   }
-  for (const expense of expenses) {
-    if (expense.deleted === null && expense.date === date) {
-      entries.push({ kind: 'EXPENSE', amount: expense.amount, ref: expense.id })
+  for (const 지출 of expenses) {
+    if (지출.deleted === null && 지출.date === date) {
+      원장.push({ kind: 'EXPENSE', amount: 지출.amount, ref: 지출.id })
     }
   }
-  return entries
+  return 원장
 }
 
 /**
