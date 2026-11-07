@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from 'effect/http-api'
+import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from 'effect/http-api'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { Access } from '../../identity/auth/access.ts'
 import { PermissionDenied } from '../../identity/auth/auth-errors.ts'
@@ -22,38 +22,54 @@ import {
 } from './encounter.ts'
 import { PrescriptionLineRefs, EncounterChangesPayload as UpdatePayload } from './encounter-changes-payload.ts'
 
-/** 진료 완료 본문입니다 (clinical.md 완료 커맨드). */
+const headers = {
+  'if-match': Schema.String.annotate({
+    description: '다른 사람의 변경을 덮어쓰지 않도록 보내는 진료 버전입니다. 필수이고, 빠지면 400입니다. 예: `"7"`',
+  }),
+}
+const etag = {
+  etag: Schema.String.annotate({ description: '바뀐 진료의 버전입니다. 다음 요청의 `If-Match`에 씁니다.' }),
+}
+const withETag = <S extends Schema.Top>(schema: S) => HttpApiSchema.WithHeaders(schema, etag)
+
 const CompletePayload = Schema.Struct({
-  /** 완료한 뒤 내원을 보낼 상태입니다. 없으면 `IN_TREATMENT`(치료실로 보냄)입니다. */
-  nextVisitStatus: Schema.optionalKey(Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT'])),
-  /** 확인하고 넘길 위반입니다. */
-  acknowledge: Schema.optionalKey(
-    Schema.Array(Schema.Literals(['DUPLICATE_CONSULTATION_FEE'])).check(Schema.isMaxLength(10)),
+  nextVisitStatus: Schema.optionalKey(
+    Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT']).annotate({
+      description:
+        '완료한 뒤 내원을 보낼 상태입니다. 없으면 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`·`AWAITING_PAYMENT`면 진행 중인 시술을 완료합니다.',
+    }),
   ),
+  acknowledge: Schema.optionalKey(
+    Schema.Array(Schema.Literals(['DUPLICATE_CONSULTATION_FEE']))
+      .check(Schema.isMaxLength(10))
+      .annotate({ description: '확인하고 넘길 위반입니다. 같은 날 진찰료 중복만 넘길 수 있습니다.' }),
+  ),
+}).annotate({ description: '진료 완료 본문입니다.' })
+
+const Reason = Schema.NonEmptyString.check(Schema.isMaxLength(500)).annotate({
+  description: '사유입니다. 500자까지입니다.',
 })
 
-/** 정정·철회 사유입니다. */
-const Reason = Schema.NonEmptyString.check(Schema.isMaxLength(500))
-
-/** 정정 본문입니다. `changes`는 `PATCH` 본문과 같습니다. */
 const AmendPayload = Schema.Struct({
   reason: Reason,
   changes: UpdatePayload,
   acknowledge: CompletePayload.fields.acknowledge,
-})
-
-/** 새 처방 라인의 `clientRef`와 서버가 만든 ID입니다. */
+}).annotate({ description: '정정 본문입니다. `changes`는 `PATCH` 본문과 같고, 새 판을 한 번에 확정합니다.' })
 
 const lockEndpoint = (name: 'lock' | 'unlock') =>
   HttpApiEndpoint.post(name, `/encounters/:id::${name}`, {
     params: { id: EncounterId },
-    headers: { 'if-match': Schema.String },
-    success: HttpApiSchema.WithHeaders(Encounter, { etag: Schema.String }),
+    headers,
+    success: withETag(Encounter),
     error: [EncounterNotFound, EncounterNotEditable, VersionMismatch],
-  }).annotate(Access, Access.requires('encounter:amend'))
+  })
+    .annotate(Access, Access.requires('encounter:amend'))
+    .annotate(OpenApi.Summary, name === 'lock' ? '진료기록 고정' : '진료기록 고정 풀기')
 
 /**
- * 진료 조회, 초안 저장, 완료, 정정·철회·고정, 판 조회입니다. 조회는 `encounter:read`, 저장은 면허 권한 `encounter:write`가 필요합니다. 처방 라인을
+ * 진료 그룹의 구현 메모입니다. API 설명은 `OpenApi.Description`에 있습니다.
+ *
+ * 조회는 `encounter:read`, 저장은 면허 권한 `encounter:write`가 필요합니다. 처방 라인을
  * 보내면 `prescription:write`(PRN 라인은 `prescription:write_prn`도)가 더 필요합니다.
  *
  * 완료(`:complete`)도 면허 권한 `encounter:write`이고, 내원을 옮기는 권한(`visit:update`)은 따로 보지 않습니다.
@@ -68,25 +84,28 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
   .add(
     HttpApiEndpoint.get('get', '/encounters/:id', {
       params: { id: EncounterId },
-      success: HttpApiSchema.WithHeaders(Encounter, { etag: Schema.String }),
+      success: withETag(Encounter),
       error: EncounterNotFound,
-    }).annotate(Access, Access.requires('encounter:read')),
+    })
+      .annotate(Access, Access.requires('encounter:read'))
+      .annotate(OpenApi.Summary, '진료 조회'),
     HttpApiEndpoint.get('listForPatient', '/patients/:id/encounters', {
       params: { id: PatientId },
       success: Schema.Struct({ items: Schema.Array(Encounter) }),
       error: PatientNotFound,
-    }).annotate(Access, Access.requires('encounter:read')),
+    })
+      .annotate(Access, Access.requires('encounter:read'))
+      .annotate(OpenApi.Summary, '환자의 진료 목록'),
     HttpApiEndpoint.patch('update', '/encounters/:id', {
       params: { id: EncounterId },
-      headers: { 'if-match': Schema.String },
+      headers,
       payload: UpdatePayload,
-      success: HttpApiSchema.WithHeaders(
+      success: withETag(
         Schema.Struct({
           encounter: Encounter,
           warnings: Schema.Array(EncounterWarning),
           prescriptionLineRefs: PrescriptionLineRefs,
         }),
-        { etag: Schema.String },
       ),
       error: [
         EncounterNotFound,
@@ -99,14 +118,13 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       ],
     })
       .annotate(Access, Access.requires('encounter:write'))
+      .annotate(OpenApi.Summary, '초안 저장')
       .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
     HttpApiEndpoint.post('complete', '/encounters/:id::complete', {
       params: { id: EncounterId },
-      headers: { 'if-match': Schema.String },
+      headers,
       payload: CompletePayload,
-      success: HttpApiSchema.WithHeaders(Schema.Struct({ encounter: Encounter, visit: Schema.NullOr(Visit) }), {
-        etag: Schema.String,
-      }),
+      success: withETag(Schema.Struct({ encounter: Encounter, visit: Schema.NullOr(Visit) })),
       error: [
         EncounterNotFound,
         EncounterNotEditable,
@@ -116,15 +134,13 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       ],
     })
       .annotate(Access, Access.requires('encounter:write'))
+      .annotate(OpenApi.Summary, '진료 완료')
       .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
     HttpApiEndpoint.post('amend', '/encounters/:id::amend', {
       params: { id: EncounterId },
-      headers: { 'if-match': Schema.String },
+      headers,
       payload: AmendPayload,
-      success: HttpApiSchema.WithHeaders(
-        Schema.Struct({ encounter: Encounter, prescriptionLineRefs: PrescriptionLineRefs }),
-        { etag: Schema.String },
-      ),
+      success: withETag(Schema.Struct({ encounter: Encounter, prescriptionLineRefs: PrescriptionLineRefs })),
       error: [
         EncounterNotFound,
         EncounterNotEditable,
@@ -138,15 +154,17 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       ],
     })
       .annotate(Access, Access.requires('encounter:amend'))
+      .annotate(OpenApi.Summary, '진료기록 정정')
       .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
     HttpApiEndpoint.post('retract', '/encounters/:id::retract', {
       params: { id: EncounterId },
-      headers: { 'if-match': Schema.String },
+      headers,
       payload: Schema.Struct({ reason: Reason }),
-      success: HttpApiSchema.WithHeaders(Encounter, { etag: Schema.String }),
+      success: withETag(Encounter),
       error: [EncounterNotFound, EncounterNotEditable, EncounterLocked, EncounterBilled, VersionMismatch],
     })
       .annotate(Access, Access.requires('encounter:retract'))
+      .annotate(OpenApi.Summary, '진료 철회')
       .annotate(HttpApi.PayloadParseOptions, { errors: 'all', onExcessProperty: 'error' }),
     lockEndpoint('lock'),
     lockEndpoint('unlock'),
@@ -154,11 +172,24 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       params: { id: EncounterId },
       success: Schema.Struct({ items: Schema.Array(EncounterRevision) }),
       error: EncounterNotFound,
-    }).annotate(Access, Access.requires('encounter:read')),
+    })
+      .annotate(Access, Access.requires('encounter:read'))
+      .annotate(OpenApi.Summary, '판 목록'),
     HttpApiEndpoint.get('getRevision', '/encounters/:id/versions/:n', {
-      params: { id: EncounterId, n: Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)) },
+      params: {
+        id: EncounterId,
+        n: Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)).annotate({
+          description: '판 번호입니다. 1부터입니다.',
+        }),
+      },
       success: EncounterRevision,
       error: [EncounterNotFound, EncounterRevisionNotFound],
-    }).annotate(Access, Access.requires('encounter:read')),
+    })
+      .annotate(Access, Access.requires('encounter:read'))
+      .annotate(OpenApi.Summary, '판 조회'),
+  )
+  .annotate(
+    OpenApi.Description,
+    '진료 조회, 초안 저장, 완료, 정정·철회·고정, 판 조회입니다. 진료는 접수할 때 빈 초안으로 생깁니다. 초안만 저장(`PATCH`)·완료하고, 완료한 진료는 정정(`:amend`)으로 새 판을 남깁니다. 저장·완료·정정·철회·고정은 `If-Match`가 필수입니다. 받지 않는 필드는 버리지 않고 400입니다. 다른 병원의 진료는 없는 것과 같이 404입니다.',
   )
   .middleware(Authorization) {}

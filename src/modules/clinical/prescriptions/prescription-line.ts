@@ -3,12 +3,12 @@ import { isId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { decimalFraction } from '../../../shared/money/decimal.ts'
 
-/** 처방 라인 ID입니다. 예: `pl_01J...` */
-export const PrescriptionLineId = Schema.String.pipe(
+// 설명은 `refine` 앞에 답니다. 뒤에 달면 OpenAPI 문서에서 빠집니다
+export const PrescriptionLineId = Schema.String.annotate({ description: '처방 라인 ID입니다. 예: `pl_01J...`' }).pipe(
   Schema.refine((value): value is Id<'prescriptionLine'> => isId('prescriptionLine', value)),
 )
 
-/** 처방 종류입니다 (clinical.md 처방 라인). 종류별 규칙은 완료 검증과 수납이 씁니다. */
+// 종류별 규칙은 완료 검증과 수납이 씁니다
 export const PrescriptionKind = Schema.Literals([
   'CONSULTATION',
   'ACUPUNCTURE',
@@ -24,7 +24,11 @@ export const PrescriptionKind = Schema.Literals([
   'PACKAGE_USE',
   'HOME_VISIT',
   'OTHER',
-])
+]).annotate({
+  identifier: 'PrescriptionKind',
+  description:
+    '처방 종류입니다. 진찰료(`CONSULTATION`), 침(`ACUPUNCTURE`), 뜸(`MOXIBUSTION`), 부항(`CUPPING`), 추나(`CHUNA`), 약침(`PHARMACOPUNCTURE`), 보험 한약제제(`INSURED_MEDICINE`), 첩약 시범사업(`PILOT_HERBAL`), 한약(`HERBAL`), 비급여(`NONBENEFIT`), 패키지 판매·사용(`PACKAGE_SALE`·`PACKAGE_USE`), 방문진료(`HOME_VISIT`), 기타(`OTHER`)입니다.',
+})
 
 /**
  * 소수점 아래 둘째 자리까지인 수입니다. 단가와 1일 횟수가 씁니다. 근삿값으로 비교하지 않고 센트 단위로 되돌린 값이 정확히
@@ -34,42 +38,45 @@ const hasAtMostTwoDecimals = Schema.makeFilter((value: number) => Math.round(val
   title: 'up to 2 decimal places',
 })
 
-/** 투여·시술 양입니다. 금액은 `unitPrice × perDay × days`입니다. */
 export const Dose = Schema.Struct({
-  /** 1일 횟수입니다. 첩약 반 첩처럼 소수일 수 있습니다. */
-  perDay: Schema.Number.check(Schema.isBetween({ minimum: 0.01, maximum: 1000 }), hasAtMostTwoDecimals),
-  /** 일수입니다. */
-  days: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 365 })),
-})
+  perDay: Schema.Number.check(Schema.isBetween({ minimum: 0.01, maximum: 1000 }), hasAtMostTwoDecimals).annotate({
+    description: '1일 횟수입니다. 첩약 반 첩처럼 소수일 수 있고, 소수점 아래 둘째 자리까지 받습니다.',
+  }),
+  days: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 365 })).annotate({ description: '일수입니다.' }),
+}).annotate({ identifier: 'Dose', description: '투여·시술 양입니다. 금액은 `unitPrice × perDay × days`입니다.' })
 export type Dose = typeof Dose.Type
 
-/** 처방 시점의 단가(원)입니다. 소수점 아래 둘째 자리까지 받습니다. */
 export const UnitPrice = Schema.Number.check(
   Schema.isBetween({ minimum: 0, maximum: 100_000_000 }),
   hasAtMostTwoDecimals,
-)
+).annotate({ description: '처방 시점의 단가(원)입니다. 소수점 아래 둘째 자리까지 받습니다.' })
 
-/**
- * 진료의 처방 라인입니다.
- *
- * 지금은 저장과 금액 계산에 필요한 필드만 두었습니다. 침법·시간대 가산·부위·시술자·줄단위특정내역·패키지·심평원 승인·
- * 한약 처방은 그 기능이 생길 때 더합니다. 전체 리소스는 `docs/design/clinical.md`를 보세요.
- */
+// 지금은 저장과 금액 계산에 필요한 필드만 두었습니다. 침법·시간대 가산·부위·시술자·줄단위특정내역·패키지·심평원 승인·
+// 한약 처방은 그 기능이 생길 때 더합니다
 export const PrescriptionLine = Schema.Struct({
   id: PrescriptionLineId,
   kind: PrescriptionKind,
-  /** 수가코드입니다. 비급여처럼 코드가 없으면 `null`입니다. */
-  feeCode: Schema.NullOr(Schema.String),
-  /** 처방 카테고리(현행 카테고리숫자코드) 8자리입니다. 보험구분 전용 카테고리 판정에 씁니다. */
-  categoryCode: Schema.String,
+  feeCode: Schema.NullOr(Schema.String).annotate({
+    description: '수가코드입니다. 비급여처럼 코드가 없으면 `null`입니다.',
+  }),
+  categoryCode: Schema.String.annotate({
+    description: '처방 카테고리(현행 카테고리숫자코드) 8자리입니다. 보험구분 전용 카테고리 판정에 씁니다.',
+  }),
   name: Schema.String,
   dose: Dose,
-  /** 처방 시점 단가입니다. 설정 단가가 바뀌어도 이 진료의 금액은 변하지 않습니다. */
-  unitPrice: Schema.Number,
-  /** 서버가 계산한 금액(원)입니다. `unitPrice × perDay × days`를 반올림합니다. */
-  amount: Schema.Int,
-  /** 필요할 때 쓰는(PRN) 처방입니다. 쓰려면 `prescription:write_prn`이 필요합니다. */
-  prn: Schema.Boolean,
+  unitPrice: Schema.Number.annotate({
+    description: '처방 시점 단가(원)입니다. 설정 단가가 바뀌어도 이 진료의 금액은 변하지 않습니다.',
+  }),
+  amount: Schema.Int.annotate({
+    description: '서버가 계산한 금액(원)입니다. `unitPrice × perDay × days`를 원 단위로 반올림(0.5는 올림)합니다.',
+  }),
+  prn: Schema.Boolean.annotate({
+    description: '필요할 때 쓰는(PRN) 처방입니다. 쓰려면 `prescription:write_prn`이 필요합니다.',
+  }),
+}).annotate({
+  identifier: 'PrescriptionLine',
+  title: '처방',
+  description: '진료의 처방 라인입니다. 전체 리소스는 `docs/design/clinical.md`를 보세요.',
 })
 export type PrescriptionLine = typeof PrescriptionLine.Type
 

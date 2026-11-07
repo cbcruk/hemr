@@ -8,35 +8,36 @@ import { PatientId } from '../../patients/patient.ts'
 import { EncounterChangesPayload } from './encounter-changes-payload.ts'
 import { EncounterId } from './encounter-id.ts'
 
-export const AmendmentProposalId = Schema.String.pipe(
+// 설명은 `refine` 앞에 답니다. 뒤에 달면 OpenAPI 문서에서 빠집니다
+export const AmendmentProposalId = Schema.String.annotate({ description: '정정 제안 ID입니다. 예: `amp_01J...`' }).pipe(
   Schema.refine((value): value is Id<'amendmentProposal'> => isId('amendmentProposal', value)),
 )
 
-export const AmendmentProposalStatus = Schema.Literals(['PENDING', 'APPLIED', 'DISMISSED'])
+export const AmendmentProposalStatus = Schema.Literals(['PENDING', 'APPLIED', 'DISMISSED']).annotate({
+  identifier: 'AmendmentProposalStatus',
+  description: '대기(`PENDING`), 반영(`APPLIED`), 버림(`DISMISSED`)입니다.',
+})
 export type AmendmentProposalStatus = typeof AmendmentProposalStatus.Type
 
-/**
- * 정정 제안입니다 (clinical.md 진료). 면허 없는 사용자나 시스템이 완료한 진료기록을 바꿔야 할 때 만들고, 의사가
- * `:apply`로 정정(`:amend`)과 같이 반영하거나 `:dismiss`로 버립니다.
- *
- * `baseRevision`은 제안을 만들 때의 진료기록 판입니다. 그 뒤 진료가 정정되면 제안이 낡은 내용 위에 있으므로
- * 반영하지 않습니다.
- */
+// 응답은 `stale`을 더한 `AmendmentProposalView`입니다. 문서의 설명도 그쪽에 답니다
 export const AmendmentProposal = Schema.Struct({
   id: AmendmentProposalId,
   tenantId: TenantId,
   encounterId: EncounterId,
   patientId: PatientId,
-  /** `PATCH`·`:amend`와 같은 형식의 바꿀 내용입니다. */
+  // `PATCH`·`:amend`와 같은 형식의 바꿀 내용입니다. 이름 있는 Schema라 필드에 설명을 달지 않습니다
   changes: EncounterChangesPayload,
-  reason: Schema.String,
-  /** 누가 만들었는지입니다. 지금은 사용자(`USER`)만 있고, 청구 자동수정·보험구분 변경은 그 기능과 함께 더합니다. */
-  source: Schema.Literals(['USER']),
+  reason: Schema.String.annotate({ description: '제안 사유입니다. 반영하면 정정 사유가 됩니다.' }),
+  // 청구 자동수정·보험구분 변경은 그 기능과 함께 더합니다
+  source: Schema.Literals(['USER']).annotate({
+    description: '누가 만들었는지입니다. 지금은 사용자(`USER`)만 있습니다.',
+  }),
   proposedBy: UserId,
   proposedAt: Schema.String,
-  baseRevision: Schema.Int,
+  baseRevision: Schema.Int.annotate({
+    description: '제안을 만들 때의 진료기록 판입니다. 그 뒤 진료가 정정되면 반영할 수 없습니다.',
+  }),
   status: AmendmentProposalStatus,
-  /** 반영하거나 버린 기록입니다. 반영했으면 새 판 번호(`revision`), 버렸으면 사유(`reason`)가 있습니다. */
   resolution: Schema.NullOr(
     Schema.Struct({
       at: Schema.String,
@@ -44,13 +45,25 @@ export const AmendmentProposal = Schema.Struct({
       revision: Schema.NullOr(Schema.Int),
       reason: Schema.NullOr(Schema.String),
     }),
-  ),
+  ).annotate({
+    description:
+      '반영하거나 버린 기록입니다. 반영했으면 새 판 번호(`revision`), 버렸으면 사유(`reason`)가 있습니다. 대기 중이면 `null`입니다.',
+  }),
   version: Schema.Int,
 })
 export type AmendmentProposal = typeof AmendmentProposal.Type
 
-/** 응답의 정정 제안입니다. 진료가 그 뒤 정정되어 반영할 수 없으면 `stale`입니다. */
-export const AmendmentProposalView = Schema.Struct({ ...AmendmentProposal.fields, stale: Schema.Boolean })
+export const AmendmentProposalView = Schema.Struct({
+  ...AmendmentProposal.fields,
+  stale: Schema.Boolean.annotate({
+    description: '낡은 제안입니다. 제안 뒤 진료가 정정되어(`baseRevision` ≠ 진료의 `revision`) 반영할 수 없습니다.',
+  }),
+}).annotate({
+  identifier: 'AmendmentProposalView',
+  title: '정정 제안',
+  description:
+    '정정 제안입니다. 면허 없는 사용자나 시스템이 완료한 진료기록을 바꿔야 할 때 만들고, 의사가 `:apply`로 정정(`:amend`)과 같이 반영하거나 `:dismiss`로 버립니다.',
+})
 export type AmendmentProposalView = typeof AmendmentProposalView.Type
 
 export class AmendmentProposalNotFound extends HttpApiError.Problem<AmendmentProposalNotFound>()(
