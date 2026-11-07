@@ -1,4 +1,5 @@
 import { Layer } from 'effect'
+import { AmendmentProposalRepository } from './modules/clinical/encounters/amendment-proposal-repository.ts'
 import { EncounterRepository } from './modules/clinical/encounters/encounter-repository.ts'
 import { ProcedureRepository } from './modules/clinical/treatment-room/procedure-repository.ts'
 import { AuthRepository } from './modules/identity/auth/auth-repository.ts'
@@ -25,6 +26,7 @@ export const PersistenceMemory = (seed: ReadonlyArray<Visit> = []) =>
     PatientRepository.layerMemory,
     AccessLog.layerMemory,
     EncounterRepository.layerMemory,
+    AmendmentProposalRepository.layerMemory,
     ProcedureRepository.layerMemory,
     ReceiptRepository.layerMemory,
     CashDrawerRepository.layerMemory,
@@ -45,6 +47,7 @@ export const PersistenceSqlite = (filename: string) =>
     PatientRepository.layerSql,
     AccessLog.layerSql,
     EncounterRepository.layerSql,
+    AmendmentProposalRepository.layerSql,
     ProcedureRepository.layerSql,
     ReceiptRepository.layerSql,
     CashDrawerRepository.layerSql,

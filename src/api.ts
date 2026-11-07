@@ -2,6 +2,7 @@ import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/http-api'
 import { Access } from './modules/identity/auth/access.ts'
 import { AuthApi, MeApi } from './modules/identity/auth/auth.api.ts'
+import { AmendmentProposalsApi } from './modules/clinical/encounters/amendment-proposals.api.ts'
 import { EncountersApi } from './modules/clinical/encounters/encounters.api.ts'
 import { ProceduresApi } from './modules/clinical/treatment-room/procedures.api.ts'
 import { CashDrawersApi } from './modules/front-desk/cash-drawers/cash-drawers.api.ts'
@@ -33,6 +34,7 @@ export class Api extends HttpApi.make('hemr')
   .add(PatientsApi)
   .add(VisitsApi)
   .add(EncountersApi)
+  .add(AmendmentProposalsApi)
   .add(ProceduresApi)
   .add(ReceiptsApi)
   .add(PaymentsApi)

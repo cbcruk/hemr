@@ -522,6 +522,29 @@ export const migrations = {
     // 시재가 그날 받았거나 바뀐 결제를 찾습니다(created_at < 다음 날, updated_at >= 그날)
     yield* sql`CREATE INDEX payments_tenant_updated ON payments (tenant_id, updated_at)`
   }),
+  '0016_amendment_proposals': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    // 바꿀 내용(changes)과 반영·버림 기록은 제안과 함께만 읽어 JSON으로 둡니다
+    yield* sql`
+      CREATE TABLE amendment_proposals (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        encounter_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        changes TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('USER')),
+        proposed_by TEXT NOT NULL,
+        proposed_at TEXT NOT NULL,
+        base_revision INTEGER NOT NULL CHECK (base_revision >= 1),
+        status TEXT NOT NULL CHECK (status IN ('PENDING', 'APPLIED', 'DISMISSED')),
+        resolution TEXT,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        CHECK ((status = 'PENDING') = (resolution IS NULL))
+      ) STRICT
+    `
+    yield* sql`CREATE INDEX amendment_proposals_encounter ON amendment_proposals (tenant_id, encounter_id, status)`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

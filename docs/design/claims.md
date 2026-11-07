@@ -157,7 +157,7 @@ GET  /claims/{id}/sam-file                           → 서명된 URL (없으�
 GET  /claim-issue-codes                              에러코드 카탈로그 (서버 소유)
 ```
 
-- **자동수정은 정정 제안입니다.** 현행은 청구 담당자의 클릭으로 클라이언트가 `POST /record/{id}/save`를 보내 진료기록을 바꿨습니다. 진료기록 정정은 면허 행위이므로, 재설계는 서버가 [정정 제안](clinical.md#진료-encounter)(`reason: CLAIM_AUTOFIX:{code}`)을 만들고 담당 의사가 반영합니다. 의사가 일괄로 반영할 수 있게 `GET /amendment-proposals?reason=CLAIM_AUTOFIX&doctorId=` 목록을 둡니다
+- **자동수정은 정정 제안입니다.** 현행은 청구 담당자의 클릭으로 클라이언트가 `POST /record/{id}/save`를 보내 진료기록을 바꿨습니다. 진료기록 정정은 면허 행위이므로, 재설계는 서버가 [정정 제안](clinical.md#정정-제안-구현-결정)(`source: CLAIM_AUTOFIX`, 이슈 코드는 별도 필드)을 만들고 담당 의사가 반영합니다. 의사가 일괄로 반영할 수 있게 `GET /amendment-proposals?source=CLAIM_AUTOFIX&doctorId=` 목록을 둡니다. #30은 사용자 제안(`source: USER`)과 진료별 목록만 열었고, 이 목록은 자동수정과 함께 더합니다
 - 명세서는 반영된 정정을 기준으로 다시 집계됩니다. 반영 전에는 이슈가 `PENDING_FIX`로 보입니다
 
 ### 심사결과
