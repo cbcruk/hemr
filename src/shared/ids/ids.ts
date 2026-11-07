@@ -19,6 +19,8 @@ export const ID_PREFIXES = {
   procedure: 'prc',
   receipt: 'rcp',
   payment: 'pay',
+  expense: 'exp',
+  expenseCategory: 'exc',
   quote: 'qt',
   eligibilityLookup: 'elg',
   externalHerbalOrder: 'xho',

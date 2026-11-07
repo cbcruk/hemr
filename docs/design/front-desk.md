@@ -393,7 +393,7 @@ Idempotency-Key: ...
 구현은 [receipts.ts](../../src/modules/front-desk/receipts/receipts.ts)의 `quote`·`checkout`, 금액은 [receipt-charges.ts](../../src/modules/front-desk/receipts/receipt-charges.ts), 결산은 이미 포팅한 [checkout-settlement.ts](../../src/modules/front-desk/receipts/checkout-settlement.ts)의 `settleCheckout`입니다 (#33).
 
 - **범위:** `POST /visits/{id}:quote-checkout`과 `:checkout`. 위 [수납 커맨드](#수납-커맨드)의 3·4·5(내원 `COMPLETED`)·6입니다
-  - 미룸: 시재(#37), 내원 없는 수납(`POST /receipts`), 패키지 판매·사용, 등급 할인, 제주 지원금, 선수금·과수납금 잔액(환자 원장이 생길 때)
+  - 미룸: 내원 없는 수납(`POST /receipts`), 패키지 판매·사용, 등급 할인, 제주 지원금, 선수금·과수납금 잔액(환자 원장이 생길 때)
 - **1(금액 잠금)은 진료 쪽에서 막습니다.** 단가는 처방 라인이 저장할 때 이미 고정합니다. 수납한 뒤에는 유효한 영수증에 들어간 진료의 처방 라인을 바꾸거나(`PATCH`·`:amend`) 진료를 철회하면 409 `ENCOUNTER_BILLED { receiptId }`입니다. 본문·상병은 바꿀 수 있습니다. 처방을 바꾸려면 영수증을 취소(`:void`)합니다([환불과 정정 구현 결정](#환불과-정정-구현-결정))
   - 대안: 진료에 수납 표시를 저장하기. 영수증을 취소할 때 표시도 함께 되돌려야 해, 영수증에서 바로 판정했습니다
 - **일반(`SELF_PAY`) 진료는 처방 라인 금액의 합이 모두 비과세 비급여입니다.** 라인에 과세 여부가 없고 한의원 진료는 대부분 면세라서입니다. 과세 비급여는 비급여 항목 설정이 생길 때 라인에 표시를 더합니다. 건보·의료급여 진료의 급여 본인부담은 #36에서 열었습니다([급여 본인부담 구현 결정](#급여-본인부담-구현-결정)). 자보·산재 진료는 처방이나 본문·상병이 있으면 422 `CHECKOUT_COVERAGE_UNSUPPORTED`이고, 아무것도 쓰지 않았으면 0원으로 수납합니다
@@ -534,7 +534,7 @@ POST /payments/{id}:refund    { amount, refundMethod, reason, writeOff? }    Ide
   - 미룸: 정정 견적(`:quote-correct`). 화면이 앞 영수증의 청구 금액으로 그릴 수 있어 미뤘습니다. 되돌릴 조건: 정정에서 진료나 할인을 바꾸게 되면 견적과 `quoteId`를 받습니다
   - 이벤트: `receipt.voided`(앞 영수증), 이어서 `receipt.created { …, correctionOf }`
 - **연쇄 취소(`:cancel {cascade: true}`)는 유효한 영수증을 `:void`와 같이 취소합니다.** 같은 트랜잭션에서 내원 취소·진료 철회 뒤 영수증 `VOIDED`와 `receipt.voided`를 씁니다. 카드 등이 남았으면 아무것도 쓰지 않고 409 `PAYMENT_REFUND_REQUIRED`입니다. 되돌리지 못하는 메모리 저장소(테스트·개발용)는 진료 철회와 같이, 그 사이 다른 요청이 영수증을 바꾸면 내원만 취소된 채 남을 수 있습니다. 이것으로 #33의 409 `VISIT_HAS_RECEIPT`를 없앴습니다
-  - 미룸: 연쇄 취소 본문의 `refunds[]`(현금을 돌려준 기록). 지금은 현금 결제를 `VOIDED`로만 둡니다. 시재(#37)가 오늘 돌려준 현금을 따로 세야 하면 그때 받습니다
+  - 미룸: 연쇄 취소 본문의 `refunds[]`(현금을 돌려준 기록). 현금 결제는 `VOIDED`로만 두고, 시재(#37)는 취소한 날 남은 금액을 돌려준 현금 환불로 셉니다([시재와 지출 구현 결정](#시재와-지출-구현-결정))
 - **저장:** 마이그레이션 `0014_receipt_adjustments`가 `receipts.voided`(JSON)·`correction_of`와 `payments.refunds`(JSON, 기본 `[]`)를 더합니다. 목록 순서용 `(tenant_id, created_at, id)` 인덱스도 둡니다. 저장소 쓰기는 `commit` 하나로 모았습니다. 영수증·결제 여러 행을 읽은 버전 그대로일 때만 함께 쓰고, 하나라도 어긋나면 아무것도 쓰지 않습니다(결함). 취소한 영수증을 새 영수증보다 먼저 써서 정정이 부분 유일 인덱스에 걸리지 않습니다
 - **멱등성:** `:refund`·`:correct`는 `Idempotency-Key`가 필수이고 커맨드 이름은 `payments.refund`·`receipts.correct`입니다. 같은 키로 다시 보내면 그 뒤 바뀐 상태와 상관없이 처음 응답을 돌려주므로, 지금 상태는 `GET`으로 봅니다. 지문은 보낸 본문 그대로라 `writeOff`를 빼고 보낸 요청과 `false`로 보낸 요청은 다른 요청입니다(수납과 같음)
 - **권한:** 조회 `receipt:read`, 취소 `receipt:void`, 정정 `receipt:correct`, 환불 `receipt:refund`입니다(현행 `receipt_create/update/delete`의 재설계, review.md)
@@ -566,6 +566,45 @@ GET/POST/DELETE /settings/expense-categories
 - `closing.difference = countedAmount − expectedClosing`이고 마감할 때 계산해 남깁니다. 마감 뒤 그날 현금 원장이 바뀌면 서버가 사유 `CHANGED_AFTER_CLOSE`로 `REOPENED`로 바꾸고, 다시 `:close`해야 `CLOSED`입니다. 지출은 `OPEN`·`REOPENED`일 때 받습니다
 - 현금 기록은 현금이 오간 날의 시재에 넣습니다. 지난 날짜 수납을 오늘 취소해 돌려준 현금은 오늘의 현금 환불입니다
 - 계산은 [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts)의 순수 함수입니다
+
+### 시재와 지출 구현 결정
+
+구현은 [cash-drawers.ts](../../src/modules/front-desk/cash-drawers/cash-drawers.ts)의 `CashDrawers`, 현금 원장은 [cash-ledger.ts](../../src/modules/front-desk/cash-drawers/cash-ledger.ts), 계산은 이미 포팅한 [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts)입니다 (#37).
+
+```
+GET    /cash-drawers/{date}                                                        cash_drawer:read
+POST   /cash-drawers/{date}:open     { openingAmount } | { carryOver: true }       cash_drawer:update
+POST   /cash-drawers/{date}:close    { countedAmount }                             cash_drawer:update
+POST   /cash-drawers/{date}:reopen   { reason }                                    cash_drawer:update
+GET    /expenses?from=&to=                                                         cash_drawer:read
+POST   /expenses    { date, amount, categoryId, memo? }   Idempotency-Key  → 201   cash_drawer:update
+DELETE /expenses/{id}                                                    → 204     cash_drawer:update
+GET    /settings/expense-categories                                                cash_drawer:read
+POST   /settings/expense-categories  { name }                            → 201     setting.normal:update
+DELETE /settings/expense-categories/{id}                                 → 204     setting.normal:update
+```
+
+- **현금 흐름은 저장하지 않고 읽을 때 계산합니다.** 그날(병원 시간대) 받았거나 바뀐 결제(`paymentsTouched`)와 그날 지출에서 원장을 만들고 `cashFlow`로 셉니다. 돈이 오간 날로 셉니다
+  - 수납에 쓴 결제는 받은 날의 수납입니다
+  - 환불 기록은 하나씩 환불한 날, 그 기록의 수단으로 셉니다. 카드 결제를 현금으로 돌려주면 현금 환불입니다
+  - 취소(`VOIDED`)한 결제는 취소한 날 남은 금액(받은 금액 − 앞서 환불한 금액)을 돌려준 환불입니다. 같은 날 받고 취소한 현금은 서로 지워지고, 지난 날짜 수납을 오늘 취소하면 오늘의 현금 환불입니다. `VOIDED`는 끝 상태라 마지막으로 바꾼 시각을 취소 시각으로 씁니다
+  - 대안: 수납·환불·취소가 시재 행의 합계를 직접 고치기. 모든 돈 커맨드가 시재를 알아야 하고, 어긋나면 고칠 방법이 없어 버렸습니다. 되돌릴 조건: 하루 결제가 많아 읽을 때 계산이 느려지면 날짜별 합계를 캐시합니다
+- **마감 뒤 원장이 바뀌면 `REOPENED`(`CHANGED_AFTER_CLOSE`)입니다.** 마감할 때 그날 현금 원장의 지문(현금 수납·환불과 지출의 ID·금액)을 남기고, 읽을 때 지금 지문과 다르면 다시 마감할 때까지 `REOPENED`입니다. 카드 결제처럼 현금이 아닌 변경은 지문에 넣지 않습니다. 금액 합이 같아도 기록이 바뀌면 다시 엽니다
+  - 대안: 원장을 바꾸는 커맨드가 시재 행을 `REOPENED`로 쓰기. 수납·환불·취소·연쇄 취소가 모두 시재를 고쳐야 해 버렸습니다. 그래서 자동으로 다시 열린 때에는 시각·사용자가 없고(`null`) 따로 이벤트도 내지 않습니다. 원장을 바꾼 커맨드의 이벤트(`receipt.*`, `payment.refunded`)에 날짜가 있습니다
+- **`:reopen`은 `CLOSED`에서만 받고 사유를 남깁니다.** 다시 마감하면 다시 연 기록을 비우고 새 마감 기록(센 금액·예상 마감 금액·차이)으로 바꿉니다. 지난 마감 기록은 남기지 않습니다
+  - 미룸: 마감 이력. 되돌릴 조건: 감사에서 마감을 몇 번 했는지 봐야 하면 마감마다 행을 남깁니다
+- **시작 금액은 열 때 정하고 바꾸지 않습니다.** `carryOver: true`면 앞서 마감한 시재 중 가장 늦은 날의 센 금액을 씁니다(없으면 422 `CASH_DRAWER_CARRY_OVER_UNAVAILABLE`). 시작 금액과 `carryOver`는 둘 중 하나만 받습니다(400). 현행 "다음에도 같은 시재 사용"은 화면 기본값이라 서버가 갖지 않습니다
+  - 대안: `carryOver`를 "다음 날 같은 시작 금액을 쓰는 설정"으로 받기. 돈통에 실제로 남은 금액은 앞 날 센 금액이라 버렸습니다
+  - 미룸: 시작 금액 고치기(현행 `PUT /desk/cash-registers/{id}`). 되돌릴 조건: 잘못 연 시재를 고칠 일이 생기면 `:reopen`처럼 사유와 함께 받습니다
+- **오늘 이후 날짜는 열 수 없습니다(422 `CASH_DRAWER_DATE_IN_FUTURE`).** 지난 날짜는 열 수 있습니다. 시재 없이 받은 날의 현금도 나중에 셀 수 있게 하기 위해서입니다. 열지 않은 날도 `GET`은 그날 현금 흐름과 `NOT_OPENED`를 줍니다
+- **수납은 시재를 보지 않습니다.** 시재를 열지 않았거나 마감한 날에도 수납·환불을 받습니다. 진료를 막지 않기 위해서이고, 마감한 날이면 위처럼 다시 열립니다. 지출은 현금을 꺼내는 일이라 그날 시재가 `OPEN`·`REOPENED`일 때만 기록하거나 지웁니다(409 `CASH_DRAWER_NOT_OPEN`)
+- **지출은 지워도 행을 남깁니다(`deleted { at, by }`).** 목록과 시재에서는 빠집니다. 지출에 항목 이름을 함께 남겨 항목을 지워도 기록이 그대로입니다. 지출 목록은 한 번에 31일까지입니다(넘으면 400)
+- **지출 항목은 설정입니다.** 쓰기는 `setting.normal:update`, 읽기는 `cash_drawer:read`입니다. 이름은 병원 안에서 겹치지 않습니다(409 `EXPENSE_CATEGORY_NAME_TAKEN`)
+- **권한:** `cash_drawer:read`·`cash_drawer:update`를 새로 두고 데스크 프리셋(데스크·실장·부원장·대표원장)에 넣었습니다
+- **멱등성:** `POST /expenses`만 `Idempotency-Key`가 필수입니다(커맨드 이름 `expenses.record`). 시재 커맨드는 같은 요청을 다시 보내면 상태 검사가 409로 막습니다
+- **이벤트:** 시재 커맨드와 지출 기록·삭제가 `cash_drawer.changed { date }`를 냅니다
+- **저장:** 마이그레이션 `0015_cash_drawers`가 `cash_drawers`(병원·날짜 키, 마감·다시 열기는 JSON), `expenses`, `expense_categories`와 결제의 `(tenant_id, updated_at)` 인덱스를 만듭니다
+- **미룸:** 선수금 현금 충전(환자 원장이 생길 때 원장에 더합니다), 오프라인 접수·수납과의 충돌 정리(review.md)
 
 ### 일자 현황
 

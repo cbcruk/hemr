@@ -4,6 +4,7 @@ import { ProcedureRepository } from './modules/clinical/treatment-room/procedure
 import { AuthRepository } from './modules/identity/auth/auth-repository.ts'
 import { SecurityLog } from './modules/identity/auth/security-log.ts'
 import { IdentityRepository } from './modules/identity/identity-repository.ts'
+import { CashDrawerRepository } from './modules/front-desk/cash-drawers/cash-drawer-repository.ts'
 import { ReceiptRepository } from './modules/front-desk/receipts/receipt-repository.ts'
 import { VisitRepository } from './modules/front-desk/visits/visit-repository.ts'
 import type { Visit } from './modules/front-desk/visits/visit.ts'
@@ -26,6 +27,7 @@ export const PersistenceMemory = (seed: ReadonlyArray<Visit> = []) =>
     EncounterRepository.layerMemory,
     ProcedureRepository.layerMemory,
     ReceiptRepository.layerMemory,
+    CashDrawerRepository.layerMemory,
     IdempotencyStore.layerMemory,
     Transaction.layerMemory,
   ).pipe(Layer.provideMerge(Outbox.layerMemory))
@@ -45,6 +47,7 @@ export const PersistenceSqlite = (filename: string) =>
     EncounterRepository.layerSql,
     ProcedureRepository.layerSql,
     ReceiptRepository.layerSql,
+    CashDrawerRepository.layerSql,
     IdempotencyStore.layerSql,
     Transaction.layerSql,
   ).pipe(Layer.provideMerge(Outbox.layerSql), Layer.provideMerge(sqliteLayer(filename)))
