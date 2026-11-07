@@ -16,7 +16,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "서버가 요청을 받을 수 있습니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -32,7 +32,8 @@
                   "required": [
                     "status"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "서버가 요청을 받을 수 있습니다."
                 }
               }
             }
@@ -215,7 +216,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "새 access token입니다. refresh token을 새로 바꿨으면 쿠키도 새로 줍니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -248,7 +249,8 @@
                     "expiresIn",
                     "tenantId"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "새 access token입니다. refresh token을 새로 바꿨으면 쿠키도 새로 줍니다."
                 }
               }
             }
@@ -298,7 +300,7 @@
         "security": [],
         "responses": {
           "204": {
-            "description": "<No Content>"
+            "description": "로그아웃했습니다. refresh token 쿠키를 지웁니다."
           },
           "400": {
             "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
@@ -339,7 +341,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "고른 병원을 가리키는 새 access token입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -360,7 +362,8 @@
                     "accessToken",
                     "expiresIn"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "고른 병원을 가리키는 새 access token입니다."
                 }
               }
             }
@@ -623,7 +626,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "찾은 환자의 한 쪽입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -643,14 +646,16 @@
                         {
                           "type": "null"
                         }
-                      ]
+                      ],
+                      "description": "다음 쪽을 받을 커서입니다. 마지막 쪽이면 `null`입니다."
                     }
                   },
                   "required": [
                     "items",
                     "nextCursor"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "찾은 환자의 한 쪽입니다."
                 }
               }
             }
@@ -882,7 +887,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "지금 등록하면 받을 차트번호입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -895,7 +900,8 @@
                   "required": [
                     "chartNumber"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "지금 등록하면 받을 차트번호입니다."
                 }
               }
             }
@@ -1318,7 +1324,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "주민등록번호 원문입니다. 열람 기록을 남긴 뒤에 줍니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1339,7 +1345,8 @@
                   "required": [
                     "rrn"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "주민등록번호 원문입니다. 열람 기록을 남긴 뒤에 줍니다."
                 }
               }
             }
@@ -1433,14 +1440,15 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "목적마다 마지막 동의 기록입니다. 기록이 없는 목적은 빠집니다.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Consent"
-                  }
+                  },
+                  "description": "목적마다 마지막 동의 기록입니다. 기록이 없는 목적은 빠집니다."
                 }
               }
             }
@@ -1667,14 +1675,15 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "환자의 동의 기록 전부입니다.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Consent"
-                  }
+                  },
+                  "description": "환자의 동의 기록 전부입니다."
                 }
               }
             }
@@ -1775,7 +1784,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "그날의 내원입니다. `status`를 주면 그 상태만입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1791,7 +1800,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "그날의 내원입니다. `status`를 주면 그 상태만입니다."
                 }
               }
             }
@@ -3178,7 +3188,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "저장한 진료와 경고입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3202,7 +3212,8 @@
                     "warnings",
                     "prescriptionLineRefs"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "저장한 진료와 경고입니다."
                 }
               }
             },
@@ -3354,7 +3365,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "환자의 진료 전부입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3370,7 +3381,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "환자의 진료 전부입니다."
                 }
               }
             }
@@ -3472,7 +3484,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "완료한 진료와 내원입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3497,7 +3509,8 @@
                     "encounter",
                     "visit"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "완료한 진료와 내원입니다."
                 }
               }
             },
@@ -3683,7 +3696,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "정정한 진료입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3700,7 +3713,8 @@
                     "encounter",
                     "prescriptionLineRefs"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "정정한 진료입니다."
                 }
               }
             },
@@ -4331,7 +4345,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "진료기록의 판 전부입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4347,7 +4361,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "진료기록의 판 전부입니다."
                 }
               }
             }
@@ -4709,7 +4724,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "진료의 정정 제안입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4725,7 +4740,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "진료의 정정 제안입니다."
                 }
               }
             }
@@ -4915,7 +4931,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "반영한 제안과 정정한 진료입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4936,7 +4952,8 @@
                     "encounter",
                     "prescriptionLineRefs"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "반영한 제안과 정정한 진료입니다."
                 }
               }
             },
@@ -5258,7 +5275,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "그날 치료실 보드입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5295,7 +5312,8 @@
                     "serverTime",
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "그날 치료실 보드입니다."
                 }
               }
             }
@@ -5378,7 +5396,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "내원의 시술 전부입니다. 진행 순서대로입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5394,7 +5412,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "내원의 시술 전부입니다. 진행 순서대로입니다."
                 }
               }
             }
@@ -5781,7 +5800,7 @@
         ],
         "responses": {
           "204": {
-            "description": "<No Content>"
+            "description": "시술을 지웠습니다."
           },
           "400": {
             "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
@@ -5881,7 +5900,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5897,7 +5916,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다."
                 }
               }
             }
@@ -6342,7 +6362,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6358,7 +6378,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다."
                 }
               }
             }
@@ -6461,7 +6482,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6477,7 +6498,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다."
                 }
               }
             }
@@ -6570,7 +6592,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "내원의 시술 전부입니다. 진행 순서대로입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6586,7 +6608,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "내원의 시술 전부입니다. 진행 순서대로입니다."
                 }
               }
             }
@@ -7079,7 +7102,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "수납 결과입니다. 만든 영수증과 수납 뒤의 내원입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7096,7 +7119,8 @@
                     "receipt",
                     "visit"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "수납 결과입니다. 만든 영수증과 수납 뒤의 내원입니다."
                 }
               }
             }
@@ -7381,7 +7405,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "찾은 영수증의 한 쪽입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7401,14 +7425,16 @@
                         {
                           "type": "null"
                         }
-                      ]
+                      ],
+                      "description": "다음 쪽을 받을 커서입니다. 마지막 쪽이면 `null`입니다."
                     }
                   },
                   "required": [
                     "items",
                     "nextCursor"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "찾은 영수증의 한 쪽입니다."
                 }
               }
             }
@@ -8187,7 +8213,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "찾은 결제의 한 쪽입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8207,14 +8233,16 @@
                         {
                           "type": "null"
                         }
-                      ]
+                      ],
+                      "description": "다음 쪽을 받을 커서입니다. 마지막 쪽이면 `null`입니다."
                     }
                   },
                   "required": [
                     "items",
                     "nextCursor"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "찾은 결제의 한 쪽입니다."
                 }
               }
             }
@@ -9054,7 +9082,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "기간 안의 지출입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9070,7 +9098,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "기간 안의 지출입니다."
                 }
               }
             }
@@ -9306,7 +9335,7 @@
         ],
         "responses": {
           "204": {
-            "description": "<No Content>"
+            "description": "지출을 지웠습니다."
           },
           "400": {
             "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
@@ -9396,7 +9425,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "병원의 지출 분류입니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9412,7 +9441,8 @@
                   "required": [
                     "items"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "description": "병원의 지출 분류입니다."
                 }
               }
             }
@@ -9602,7 +9632,7 @@
         ],
         "responses": {
           "204": {
-            "description": "<No Content>"
+            "description": "지출 분류를 지웠습니다."
           },
           "400": {
             "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",

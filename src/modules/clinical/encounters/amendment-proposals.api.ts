@@ -56,7 +56,9 @@ export class AmendmentProposalsApi extends HttpApiGroup.make('amendmentProposals
         // 없으면 모든 상태입니다
         status: Schema.optionalKey(AmendmentProposalStatus),
       },
-      success: Schema.Struct({ items: Schema.Array(AmendmentProposalView) }),
+      success: Schema.Struct({ items: Schema.Array(AmendmentProposalView) }).annotate({
+        description: '진료의 정정 제안입니다.',
+      }),
       error: EncounterNotFound,
     })
       .annotate(Access, Access.requires('encounter:read'))
@@ -82,7 +84,7 @@ export class AmendmentProposalsApi extends HttpApiGroup.make('amendmentProposals
           proposal: AmendmentProposalView,
           encounter: Encounter,
           prescriptionLineRefs: PrescriptionLineRefs,
-        }),
+        }).annotate({ description: '반영한 제안과 정정한 진료입니다.' }),
         {
           etag: Schema.String.annotate({
             description: '정정한 진료의 버전입니다. 다음 진료 요청의 `If-Match`에 씁니다.',

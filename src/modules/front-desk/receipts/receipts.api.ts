@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from 'effect/http-api'
 import { IdempotencyKey, IdempotencyKeyReused } from '../../../shared/http/idempotency.ts'
-import { PageCursor, PageLimit } from '../../../shared/http/paging.ts'
+import { Page, PageCursor, PageLimit } from '../../../shared/http/paging.ts'
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
 import { EncounterId } from '../../clinical/encounters/encounter-id.ts'
 import { Access } from '../../identity/auth/access.ts'
@@ -167,7 +167,7 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
         limit: Schema.optionalKey(PageLimit),
         cursor: Schema.optionalKey(PageCursor(100)),
       },
-      success: Schema.Struct({ items: Schema.Array(Receipt), nextCursor: Schema.NullOr(Schema.String) }),
+      success: Page(Receipt, '찾은 영수증의 한 쪽입니다.'),
       error: ValidationFailed,
     })
       .annotate(Access, Access.requires('receipt:read'))

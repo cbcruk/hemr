@@ -9,3 +9,12 @@ export const PageLimit = Schema.String.annotate({
 /** 앞 쪽 응답의 `nextCursor`를 받는 쿼리입니다. `maxLength`는 목록마다 다릅니다. */
 export const PageCursor = (maxLength: number) =>
   Schema.String.check(Schema.isMaxLength(maxLength)).annotate({ description: '앞 쪽 응답의 `nextCursor`입니다.' })
+
+/** 커서로 넘기는 목록의 한 쪽입니다. `description`은 응답 설명이 됩니다. */
+export const Page = <S extends Schema.Top>(item: S, description: string) =>
+  Schema.Struct({
+    items: Schema.Array(item),
+    nextCursor: Schema.NullOr(Schema.String).annotate({
+      description: '다음 쪽을 받을 커서입니다. 마지막 쪽이면 `null`입니다.',
+    }),
+  }).annotate({ description })

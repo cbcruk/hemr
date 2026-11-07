@@ -196,6 +196,7 @@ OpenAPI 문서는 손으로 쓰지 않고 HTTP 계약(`Api`)에서 만듭니다(
 - `identifier`를 달면 Schema 내부 오류 문구가 이름으로 바뀝니다(`Expected "A" | "B"` → `Expected VisitStatus`). `VALIDATION_FAILED` 응답은 오류 종류와 경로만 쓰므로 바뀌지 않고, 로그와 DB 행 디코딩 오류의 문구만 바뀝니다
 - **문제 응답(`HttpApiError.Problem`)은 넷째 인자 `{ description }`에 한글 설명을 달고 JSDoc은 지웁니다.** 이 설명이 OpenAPI 응답의 `description`이 되어 영문 `title`을 대신합니다. 같은 상태 코드의 오류가 여럿이면 ` | `로 이어 붙습니다. 그래서 설명은 오류 코드로 시작하고(`` `ENCOUNTER_BILLED`: … ``), 문장은 짧게 두고, 무엇을 하면 풀리는지(먼저 `:void`, 고정을 풂)를 적습니다. 오류 필드(`currentStatus`, `missing` 등)의 뜻도 이 설명에 적습니다. 오류를 만든 이유 같은 구현 메모는 클래스 위 `//` 주석입니다
   - 문제 클래스가 아닌 Schema를 `error`에 넣으면 500 `application/json` 응답으로 문서에 섞입니다. 테스트가 오류 응답이 모두 `application/problem+json`이고 설명의 조각마다 오류 코드로 시작하는 한글인지 확인합니다
+- **성공 응답도 설명을 답니다.** Effect는 성공 Schema의 `description`을 응답 설명으로 쓰고, 없으면 영문 `Success`·`<No Content>`를 씁니다. 목록·묶음처럼 이름 없는 성공 Schema와 `HttpApiSchema.NoContent`에 `annotate({ description })`을 답니다. 커서 목록은 `Page(item, description)`(`shared/http/paging.ts`)을 씁니다. 테스트가 성공 응답 설명이 한글인지 확인합니다
 - **커맨드 경로:** 라우터는 커맨드 경로의 콜론을 `::`로 적습니다(`/visits/:id::cancel`). 문서에는 실제 경로(`/visits/{id}:cancel`)로 바꿔 씁니다
 - 모듈 묶음별로 열었습니다(#55). 틀과 내원, 진료(진료·정정 제안·처방 라인·치료실), 수납·결제·시재, 환자·인증·공통과 문제 응답입니다. 이제 모든 엔드포인트에 요약이, 모든 그룹에 설명이 있고, 새 엔드포인트도 같이 답니다. API 전체 설명은 `Api`의 `OpenApi.Description`입니다. `Idempotency-Key` 헤더 설명은 공용 Schema(`IdempotencyKey`), 목록의 `limit`·`cursor`는 [paging.ts](../../src/shared/http/paging.ts)에 있습니다
 - 응답 리소스가 저장 모델과 다르면(정정 제안의 `stale`) 응답 Schema(`AmendmentProposalView`)에 이름과 `title`을 달고, 용어 표 행에 그 키를 더합니다. 문서에 나오는 것은 응답이기 때문입니다
