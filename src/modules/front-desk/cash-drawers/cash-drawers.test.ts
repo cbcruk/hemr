@@ -127,7 +127,7 @@ describe.each(['memory', 'sqlite'] as const)('CashDrawers (%s)', (store) => {
         const { receipt } = yield* paidInCash(7_000)
         const changed = yield* drawers.get(date)
         const closed = yield* drawers.close(date, 7_000)
-        // 같은 날 영수증을 취소하면 받은 현금을 돌려준 것이라 원장이 다시 바뀝니다
+        // 같은 날 영수증을 취소하면 받지 않은 것이 되어 원장이 다시 바뀝니다
         yield* (yield* Receipts).void(receipt.id, '오수납')
         const voided = yield* drawers.get(date)
         return { changed, closed, voided }
@@ -140,7 +140,7 @@ describe.each(['memory', 'sqlite'] as const)('CashDrawers (%s)', (store) => {
       reopened: { cause: 'CHANGED_AFTER_CLOSE', reason: null, at: null, by: null },
     })
     expect(result.closed).toMatchObject({ status: 'CLOSED', closing: { difference: 0 } })
-    expect(result.voided).toMatchObject({ status: 'REOPENED', cashIn: 7_000, cashRefunds: 7_000, expectedClosing: 0 })
+    expect(result.voided).toMatchObject({ status: 'REOPENED', cashIn: 0, cashRefunds: 0, expectedClosing: 0 })
   })
 
   it('carries over the counted amount of the last closed drawer only when there is one', async () => {
@@ -155,8 +155,11 @@ describe.each(['memory', 'sqlite'] as const)('CashDrawers (%s)', (store) => {
         yield* drawers.close('2020-01-01', 12_340)
         const carried = yield* drawers.open(date, { carryOver: true })
         const again = yield* failure(drawers.open(date, { openingAmount: 0 }))
+        // 앞 시재를 다시 열면 그 센 금액은 이어받지 않습니다
+        yield* drawers.reopen('2020-01-01', '다시 셈')
+        const stale = yield* failure(drawers.open('2020-01-02', { carryOver: true }))
         const future = yield* failure(drawers.open('2999-01-01', { openingAmount: 0 }))
-        return { none, both, neither, carried, again, future }
+        return { none, both, neither, carried, again, future, stale }
       }),
       store,
     )
@@ -170,6 +173,7 @@ describe.each(['memory', 'sqlite'] as const)('CashDrawers (%s)', (store) => {
       command: 'OPEN',
     })
     expect(result.future).toMatchObject({ code: 'CASH_DRAWER_DATE_IN_FUTURE' })
+    expect(result.stale).toMatchObject({ code: 'CASH_DRAWER_CARRY_OVER_UNAVAILABLE' })
   })
 
   it('refuses commands that do not fit the status', async () => {

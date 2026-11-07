@@ -63,7 +63,7 @@ export class CashDrawers extends Context.Service<
     /**
      * 시재를 엽니다. 오늘 이후 날짜는 422 `CASH_DRAWER_DATE_IN_FUTURE`, 이미 열었으면 409
      * `CASH_DRAWER_TRANSITION_INVALID`입니다. `carryOver`면 앞서 마감한 시재 중 가장 늦은 날의 센 금액을 시작 금액으로
-     * 쓰고, 그런 시재가 없으면 422 `CASH_DRAWER_CARRY_OVER_UNAVAILABLE`입니다. 시작 금액과 `carryOver`는 둘 중 하나만
+     * 쓰고, 그런 시재가 없거나 그 시재가 지금 `CLOSED`가 아니면(다시 열림) 422 `CASH_DRAWER_CARRY_OVER_UNAVAILABLE`입니다. 시작 금액과 `carryOver`는 둘 중 하나만
      * 보냅니다(400).
      */
     open(date: string, input: OpenInput): Effect.Effect<CashDrawer, OpenError | ValidationFailed, CurrentAccess>
@@ -182,8 +182,13 @@ export class CashDrawers extends Context.Service<
             }
             let openingAmount = input.openingAmount ?? 0
             if (carryOver) {
+              // 다시 열렸거나 마감 뒤 원장이 바뀐 시재의 센 금액은 지금 돈통과 맞지 않아 이어받지 않습니다
               const previous = Option.getOrNull(yield* repository.lastClosedBefore(access.tenantId, date))
-              if (previous?.closing == null) return yield* new CashDrawerCarryOverUnavailable({})
+              const { drawer: previousView } =
+                previous === null ? { drawer: null } : yield* viewOf(access.tenantId, previous.date, previous)
+              if (previous?.closing == null || previousView?.status !== 'CLOSED') {
+                return yield* new CashDrawerCarryOverUnavailable({})
+              }
               openingAmount = previous.closing.countedAmount
             }
             const opened: CashDrawerRecord = {

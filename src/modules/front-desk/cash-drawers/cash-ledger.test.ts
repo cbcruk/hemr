@@ -85,9 +85,16 @@ describe('cashLedger', () => {
     expect(flowOn('2026-11-08', [refunded])).toMatchObject({ cashIn: 0, cashRefunds: 4_000 })
   })
 
-  it('treats a voided cash payment as the rest handed back on the void day', () => {
+  it('treats a voided cash payment as the rest handed back on a later void day and nets out a same-day void', () => {
+    // 받은 날 취소한 금액은 오가지 않은 돈입니다. 그날 환불한 만큼만 받고 돌려준 것으로 셉니다
     const sameDay = payment('1', { status: 'VOIDED', updatedAt: DAY1 })
-    expect(flowOn('2026-11-07', [sameDay])).toMatchObject({ cashIn: 10_000, cashRefunds: 10_000 })
+    expect(cashLedger('2026-11-07', [sameDay], [])).toEqual([])
+    const refundedThenVoided = payment('3', {
+      status: 'VOIDED',
+      refunds: [refund(4_000, 'CASH', DAY1)],
+      updatedAt: DAY1,
+    })
+    expect(flowOn('2026-11-07', [refundedThenVoided])).toMatchObject({ cashIn: 4_000, cashRefunds: 4_000 })
 
     const nextDay = payment('2', {
       status: 'VOIDED',

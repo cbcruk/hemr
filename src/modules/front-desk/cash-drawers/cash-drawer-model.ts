@@ -12,6 +12,20 @@ export const ExpenseCategoryId = Schema.String.pipe(
   Schema.refine((value): value is Id<'expenseCategory'> => isId('expenseCategory', value)),
 )
 
+/**
+ * 달력에 있는 날짜입니다. `LocalDate`는 형식만 봐 `2026-02-30`도 받는데, 시재는 날짜로 하루 범위를 계산하므로 실제
+ * 날짜만 받습니다.
+ */
+export const CalendarDate = LocalDate.check(
+  Schema.makeFilter(
+    (value: string) => {
+      const time = Date.parse(`${value}T00:00:00Z`)
+      return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value
+    },
+    { title: 'calendar date' },
+  ),
+)
+
 export const CashDrawerStatus = Schema.Literals(['NOT_OPENED', 'OPEN', 'CLOSED', 'REOPENED'])
 export const CashDrawerCommand = Schema.Literals(['OPEN', 'CLOSE', 'REOPEN'])
 
