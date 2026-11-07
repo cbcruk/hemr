@@ -9,7 +9,7 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/ReservedProcedures/처방명.js`
+- `restored/modules/ReservedProcedures/처방명.js`
   - `zd`(36-58): 시간대 판정. `Vd`(25-34)는 12자리 형식 검사입니다
   - `Zy`(60-75): 연도별 단가
   - `Dd`(79-95): 코드·금액 계산
@@ -67,7 +67,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/ReservedProcedures/처방명.js:36-126` (`// Restored from unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5287-5519`, 해당 부분은 `:5309-5390`)
+`restored/modules/ReservedProcedures/처방명.js:36-126` (`// Restored from unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:5287-5519`, 해당 부분은 `:5309-5390`)
 
 ```js
 const zd = ({ 기준일시, 공휴일임 }) => {
@@ -116,7 +116,7 @@ const Pd = (t, s) => {
 };
 ```
 
-`re-upstream/restored/modules/ReservedProcedures/처방명.js:128-210` (`:5391-5471`). `Eu`와 `Wh`입니다. `Wh`의 `lee` 호출부는 줄였습니다.
+`restored/modules/ReservedProcedures/처방명.js:128-210` (`:5391-5471`). `Eu`와 `Wh`입니다. `Wh`의 `lee` 호출부는 줄였습니다.
 
 ```js
 const Eu = t => {
@@ -147,7 +147,7 @@ const Wh = t => {
 };
 ```
 
-`re-upstream/restored/modules/ReservedProcedures/처방명.js:212-237`, `263` (`:5472-5497`, `:5519`)
+`restored/modules/ReservedProcedures/처방명.js:212-237`, `263` (`:5472-5497`, `:5519`)
 
 ```js
 const n$ = t => {

@@ -4,7 +4,7 @@
 
 ## 현행에서 고칠 점
 
-- **같은 문제를 푸는 시스템이 세 벌 있습니다.** 연락목록 v1(`/crm/contact-list`), 수 복용관리 lite-trigger(`/crm/lite-trigger`), 트리거 엔진 v2(`/crm/trigger-engine`). 여기에 dev 전용 `/schedulers`(루틴)까지 있고 `hospital-variables`도 두 곳에 있습니다
+- **같은 문제를 푸는 시스템이 세 벌 있습니다.** 연락목록 v1(`/crm/contact-list`), 라이트 복용관리 lite-trigger(`/crm/lite-trigger`), 트리거 엔진 v2(`/crm/trigger-engine`). 여기에 dev 전용 `/schedulers`(루틴)까지 있고 `hospital-variables`도 두 곳에 있습니다
 - **경계가 뒤집혀 있습니다.** CRM 개념(연락 일정·트리거·MCP 승인)이 EMR 서버(`emrClient /crm/*`)에 있고, 메시지 발송은 CRM 서버(`crmClient`)에 있습니다. lite-trigger는 상태가 CRM 서버, 규칙이 EMR 서버입니다
 - **발송 경로가 채널·유형마다 다릅니다.** `/messages/send/groups/{id}`(PUT), `/messages/kakao/{brand|alimtalk}/groups/{id}`, `/send/patient`, `/kakao/*/patient`, `/send/test`, `/send/test/manual`
 - **법적 표기·제한이 클라이언트에 있습니다.** 광고 머리말 `(광고)`·무료거부 꼬리말을 클라이언트가 붙이고, 야간 광고 제한 시각이 수동 발송 20:50, 자동 발송 20:30으로 서로 다릅니다
@@ -80,7 +80,7 @@ ContactTask
 | 현행 | 재설계 |
 |---|---|
 | 연락목록 v1 규칙 + 일정(`PENDING/COMPLETED/FAILED`) | `ContactProgram` + `ContactTask` |
-| lite-trigger 이벤트·규칙 (수 복용관리) | `source: CENTRAL` 프로그램 그룹 |
+| lite-trigger 이벤트·규칙 (라이트 복용관리) | `source: CENTRAL` 프로그램 그룹 |
 | 트리거 엔진 programs / central-programs / program-groups / execution-logs | 같은 개념, 이름만 정리 |
 | `/schedulers` 루틴 (dev 전용) | 범위 밖. 필요하면 `trigger.kind: MANUAL` 반복 프로그램 |
 | MCP 승인 대기 | `ContactTask.status = PROPOSED` |

@@ -1,21 +1,22 @@
-# Upstream EMR 웹 클라이언트 스펙
+# 현행 EMR 웹 클라이언트 스펙
 
-Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코드(`restored/`)를 읽고 정리한 기능 스펙입니다. 한의원용 EMR로, 원무·진료·예약·탕전·청구·CRM·설정을 하나의 Vue 앱이 제공하고, 경영지표·재무·포털은 원격 앱으로 붙습니다.
+현행 EMR 프로덕션 번들에서 복원한 코드(`restored/`)를 읽고 정리한 기능 스펙입니다. 한의원용 EMR로, 원무·진료·예약·탕전·청구·CRM·설정을 하나의 Vue 앱이 제공하고, 경영지표·재무·포털은 원격 앱으로 붙습니다.
 
 - **근거:** 모든 내용은 정적 분석 결과입니다. API를 실제로 호출해 확인하지 않았습니다. 각 문서의 **근거** 링크가 복원 코드를 가리킵니다
-- **확실성:** 코드에서 직접 확인한 동작만 적었고, 추정은 "(추정)"으로 표시했습니다. 이름 끝의 `$`는 복원 과정에서 추정한 식별자입니다 (restored/README.md (`re-upstream/restored/README.md`))
-- **기준 번들:** 메인 엔트리 `index-CBEIvlV0.js` (Vue 3.5.35)
-- **레거시 차트 대비:** 각 문서 끝의 `레거시 차트(OK차트) 대비` 절은 한메디 OK차트 사용자 매뉴얼(https://www.okmedi.net/Manual/, 2026-11-05 기준)을 근거로 합니다. 현행 Upstream 코드에 없는 업무, 매뉴얼에 적힌 계산·판정 규칙, 두 제품이 다르게 처리하는 지점을 모았습니다. 매뉴얼 본문은 옮기지 않고 요약했으며, 항목마다 원문 링크를 달았습니다. 매뉴얼 항목끼리 값이 다른 곳은 양쪽 값을 함께 적었습니다
+- **확실성:** 코드에서 직접 확인한 동작만 적었고, 추정은 "(추정)"으로 표시했습니다. 이름 끝의 `$`는 복원 과정에서 추정한 식별자입니다 (`restored/README.md`)
+- **기준 번들:** 메인 엔트리 `index.js` (Vue 3.5.35)
+- **이름:** 분석한 제품과 연동 업체의 실제 이름·도메인은 적지 않습니다. 분석 대상은 현행 EMR, 그 비급여·CRM 제품은 라이트 서비스(`liteClient`), 통합 계정 업체는 통합 계정(`ssoClient`), 외부 예약 중개는 예약 중개 서비스(`booking`), 비교한 레거시 제품은 레거시 차트로 부르고, 도메인은 `example.com`으로 바꿨습니다. 식별자 안의 이름도 같은 이름으로 바꿨습니다(예: `LiteChartCreatePanel`). 번들 파일 이름의 내용 해시(`-XXXXXXXX`)는 뺐습니다
+- **레거시 차트 대비:** 각 문서 끝의 `레거시 차트 대비` 절은 레거시 차트 사용자 매뉴얼(2026-11-05 기준)을 근거로 합니다. 현행 코드에 없는 업무, 매뉴얼에 적힌 계산·판정 규칙, 두 제품이 다르게 처리하는 지점을 모았습니다. 매뉴얼 본문은 옮기지 않고 요약했으며, 원문 링크는 달지 않고 매뉴얼 항목 제목만 적었습니다. 매뉴얼 항목끼리 값이 다른 곳은 양쪽 값을 함께 적었습니다
 
 ## 문서
 
 | 문서 | 범위 | 주요 라우트 |
 |---|---|---|
-| [account-onboarding.md](account-onboarding.md) | 로그인·잠금 해제·가입(수/원탕)·온보딩·약관·로그아웃 | `/login`, `/sign-up/*`, `/onboarding`, `/terms/*` |
+| [account-onboarding.md](account-onboarding.md) | 로그인·잠금 해제·가입(라이트/원탕)·온보딩·약관·로그아웃 | `/login`, `/sign-up/*`, `/onboarding`, `/terms/*` |
 | [desk.md](desk.md) | 원무: 접수·대기·수납·환자 등록·서류 | `/desk` |
 | [treatment.md](treatment.md) | 진료기록·처방·치료실·태블릿·캔버스 | `/treatment`, `/treatment-rooms`, `/tablet/*`, `/canvas` |
 | [appointment.md](appointment.md) | 예약 플래너·예약 설정·진료 스케줄·휴일 | `/appointment-planner`, `/setting/appointment`, `/setting/schedule` |
-| [ocs.md](ocs.md) | 탕전관리·탕전 처방·메디원탕 주문 | `/ocs`, `/ocs/prescription/*`, `/ocs-v2-herb-order-*` |
+| [ocs.md](ocs.md) | 탕전관리·탕전 처방·외부원탕 주문 | `/ocs`, `/ocs/prescription/*`, `/ocs-v2-herb-order-*` |
 | [crm.md](crm.md) | 비급여 환자·연락목록·메시지·전송이력·수신거부·상담 스크립트 | `/crm/*`, CRM 설정 |
 | [claim.md](claim.md) | 심평원 청구·추나첩약 제출·의료급여·방문·연말정산·보험 조회·전자서명 | `/claim/*`, `/insurance-inquiry`, `/electronic-signature` |
 | [settings.md](settings.md) | 기본·병원·진료·처방수가·상용구·계정권한·태블릿·결제·MCP·비대면 정산 | `/setting/*`, `/remote-settlement` |
@@ -38,7 +39,7 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 | 서비스 | 의미 | 기본 홈 |
 |---|---|---|
 | `emr` | EMR (원무·진료·청구) | `/desk` |
-| `soo` | 수 (비급여 환자 관리·CRM 중심, 라이트 차트) | `/crm/nonbenefit-patients` |
+| `lite` | 라이트 서비스 (비급여 환자 관리·CRM 중심, 라이트 차트) | `/crm/nonbenefit-patients` |
 | `insurance` | 보험 조회 | `/insurance-inquiry` |
 | `crm` | CRM | — |
 | `members` | MEMBERS 지표관리 | `/members` |
@@ -47,30 +48,30 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 
 ## 백엔드
 
-모든 HTTP 호출은 axios 인스턴스 14개로 나갑니다 (`re-upstream/restored/api/clients/index.js` 외).
+모든 HTTP 호출은 axios 인스턴스 14개로 나갑니다 (`restored/api/clients/index.js` 외).
 
 | 클라이언트 | 서버 | 용도 |
 |---|---|---|
-| `emrClient` | `emr-api.upstream.co.kr` | EMR 본 API (환자·접수·진료·처방·청구·설정 등, 대부분의 호출) |
-| `crmClient` | `crm-api.upstream.co.kr` | CRM·메시지 |
-| `authClient` | `auth-api.upstream.co.kr/api/auth` | 로그인·토큰 갱신 |
-| `accountClient`, `accountApplicationClient` | `auth-api.upstream.co.kr/api` | 계정·가입 신청·사용자 |
-| `insuranceClient` | `insurance-api.upstream.co.kr` | 보험 조회 |
-| `syncClient` | `sync-api.upstream.co.kr/v1` | 동기화 |
-| `staticClient` | `static.upstream.co.kr/upstream-emr/master` | 상병(KCD)·수가·약재 등 기준 데이터 JSON |
-| `biClient`, `portalClient` | `public-api.upstream.co.kr/{bi,portal}` | 경영지표·포털 |
-| `thesooClient` | `public-api.thesoo.co` | 수(thesoo) 연동 |
-| `medistreamClient` | `public-api.medistream.co.kr` | 메디스트림 연동 |
+| `emrClient` | `emr-api.example.com` | EMR 본 API (환자·접수·진료·처방·청구·설정 등, 대부분의 호출) |
+| `crmClient` | `crm-api.example.com` | CRM·메시지 |
+| `authClient` | `auth-api.example.com/api/auth` | 로그인·토큰 갱신 |
+| `accountClient`, `accountApplicationClient` | `auth-api.example.com/api` | 계정·가입 신청·사용자 |
+| `insuranceClient` | `insurance-api.example.com` | 보험 조회 |
+| `syncClient` | `sync-api.example.com/v1` | 동기화 |
+| `staticClient` | `static.example.com/emr/master` | 상병(KCD)·수가·약재 등 기준 데이터 JSON |
+| `biClient`, `portalClient` | `public-api.example.com/{bi,portal}` | 경영지표·포털 |
+| `liteClient` | `lite-api.example.com` | 라이트 서비스 연동 |
+| `ssoClient` | `sso-api.example.com` | 통합 계정 연동 |
 | `jusoClient` | `business.juso.go.kr` | 도로명 주소 검색 |
 | `webClient` | 동일 출처 | 웹 자체 경로 |
 
 - **인증:** 로그인 정보와 토큰은 localStorage `사용자로그인정보`에 저장됩니다. 일부 클라이언트의 인터셉터가 만료 시 `POST /token/refresh`를 호출합니다
-- **서버 상태:** TanStack Vue Query가 관리합니다. 기본 옵션은 `retry: false`, `gcTime: 300000`, `refetchOnWindowFocus: false` (`re-upstream/restored/main.js`)
+- **서버 상태:** TanStack Vue Query가 관리합니다. 기본 옵션은 `retry: false`, `gcTime: 300000`, `refetchOnWindowFocus: false` (`restored/main.js`)
 - **기준 데이터:** 상병·수가·약재 JSON은 날짜 기준 버전(예: KCD 2025-07-22 / 2026-01-01)을 골라 `staticClient`로 받고, 오래 캐시합니다
 
 ## 실시간 동기화
 
-`useSocketClientStore`(`re-upstream/restored/stores/socketClient.js`)가 `https://socket.upstream.co.kr`에 연결합니다. 메시지의 `type`으로 구독자를 나눕니다.
+`useSocketClientStore`(`restored/stores/socketClient.js`)가 `https://socket.example.com`에 연결합니다. 메시지의 `type`으로 구독자를 나눕니다.
 
 | type | 반응 |
 |---|---|
@@ -79,23 +80,23 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 | `ACTION_APPOINTMENT`, `ACTION_APPOINTMENT_PLANNER` | 예약 쿼리 무효화 |
 | `ACTION_PATIENT_PHOTO`, `ACTION_MEMO` | 환자 사진·메모 쿼리 무효화 |
 | `RECORD_LLM_COMPLETED`, `RECORD_LLM_FAILED` | AI 에이전트 대화(`AiAgentMessages`)에서 진료기록 생성 완료·실패 반영 |
-| `SOO_MIGRATION_COMPLETE` | `App`에서 수 마이그레이션 오버레이 종료 처리 (추정) |
+| `LITE_MIGRATION_COMPLETE` | `App`에서 라이트 마이그레이션 오버레이 종료 처리 (추정) |
 
-`ACTION_*` 처리는 `re-upstream/restored/modules/index/part-239.js`에 모여 있습니다. 다른 PC·탭에서 바뀐 내용은 이 이벤트로 쿼리를 다시 불러와 반영합니다. 같은 PC에서 여러 탭이 동시에 알림음을 울리지 않도록, 로컬 알림 중재 서버(`127.0.0.1:4782x`)로 조정합니다 ([non-axios-channels.md](../non-axios-channels.md)).
+`ACTION_*` 처리는 `restored/modules/index/part-239.js`에 모여 있습니다. 다른 PC·탭에서 바뀐 내용은 이 이벤트로 쿼리를 다시 불러와 반영합니다. 같은 PC에서 여러 탭이 동시에 알림음을 울리지 않도록, 로컬 알림 중재 서버(`127.0.0.1:4782x`)로 조정합니다 ([non-axios-channels.md](../non-axios-channels.md)).
 
 ## 앱 셸
 
-`re-upstream/restored/components/app/App.vue`가 모든 화면을 감쌉니다.
+`restored/components/app/App.vue`가 모든 화면을 감쌉니다.
 
 - **레이아웃:** 라우트 `meta.usesGlobalLayout`이 있으면 `LayoutView`(헤더 `HeaderLayout` + 사이드바 `SidebarLayout`)로 감쌉니다
   - 화면은 `KeepAlive :max="3"`으로 최근 3개까지 유지합니다. `CanvasView`, `ElectronicSignatureView`, `OndangGateView`는 제외합니다
 - **세션 감지:** 다른 창에서 다른 계정으로 로그인하거나 로그아웃하면, 전체 화면 경고와 함께 새로고침을 요구합니다
   - 경고 문구: "저장하지 않은 처방·메모는 유실될 수 있습니다"
 - **전역 요소:**
-  - AI 에이전트 트리거(`AiAgentTrigger`): 수 연동 + 차트 사용자일 때
+  - AI 에이전트 트리거(`AiAgentTrigger`): 라이트 연동 + 차트 사용자일 때
   - 문진 링크 발송 모달(`GlobalIntakeLinkSendModal`)
   - 근무형태 입력 요구 모달(`AccountWorkTypeRequiredModal`)
-  - 수 마이그레이션 오버레이(`SooMigrationOverlay`)
+  - 라이트 마이그레이션 오버레이(`LiteMigrationOverlay`)
   - 온보딩 가이드 패널
   - 비밀번호 재설정 안내
   - 단축키 힌트 오버레이(`v-shortcut-hint` 디렉티브)
@@ -110,7 +111,7 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 - **통신:** axios, socket.io-client
 - **원격 앱:** Module Federation (`@originjs/vite-plugin-federation`)
   - `vue`/`react`/`react-dom`을 공유합니다
-  - 원격은 `upstream-bi-frontend`, `upstream-finance-frontend`, `upstream-emr-portal`, `medistream-members` 4개입니다 ([analytics-and-remote-apps.md](analytics-and-remote-apps.md))
+  - 원격은 `emr-bi-frontend`, `emr-finance-frontend`, `emr-portal`, `members-app` 4개입니다 ([analytics-and-remote-apps.md](analytics-and-remote-apps.md))
 - **오류 수집:** Sentry
 - **배포 형태:** Electron 셸 연동 흔적이 있습니다 (`window.electronAPI`)
 
@@ -124,12 +125,12 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 | 진료기록 | 차트. 상병(KCD) + 기록 본문 + 처방 |
 | 첩약 / 추나 / 약침 | 한의 처치 항목. 첩약·추나는 건강보험 시범·급여 항목이 있습니다 |
 | 탕전 | 한약을 달이는 조제. 탕전실(원외)에 주문을 보냅니다 |
-| 원탕 / 메디원탕 | 원외 탕전 서비스 연동 |
+| 원탕 / 외부원탕 | 원외 탕전 서비스 연동 |
 | 청구 | 심평원(HIRA) 요양급여비용 청구 |
 | 의료급여 | 의료급여 수급자 진료 승인 |
 | 자보 / 산재 | 자동차보험 / 산업재해 진료 |
 | 요양기관기호 | 의료기관 식별 번호 |
-| 수 (soo, thesoo) | 비급여·CRM 중심 라이트 서비스 |
+| 라이트 서비스 | 비급여·CRM 중심 라이트 서비스 |
 | MEMBERS | 경영지표 서비스 (원격 앱) |
 
 ## 코드에서 확인된 주의점
@@ -141,7 +142,7 @@ Upstream EMR(`https://upstream.co.kr`) 프로덕션 번들에서 복원한 코�
 | 접근 제어 | EMR 전용 가드 목록에는 `claim-year-settlement`가 있지만 실제 라우트 이름은 `year-settlement`입니다. 그래서 연말정산은 EMR이 아닌 계정에서도 리다이렉트되지 않습니다 | [claim.md](claim.md) |
 | 접근 제어 | `crm-nonbenefit-patients`에는 `meta`가 없어 화면 권한 검사를 건너뜁니다 (부모 `/crm`의 `고객관리` 권한만 봅니다) | [crm.md](crm.md) |
 | 접근 제어 | 사이드바는 설정 하위 메뉴를 권한으로 거르지 않습니다. 메뉴는 보이고, 눌렀을 때 `SettingView`가 막습니다 | [settings.md](settings.md) |
-| 접근 제어 | `/analytics/soo-dashboard`는 화면에서 `bi` 권한과 역할 `01`을 함께 요구하지만, 사이드바는 `bi`를 보지 않습니다 (추정) | [analytics-and-remote-apps.md](analytics-and-remote-apps.md) |
+| 접근 제어 | `/analytics/lite-dashboard`는 화면에서 `bi` 권한과 역할 `01`을 함께 요구하지만, 사이드바는 `bi`를 보지 않습니다 (추정) | [analytics-and-remote-apps.md](analytics-and-remote-apps.md) |
 | 접근 제어 | `/treatment/repeat-results`, `/canvas`에는 `requiresAuth`가 없습니다 | [treatment.md](treatment.md) |
 | 미완성 | `/setting/account-history`는 하드코딩된 샘플 행만 보여 주는 목업입니다 | [settings.md](settings.md) |
 | 미완성 | `/sign-up/*/complete`로 이동하는 코드가 없습니다 | [account-onboarding.md](account-onboarding.md) |

@@ -3,40 +3,40 @@
   "description": "Encounter completion is blocked until every pilot herbal prescription line (category 35001001) has 승인여부 true (submitted to/approved by HIRA).",
   "sources": [
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-10.js",
       "lines": "309-316",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22656-22663"
+      "origin": "unminified/TreatmentViewBoard.js:22656-22663"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-11.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-11.js",
       "lines": "45-117",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22816-22886"
+      "origin": "unminified/TreatmentViewBoard.js:22816-22886"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-103.js",
+      "file": "restored/modules/index/part-103.js",
       "lines": "43-49, 112, 461",
-      "origin": "unminified/index-CBEIvlV0.js:79851, 80158"
+      "origin": "unminified/index.js:79851, 80158"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1953-1993",
-      "origin": "unminified/index-CBEIvlV0.js:123542-123582"
+      "origin": "unminified/index.js:123542-123582"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "2074-2086",
-      "origin": "unminified/index-CBEIvlV0.js:123658-123670"
+      "origin": "unminified/index.js:123658-123670"
     },
     {
-      "file": "re-upstream/restored/modules/index/local.js",
+      "file": "restored/modules/index/local.js",
       "lines": "730-772",
-      "origin": "unminified/index-CBEIvlV0.js:126507-126549"
+      "origin": "unminified/index.js:126507-126549"
     }
   ],
   "inputSchema": {
     "function": "finishApprovalCheck (checkNhicChubyakApproval core: 처방.filter(_in).every(승인여부)) or claimCheckC0005 (oBt).",
     "prescriptions": "Array of prescription lines {id, 카테고리숫자코드, 승인여부?}. 35001001 = 한방첩약시범사업.첩약. 승인여부 is set true when the line is submitted/approved via the HIRA pcmd flow.",
-    "flow": "Traced cases only: finishPatientRecord context (account services, SOO order).",
+    "flow": "Traced cases only: finishPatientRecord context (account services, LITE order).",
     "expectedConvention": "expected.returned holds the return value; the string 'undefined' means the function returned undefined. For finishApprovalCheck, true = proceed, false = blocked with dialog '진료 완료 전\\n첩약 내역을 심평원에 제출해 주세요.'"
   },
   "cases": [
@@ -251,14 +251,14 @@
       "derivation": "executed"
     },
     {
-      "name": "flow: SOO-only account skips the approval check",
+      "name": "flow: LITE-only account skips the approval check",
       "input": {
         "function": "finishPatientRecord",
         "flow": {
           "accountServices": [
-            "soo"
+            "lite"
           ],
-          "isNonFaceToFaceSooOrder": false
+          "isNonFaceToFaceLiteOrder": false
         },
         "prescriptions": [
           {
@@ -275,14 +275,14 @@
       "derivation": "traced"
     },
     {
-      "name": "flow: non-face-to-face SOO order completion skips save and approval check",
+      "name": "flow: non-face-to-face LITE order completion skips save and approval check",
       "input": {
         "function": "finishPatientRecord",
         "flow": {
           "accountServices": [
             "emr"
           ],
-          "isNonFaceToFaceSooOrder": true
+          "isNonFaceToFaceLiteOrder": true
         },
         "prescriptions": [
           {
@@ -306,7 +306,7 @@
           "accountServices": [
             "emr"
           ],
-          "isNonFaceToFaceSooOrder": false
+          "isNonFaceToFaceLiteOrder": false
         },
         "prescriptions": [
           {
@@ -348,7 +348,7 @@
   ],
   "openQuestions": [
     "Only 카테고리숫자코드 35001001 (첩약) lines are checked. 조제·탕전료 35002001, 심층변증방제기술료 35003001, 한약재 35001002, 시범사업약재 35004001 are not. Server should confirm the approval unit is the 첩약 line.",
-    "SOO-only accounts (services exactly ['soo']) and non-face-to-face SOO order completion bypass the check entirely. Should the server keep these exemptions?",
+    "LITE-only accounts (services exactly ['lite']) and non-face-to-face LITE order completion bypass the check entirely. Should the server keep these exemptions?",
     "The claim-side check C0005 (oBt) inspects only the first 35001001 line, while the completion check requires every line. Two pilot herbal lines in one encounter is probably rare but the rules differ.",
     "The treatment-screen realtime warning set (HFt in local.js) whitelists C0001/C0003 only, so C0005 from tBt is dropped there; the claim inbox shows C0005 from server-side data (ClaimV2InboxViewDangerAutoFix opens the '첩약 건보' submit tab). The authoritative C0005 source is presumably already the server.",
     "What sets 승인여부 = true is the HIRA submit flow (HiraSubmitItemsViewChubyakTable / desktop app). The server needs its own approval state source rather than trusting a client-sent flag."

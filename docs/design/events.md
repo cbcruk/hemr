@@ -70,7 +70,7 @@ GET  /events/stream?ticket=…&since=18200  Server-Sent Events
 | CRM | `contact_task.created/updated/proposed`, `message_campaign.status_changed`, `message.delivered/failed`, `opt_out.changed`, `suppression.created/removed` | 없음 |
 | Catalog | `settings.changed`, `reference.dataset_published` | `ACTION_TREATMENT.subType` (`TIMER_CONFIG_UPDATE`, `GROUP_CONFIG_UPDATE`) |
 | Offline | `edge.mode_changed`, `sync.batch_completed`, `sync.conflict_created/resolved`, `offline_settlement.created/reconciled` | 없음 |
-| 공통 | `job.completed`, `reset` | `SOO_MIGRATION_COMPLETE` |
+| 공통 | `job.completed`, `reset` | `LITE_MIGRATION_COMPLETE` |
 
 ## 알림 중복 방지
 

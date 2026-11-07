@@ -9,12 +9,12 @@
 ## 현행 위치
 
 - 검증
-  - `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js` `w6().validate산정특례특정기호`(255-282)
-  - 판정 플래그 `특정기호가누락된질환여부`와 선택된 등록번호 `L`: `re-upstream/restored/components/treatment/TreatmentViewBoardEditHeader.vue.js:279-300`
+  - `restored/components/treatment/TreatmentViewBoard.helpers-10.js` `w6().validate산정특례특정기호`(255-282)
+  - 판정 플래그 `특정기호가누락된질환여부`와 선택된 등록번호 `L`: `restored/components/treatment/TreatmentViewBoardEditHeader.vue.js:279-300`
   - 호출
     - 진료 완료 `finishPatientRecord`(`TreatmentViewBoard.helpers-11.js:88`): 늘 검사합니다
     - 저장 `savePatientRecord`(`TreatmentViewBoard.helpers-12.js:60`): `산정특례검증생략: true`면 건너뜁니다. 헤더의 보험 변경 후 저장이 이 옵션을 씁니다(`TreatmentViewBoardEditHeader.vue.js:754-758`)
-- 보조 함수: `re-upstream/restored/modules/index/part-103.js`
+- 보조 함수: `restored/modules/index/part-103.js`
   - `zg`(153-180): `MT002` 특정기호, `MT014` 등록번호
   - `iin`(194-267): 자격조회 결과에서 산정특례 등록 목록 `{특정기호, 산정특례등록번호, 상병코드?}`을 만듭니다. 결핵은 `V000`, 잠복결핵은 `V010`으로 고정합니다
   - `lin`(317-333): 산정특례 진료인지 판정합니다
@@ -22,7 +22,7 @@
   - `din`(396-406): 특정기호 필수 질환군인지 판정합니다
 - 상수 `Dh = "해당없음"`, `Eh = "희귀난치의료비지원"`: `modules/ReservedProcedures/part-9.js:6-8`
 - 후보 제시
-  - `re-upstream/restored/modules/DiseaseInputDropdown/part-2.js` `Ee`(60-136) → `resolveDiseaseCandidates`. `TreatmentDisease` → `DiseaseInputDropdown`·`DiseaseSearchModal`의 `resolveSpecialCaseCandidates` prop으로 전달됩니다
+  - `restored/modules/DiseaseInputDropdown/part-2.js` `Ee`(60-136) → `resolveDiseaseCandidates`. `TreatmentDisease` → `DiseaseInputDropdown`·`DiseaseSearchModal`의 `resolveSpecialCaseCandidates` prop으로 전달됩니다
   - `연계상병` 범위 매처 `ce`: `modules/DiseaseInputDropdown/part-1.js:3-64`
   - 모달에서 고른 값은 `emit("연계특정기호확정")` → 헤더 `setSpecificCode`로 `MT002`에 씁니다
 - 읽는 데이터
@@ -69,7 +69,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js:255-262` (`// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:22369-22665`, 해당 부분은 `:22602-22609`)
+`restored/components/treatment/TreatmentViewBoard.helpers-10.js:255-262` (`// Restored from unminified/TreatmentViewBoard.js:22369-22665`, 해당 부분은 `:22602-22609`)
 
 ```js
 validate산정특례특정기호: async () => {
@@ -83,7 +83,7 @@ validate산정특례특정기호: async () => {
     // "산정특례 접수 환자입니다.\n특정기호 상병을 선택해주세요." → 확인 시 희귀상병검색모달열기(), return false
 ```
 
-`re-upstream/restored/components/treatment/TreatmentViewBoardEditHeader.vue.js:279-300` (`// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:27030-27828`, 해당 부분은 `:27261-27282`)
+`restored/components/treatment/TreatmentViewBoardEditHeader.vue.js:279-300` (`// Restored from unminified/TreatmentViewBoard.js:27030-27828`, 해당 부분은 `:27261-27282`)
 
 ```js
 const L = computed(() => {
@@ -102,7 +102,7 @@ const L = computed(() => {
 const 특정기호가누락된질환여부 = computed(() => props.진료내용?.보험구분 !== "건보" || L.value === Dh || L.value === Eh ? false : din(L.value.slice(0, 2)));
 ```
 
-`re-upstream/restored/modules/index/part-103.js:317-406` (`// Restored from unminified/index-CBEIvlV0.js:79752-80237`, 해당 부분은 `:80034-80118`). `dE`는 줄였습니다.
+`restored/modules/index/part-103.js:317-406` (`// Restored from unminified/index.js:79752-80237`, 해당 부분은 `:80034-80118`). `dE`는 줄였습니다.
 
 ```js
 function lin(e) {
@@ -131,7 +131,7 @@ function din(e) {
 }
 ```
 
-`re-upstream/restored/modules/DiseaseInputDropdown/part-2.js:95-135` (`// Restored from unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang-CzWw_49p.js:72-198`). 후보 풀 선택과 매칭 부분입니다.
+`restored/modules/DiseaseInputDropdown/part-2.js:95-135` (`// Restored from unminified/DiseaseInputDropdown.vue_vue_type_script_setup_true_lang.js:72-198`). 후보 풀 선택과 매칭 부분입니다.
 
 ```js
 const d = computed(() => f.value.length >= 2 && din(f.value.slice(0, 2)));

@@ -3,24 +3,24 @@
   "description": "Warns before saving or completing a 건보/급여 encounter when another encounter on the same day with the opposite face-to-face/telemedicine mode also carries a consultation fee.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/ReservedProcedures/처방명.js",
+      "file": "restored/modules/ReservedProcedures/처방명.js",
       "lines": "239-261",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5498-5518"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:5498-5518"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-10.js",
       "lines": "279-308",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:22626-22655"
+      "origin": "unminified/TreatmentViewBoard.js:22626-22655"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-12.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-12.js",
       "lines": "45-66",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:23676-23781"
+      "origin": "unminified/TreatmentViewBoard.js:23676-23781"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-221.js",
+      "file": "restored/modules/index/part-221.js",
       "lines": "904-958",
-      "origin": "unminified/index-CBEIvlV0.js:124854-124909"
+      "origin": "unminified/index.js:124854-124909"
     }
   ],
   "inputSchema": {

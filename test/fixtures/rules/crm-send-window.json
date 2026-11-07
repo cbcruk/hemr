@@ -3,24 +3,24 @@
   "description": "Night-time restriction for advertising messages: manual send blocks 20:50-08:00, scheduled contacts and contact rules only allow 08:00-20:30.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js",
+      "file": "restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js",
       "lines": "19-42",
-      "origin": "unminified/queries-HFyu0TR7.js:1927-1949"
+      "origin": "unminified/queries.js:1927-1949"
     },
     {
-      "file": "re-upstream/restored/modules/CrmContactsView/part-1.js",
+      "file": "restored/modules/CrmContactsView/part-1.js",
       "lines": "111-124",
-      "origin": "unminified/CrmContactsView-BkGPdTuw.js:161-171"
+      "origin": "unminified/CrmContactsView.js:161-171"
     },
     {
-      "file": "re-upstream/restored/modules/CrmContactsView/part-1.js",
+      "file": "restored/modules/CrmContactsView/part-1.js",
       "lines": "518-526",
-      "origin": "unminified/CrmContactsView-BkGPdTuw.js:539-547"
+      "origin": "unminified/CrmContactsView.js:539-547"
     },
     {
-      "file": "re-upstream/restored/components/crm/CrmScheduleAddContactPopover.vue.js",
+      "file": "restored/components/crm/CrmScheduleAddContactPopover.vue.js",
       "lines": "186-200, 346-349",
-      "origin": "unminified/CrmContactsView-BkGPdTuw.js:6395-6409, 6555-6558"
+      "origin": "unminified/CrmContactsView.js:6395-6409, 6555-6558"
     }
   ],
   "inputSchema": {

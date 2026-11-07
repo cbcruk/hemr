@@ -3,19 +3,19 @@
   "description": "Expected cash-drawer closing amount: server value when 현금흐름 is present, otherwise start + cash receipts − (expenses + cash-only refunds); plus cash register state and re-settlement flag.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/DeskView/part-2.js",
+      "file": "restored/modules/DeskView/part-2.js",
       "lines": "7-86",
-      "origin": "unminified/DeskView-DTRddRTN.js:234-314"
+      "origin": "unminified/DeskView.js:234-314"
     },
     {
-      "file": "re-upstream/restored/modules/DeskView/part-1.js",
+      "file": "restored/modules/DeskView/part-1.js",
       "lines": "15, 60-77, 92-95",
-      "origin": "unminified/DeskView-DTRddRTN.js:48-153"
+      "origin": "unminified/DeskView.js:48-153"
     },
     {
-      "file": "re-upstream/restored/views/DeskPaymentsView.vue.js",
+      "file": "restored/views/DeskPaymentsView.vue.js",
       "lines": "50-53",
-      "origin": "unminified/DeskView-DTRddRTN.js:4202-4271"
+      "origin": "unminified/DeskView.js:4202-4271"
     }
   ],
   "inputSchema": {

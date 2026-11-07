@@ -6,10 +6,10 @@
 
 ## 현행 위치
 
-- 상태 관리 composable `Rp`: `re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js`
+- 상태 관리 composable `Rp`: `restored/modules/TreatmentRoomsView/duration_sec.js`
   - 서버 행 → 로컬 상태 `ne`, 1초 tick `Y`, 만료 자동 완료 `Ea`, 시작 `startTreatment`, 시간 조정 `Tn`/`adjustTimer`, 타이머 설정 `treatmentItemConfigs`/`Pe`, 치료세트 `kn`
-- 종료 시각 `YWt`: `re-upstream/restored/modules/index/useTreatmentsSnapshotQuery.js`
-- 종료 알림 `XWt`: `re-upstream/restored/modules/index/part-256.js`
+- 종료 시각 `YWt`: `restored/modules/index/useTreatmentsSnapshotQuery.js`
+- 종료 알림 `XWt`: `restored/modules/index/part-256.js`
 - API: `GET /treatments/snapshot`(이 화면 5초 polling, 응답의 `serverNow`로 시계 보정), `POST /treatments/procedures/{id}/start|restart|complete|uncomplete`, `PATCH /treatments/procedures/{id}`(`duration_sec`), `GET|PUT /treatments/timer-config`, `GET|POST|PUT|DELETE /treatments/groups`
 
 ## 로직
@@ -66,10 +66,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js:117-129` (`ne` 안의 만료 판정, `b() = Date.now() + serverNow 보정값`)
+`restored/modules/TreatmentRoomsView/duration_sec.js:117-129` (`ne` 안의 만료 판정, `b() = Date.now() + serverNow 보정값`)
 
 ```js
-// Restored from unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326
+// Restored from unminified/TreatmentRoomsView.js:1010-2326
 if (n.상태 === "running" && n.시작일시) {
   const u = new Date(n.시작일시).getTime();
   const p = Math.max(0, Math.floor((b() - u) / 1000));
@@ -84,10 +84,10 @@ if (n.상태 === "running" && n.시작일시) {
 }
 ```
 
-`re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js:338-358` (1초 tick)
+`restored/modules/TreatmentRoomsView/duration_sec.js:338-358` (1초 tick)
 
 ```js
-// Restored from unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326
+// Restored from unminified/TreatmentRoomsView.js:1010-2326
 const Y = () => {
   const n = b();
   for (const [r, s] of Object.entries(treatmentsBy내원Id.value)) {
@@ -112,10 +112,10 @@ const Y = () => {
     // … 같은 순번의 시술로 XWt 알림, overdue_sec 갱신
 ```
 
-`re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js:880-898, 979-1016`
+`restored/modules/TreatmentRoomsView/duration_sec.js:880-898, 979-1016`
 
 ```js
-// Restored from unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326
+// Restored from unminified/TreatmentRoomsView.js:1010-2326
 const Ea = (n, r) => {
   const s = (treatmentsBy내원Id.value[n] ?? []).filter(p => p.상태 === "pending" && p.타이머종료 && !r.includes(p.id));
   if (!s.length) return;
@@ -155,10 +155,10 @@ const startTreatment = (n, r) => {
 };
 ```
 
-`re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js:1027-1044`
+`restored/modules/TreatmentRoomsView/duration_sec.js:1027-1044`
 
 ```js
-// Restored from unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326
+// Restored from unminified/TreatmentRoomsView.js:1010-2326
 const Tn = (n, r, s) => {
   const u = ee(n, r);
   if (!u || u.상태 === "done" || !Number.isInteger(s) || s < 1 || u.duration_sec === s) return;
@@ -174,23 +174,23 @@ const Tn = (n, r, s) => {
 };
 ```
 
-`re-upstream/restored/modules/TreatmentRoomsView/duration_sec.js:23-25, 610`
+`restored/modules/TreatmentRoomsView/duration_sec.js:23-25, 610`
 
 ```js
-// Restored from unminified/TreatmentRoomsView-COI6Zx2h.js:1010-2326
+// Restored from unminified/TreatmentRoomsView.js:1010-2326
 const duration_sec$ = 300;   // 새 타이머 설정 항목 기본값
 const duration_sec$_2 = 900; // 치료세트 표시 시간 fallback
 duration_sec: n.items.reduce((r, s) => Math.max(r, s.duration_sec), 0) || duration_sec$_2,
 ```
 
-`re-upstream/restored/modules/index/part-256.js:10, 47-51` / `modules/index/useTreatmentsSnapshotQuery.js:50`
+`restored/modules/index/part-256.js:10, 47-51` / `modules/index/useTreatmentsSnapshotQuery.js:50`
 
 ```js
-// Restored from unminified/index-CBEIvlV0.js:141873-141917
+// Restored from unminified/index.js:141873-141917
 const KWt = e => `timer-end:${e.시술Id}:${e.종료시각Ms}`;
 const s = String(e.베드번호).padStart(2, "0");
 GB({ title: `${s}베드 ${e.환자명}님 ${Ste(r.map(({ 항목 }) => 항목))} 타이머가 종료되었습니다.`, tag: r.map(({ 키 }) => 키).join("|") });
-// Restored from unminified/index-CBEIvlV0.js:141837-141872
+// Restored from unminified/index.js:141837-141872
 const YWt = (e, t) => e != null ? new Date(e).getTime() + t * 1000 : null;
 ```
 

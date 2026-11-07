@@ -9,11 +9,11 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/local.js` `qk`(174), `VFt`(176), `jFt`(178-202), `HFt` 자보 갈래(740-761)와 표시 코드 필터(771-772). `zFt`의 `같은날자보진료데이터` 쿼리(357-366): 자보 진료 목록 `type: "자보", days_ago: 90, limit: 90`.
-- `re-upstream/restored/modules/index/part-221.js:423-434` `IBt`(원래 J0014; `HFt`가 걸러 버립니다).
-- `re-upstream/restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js:68-157` 배너 판정, 자동 지정 `u`, 해제 `m`, 다른 진료 지정 `handleClick`. 부모 `TreatmentViewBoard.vue:586`이 `최근진료기록`으로 `같은날자보진료기록`을 넘깁니다.
-- `re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js:84-87` 자동 산정 `_()`가 2차면 즉시 종료, 66-74 2차 해제 시 재산정. `TreatmentViewBoardPrescriptionV2.helpers.helpers.js:51-55`도 2차면 산정을 건너뜁니다.
-- `re-upstream/restored/modules/ClaimHiraView/codes.js:3547-3572` `Tf` 명세서 특정내역.
+- `restored/modules/index/local.js` `qk`(174), `VFt`(176), `jFt`(178-202), `HFt` 자보 갈래(740-761)와 표시 코드 필터(771-772). `zFt`의 `같은날자보진료데이터` 쿼리(357-366): 자보 진료 목록 `type: "자보", days_ago: 90, limit: 90`.
+- `restored/modules/index/part-221.js:423-434` `IBt`(원래 J0014; `HFt`가 걸러 버립니다).
+- `restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js:68-157` 배너 판정, 자동 지정 `u`, 해제 `m`, 다른 진료 지정 `handleClick`. 부모 `TreatmentViewBoard.vue:586`이 `최근진료기록`으로 `같은날자보진료기록`을 넘깁니다.
+- `restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js:84-87` 자동 산정 `_()`가 2차면 즉시 종료, 66-74 2차 해제 시 재산정. `TreatmentViewBoardPrescriptionV2.helpers.helpers.js:51-55`도 2차면 산정을 건너뜁니다.
+- `restored/modules/ClaimHiraView/codes.js:3547-3572` `Tf` 명세서 특정내역.
 - 저장 페이로드: `modules/TreatmentViewBoard/part-42.js:459-461`이 boolean일 때만 `자보1일2차여부`를 보냅니다.
 - 경고 문구(`modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js:430-437`): "자보 1일 2차 진료 — 진찰료 중복 산정시 삭감대상입니다. (삭감 위험)" / "같은 날 다른 사고건 진료 중 하나를 1일 2차 진료로 지정해 진찰료 중복을 해소하세요."
 
@@ -40,7 +40,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/local.js:740-761` (`// Restored from unminified/index-CBEIvlV0.js:125817-126550`, 해당 부분 126517-126538)
+`restored/modules/index/local.js:740-761` (`// Restored from unminified/index.js:125817-126550`, 해당 부분 126517-126538)
 
 ```js
 if (현재진료.보험구분 === "자보") {
@@ -68,7 +68,7 @@ const qk = e => e?.사고접수번호 ?? null;
 const VFt = e => !!e && (e.startsWith(수가코드$.초진료) || e.startsWith(수가코드$.재진료)); // "10100", "10200"
 ```
 
-`re-upstream/restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js:68-157` (`// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:27829-28085`, 해당 부분 27893-27982; `.vue` 디컴파일본 기준 발췌)
+`restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js:68-157` (`// Restored from unminified/TreatmentViewBoard.js:27829-28085`, 해당 부분 27893-27982; `.vue` 디컴파일본 기준 발췌)
 
 ```js
 const i = computed(() => {
@@ -119,7 +119,7 @@ watch(c, y => {
 }, { immediate: true });
 ```
 
-`re-upstream/restored/modules/ClaimHiraView/codes.js:3547-3563` (`// Restored from unminified/ClaimHiraView-hepxiFdR.js:3121-6676`, 해당 부분 6651-6667)
+`restored/modules/ClaimHiraView/codes.js:3547-3563` (`// Restored from unminified/ClaimHiraView.js:3121-6676`, 해당 부분 6651-6667)
 
 ```js
 const Tf = e => {

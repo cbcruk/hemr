@@ -13,7 +13,7 @@ export const UserId = Schema.String.annotate({ description: '사용자 ID입니�
 )
 
 /** 테넌트가 쓰는 제품입니다 (현행 `서비스연동`). */
-export type Product = 'EMR' | 'SOO' | 'INSURANCE' | 'CRM' | 'MEMBERS'
+export type Product = 'EMR' | 'LITE' | 'INSURANCE' | 'CRM' | 'MEMBERS'
 
 /**
  * 병원입니다. 프로필(상호·대표자 등)은 `TenantProfile`로 따로 둘 예정입니다. 산재기관기호·차트 레이아웃은 쓰는 기능이

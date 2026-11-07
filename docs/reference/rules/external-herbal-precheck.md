@@ -6,11 +6,11 @@
 
 ## 현행 위치
 
-- 진료 보드 원외탕전 주문(아코디언): `re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js` — `handleClick`(결제 버튼), `ie`(precheck 요청 본문)
-- 주문 작성 화면: `re-upstream/restored/views/OcsV2OrderCreateView.vue.js` — `handlePay`(같은 흐름, 로그 문구만 "EP 미가용 — 머지 후 활성")
-- 주문 클라이언트 `sg`: `re-upstream/restored/modules/useOcsV2배송상태/part-7.js` — `submitOrderAndPay`, `precheck`, 견적 정규화 `Ro`, 결제수단 재분배 `Fi`
-- 약재 수량 `rl`: `re-upstream/restored/modules/useOcsV2배송상태/탕전실설정.js`
-- API: `re-upstream/restored/api/ocs-v2/query-keys.js` (`postOcsv2Precheck`는 `response.data.result`를 돌려줌, 중복 결제 판별 `Q`), `api/ocsv2/queries.js` (`usePostOcsv2OrderMutation`이 `중복결제위험` 표시)
+- 진료 보드 원외탕전 주문(아코디언): `restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js` — `handleClick`(결제 버튼), `ie`(precheck 요청 본문)
+- 주문 작성 화면: `restored/views/OcsV2OrderCreateView.vue.js` — `handlePay`(같은 흐름, 로그 문구만 "EP 미가용 — 머지 후 활성")
+- 주문 클라이언트 `sg`: `restored/modules/useOcsV2배송상태/part-7.js` — `submitOrderAndPay`, `precheck`, 견적 정규화 `Ro`, 결제수단 재분배 `Fi`
+- 약재 수량 `rl`: `restored/modules/useOcsV2배송상태/탕전실설정.js`
+- API: `restored/api/ocs-v2/query-keys.js` (`postOcsv2Precheck`는 `response.data.result`를 돌려줌, 중복 결제 판별 `Q`), `api/ocsv2/queries.js` (`usePostOcsv2OrderMutation`이 `중복결제위험` 표시)
 
 ## 로직
 
@@ -61,10 +61,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js:574-587` (`OcsV2OrderCreateView.vue.js:1162-1174`도 같은 구조)
+`restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js:574-587` (`OcsV2OrderCreateView.vue.js:1162-1174`도 같은 구조)
 
 ```js
-// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:9249-9971
+// Restored from unminified/TreatmentViewBoard.js:9249-9971
 if (c) {
   try {
     const D = await c.precheck(ie());
@@ -80,10 +80,10 @@ if (c) {
 }
 ```
 
-`re-upstream/restored/api/ocs-v2/query-keys.js:68, 91-99`
+`restored/api/ocs-v2/query-keys.js:68, 91-99`
 
 ```js
-// Restored from unminified/OcsV2MedicationGuidePagedSheets-vEnmJYhw.js:13-101
+// Restored from unminified/OcsV2MedicationGuidePagedSheets.js:13-101
 const postOcsv2Precheck = async body => (await emrClient.post(`${u}/precheck`, body)).data.result;
 const a1 = "외부 결제는 완료되었으나";
 const Q = t => {
@@ -95,7 +95,7 @@ const Q = t => {
 };
 ```
 
-`re-upstream/restored/modules/useOcsV2배송상태/part-7.js:16-37`
+`restored/modules/useOcsV2배송상태/part-7.js:16-37`
 
 ```js
 // Restored from unminified/useOcsV2배송상태-DHC-CIRk.js:2190-2332
@@ -121,7 +121,7 @@ const Fi = (e, t) => {
 };
 ```
 
-`re-upstream/restored/modules/useOcsV2배송상태/탕전실설정.js:1324-1331`, `OcsV2DecoctionOrderAsideAccordion.vue.js:478-481`
+`restored/modules/useOcsV2배송상태/탕전실설정.js:1324-1331`, `OcsV2DecoctionOrderAsideAccordion.vue.js:478-481`
 
 ```js
 // Restored from unminified/useOcsV2배송상태-DHC-CIRk.js:2647-3963
@@ -134,7 +134,7 @@ const rl = (e, t) => {
     return Math.round(n * 10) * s / 10;
   }
 };
-// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:9249-9971
+// Restored from unminified/TreatmentViewBoard.js:9249-9971
 const ie = () => {
   const O = Number(처방Mock$.처방메타.팩수) || 0;
   const K = Number(처방Mock$.처방메타.첩수) || 0;

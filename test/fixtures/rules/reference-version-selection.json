@@ -3,29 +3,29 @@
   "description": "Chooses which reference data version applies to a visit date: static KCD/KOICD/자보수가 JSON switches at a hardcoded 2026-01-01 cutoff, while 건보 fee codes use the latest server 적용일자 not after the visit date.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/useKcd20260101JsonQuery.js",
+      "file": "restored/modules/index/useKcd20260101JsonQuery.js",
       "lines": "10-23",
-      "origin": "unminified/index-CBEIvlV0.js:101231-101244"
+      "origin": "unminified/index.js:101231-101244"
     },
     {
-      "file": "re-upstream/restored/api/settings/requests-7.js",
+      "file": "restored/api/settings/requests-7.js",
       "lines": "6-10",
-      "origin": "unminified/index-CBEIvlV0.js:101005-101026"
+      "origin": "unminified/index.js:101005-101026"
     },
     {
-      "file": "re-upstream/restored/modules/index/KOICD_20240829_JSON_PATH.js",
+      "file": "restored/modules/index/KOICD_20240829_JSON_PATH.js",
       "lines": "3-13",
-      "origin": "unminified/index-CBEIvlV0.js:100994-101004"
+      "origin": "unminified/index.js:100994-101004"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-169.js",
+      "file": "restored/modules/index/part-169.js",
       "lines": "42-100",
-      "origin": "unminified/index-CBEIvlV0.js:101085-101144"
+      "origin": "unminified/index.js:101085-101144"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-169.js",
+      "file": "restored/modules/index/part-169.js",
       "lines": "146-176",
-      "origin": "unminified/index-CBEIvlV0.js:101184-101214"
+      "origin": "unminified/index.js:101184-101214"
     }
   ],
   "inputSchema": {

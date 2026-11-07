@@ -9,8 +9,8 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/SidePanelDeskActions/useDeskPrepaidChartsQuery.js` `GD`(49-70): 판정 함수
-- 카테고리 상수 `me`: `re-upstream/restored/modules/index/part-103.js:13-106`
+- `restored/modules/SidePanelDeskActions/useDeskPrepaidChartsQuery.js` `GD`(49-70): 판정 함수
+- 카테고리 상수 `me`: `restored/modules/index/part-103.js:13-106`
 - 특정 코드
   - `Code$.복잡80추나 = "40721"`: `modules/index/수가코드.js:135-140`
   - `omt`(`91001` 주간, `91002` 야간, `91003` 심야, `91004` 공휴)와 `ck`(정확히 일치): `수가코드.js:251-256`, `lib/index/part-102.js:9-11`
@@ -41,7 +41,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/SidePanelDeskActions/useDeskPrepaidChartsQuery.js:49-70` (`// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:3060-3119`, 함수는 같은 파일 `:3098-3119`)
+`restored/modules/SidePanelDeskActions/useDeskPrepaidChartsQuery.js:49-70` (`// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:3060-3119`, 함수는 같은 파일 `:3098-3119`)
 
 ```js
 const GD = (t, s, e, a) => {
@@ -68,7 +68,7 @@ const GD = (t, s, e, a) => {
 };
 ```
 
-카테고리 상수(`re-upstream/restored/modules/index/part-103.js:13-106`, `unminified/index-CBEIvlV0.js:79755-79848`)에서 관련 부분입니다.
+카테고리 상수(`restored/modules/index/part-103.js:13-106`, `unminified/index.js:79755-79848`)에서 관련 부분입니다.
 
 ```js
 한방첩약시범사업: { 첩약: "35001001", 한약재: "35001002", 조제_탕전료: "35002001", 심층변증방제기술료: "35003001", 시범사업약재: "35004001" },

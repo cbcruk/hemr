@@ -4,7 +4,7 @@ import { PILOT_HERBAL_CATEGORIES, PILOT_HERBAL_CATEGORY } from './pilot-herbal-c
 export type HiraApprovalStatus = 'NOT_REQUIRED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 /** 테넌트 제품입니다 (identity-access `Tenant.products`). identity-access 모듈을 만들면 그쪽으로 옮깁니다. */
-export type TenantProduct = 'EMR' | 'SOO' | 'INSURANCE' | 'CRM' | 'MEMBERS'
+export type TenantProduct = 'EMR' | 'LITE' | 'INSURANCE' | 'CRM' | 'MEMBERS'
 
 /** 승인 검사를 받는 처방 줄입니다. `hiraApproval`이 `null`이면 승인되지 않은 것으로 봅니다. 줄 모델의 빠진 값은 호출하는 쪽이 `null`로 넘깁니다. */
 export interface PilotHerbalApprovalLine {
@@ -45,7 +45,7 @@ export function pilotHerbalApprovalViolation(lines: readonly PilotHerbalApproval
 }
 
 /**
- * 첩약 시범사업 줄을 만들 수 있는 테넌트인지입니다 (결정 2). EMR 제품이 없는 SOO 단독 테넌트는 시범사업
+ * 첩약 시범사업 줄을 만들 수 있는 테넌트인지입니다 (결정 2). EMR 제품이 없는 LITE 단독 테넌트는 시범사업
  * 카테고리 줄 모두 422 `PILOT_HERBAL_NOT_AVAILABLE`입니다.
  */
 export function pilotHerbalLineRejection(

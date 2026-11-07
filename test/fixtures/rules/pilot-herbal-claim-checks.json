@@ -3,39 +3,39 @@
   "description": "Claim-time validation checks C0001-C0012 for national-insurance pilot herbal (첩건) encounters; only C0001, C0003 and C0005 are collected by tBt, and only C0001 and C0003 survive the treatment-screen warning whitelist.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "57-132",
-      "origin": "unminified/index-CBEIvlV0.js:121709-121782"
+      "origin": "unminified/index.js:121709-121782"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1953-1993",
-      "origin": "unminified/index-CBEIvlV0.js:123542-123582"
+      "origin": "unminified/index.js:123542-123582"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "1995-2258",
-      "origin": "unminified/index-CBEIvlV0.js:123583-123835"
+      "origin": "unminified/index.js:123583-123835"
     },
     {
-      "file": "re-upstream/restored/modules/index/local.js",
+      "file": "restored/modules/index/local.js",
       "lines": "699-772",
-      "origin": "unminified/index-CBEIvlV0.js:126476-126549"
+      "origin": "unminified/index.js:126476-126549"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js",
+      "file": "restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js",
       "lines": "456-553",
-      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:678-774"
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang.js:678-774"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentViewBoardPrescriptionV2/part-5.js",
+      "file": "restored/modules/TreatmentViewBoardPrescriptionV2/part-5.js",
       "lines": "11-65",
-      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:2122-2633"
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang.js:2122-2633"
     },
     {
-      "file": "re-upstream/restored/vendor/date-fns/index-26.js",
+      "file": "restored/vendor/date-fns/index-26.js",
       "lines": "252-264",
-      "origin": "unminified/index-CBEIvlV0.js:79536-79747"
+      "origin": "unminified/index.js:79536-79747"
     }
   ],
   "inputSchema": {

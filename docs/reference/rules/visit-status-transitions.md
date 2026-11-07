@@ -9,12 +9,12 @@
 
 ## 현행 위치
 
-- 드롭: `re-upstream/restored/components/waiting/WaitingColumn.vue.js`, `treatment/TreatmentColumn.vue.js`, `payment/PaymentColumn.vue.js`, `payment/PaymentCompleteColumn.vue.js`
-- 드래그 상태: `re-upstream/restored/views/DeskVisitView.vue.js` (`isPaymentComplete`, `handleMovePatientToTreatment`)
-- 베드 배정: `re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue.js`
-- 카드 메뉴 정의: `re-upstream/restored/modules/desk-patient/_hoisted_1.js`
-- 수납 후 전이: `re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js`
-- 접수 생성: `re-upstream/restored/components/desk/DeskPatientAccept.vue.js` (`No = ["대기", "치료"]`)
+- 드롭: `restored/components/waiting/WaitingColumn.vue.js`, `treatment/TreatmentColumn.vue.js`, `payment/PaymentColumn.vue.js`, `payment/PaymentCompleteColumn.vue.js`
+- 드래그 상태: `restored/views/DeskVisitView.vue.js` (`isPaymentComplete`, `handleMovePatientToTreatment`)
+- 베드 배정: `restored/components/treatment/TreatmentRoomBedAssignModal.vue.js`
+- 카드 메뉴 정의: `restored/modules/desk-patient/_hoisted_1.js`
+- 수납 후 전이: `restored/components/desk/DeskVisitPaymentCheckOut.vue.js`
+- 접수 생성: `restored/components/desk/DeskPatientAccept.vue.js` (`No = ["대기", "치료"]`)
 
 ## 로직
 
@@ -44,10 +44,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/payment/PaymentCompleteColumn.vue.js:123-160`
+`restored/components/payment/PaymentCompleteColumn.vue.js:123-160`
 
 ```js
-// Restored from unminified/DeskView-DTRddRTN.js:5858-6258
+// Restored from unminified/DeskView.js:5858-6258
 const shouldAllowDrop = computed(() => props.nowDragging === "수납" ? true : props.isPaymentComplete ? props.nowDragging === "치료" || props.nowDragging === "대기" : false);
 const handleDrop = async v => {
   if (!canUpdate$(PermissionCode$.접수수정)) { open.value = true; return; }
@@ -70,10 +70,10 @@ const handleDrop = async v => {
 };
 ```
 
-`re-upstream/restored/components/payment/PaymentColumn.vue.js:126-158`
+`restored/components/payment/PaymentColumn.vue.js:126-158`
 
 ```js
-// Restored from unminified/DeskView-DTRddRTN.js:5405-5804
+// Restored from unminified/DeskView.js:5405-5804
 const shouldAllowDrop = computed(() => props.nowDragging === "대기" || props.nowDragging === "치료" || props.nowDragging === "수납완료");
 const handleDrop = async v => {
   if (!canUpdate$(PermissionCode$.접수수정)) { open.value = true; return; }
@@ -83,10 +83,10 @@ const handleDrop = async v => {
 };
 ```
 
-`re-upstream/restored/components/waiting/WaitingColumn.vue.js:172, 227-251`
+`restored/components/waiting/WaitingColumn.vue.js:172, 227-251`
 
 ```js
-// Restored from unminified/DeskView-DTRddRTN.js:6935-7566
+// Restored from unminified/DeskView.js:6935-7566
 const shouldAllowDrop = computed(() => ["예약", "치료", "수납", "수납완료"].includes(props.nowDragging));
 // handleDrop, after the 예약 branches:
 if (!canUpdate$(PermissionCode$.접수수정)) { open.value = true; return; }
@@ -95,10 +95,10 @@ if (w.from === "수납") { await moveWaitingPatient({ id: w.paymentData.내원Id
 if (w.from === "수납완료") { await moveWaitingPatient({ id: w.paymentCompleteData.내원Id, 상태: "대기", 이전상태: w.paymentCompleteData.상태 }); }
 ```
 
-`re-upstream/restored/components/treatment/TreatmentColumn.vue.js:153, 187-202`
+`restored/components/treatment/TreatmentColumn.vue.js:153, 187-202`
 
 ```js
-// Restored from unminified/DeskView-DTRddRTN.js:6316-6872
+// Restored from unminified/DeskView.js:6316-6872
 const shouldAllowDrop = computed(() => ["예약", "대기", "수납", "수납완료"].includes(props.nowDragging));
 if (!canUpdate$(PermissionCode$.접수수정)) { open.value = true; return; }
 if (v.from === "대기") { emit("movePatientToTreatment", v.waitingData, "배정"); return; }
@@ -106,10 +106,10 @@ if (v.from === "수납") { emit("movePatientToTreatment", v.paymentData, "배정
 if (v.from === "수납완료") { emit("movePatientToTreatment", v.paymentCompleteData, "배정"); return; }
 ```
 
-`re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue.js:398-428` (발췌)
+`restored/components/treatment/TreatmentRoomBedAssignModal.vue.js:398-428` (발췌)
 
 ```js
-// Restored from unminified/useExclusivePopover-BPTgAwCS.js:213-759
+// Restored from unminified/useExclusivePopover.js:213-759
 if (h.value && c.value) {
   putTreatmentsPatientsMutation$.mutateAsync({ 내원Id: props.내원Id, 치료실설정Id: h.value.치료실Id, 치료실베드: Number(c.value) });
 } else {

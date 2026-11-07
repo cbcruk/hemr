@@ -73,7 +73,7 @@ const CHANGED: Record<string, unknown> = {
 
 const lines = (input: Record<string, any>) => (input['prescriptions'] as any[]).map(toLine)
 
-/** 현행 계정 서비스(`soo`·`emr`)를 테넌트 제품으로 읽습니다. */
+/** 현행 계정 서비스(`lite`·`emr`)를 테넌트 제품으로 읽습니다. */
 const productsOf = (input: Record<string, any>) =>
   (input['flow']['accountServices'] as string[]).map((each) => each.toUpperCase() as TenantProduct)
 
@@ -82,8 +82,8 @@ const productsOf = (input: Record<string, any>) =>
  * (결정 2). 완료 서비스가 모든 경로에서 이 검사를 부르는지는 완료 서비스를 만들 때 테스트합니다.
  */
 const TRACED: Record<string, (input: Record<string, any>, expected: any) => void> = {
-  // 결정 2: SOO 단독 테넌트는 줄을 만들 수 없고, 줄이 있으면 완료가 막힙니다
-  'flow: SOO-only account skips the approval check': (input, expected) => {
+  // 결정 2: LITE 단독 테넌트는 줄을 만들 수 없고, 줄이 있으면 완료가 막힙니다
+  'flow: LITE-only account skips the approval check': (input, expected) => {
     expect(expected['approvalChecked']).toBe(false)
     expect(pilotHerbalLineRejection('35001001', productsOf(input))).toBe('PILOT_HERBAL_NOT_AVAILABLE')
     expect(pilotHerbalApprovalViolation(lines(input))).toEqual({
@@ -92,8 +92,8 @@ const TRACED: Record<string, (input: Record<string, any>, expected: any) => void
       blocksCompletion: true,
     })
   },
-  // 결정 2: 비대면 SOO 주문 완료도 같은 검사로 막힙니다
-  'flow: non-face-to-face SOO order completion skips save and approval check': (input, expected) => {
+  // 결정 2: 비대면 LITE 주문 완료도 같은 검사로 막힙니다
+  'flow: non-face-to-face LITE order completion skips save and approval check': (input, expected) => {
     expect(expected['approvalChecked']).toBe(false)
     expect(pilotHerbalLineRejection('35001001', productsOf(input))).toBeNull()
     expect(pilotHerbalApprovalViolation(lines(input))?.lineIds).toEqual(['a'])

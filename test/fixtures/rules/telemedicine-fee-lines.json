@@ -3,44 +3,44 @@
   "description": "For 비대면 pilot visits, adds one 비대면진료 시범사업 관리료 line (91001 주간 / 91002 야간 / 91003 심야 / 91004 공휴) per consultation line, priced from a hardcoded score x yearly unit price, and keeps those lines in sync when the visit time, consultation count or 비대면 flag changes.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/ReservedProcedures/처방명.js",
+      "file": "restored/modules/ReservedProcedures/처방명.js",
       "lines": "11-147",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5287-5410"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:5287-5410"
     },
     {
-      "file": "re-upstream/restored/modules/ReservedProcedures/처방명.js",
+      "file": "restored/modules/ReservedProcedures/처방명.js",
       "lines": "149-237",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5411-5497"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:5411-5497"
     },
     {
-      "file": "re-upstream/restored/modules/ReservedProcedures/처방명.js",
+      "file": "restored/modules/ReservedProcedures/처방명.js",
       "lines": "263",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5519"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:5519"
     },
     {
-      "file": "re-upstream/restored/modules/index/수가코드.js",
+      "file": "restored/modules/index/수가코드.js",
       "lines": "213-218, 251-256",
-      "origin": "unminified/index-CBEIvlV0.js:79536-79747"
+      "origin": "unminified/index.js:79536-79747"
     },
     {
-      "file": "re-upstream/restored/lib/index/part-102.js",
+      "file": "restored/lib/index/part-102.js",
       "lines": "5-11",
-      "origin": "unminified/index-CBEIvlV0.js:79748-79751"
+      "origin": "unminified/index.js:79748-79751"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.helpers.js",
+      "file": "restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.helpers.js",
       "lines": "8-125",
-      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:3635-3747"
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang.js:3635-3747"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
+      "file": "restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
       "lines": "106-114",
-      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:3748-3854"
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang.js:3748-3854"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentPayment.vue.js",
+      "file": "restored/components/treatment/TreatmentPayment.vue.js",
       "lines": "109-124",
-      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:9553-10011"
+      "origin": "unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:9553-10011"
     }
   ],
   "inputSchema": {

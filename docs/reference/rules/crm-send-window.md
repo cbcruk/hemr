@@ -13,8 +13,8 @@
 
 ## 현행 위치
 
-- 수동 발송: `re-upstream/restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js` (`Da`, `jn`). 사용처 `views/MessageView.vue`(`isNightTimeError`), `components/crm/CrmPatientMessageSendSidePanelContent.vue`. 배너 문구 "야간 시간 (20:50 ~ 08:00) 시간에는 광고성 문자 전송이 제한됩니다."
-- 자동·예약 연락: `re-upstream/restored/modules/CrmContactsView/part-1.js` (`sv`, `Bu`, `av`, `Mo`, `Gi`). 사용처 `components/crm/CrmScheduleAddContactPopover.vue`, `CrmScheduleRescheduleDatePopover.vue`, `CrmContactRulesRuleChannelConfig.vue`, `CrmContactRulesEditModal.vue`. 문구 "광고성 메시지는 08:00 ~ 20:30에만 발송할 수 있습니다."
+- 수동 발송: `restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js` (`Da`, `jn`). 사용처 `views/MessageView.vue`(`isNightTimeError`), `components/crm/CrmPatientMessageSendSidePanelContent.vue`. 배너 문구 "야간 시간 (20:50 ~ 08:00) 시간에는 광고성 문자 전송이 제한됩니다."
+- 자동·예약 연락: `restored/modules/CrmContactsView/part-1.js` (`sv`, `Bu`, `av`, `Mo`, `Gi`). 사용처 `components/crm/CrmScheduleAddContactPopover.vue`, `CrmScheduleRescheduleDatePopover.vue`, `CrmContactRulesRuleChannelConfig.vue`, `CrmContactRulesEditModal.vue`. 문구 "광고성 메시지는 08:00 ~ 20:30에만 발송할 수 있습니다."
 - 시간 선택 UI는 분을 5분 단위(0–55)로 고릅니다.
 
 ## 로직
@@ -38,10 +38,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js:19-42` (`Tf` = date-fns `getHours`, `vh` = `getMinutes`)
+`restored/modules/queries/useMessagesPatientsTemplateVariablesByPatientIdQuery.js:19-42` (`Tf` = date-fns `getHours`, `vh` = `getMinutes`)
 
 ```js
-// Restored from unminified/queries-HFyu0TR7.js:1915-1949
+// Restored from unminified/queries.js:1915-1949
 function Da(e, a) {
   const t = Tf(e);
   const o = vh(e);
@@ -59,10 +59,10 @@ function jn(e) {
 }
 ```
 
-`re-upstream/restored/modules/CrmContactsView/part-1.js:111-124, 518-526`
+`restored/modules/CrmContactsView/part-1.js:111-124, 518-526`
 
 ```js
-// Restored from unminified/CrmContactsView-BkGPdTuw.js:62-649
+// Restored from unminified/CrmContactsView.js:62-649
 const sv = 8;
 const Bu = 20;
 const av = 30;
@@ -85,10 +85,10 @@ function Gi(t) {
 }
 ```
 
-`re-upstream/restored/components/crm/CrmScheduleAddContactPopover.vue.js:186-200` (`T = Mo(o.value)`, 같은 식이 예약 변경 팝오버와 규칙 채널 설정에도 있음)
+`restored/components/crm/CrmScheduleAddContactPopover.vue.js:186-200` (`T = Mo(o.value)`, 같은 식이 예약 변경 팝오버와 규칙 채널 설정에도 있음)
 
 ```js
-// Restored from unminified/CrmContactsView-BkGPdTuw.js:6237-6783
+// Restored from unminified/CrmContactsView.js:6237-6783
 const N = computed(() => {
   if (o.value !== "ad") {
     return false;

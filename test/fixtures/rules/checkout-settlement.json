@@ -3,29 +3,29 @@
   "description": "Checkout settlement: amount due, Jeju subsidy line, overpaid-credit use, remaining-amount status (미수/과수납/손비), zero-input confirmation, prepaid split and patient-grade discount as computed by the client.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js",
+      "file": "restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js",
       "lines": "219-348, 380-400",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:20779-21530"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:20779-21530"
     },
     {
-      "file": "re-upstream/restored/components/payment/PaymentCalculator.vue.js",
+      "file": "restored/components/payment/PaymentCalculator.vue.js",
       "lines": "173-210",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:21639-22019"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:21639-22019"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js",
+      "file": "restored/components/desk/DeskVisitPaymentCheckOut.vue.js",
       "lines": "266-303, 368-416, 417-539, 710-724",
-      "origin": "unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang-Ci_y_crh.js:1617-2351"
+      "origin": "unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang.js:1617-2351"
     },
     {
-      "file": "re-upstream/restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js",
+      "file": "restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js",
       "lines": "117-139, 399-471",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:18683-19127"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:18683-19127"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js",
+      "file": "restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js",
       "lines": "171-200",
-      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:3485-4044"
+      "origin": "unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang.js:3485-4044"
     }
   ],
   "inputSchema": {

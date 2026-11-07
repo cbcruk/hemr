@@ -15,21 +15,21 @@
 
 | 이름 | baseURL | 파일 |
 |---|---|---|
-| `accountClient` | `"https://auth-api.upstream.co.kr/api"` | `re-upstream/restored/api/MembersView/client.js` |
-| `accountApplicationClient` | `"https://auth-api.upstream.co.kr/api"` | `re-upstream/restored/api/accountApplications/client.js` |
-| `authClient` | `"https://auth-api.upstream.co.kr/api/auth"` | `re-upstream/restored/api/clients/authClient.js` |
-| `syncClient` | `"https://sync-api.upstream.co.kr/v1"` | `re-upstream/restored/api/clients/index.js` |
-| `emrClient` | `"https://emr-api.upstream.co.kr"` | `re-upstream/restored/api/clients/index.js` |
-| `staticClient` | `"https://static.upstream.co.kr/upstream-emr/master"` | `re-upstream/restored/api/clients/index.js` |
-| `crmClient` | `"https://crm-api.upstream.co.kr"` | `re-upstream/restored/api/clients/index.js` |
-| `accountClient` | `"https://auth-api.upstream.co.kr/api"` | `re-upstream/restored/api/clients/index.js` |
-| `thesooClient` | `"https://public-api.thesoo.co"` | `re-upstream/restored/api/clients/index.js` |
-| `medistreamClient` | `"https://public-api.medistream.co.kr/"` | `re-upstream/restored/api/clients/index.js` |
-| `insuranceClient` | `"https://insurance-api.upstream.co.kr"` | `re-upstream/restored/api/clients/index.js` |
-| `biClient` | `"https://public-api.upstream.co.kr/bi"` | `re-upstream/restored/api/clients/index.js` |
-| `jusoClient` | `"https://business.juso.go.kr/addrlink/addrLinkApi.do"` | `re-upstream/restored/api/clients/jusoClient.js` |
-| `portalClient` | `"https://public-api.upstream.co.kr/portal"` | `re-upstream/restored/api/clients/portalClient.js` |
-| `webClient` | `baseURL$` | `re-upstream/restored/api/clients/webClient.js` |
+| `accountClient` | `"https://auth-api.example.com/api"` | `restored/api/MembersView/client.js` |
+| `accountApplicationClient` | `"https://auth-api.example.com/api"` | `restored/api/accountApplications/client.js` |
+| `authClient` | `"https://auth-api.example.com/api/auth"` | `restored/api/clients/authClient.js` |
+| `syncClient` | `"https://sync-api.example.com/v1"` | `restored/api/clients/index.js` |
+| `emrClient` | `"https://emr-api.example.com"` | `restored/api/clients/index.js` |
+| `staticClient` | `"https://static.example.com/emr/master"` | `restored/api/clients/index.js` |
+| `crmClient` | `"https://crm-api.example.com"` | `restored/api/clients/index.js` |
+| `accountClient` | `"https://auth-api.example.com/api"` | `restored/api/clients/index.js` |
+| `liteClient` | `"https://lite-api.example.com"` | `restored/api/clients/index.js` |
+| `ssoClient` | `"https://sso-api.example.com/"` | `restored/api/clients/index.js` |
+| `insuranceClient` | `"https://insurance-api.example.com"` | `restored/api/clients/index.js` |
+| `biClient` | `"https://public-api.example.com/bi"` | `restored/api/clients/index.js` |
+| `jusoClient` | `"https://business.juso.go.kr/addrlink/addrLinkApi.do"` | `restored/api/clients/jusoClient.js` |
+| `portalClient` | `"https://public-api.example.com/portal"` | `restored/api/clients/portalClient.js` |
+| `webClient` | `baseURL$` | `restored/api/clients/webClient.js` |
 
 ## 라우트
 
@@ -38,19 +38,19 @@
 | `/` | home | → `() => ({ name: iDt() })` | `requiresAuth` | | | |
 | [`/crm/consult-script`](#route-crm-consult-script) | crm-consult-script | CrmConsultScriptView | 권한 `연락목록` · `requiresAuth` | 3 / 11 | 7 | 102 |
 | [`/login`](#route-auth-login) | auth-login | LoginView |  | 1 / 4 | 3 | 3 |
-| `/login/soo` | soo-login | → `{ name: "auth-login" }` |  | | | |
+| `/login/lite` | lite-login | → `{ name: "auth-login" }` |  | | | |
 | [`/login/unlock`](#route-auth-unlock) | auth-unlock | AccountUnlockView |  | 3 / 10 | 2 | 2 |
 | [`/auth/callback`](#route-auth-callback) | auth-callback | AccountApplicationsAuth |  | 1 / 3 | 7 | 7 |
 | [`/logout`](#route-logout) | logout | LogoutView | `requiresAuth` | 1 / 0 | 0 | 0 |
 | [`/onboarding`](#route-auth-onboarding) | auth-onboarding | OnboardingView |  | 1 / 8 | 2 | 13 |
-| [`/sign-up/soo`](#route-soo-sign-up) | soo-sign-up | SooSignUpView |  | 1 / 0 | 0 | 0 |
-| [`/sign-up/soo/form`](#route-soo-sign-up-form) | soo-sign-up-form | SooSignUpFormView |  | 1 / 3 | 6 | 8 |
-| [`/sign-up/soo/complete`](#route-soo-sign-up-complete) | soo-sign-up-complete | SooSignUpCompleteView |  | 1 / 1 | 0 | 0 |
+| [`/sign-up/lite`](#route-lite-sign-up) | lite-sign-up | LiteSignUpView |  | 1 / 0 | 0 | 0 |
+| [`/sign-up/lite/form`](#route-lite-sign-up-form) | lite-sign-up-form | LiteSignUpFormView |  | 1 / 3 | 6 | 8 |
+| [`/sign-up/lite/complete`](#route-lite-sign-up-complete) | lite-sign-up-complete | LiteSignUpCompleteView |  | 1 / 1 | 0 | 0 |
 | [`/sign-up/ondang`](#route-ondang-sign-up) | ondang-sign-up | OndangSignUpView |  | 1 / 0 | 0 | 0 |
 | [`/sign-up/ondang/form`](#route-ondang-sign-up-form) | ondang-sign-up-form | OndangSignUpFormView |  | 1 / 8 | 7 | 8 |
 | [`/sign-up/ondang/complete`](#route-ondang-sign-up-complete) | ondang-sign-up-complete | OndangSignUpCompleteView |  | 1 / 1 | 0 | 0 |
 | [`/terms/:documentNumber`](#route-terms-content) | terms-content | TermsContentView |  | 1 / 0 | 1 | 1 |
-| [`/terms/doctalk/:type`](#route-doctalk-terms) | doctalk-terms | DoctalkTermsView |  | 1 / 0 | 0 | 0 |
+| [`/terms/booking/:type`](#route-booking-terms) | booking-terms | BookingTermsView |  | 1 / 0 | 0 | 0 |
 | [`/preview`](#route-component-preview) | component-preview | ComponentPreview | `requiresAuth` · `usesGlobalLayout` | 1 / 29 | 0 | 4 |
 | [`/canvas`](#route-canvas) | canvas | CanvasView |  | 6 / 17 | 12 | 12 |
 | [`/desk`](#route-desk) | desk | DeskSuspense | `requiresAuth` · `usesGlobalLayout` | 1 / 3 | 0 | 324 |
@@ -63,8 +63,8 @@
 | [`/ocs`](#route-ocs) | ocs | OcsView | 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout` | 21 / 49 | 19 | 80 |
 | [`/ocs/prescription/list`](#route-tangjeon-prescription-list) | tangjeon-prescription-list | TangjeonPrescriptionListView | 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout` | 2 / 17 | 11 | 163 |
 | [`/ocs/prescription/create`](#route-tangjeon-prescription-create) | tangjeon-prescription-create | TangjeonPrescriptionCreateView | 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout` | 2 / 15 | 12 | 19 |
-| [`/ocs-v2-herb-order-create`](#route-ocs-v2-herb-order-create) | ocs-v2-herb-order-create | OndangGateView | 권한 `메디원탕` · `requiresAuth` · `usesGlobalLayout` | 1 / 5 | 2 | 88 |
-| [`/ocs-v2-herb-order-list`](#route-ocs-v2-herb-order-list) | ocs-v2-herb-order-list | OndangGateView | 권한 `메디원탕` · `requiresAuth` · `usesGlobalLayout` | 1 / 5 | 2 | 88 |
+| [`/ocs-v2-herb-order-create`](#route-ocs-v2-herb-order-create) | ocs-v2-herb-order-create | OndangGateView | 권한 `외부원탕` · `requiresAuth` · `usesGlobalLayout` | 1 / 5 | 2 | 88 |
+| [`/ocs-v2-herb-order-list`](#route-ocs-v2-herb-order-list) | ocs-v2-herb-order-list | OndangGateView | 권한 `외부원탕` · `requiresAuth` · `usesGlobalLayout` | 1 / 5 | 2 | 88 |
 | [`/crm`](#route-crm) | crm | CrmView | 권한 `고객관리` · `requiresAuth` · `usesGlobalLayout` | 1 / 6 | 1 | 3 |
 | [`/crm/routines`](#route-crm-routines) | crm-routines | CrmRoutineView | `Yu()` | 19 / 27 | 10 | 46 |
 | [`/crm/routines/new`](#route-crm-routines-new) | crm-routines-new | CrmRoutineCanvasView | `Yu()` | 16 / 21 | 6 | 43 |
@@ -73,7 +73,7 @@
 | [`/crm/nonbenefit-patients`](#route-crm-nonbenefit-patients) | crm-nonbenefit-patients | NonBenefitPatientsView |  | 15 / 27 | 17 | 307 |
 | [`/crm/contacts`](#route-crm-contacts) | crm-contacts | CrmContactsView | 권한 `연락목록` | 17 / 38 | 20 | 311 |
 | [`/crm/contacts-v2`](#route-crm-contacts-v2) | crm-contacts-v2 | CrmContactsView | 권한 `연락목록` | 14 / 55 | 21 | 337 |
-| [`/crm/soo-scheduler`](#route-crm-soo-scheduler) | crm-soo-scheduler | CrmSooSchedulerView | 권한 `연락목록` | 7 / 22 | 8 | 88 |
+| [`/crm/lite-scheduler`](#route-crm-lite-scheduler) | crm-lite-scheduler | CrmLiteSchedulerView | 권한 `연락목록` | 7 / 22 | 8 | 88 |
 | [`/crm/patients`](#route-crm-emr-patients) | crm-emr-patients | EmrPatientsView | 권한 `환자목록` | 6 / 21 | 6 | 298 |
 | [`/crm/message`](#route-crm-message) | crm-message | MessageView | 권한 `일반문자` | 22 / 43 | 42 | 326 |
 | [`/crm/contents/view/:token`](#route-crm-contents-view) | crm-contents-view | CrmContentPatientPreview | 권한 `일반문자` | 1 / 0 | 2 | 2 |
@@ -115,27 +115,27 @@
 | [`/remote-settlement`](#route-remote-settlement) | remote-settlement | RemoteSettlementView | `requiresAuth` · `usesGlobalLayout` | 6 / 4 | 2 | 2 |
 | [`/help`](#route--help) |  | HelpView | `requiresAuth` | 0 / 0 | 0 | 0 |
 | [`/analytics`](#route-analytics) | analytics | AnalyticsView | 권한 `경영지표` · `requiresAuth` · `usesGlobalLayout` | 1 / 2 | 0 | 0 |
-| [`/analytics/revenue`](#route-analytics-revenue) | analytics-revenue | RevenueTableView → 원격 `upstream-bi-frontend/RevenueTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
-| [`/analytics/appointment`](#route-analytics-appointment) | analytics-appointment | AppointmentTableView → 원격 `upstream-bi-frontend/AppointmentTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
-| [`/analytics/patient`](#route-analytics-patient) | analytics-patient | PatientTableView → 원격 `upstream-bi-frontend/PatientTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
-| [`/analytics/soo-dashboard`](#route-analytics-soo-dashboard) | analytics-soo-dashboard | SooDashboardView → 원격 `upstream-bi-frontend/SooDashboardContainer` |  | 1 / 1 | 0 | 0 |
-| [`/analytics/incoming-path`](#route-analytics-incoming-path) | analytics-incoming-path | IncomingPathTableView → 원격 `upstream-bi-frontend/IncomingPathTableContainer` | 권한 `경영지표` | 1 / 3 | 0 | 292 |
-| [`/analytics/doctor`](#route-analytics-doctor) | analytics-doctor | DoctorTableView → 원격 `upstream-bi-frontend/DoctorTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
+| [`/analytics/revenue`](#route-analytics-revenue) | analytics-revenue | RevenueTableView → 원격 `emr-bi-frontend/RevenueTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
+| [`/analytics/appointment`](#route-analytics-appointment) | analytics-appointment | AppointmentTableView → 원격 `emr-bi-frontend/AppointmentTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
+| [`/analytics/patient`](#route-analytics-patient) | analytics-patient | PatientTableView → 원격 `emr-bi-frontend/PatientTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
+| [`/analytics/lite-dashboard`](#route-analytics-lite-dashboard) | analytics-lite-dashboard | LiteDashboardView → 원격 `emr-bi-frontend/LiteDashboardContainer` |  | 1 / 1 | 0 | 0 |
+| [`/analytics/incoming-path`](#route-analytics-incoming-path) | analytics-incoming-path | IncomingPathTableView → 원격 `emr-bi-frontend/IncomingPathTableContainer` | 권한 `경영지표` | 1 / 3 | 0 | 292 |
+| [`/analytics/doctor`](#route-analytics-doctor) | analytics-doctor | DoctorTableView → 원격 `emr-bi-frontend/DoctorTableContainer` | 권한 `경영지표` | 1 / 1 | 0 | 0 |
 | [`/finance`](#route-finance) | finance | FinanceView | `requiresAuth` · `usesGlobalLayout` | 1 / 2 | 0 | 0 |
 | [`/finance/daily-briefing`](#route-finance-daily-briefing) | finance-daily-briefing | DailyBriefingView |  | 1 / 1 | 0 | 0 |
 | [`/finance/expenses`](#route-finance-expenses) | finance-expenses | ExpensesView |  | 1 / 1 | 0 | 0 |
 | [`/finance/pnl`](#route-finance-pnl) | finance-pnl | PnlView |  | 1 / 1 | 0 | 0 |
 | [`/finance/budget`](#route-finance-budget) | finance-budget | BudgetView |  | 1 / 1 | 0 | 0 |
 | [`/finance/cashflow`](#route-finance-cashflow) | finance-cashflow | CashflowView |  | 1 / 1 | 0 | 0 |
-| [`/challenge`](#route-challenge) | challenge | ChallengeView → 원격 `upstream-bi-frontend/SooRisingContainer` | `requiresAuth` · `usesGlobalLayout` | 1 / 3 | 2 | 5 |
-| [`/portal`](#route-portal) | portal | SooView → 원격 `upstream-emr-portal/SooPortalContainer` | `requiresAuth` · `usesGlobalLayout` · `supportsMobile` | 1 / 1 | 0 | 0 |
-| [`/library`](#route-library-window) | library-window | LibraryWindowView → 원격 `upstream-emr-portal/SooPortalContainer` | `requiresAuth` | 1 / 2 | 0 | 1 |
+| [`/challenge`](#route-challenge) | challenge | ChallengeView → 원격 `emr-bi-frontend/LiteRisingContainer` | `requiresAuth` · `usesGlobalLayout` | 1 / 3 | 2 | 5 |
+| [`/portal`](#route-portal) | portal | LiteView → 원격 `emr-portal/LitePortalContainer` | `requiresAuth` · `usesGlobalLayout` · `supportsMobile` | 1 / 1 | 0 | 0 |
+| [`/library`](#route-library-window) | library-window | LibraryWindowView → 원격 `emr-portal/LitePortalContainer` | `requiresAuth` | 1 / 2 | 0 | 1 |
 | [`/members/:pathMatch(.*)*`](#route-members) | members | MembersView | `requiresAuth` · `usesGlobalLayout` · `supportsMobile` | 1 / 3 | 2 | 296 |
 | `/:pathMatch(.*)*` | not-found | → `() => ({ name: "home" })` |  | | | |
 
 ## 앱 셸
 
-모든 화면을 감싸는 App (`re-upstream/restored/components/app/App.vue`)과 `components/app/`·`Layout*` 컴포넌트입니다.
+모든 화면을 감싸는 App (`restored/components/app/App.vue`)과 `components/app/`·`Layout*` 컴포넌트입니다.
 
 - 스토어: `useOnboardingGuideSessionStore`, `usePatientStore`, `useSocketClientStore`, `useToastNotificationStore`, `useTreatmentStore`
 
@@ -154,7 +154,7 @@
   - [PasswordResetNoticeHost](component-api.md#c-components-password-passwordresetnoticehost) ↗
   - ShortcutHintOverlay ↗
   - [SidebarLayout](component-api.md#c-components-sidebar-sidebarlayout) ↗
-- SooMigrationOverlay ↗
+- LiteMigrationOverlay ↗
 
 </details>
 
@@ -189,7 +189,7 @@
 
 ### `/crm/consult-script` · crm-consult-script
 
-- 화면: CrmConsultScriptView (`re-upstream/restored/views/CrmConsultScriptView.vue`)
+- 화면: CrmConsultScriptView (`restored/views/CrmConsultScriptView.vue`)
 - meta: 권한 `연락목록` · `requiresAuth`
 - 컴포넌트: 전용 3 · 공유 11 · API: 화면 7 · 전체 도달 102
 - 스토어: `useToastNotificationStore`
@@ -231,7 +231,7 @@
 
 ### `/login` · auth-login
 
-- 화면: LoginView (`re-upstream/restored/views/LoginView.vue`)
+- 화면: LoginView (`restored/views/LoginView.vue`)
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 3 · 전체 도달 3
 - 스토어: `useDeskDateStore`
 
@@ -260,7 +260,7 @@
 
 ### `/login/unlock` · auth-unlock
 
-- 화면: AccountUnlockView (`re-upstream/restored/views/AccountUnlockView.vue`)
+- 화면: AccountUnlockView (`restored/views/AccountUnlockView.vue`)
 - 컴포넌트: 전용 3 · 공유 10 · API: 화면 2 · 전체 도달 2
 - 스토어: `useToastNotificationStore`
 
@@ -298,16 +298,16 @@
 
 ### `/auth/callback` · auth-callback
 
-- 화면: AccountApplicationsAuth (`re-upstream/restored/components/account/AccountApplicationsAuth.vue`)
+- 화면: AccountApplicationsAuth (`restored/components/account/AccountApplicationsAuth.vue`)
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 7 · 전체 도달 7
-- 스토어: `useAccountApplicationsAuthStore`, `useMembersSignUpStore`, `useSooSignUpStore`
+- 스토어: `useAccountApplicationsAuthStore`, `useMembersSignUpStore`, `useLiteSignUpStore`
 
 <details>
 <summary>컴포넌트 트리</summary>
 
 - AccountApplicationsLayout ↗
 - BaseConfirmDialog ↗
-- MedistreamAuth ↗
+- PartnerAuth ↗
 
 </details>
 
@@ -318,11 +318,11 @@
 |---|---|
 | `usePostAccountApplicationTokenMutation` | `POST accountApplicationClient /account-application/token` |
 | `getAuthCheckSsoid` (직접) | `GET accountApplicationClient /auth/check-ssoid` |
-| `getIntegrationsOnboardingSooProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/soo/profile` |
-| `getIntegrationsSoo` (직접) | `GET accountApplicationClient /integrations/soo` |
+| `getIntegrationsOnboardingLiteProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/lite/profile` |
+| `getIntegrationsLite` (직접) | `GET accountApplicationClient /integrations/lite` |
 | `getIntegrationsMembers` (직접) | `GET accountApplicationClient <INTEGRATIONS_MEMBERS_PATH>` |
 | `getAuthMe` (직접) | `GET emrClient /auth/me` |
-| `postSsoMedistreamToken` (직접) | `POST authClient /sso/medistream/token` |
+| `postSsoPartnerToken` (직접) | `POST authClient /sso/partner/token` |
 
 </details>
 
@@ -330,7 +330,7 @@
 
 ### `/logout` · logout
 
-- 화면: LogoutView (`re-upstream/restored/views/LogoutView.vue`)
+- 화면: LogoutView (`restored/views/LogoutView.vue`)
 - meta: `requiresAuth`
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 - 스토어: `useAiAgentStore`, `useClaimWarningStore`, `useDeskDateStore`, `useMedicalAidsStore`, `usePatientStore`, `useSocketClientStore`, `useToastNotificationStore`, `useTreatmentStore`, `useWindowStore`
@@ -339,9 +339,9 @@
 
 ### `/onboarding` · auth-onboarding
 
-- 화면: OnboardingView (`re-upstream/restored/views/OnboardingView.vue`)
+- 화면: OnboardingView (`restored/views/OnboardingView.vue`)
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 2 · 전체 도달 13
-- 스토어: `useSooSignUpStore`
+- 스토어: `useLiteSignUpStore`
 
 <details>
 <summary>컴포넌트 트리</summary>
@@ -367,21 +367,21 @@
 
 </details>
 
-<a id="route-soo-sign-up"></a>
+<a id="route-lite-sign-up"></a>
 
-### `/sign-up/soo` · soo-sign-up
+### `/sign-up/lite` · lite-sign-up
 
-- 화면: SooSignUpView (`re-upstream/restored/views/SooSignUpView.vue`)
+- 화면: LiteSignUpView (`restored/views/LiteSignUpView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
-- 스토어: `useSooSignUpStore`
+- 스토어: `useLiteSignUpStore`
 
-<a id="route-soo-sign-up-form"></a>
+<a id="route-lite-sign-up-form"></a>
 
-### `/sign-up/soo/form` · soo-sign-up-form
+### `/sign-up/lite/form` · lite-sign-up-form
 
-- 화면: SooSignUpFormView (`re-upstream/restored/views/SooSignUpFormView.vue`)
+- 화면: LiteSignUpFormView (`restored/views/LiteSignUpFormView.vue`)
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 6 · 전체 도달 8
-- 스토어: `useSooSignUpStore`
+- 스토어: `useLiteSignUpStore`
 
 <details>
 <summary>컴포넌트 트리</summary>
@@ -396,21 +396,21 @@
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useTermsQuery` | `GET accountApplicationClient /terms` |
-| `getIntegrationsOnboardingSooEmployees` (직접) | `GET accountApplicationClient /integrations/onboarding/soo/employees` |
+| `getIntegrationsOnboardingLiteEmployees` (직접) | `GET accountApplicationClient /integrations/onboarding/lite/employees` |
 | `postAuthCheckUsernameOnboarding` (직접) | `POST accountApplicationClient /auth/check-username-onboarding` |
 | `postIntegrationsOnboardingInsuranceSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/insurance/signup` |
-| `postIntegrationsOnboardingSooSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/soo/signup` |
-| `postIntegrationsSooLink` (직접) | `POST accountClient /integrations/soo/link` |
+| `postIntegrationsOnboardingLiteSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/lite/signup` |
+| `postIntegrationsLiteLink` (직접) | `POST accountClient /integrations/lite/link` |
 
 </details>
 
-<a id="route-soo-sign-up-complete"></a>
+<a id="route-lite-sign-up-complete"></a>
 
-### `/sign-up/soo/complete` · soo-sign-up-complete
+### `/sign-up/lite/complete` · lite-sign-up-complete
 
-- 화면: SooSignUpCompleteView (`re-upstream/restored/views/SooSignUpCompleteView.vue`)
+- 화면: LiteSignUpCompleteView (`restored/views/LiteSignUpCompleteView.vue`)
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
-- 스토어: `useSooSignUpStore`
+- 스토어: `useLiteSignUpStore`
 
 <details>
 <summary>컴포넌트 트리</summary>
@@ -423,7 +423,7 @@
 
 ### `/sign-up/ondang` · ondang-sign-up
 
-- 화면: OndangSignUpView (`re-upstream/restored/views/OndangSignUpView.vue`)
+- 화면: OndangSignUpView (`restored/views/OndangSignUpView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 - 스토어: `useAccountApplicationsAuthStore`, `useOndangSignUpStore`
 
@@ -431,7 +431,7 @@
 
 ### `/sign-up/ondang/form` · ondang-sign-up-form
 
-- 화면: OndangSignUpFormView (`re-upstream/restored/views/OndangSignUpFormView.vue`)
+- 화면: OndangSignUpFormView (`restored/views/OndangSignUpFormView.vue`)
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 7 · 전체 도달 8
 - 스토어: `useOndangSignUpStore`
 
@@ -456,11 +456,11 @@
 |---|---|
 | `useIntegrationsOnboardingWontangProfileQuery` | `GET accountApplicationClient {INTEGRATIONS_ONBOARDING_WONTANG_PATH}/profile` |
 | `useTermsQuery` | `GET accountApplicationClient /terms` |
-| `getIntegrationsOnboardingSooProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/soo/profile` |
+| `getIntegrationsOnboardingLiteProfile` (직접) | `GET accountApplicationClient /integrations/onboarding/lite/profile` |
 | `getAuthMe` (직접) | `GET emrClient /auth/me` |
 | `postIntegrationsOnboardingWontangSignup` (직접) | `POST accountApplicationClient {INTEGRATIONS_ONBOARDING_WONTANG_PATH}/signup` |
 | `postAuthCheckUsernameOnboarding` (직접) | `POST accountApplicationClient /auth/check-username-onboarding` |
-| `postIntegrationsOnboardingSooSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/soo/signup` |
+| `postIntegrationsOnboardingLiteSignup` (직접) | `POST accountApplicationClient /integrations/onboarding/lite/signup` |
 
 </details>
 
@@ -468,7 +468,7 @@
 
 ### `/sign-up/ondang/complete` · ondang-sign-up-complete
 
-- 화면: OndangSignUpCompleteView (`re-upstream/restored/views/OndangSignUpCompleteView.vue`)
+- 화면: OndangSignUpCompleteView (`restored/views/OndangSignUpCompleteView.vue`)
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 - 스토어: `useOndangSignUpStore`
 
@@ -483,7 +483,7 @@
 
 ### `/terms/:documentNumber` · terms-content
 
-- 화면: TermsContentView (`re-upstream/restored/views/TermsContentView.vue`)
+- 화면: TermsContentView (`restored/views/TermsContentView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 1 · 전체 도달 1
 
 <details>
@@ -491,22 +491,22 @@
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useMarketingAgreementTermsListQuery` | `GET medistreamClient /marketing-agreement/terms/list` |
+| `useMarketingAgreementTermsListQuery` | `GET ssoClient /marketing-agreement/terms/list` |
 
 </details>
 
-<a id="route-doctalk-terms"></a>
+<a id="route-booking-terms"></a>
 
-### `/terms/doctalk/:type` · doctalk-terms
+### `/terms/booking/:type` · booking-terms
 
-- 화면: DoctalkTermsView (`re-upstream/restored/views/DoctalkTermsView.vue`)
+- 화면: BookingTermsView (`restored/views/BookingTermsView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 0 · 전체 도달 0
 
 <a id="route-component-preview"></a>
 
 ### `/preview` · component-preview
 
-- 화면: ComponentPreview (`re-upstream/restored/components/component/ComponentPreview.vue`)
+- 화면: ComponentPreview (`restored/components/component/ComponentPreview.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 29 · API: 화면 0 · 전체 도달 4
 - 스토어: `useToastNotificationStore`
@@ -549,7 +549,7 @@
 
 ### `/canvas` · canvas
 
-- 화면: CanvasView (`re-upstream/restored/views/CanvasView.vue`)
+- 화면: CanvasView (`restored/views/CanvasView.vue`)
 - 컴포넌트: 전용 6 · 공유 17 · API: 화면 12 · 전체 도달 12
 - 스토어: `useToastNotificationStore`
 
@@ -604,7 +604,7 @@
 
 ### `/desk` · desk
 
-- 화면: DeskSuspense (`re-upstream/restored/components/desk/DeskSuspense.vue`)
+- 화면: DeskSuspense (`restored/components/desk/DeskSuspense.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 324
 
@@ -621,7 +621,7 @@
 
 ### `/treatment` · treatment
 
-- 화면: TreatmentSuspense (`re-upstream/restored/components/treatment/TreatmentSuspense.vue`)
+- 화면: TreatmentSuspense (`restored/components/treatment/TreatmentSuspense.vue`)
 - meta: 권한 `진료` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 19
 
@@ -639,7 +639,7 @@
 
 ### `/treatment/repeat-results` · treatment-repeat-results
 
-- 화면: TreatmentRepeatResultsView (`re-upstream/restored/views/TreatmentRepeatResultsView.vue`)
+- 화면: TreatmentRepeatResultsView (`restored/views/TreatmentRepeatResultsView.vue`)
 - meta: `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 4 · API: 화면 2 · 전체 도달 293
 - 스토어: `useRepeatedTreatmentStore`
@@ -669,7 +669,7 @@
 
 ### `/treatment-rooms` · treatment-rooms
 
-- 화면: TreatmentRoomsSuspense (`re-upstream/restored/components/treatment/TreatmentRoomsSuspense.vue`)
+- 화면: TreatmentRoomsSuspense (`restored/components/treatment/TreatmentRoomsSuspense.vue`)
 - meta: 권한 `치료실` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 329
 
@@ -687,7 +687,7 @@
 
 ### `/tablet/auth-link` · tablet-auth-link
 
-- 화면: TabletAuthLinkView (`re-upstream/restored/views/TabletAuthLinkView.vue`)
+- 화면: TabletAuthLinkView (`restored/views/TabletAuthLinkView.vue`)
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 2 · 전체 도달 2
 - 스토어: `useDeskDateStore`
 
@@ -705,7 +705,7 @@
 
 ### `/tablet/treatment-rooms` · tablet-treatment-rooms
 
-- 화면: TabletTreatmentRoomsView (`re-upstream/restored/views/TabletTreatmentRoomsView.vue`)
+- 화면: TabletTreatmentRoomsView (`restored/views/TabletTreatmentRoomsView.vue`)
 - meta: 권한 `치료실` · `requiresAuth`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 329
 
@@ -720,7 +720,7 @@
 
 ### `/appointment-planner` · appointment-planner
 
-- 화면: AppointmentPlannerView (`re-upstream/restored/views/AppointmentPlannerView.vue`)
+- 화면: AppointmentPlannerView (`restored/views/AppointmentPlannerView.vue`)
 - meta: 권한 `예약관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 11 · 공유 49 · API: 화면 18 · 전체 도달 305
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -794,7 +794,7 @@
 | `useDeskAppointmentsHistoryQuery` | `GET emrClient /desk/appointments/{input}/history` |
 | `useDeskAppointmentsPlannerQuery` | `GET emrClient /desk/appointments/planner` |
 | `useDeskBookingRequestsQuery` | `GET emrClient /desk/booking-requests` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
 | `usePatchDeskAppointmentsMutation` | `PATCH emrClient /desk/appointments/{예약Id}` |
 | `usePatchDeskTelemedicineConsultationsStatusMutation` | `PATCH emrClient /desk/telemedicine-consultations/{input}/status` |
 | `usePatientsQuery` | `GET emrClient /patients/{input}` |
@@ -814,7 +814,7 @@
 
 ### `/ocs` · ocs
 
-- 화면: OcsView (`re-upstream/restored/views/OcsView.vue`)
+- 화면: OcsView (`restored/views/OcsView.vue`)
 - meta: 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 21 · 공유 49 · API: 화면 19 · 전체 도달 80
 - 스토어: `useToastNotificationStore`
@@ -924,7 +924,7 @@
 
 ### `/ocs/prescription/list` · tangjeon-prescription-list
 
-- 화면: TangjeonPrescriptionListView (`re-upstream/restored/views/TangjeonPrescriptionListView.vue`)
+- 화면: TangjeonPrescriptionListView (`restored/views/TangjeonPrescriptionListView.vue`)
 - meta: 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 17 · API: 화면 11 · 전체 도달 163
 - 스토어: `useToastNotificationStore`
@@ -974,7 +974,7 @@
 
 ### `/ocs/prescription/create` · tangjeon-prescription-create
 
-- 화면: TangjeonPrescriptionCreateView (`re-upstream/restored/views/TangjeonPrescriptionCreateView.vue`)
+- 화면: TangjeonPrescriptionCreateView (`restored/views/TangjeonPrescriptionCreateView.vue`)
 - meta: 권한 `탕전관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 15 · API: 화면 12 · 전체 도달 19
 - 스토어: `useToastNotificationStore`
@@ -1024,8 +1024,8 @@
 
 ### `/ocs-v2-herb-order-create` · ocs-v2-herb-order-create
 
-- 화면: OndangGateView (`re-upstream/restored/views/OndangGateView.vue`)
-- meta: 권한 `메디원탕` · `requiresAuth` · `usesGlobalLayout`
+- 화면: OndangGateView (`restored/views/OndangGateView.vue`)
+- meta: 권한 `외부원탕` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 5 · API: 화면 2 · 전체 도달 88
 
 <details>
@@ -1045,7 +1045,7 @@
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 
 </details>
 
@@ -1053,8 +1053,8 @@
 
 ### `/ocs-v2-herb-order-list` · ocs-v2-herb-order-list
 
-- 화면: OndangGateView (`re-upstream/restored/views/OndangGateView.vue`)
-- meta: 권한 `메디원탕` · `requiresAuth` · `usesGlobalLayout`
+- 화면: OndangGateView (`restored/views/OndangGateView.vue`)
+- meta: 권한 `외부원탕` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 5 · API: 화면 2 · 전체 도달 88
 
 <details>
@@ -1074,7 +1074,7 @@
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useSubscriptionsSooProQuery` | `GET emrClient /subscriptions/soo-pro` |
+| `useSubscriptionsLiteProQuery` | `GET emrClient /subscriptions/lite-pro` |
 
 </details>
 
@@ -1082,7 +1082,7 @@
 
 ### `/crm` · crm
 
-- 화면: CrmView (`re-upstream/restored/views/CrmView.vue`)
+- 화면: CrmView (`restored/views/CrmView.vue`)
 - meta: 권한 `고객관리` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 6 · API: 화면 1 · 전체 도달 3
 
@@ -1111,7 +1111,7 @@
 
 ### `/crm/routines` · crm-routines
 
-- 화면: CrmRoutineView (`re-upstream/restored/views/CrmRoutineView.vue`) · 부모 라우트 `crm`
+- 화면: CrmRoutineView (`restored/views/CrmRoutineView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 19 · 공유 27 · API: 화면 10 · 전체 도달 46
 - 스토어: `useToastNotificationStore`
@@ -1187,7 +1187,7 @@
 
 ### `/crm/routines/new` · crm-routines-new
 
-- 화면: CrmRoutineCanvasView (`re-upstream/restored/views/CrmRoutineCanvasView.vue`) · 부모 라우트 `crm`
+- 화면: CrmRoutineCanvasView (`restored/views/CrmRoutineCanvasView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 16 · 공유 21 · API: 화면 6 · 전체 도달 43
 - 스토어: `useToastNotificationStore`
@@ -1251,7 +1251,7 @@
 
 ### `/crm/routines/:routineId` · crm-routines-detail
 
-- 화면: CrmRoutineCanvasView (`re-upstream/restored/views/CrmRoutineCanvasView.vue`) · 부모 라우트 `crm`
+- 화면: CrmRoutineCanvasView (`restored/views/CrmRoutineCanvasView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 16 · 공유 21 · API: 화면 6 · 전체 도달 43
 - 스토어: `useToastNotificationStore`
@@ -1315,7 +1315,7 @@
 
 ### `/crm/reminder` · crm-reminder
 
-- 화면: CrmReminderView (`re-upstream/restored/views/CrmReminderView.vue`) · 부모 라우트 `crm`
+- 화면: CrmReminderView (`restored/views/CrmReminderView.vue`) · 부모 라우트 `crm`
 - 등록 조건: `Yu()`
 - 컴포넌트: 전용 8 · 공유 13 · API: 화면 0 · 전체 도달 1
 - 스토어: `useToastNotificationStore`
@@ -1349,7 +1349,7 @@
 
 ### `/crm/nonbenefit-patients` · crm-nonbenefit-patients
 
-- 화면: NonBenefitPatientsView (`re-upstream/restored/views/NonBenefitPatientsView.vue`) · 부모 라우트 `crm`
+- 화면: NonBenefitPatientsView (`restored/views/NonBenefitPatientsView.vue`) · 부모 라우트 `crm`
 - 컴포넌트: 전용 15 · 공유 27 · API: 화면 17 · 전체 도달 307
 - 스토어: `useToastNotificationStore`
 
@@ -1390,11 +1390,11 @@
 
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
-| `useDeskAppointmentsOrderSooQuery` | `GET emrClient /desk/appointments/order/soo/{input}` |
+| `useDeskAppointmentsOrderLiteQuery` | `GET emrClient /desk/appointments/order/lite/{input}` |
 | `useDeskAppointmentsTelemedicineCancelledQuery` | `GET emrClient /desk/appointments/telemedicine/cancelled` |
 | `useDeskAppointmentsTelemedicineQuery` | `GET emrClient /desk/appointments/telemedicine` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
-| `useMembersUpstreamOrdersQuery` | `GET thesooClient members/upstream/orders/{input}` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
+| `useMembersEmrOrdersQuery` | `GET liteClient members/emr/orders/{input}` |
 | `usePatchCrmNonbenefitPatientsRestartMutation` | `PATCH emrClient /crm/nonbenefit-patients/restart` |
 | `usePatchCrmNonbenefitPatientsTerminateMutation` | `PATCH emrClient /crm/nonbenefit-patients/terminate` |
 | `usePatchDeskTelemedicineConsultationsStatusMutation` | `PATCH emrClient /desk/telemedicine-consultations/{input}/status` |
@@ -1414,7 +1414,7 @@
 
 ### `/crm/contacts` · crm-contacts
 
-- 화면: CrmContactsView (`re-upstream/restored/views/CrmContactsView-2.vue`) · 부모 라우트 `crm`
+- 화면: CrmContactsView (`restored/views/CrmContactsView-2.vue`) · 부모 라우트 `crm`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 17 · 공유 38 · API: 화면 20 · 전체 도달 311
 - 스토어: `useToastNotificationStore`
@@ -1512,7 +1512,7 @@
 
 ### `/crm/contacts-v2` · crm-contacts-v2
 
-- 화면: CrmContactsView (`re-upstream/restored/views/CrmContactsView.vue`) · 부모 라우트 `crm`
+- 화면: CrmContactsView (`restored/views/CrmContactsView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 14 · 공유 55 · API: 화면 21 · 전체 도달 337
 - 스토어: `useToastNotificationStore`
@@ -1612,11 +1612,11 @@
 
 </details>
 
-<a id="route-crm-soo-scheduler"></a>
+<a id="route-crm-lite-scheduler"></a>
 
-### `/crm/soo-scheduler` · crm-soo-scheduler
+### `/crm/lite-scheduler` · crm-lite-scheduler
 
-- 화면: CrmSooSchedulerView (`re-upstream/restored/views/CrmSooSchedulerView.vue`) · 부모 라우트 `crm`
+- 화면: CrmLiteSchedulerView (`restored/views/CrmLiteSchedulerView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 7 · 공유 22 · API: 화면 8 · 전체 도달 88
 - 스토어: `useToastNotificationStore`
@@ -1625,30 +1625,30 @@
 <summary>컴포넌트 트리</summary>
 
 - [CrmContactsViewDetail](component-api.md#c-components-crm-crmcontactsviewdetail-2) ↗
-- **CrmSooSchedulerViewHeader**
+- **CrmLiteSchedulerViewHeader**
   - BaseButton ↗
   - CrmFreeTrialBadge ↗
   - [CrmLiteTriggerSchedulerSetupModal](component-api.md#c-components-crm-crmlitetriggerschedulersetupmodal) ↗
   - [CrmLiteTriggerVariableInputModal](component-api.md#c-components-crm-crmlitetriggervariableinputmodal) ↗
-  - **CrmSooSchedulerRulesPanel**
+  - **CrmLiteSchedulerRulesPanel**
     - BaseCloseButton ↗
     - BaseSidePanel ↗
     - [CrmLiteTriggerRulesGroupCard](component-api.md#c-components-crm-crmlitetriggerrulesgroupcard) ↗
     - OverlayScrollbar ↗
-- **CrmSooSchedulerViewList**
+- **CrmLiteSchedulerViewList**
   - BaseButtonGroup ↗
   - BaseButtonGroupItem ↗
   - BaseTextInput ↗
   - BaseTextInputPlainModule ↗
   - ContentDivider ↗
-  - **CrmSooSchedulerTable**
+  - **CrmLiteSchedulerTable**
     - AgGridTable ↗
     - AgGridTableBadgeCell ↗
     - AgGridTableHeaderCell ↗
     - [AgGridTablePatientNameCell](component-api.md#c-components-aggrid-aggridtablepatientnamecell) ↗
     - AgGridTableTextCell ↗
-    - **CrmSooSchedulerContactDatesCell**
-    - **CrmSooSchedulerNoRowsOverlay**
+    - **CrmLiteSchedulerContactDatesCell**
+    - **CrmLiteSchedulerNoRowsOverlay**
       - AgGridNoRowsOverlay ↗
   - [DoctorsButtonGroup](component-api.md#c-components-doctors-doctorsbuttongroup) ↗
 
@@ -1674,7 +1674,7 @@
 
 ### `/crm/patients` · crm-emr-patients
 
-- 화면: EmrPatientsView (`re-upstream/restored/views/EmrPatientsView.vue`) · 부모 라우트 `crm`
+- 화면: EmrPatientsView (`restored/views/EmrPatientsView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `환자목록`
 - 컴포넌트: 전용 6 · 공유 21 · API: 화면 6 · 전체 도달 298
 - 스토어: `useToastNotificationStore`
@@ -1728,7 +1728,7 @@
 
 ### `/crm/message` · crm-message
 
-- 화면: MessageView (`re-upstream/restored/views/MessageView.vue`) · 부모 라우트 `crm`
+- 화면: MessageView (`restored/views/MessageView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 22 · 공유 43 · API: 화면 42 · 전체 도달 326
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -1854,7 +1854,7 @@
 
 ### `/crm/contents/view/:token` · crm-contents-view
 
-- 화면: CrmContentPatientPreview (`re-upstream/restored/components/crm/CrmContentPatientPreview.vue`) · 부모 라우트 `crm`
+- 화면: CrmContentPatientPreview (`restored/components/crm/CrmContentPatientPreview.vue`) · 부모 라우트 `crm`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 1 · 공유 0 · API: 화면 2 · 전체 도달 2
 
@@ -1872,7 +1872,7 @@
 
 ### `/crm/message/send-completed` · crm-message-send-completed
 
-- 화면: MessageSendCompletedView (`re-upstream/restored/views/MessageSendCompletedView.vue`) · 부모 라우트 `crm`
+- 화면: MessageSendCompletedView (`restored/views/MessageSendCompletedView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 1 · 전체 도달 1
 
@@ -1896,7 +1896,7 @@
 
 ### `/crm/message/results` · crm-message-results
 
-- 화면: MessageResultsView (`re-upstream/restored/views/MessageResultsView.vue`) · 부모 라우트 `crm`
+- 화면: MessageResultsView (`restored/views/MessageResultsView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `전송이력`
 - 컴포넌트: 전용 16 · 공유 28 · API: 화면 13 · 전체 도달 18
 - 스토어: `useCrmMessageResultLinksStore`, `useToastNotificationStore`
@@ -1965,7 +1965,7 @@
 
 ### `/crm/refusal` · crm-refusal
 
-- 화면: CrmRefusalView (`re-upstream/restored/views/CrmRefusalView.vue`) · 부모 라우트 `crm`
+- 화면: CrmRefusalView (`restored/views/CrmRefusalView.vue`) · 부모 라우트 `crm`
 - meta: 권한 `수신거부목록`
 - 컴포넌트: 전용 9 · 공유 27 · API: 화면 6 · 전체 도달 299
 - 스토어: `useToastNotificationStore`
@@ -2028,7 +2028,7 @@
 
 ### `/message` · 
 
-- 화면: `re-upstream/restored/modules/MessageView`
+- 화면: `restored/modules/MessageView`
 - meta: `requiresAuth`
 - 컴포넌트: 전용 0 · 공유 0 · API: 화면 0 · 전체 도달 0
 
@@ -2036,7 +2036,7 @@
 
 ### `/claim` · 
 
-- 화면: ClaimView (`re-upstream/restored/views/ClaimView.vue`)
+- 화면: ClaimView (`restored/views/ClaimView.vue`)
 - meta: 권한 `청구` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 0
 
@@ -2045,7 +2045,7 @@
 
 - AccessDeniedNotice ↗
 - LoadingBoxWithSpinner ↗
-- SooProV2FeatureRestrictionBanner ↗
+- LiteProV2FeatureRestrictionBanner ↗
 
 </details>
 
@@ -2053,7 +2053,7 @@
 
 ### `/claim/hira` · claim-hira
 
-- 화면: ClaimHiraView (`re-upstream/restored/views/ClaimHiraView.vue`)
+- 화면: ClaimHiraView (`restored/views/ClaimHiraView.vue`)
 - meta: 권한 `심평원청구`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 338
 
@@ -2071,7 +2071,7 @@
 
 ### `/claim/hira-submit-items` · claim-hira-submit-items
 
-- 화면: HiraSubmitItemsView (`re-upstream/restored/views/HiraSubmitItemsView.vue`)
+- 화면: HiraSubmitItemsView (`restored/views/HiraSubmitItemsView.vue`)
 - meta: 권한 `추나첩약제출현황`
 - 컴포넌트: 전용 20 · 공유 25 · API: 화면 15 · 전체 도달 43
 - 스토어: `useHiraSubmissionStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
@@ -2152,7 +2152,7 @@
 
 ### `/claim/medical-aids` · claim-medical-aids
 
-- 화면: MedicalAidsView (`re-upstream/restored/views/MedicalAidsView.vue`)
+- 화면: MedicalAidsView (`restored/views/MedicalAidsView.vue`)
 - meta: 권한 `의료급여진료승인현황`
 - 컴포넌트: 전용 10 · 공유 17 · API: 화면 8 · 전체 도달 9
 - 스토어: `useMedicalAidsStore`, `useToastNotificationStore`, `useTreatmentWindowStore`
@@ -2208,7 +2208,7 @@
 
 ### `/claim/home-visit` · claim-home-visit
 
-- 화면: ClaimHomeVisitView (`re-upstream/restored/views/ClaimHomeVisitView.vue`)
+- 화면: ClaimHomeVisitView (`restored/views/ClaimHomeVisitView.vue`)
 - meta: 권한 `청구`
 - 컴포넌트: 전용 1 · 공유 5 · API: 화면 2 · 전체 도달 2
 - 스토어: `useToastNotificationStore`
@@ -2237,7 +2237,7 @@
 
 ### `/claim/telemedicine-pilot` · claim-telemedicine-pilot
 
-- 화면: ClaimTelemedicinePilotView (`re-upstream/restored/views/ClaimTelemedicinePilotView.vue`)
+- 화면: ClaimTelemedicinePilotView (`restored/views/ClaimTelemedicinePilotView.vue`)
 - meta: 권한 `청구`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 2 · 전체 도달 2
 
@@ -2264,7 +2264,7 @@
 
 ### `/claim/year-settlement` · year-settlement
 
-- 화면: YearSettlement (`re-upstream/restored/components/year/YearSettlement.vue`)
+- 화면: YearSettlement (`restored/components/year/YearSettlement.vue`)
 - meta: 권한 `청구`
 - 컴포넌트: 전용 14 · 공유 19 · API: 화면 6 · 전체 도달 6
 - 스토어: `useToastNotificationStore`
@@ -2312,7 +2312,7 @@
 
 ### `/insurance-inquiry` · insurance-inquiry
 
-- 화면: InsuranceInquiryView (`re-upstream/restored/views/InsuranceInquiryView.vue`)
+- 화면: InsuranceInquiryView (`restored/views/InsuranceInquiryView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 2 · 공유 11 · API: 화면 11 · 전체 도달 115
 - 스토어: `useSocketClientStore`, `useToastNotificationStore`
@@ -2357,7 +2357,7 @@
 
 ### `/electronic-signature` · electronic-signature
 
-- 화면: ElectronicSignatureView (`re-upstream/restored/views/ElectronicSignatureView.vue`)
+- 화면: ElectronicSignatureView (`restored/views/ElectronicSignatureView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 1 · 전체 도달 22
 
@@ -2388,7 +2388,7 @@
 
 ### `/setting` · setting
 
-- 화면: SettingView (`re-upstream/restored/views/SettingView.vue`)
+- 화면: SettingView (`restored/views/SettingView.vue`)
 - meta: 권한 `설정` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 1 · 전체 도달 1
 
@@ -2413,7 +2413,7 @@
 
 ### `/setting/common` · setting-common
 
-- 화면: SettingCommonView (`re-upstream/restored/views/SettingCommonView.vue`) · 부모 라우트 `setting`
+- 화면: SettingCommonView (`restored/views/SettingCommonView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `기본설정`
 - 컴포넌트: 전용 8 · 공유 16 · API: 화면 24 · 전체 도달 31
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2479,7 +2479,7 @@
 
 ### `/setting/telemedicine` · setting-telemedicine
 
-- 화면: SettingTelemedicineView (`re-upstream/restored/views/SettingTelemedicineView.vue`) · 부모 라우트 `setting`
+- 화면: SettingTelemedicineView (`restored/views/SettingTelemedicineView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `기본설정`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 8
 
@@ -2495,10 +2495,10 @@
 
 ### `/setting/service-integration` · setting-service-integration
 
-- 화면: SettingServiceIntegrationView (`re-upstream/restored/views/SettingServiceIntegrationView.vue`) · 부모 라우트 `setting`
+- 화면: SettingServiceIntegrationView (`restored/views/SettingServiceIntegrationView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `기본설정`
 - 컴포넌트: 전용 1 · 공유 6 · API: 화면 3 · 전체 도달 13
-- 스토어: `useOnboardingGuideSessionStore`, `useSooSignUpStore`
+- 스토어: `useOnboardingGuideSessionStore`, `useLiteSignUpStore`
 
 <details>
 <summary>컴포넌트 트리</summary>
@@ -2508,7 +2508,7 @@
 - ServiceConnectModal ↗
 - ServiceConnectorCard ↗
 - [ServiceManageModal](component-api.md#c-components-service-servicemanagemodal) ↗
-- SooLinkConnectModal ↗
+- LiteLinkConnectModal ↗
 
 </details>
 
@@ -2518,7 +2518,7 @@
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `usePostIntegrationsSooLinkMutation` | `POST accountClient /integrations/soo/link` |
+| `usePostIntegrationsLiteLinkMutation` | `POST accountClient /integrations/lite/link` |
 | `useSettingsOnboardingGuideQuery` | `GET emrClient /settings/onboarding-guide` |
 
 </details>
@@ -2527,7 +2527,7 @@
 
 ### `/setting/hospital` · setting-hospital-info
 
-- 화면: SettingHospitalView (`re-upstream/restored/views/SettingHospitalView.vue`) · 부모 라우트 `setting`
+- 화면: SettingHospitalView (`restored/views/SettingHospitalView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `병원정보설정`
 - 컴포넌트: 전용 6 · 공유 11 · API: 화면 28 · 전체 도달 29
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2559,8 +2559,8 @@
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useMembersUpstreamClinicsMyQuery` | `GET thesooClient /members/upstream/clinics/my` |
-| `usePatchMembersUpstreamClinicsMyMutation` | `PATCH thesooClient /members/upstream/clinics/my` |
+| `useMembersEmrClinicsMyQuery` | `GET liteClient /members/emr/clinics/my` |
+| `usePatchMembersEmrClinicsMyMutation` | `PATCH liteClient /members/emr/clinics/my` |
 | `usePatchSettingsHospitalsMutation` | `PATCH emrClient /settings/hospitals` |
 | `usePatchSettingsHospitalsMutation_2` | `PATCH emrClient /settings/hospitals` |
 | `usePostNhicCertFilesMutation` | `POST emrClient /nhic/cert-files` |
@@ -2594,7 +2594,7 @@
 
 ### `/setting/treatment` · setting-treatment
 
-- 화면: SettingTreatmentView (`re-upstream/restored/views/SettingTreatmentView.vue`) · 부모 라우트 `setting`
+- 화면: SettingTreatmentView (`restored/views/SettingTreatmentView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `진료설정`
 - 컴포넌트: 전용 7 · 공유 14 · API: 화면 14 · 전체 도달 16
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2650,7 +2650,7 @@
 
 ### `/setting/prescription` · setting-prescription
 
-- 화면: SettingPrescriptionView (`re-upstream/restored/views/SettingPrescriptionView.vue`) · 부모 라우트 `setting`
+- 화면: SettingPrescriptionView (`restored/views/SettingPrescriptionView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `처방수가설정`
 - 컴포넌트: 전용 81 · 공유 66 · API: 화면 111 · 전체 도달 137
 - 스토어: `useOnboardingGuideSessionStore`, `useSettingChubyakPrescriptionStore`, `useSettingHerbStore`, `useToastNotificationStore`
@@ -2905,7 +2905,7 @@
 
 ### `/setting/templates` · setting-templates
 
-- 화면: SettingEditorTemplates (`re-upstream/restored/components/setting/SettingEditorTemplates.vue`) · 부모 라우트 `setting`
+- 화면: SettingEditorTemplates (`restored/components/setting/SettingEditorTemplates.vue`) · 부모 라우트 `setting`
 - meta: 권한 `상용구설정`
 - 컴포넌트: 전용 8 · 공유 16 · API: 화면 19 · 전체 도달 19
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -2963,7 +2963,7 @@
 
 ### `/setting/caller-numbers` · setting-caller-numbers
 
-- 화면: CrmSettingCallerNumbers (`re-upstream/restored/components/crm/CrmSettingCallerNumbers.vue`) · 부모 라우트 `setting`
+- 화면: CrmSettingCallerNumbers (`restored/components/crm/CrmSettingCallerNumbers.vue`) · 부모 라우트 `setting`
 - meta: 권한 `발신번호설정`
 - 컴포넌트: 전용 7 · 공유 17 · API: 화면 7 · 전체 도달 19
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3015,7 +3015,7 @@
 
 ### `/setting/consult-templates` · setting-consult-templates
 
-- 화면: CrmSettingConsultTemplates (`re-upstream/restored/components/crm/CrmSettingConsultTemplates.vue`) · 부모 라우트 `setting`
+- 화면: CrmSettingConsultTemplates (`restored/components/crm/CrmSettingConsultTemplates.vue`) · 부모 라우트 `setting`
 - meta: 권한 `연락목록`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 7
 
@@ -3030,7 +3030,7 @@
 
 ### `/setting/message-templates` · setting-message-templates
 
-- 화면: CrmSettingMessageTemplates (`re-upstream/restored/components/crm/CrmSettingMessageTemplates.vue`) · 부모 라우트 `setting`
+- 화면: CrmSettingMessageTemplates (`restored/components/crm/CrmSettingMessageTemplates.vue`) · 부모 라우트 `setting`
 - meta: 권한 `메시지템플릿관리`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 36
 
@@ -3045,7 +3045,7 @@
 
 ### `/setting/contents` · setting-contents
 
-- 화면: CrmSettingContents (`re-upstream/restored/components/crm/CrmSettingContents.vue`) · 부모 라우트 `setting`
+- 화면: CrmSettingContents (`restored/components/crm/CrmSettingContents.vue`) · 부모 라우트 `setting`
 - meta: 권한 `일반문자`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 9
 
@@ -3060,7 +3060,7 @@
 
 ### `/setting/account-permission` · setting-account-permission
 
-- 화면: AccountPermissionsView (`re-upstream/restored/views/AccountPermissionsView.vue`) · 부모 라우트 `setting`
+- 화면: AccountPermissionsView (`restored/views/AccountPermissionsView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `계정권한설정`
 - 컴포넌트: 전용 8 · 공유 17 · API: 화면 11 · 전체 도달 19
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3116,7 +3116,7 @@
 
 ### `/setting/account-history` · setting-account-history
 
-- 화면: AccountHistoryView (`re-upstream/restored/views/AccountHistoryView.vue`) · 부모 라우트 `setting`
+- 화면: AccountHistoryView (`restored/views/AccountHistoryView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 5 · 공유 2 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3135,7 +3135,7 @@
 
 ### `/setting/tablet` · setting-tablet
 
-- 화면: SettingTabletView (`re-upstream/restored/views/SettingTabletView.vue`) · 부모 라우트 `setting`
+- 화면: SettingTabletView (`restored/views/SettingTabletView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 18
 
 <details>
@@ -3151,7 +3151,7 @@
 
 ### `/setting/document-management` · setting-document-management
 
-- 화면: SettingDocumentManagementView (`re-upstream/restored/views/SettingDocumentManagementView.vue`) · 부모 라우트 `setting`
+- 화면: SettingDocumentManagementView (`restored/views/SettingDocumentManagementView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 18
 
 <details>
@@ -3167,7 +3167,7 @@
 
 ### `/setting/schedule` · setting-schedule
 
-- 화면: ScheduleView (`re-upstream/restored/views/ScheduleView.vue`) · 부모 라우트 `setting`
+- 화면: ScheduleView (`restored/views/ScheduleView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `진료스케줄설정`
 - 컴포넌트: 전용 7 · 공유 13 · API: 화면 8 · 전체 도달 8
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3210,7 +3210,7 @@
 
 ### `/setting/billing` · setting-billing
 
-- 화면: CrmBillingView (`re-upstream/restored/views/CrmBillingView.vue`) · 부모 라우트 `setting`
+- 화면: CrmBillingView (`restored/views/CrmBillingView.vue`) · 부모 라우트 `setting`
 - meta: 권한 `결제메뉴접근` · `supportsMobile`
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 1 · 전체 도달 15
 
@@ -3242,7 +3242,7 @@
 
 ### `/setting/appointment` · setting-appointment
 
-- 화면: SettingAppointment (`re-upstream/restored/components/setting/SettingAppointment.vue`) · 부모 라우트 `setting`
+- 화면: SettingAppointment (`restored/components/setting/SettingAppointment.vue`) · 부모 라우트 `setting`
 - meta: 권한 `예약설정`
 - 컴포넌트: 전용 4 · 공유 13 · API: 화면 9 · 전체 도달 40
 - 스토어: `useOnboardingGuideSessionStore`, `useToastNotificationStore`
@@ -3255,8 +3255,8 @@
 - **SettingAppointmentExternalChannel**
   - BaseBadge ↗
   - BaseButton ↗
-  - DoctalkSetupGuide ↗
-  - [DoctalkSignupModal](component-api.md#c-components-doctalk-doctalksignupmodal) ↗
+  - BookingSetupGuide ↗
+  - [BookingSignupModal](component-api.md#c-components-booking-bookingsignupmodal) ↗
   - ExternalChannelBadge ↗
 - **SettingAppointmentGeneral**
   - BaseButtonGroup ↗
@@ -3275,11 +3275,11 @@
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
 | `useDeskBookingRequestsQuery` | `GET emrClient /desk/booking-requests` |
-| `useDoctalkSyncStatusQuery` | `POST emrClient /doctalk/sync-status` |
+| `useBookingSyncStatusQuery` | `POST emrClient /booking/sync-status` |
 | `usePatchSettingsAppointmentsMutation` | `PATCH emrClient /settings/appointments` |
 | `usePatchSettingsMedicalTreatmentsMutation` | `PATCH emrClient /settings/medical-treatments/{id}` |
-| `usePostDoctalkSignupMutation` | `POST emrClient /doctalk/signup` |
-| `usePostDoctalkSsoTokenMutation` | `POST emrClient /doctalk/sso/token` |
+| `usePostBookingSignupMutation` | `POST emrClient /booking/signup` |
+| `usePostBookingSsoTokenMutation` | `POST emrClient /booking/sso/token` |
 | `useSettingsAppointmentsQuery` | `GET emrClient /settings/appointments` |
 | `useSettingsMedicalTreatmentsQuery` | `GET emrClient /settings/medical-treatments` |
 
@@ -3289,7 +3289,7 @@
 
 ### `/setting/mcp-tokens` · setting-mcp-tokens
 
-- 화면: MCPTokens (`re-upstream/restored/components/m/MCPTokens.vue`) · 부모 라우트 `setting`
+- 화면: MCPTokens (`restored/components/m/MCPTokens.vue`) · 부모 라우트 `setting`
 - meta: `requiresAuth` · `requiresDemoAccountInPrd`
 - 등록 조건: `Yu() \|\| Un()`
 - 컴포넌트: 전용 1 · 공유 8 · API: 화면 5 · 전체 도달 5
@@ -3325,7 +3325,7 @@
 
 ### `/setting/mcp-pending-contacts` · setting-mcp-pending-contacts
 
-- 화면: McpPendingContacts (`re-upstream/restored/components/mcp/McpPendingContacts.vue`) · 부모 라우트 `setting`
+- 화면: McpPendingContacts (`restored/components/mcp/McpPendingContacts.vue`) · 부모 라우트 `setting`
 - meta: `requiresAuth` · `requiresDemoAccountInPrd`
 - 등록 조건: `Yu() \|\| Un()`
 - 컴포넌트: 전용 1 · 공유 4 · API: 화면 0 · 전체 도달 16
@@ -3344,7 +3344,7 @@
 
 ### `/setting/expense-collection` · setting-expense-collection
 
-- 화면: SettingExpenseCollectionView (`re-upstream/restored/views/SettingExpenseCollectionView.vue`) · 부모 라우트 `setting`
+- 화면: SettingExpenseCollectionView (`restored/views/SettingExpenseCollectionView.vue`) · 부모 라우트 `setting`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3358,7 +3358,7 @@
 
 ### `/remote-settlement` · remote-settlement
 
-- 화면: RemoteSettlementView (`re-upstream/restored/views/RemoteSettlementView.vue`)
+- 화면: RemoteSettlementView (`restored/views/RemoteSettlementView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 6 · 공유 4 · API: 화면 2 · 전체 도달 2
 
@@ -3383,7 +3383,7 @@
 | 훅 / 함수 | 엔드포인트 |
 |---|---|
 | `useAuthMeQuery` | `GET emrClient /auth/me` |
-| `useSettlementUpstreamSettlementsQuery` | `GET thesooClient /settlement/upstream/settlements` |
+| `useSettlementEmrSettlementsQuery` | `GET liteClient /settlement/emr/settlements` |
 
 </details>
 
@@ -3391,7 +3391,7 @@
 
 ### `/help` · 
 
-- 화면: HelpView (`re-upstream/restored/modules/HelpView.js`)
+- 화면: HelpView (`restored/modules/HelpView.js`)
 - meta: `requiresAuth`
 - 컴포넌트: 전용 0 · 공유 0 · API: 화면 0 · 전체 도달 0
 
@@ -3399,7 +3399,7 @@
 
 ### `/analytics` · analytics
 
-- 화면: AnalyticsView (`re-upstream/restored/views/AnalyticsView.vue`)
+- 화면: AnalyticsView (`restored/views/AnalyticsView.vue`)
 - meta: 권한 `경영지표` · `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 0
 
@@ -3415,8 +3415,8 @@
 
 ### `/analytics/revenue` · analytics-revenue
 
-- 화면: RevenueTableView (`re-upstream/restored/views/RevenueTableView.vue`) · 부모 라우트 `analytics`
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/RevenueTableContainer`
+- 화면: RevenueTableView (`restored/views/RevenueTableView.vue`) · 부모 라우트 `analytics`
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/RevenueTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
@@ -3431,8 +3431,8 @@
 
 ### `/analytics/appointment` · analytics-appointment
 
-- 화면: AppointmentTableView (`re-upstream/restored/views/AppointmentTableView.vue`) · 부모 라우트 `analytics`
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/AppointmentTableContainer`
+- 화면: AppointmentTableView (`restored/views/AppointmentTableView.vue`) · 부모 라우트 `analytics`
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/AppointmentTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
@@ -3447,8 +3447,8 @@
 
 ### `/analytics/patient` · analytics-patient
 
-- 화면: PatientTableView (`re-upstream/restored/views/PatientTableView.vue`) · 부모 라우트 `analytics`
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/PatientTableContainer`
+- 화면: PatientTableView (`restored/views/PatientTableView.vue`) · 부모 라우트 `analytics`
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/PatientTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
@@ -3459,12 +3459,12 @@
 
 </details>
 
-<a id="route-analytics-soo-dashboard"></a>
+<a id="route-analytics-lite-dashboard"></a>
 
-### `/analytics/soo-dashboard` · analytics-soo-dashboard
+### `/analytics/lite-dashboard` · analytics-lite-dashboard
 
-- 화면: SooDashboardView (`re-upstream/restored/views/SooDashboardView.vue`) · 부모 라우트 `analytics`
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/SooDashboardContainer`
+- 화면: LiteDashboardView (`restored/views/LiteDashboardView.vue`) · 부모 라우트 `analytics`
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/LiteDashboardContainer`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3478,8 +3478,8 @@
 
 ### `/analytics/incoming-path` · analytics-incoming-path
 
-- 화면: IncomingPathTableView (`re-upstream/restored/views/IncomingPathTableView.vue`) · 부모 라우트 `analytics`
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/IncomingPathTableContainer`
+- 화면: IncomingPathTableView (`restored/views/IncomingPathTableView.vue`) · 부모 라우트 `analytics`
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/IncomingPathTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 0 · 전체 도달 292
 
@@ -3496,8 +3496,8 @@
 
 ### `/analytics/doctor` · analytics-doctor
 
-- 화면: DoctorTableView (`re-upstream/restored/views/DoctorTableView.vue`) · 부모 라우트 `analytics`
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/DoctorTableContainer`
+- 화면: DoctorTableView (`restored/views/DoctorTableView.vue`) · 부모 라우트 `analytics`
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/DoctorTableContainer`
 - meta: 권한 `경영지표`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
@@ -3512,7 +3512,7 @@
 
 ### `/finance` · finance
 
-- 화면: FinanceView (`re-upstream/restored/views/FinanceView.vue`)
+- 화면: FinanceView (`restored/views/FinanceView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 0
 
@@ -3528,7 +3528,7 @@
 
 ### `/finance/daily-briefing` · finance-daily-briefing
 
-- 화면: DailyBriefingView (`re-upstream/restored/views/DailyBriefingView.vue`) · 부모 라우트 `finance`
+- 화면: DailyBriefingView (`restored/views/DailyBriefingView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3542,7 +3542,7 @@
 
 ### `/finance/expenses` · finance-expenses
 
-- 화면: ExpensesView (`re-upstream/restored/views/ExpensesView.vue`) · 부모 라우트 `finance`
+- 화면: ExpensesView (`restored/views/ExpensesView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3556,7 +3556,7 @@
 
 ### `/finance/pnl` · finance-pnl
 
-- 화면: PnlView (`re-upstream/restored/views/PnlView.vue`) · 부모 라우트 `finance`
+- 화면: PnlView (`restored/views/PnlView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3570,7 +3570,7 @@
 
 ### `/finance/budget` · finance-budget
 
-- 화면: BudgetView (`re-upstream/restored/views/BudgetView.vue`) · 부모 라우트 `finance`
+- 화면: BudgetView (`restored/views/BudgetView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3584,7 +3584,7 @@
 
 ### `/finance/cashflow` · finance-cashflow
 
-- 화면: CashflowView (`re-upstream/restored/views/CashflowView.vue`) · 부모 라우트 `finance`
+- 화면: CashflowView (`restored/views/CashflowView.vue`) · 부모 라우트 `finance`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
 <details>
@@ -3598,8 +3598,8 @@
 
 ### `/challenge` · challenge
 
-- 화면: ChallengeView (`re-upstream/restored/views/ChallengeView.vue`)
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-bi-frontend/SooRisingContainer`
+- 화면: ChallengeView (`restored/views/ChallengeView.vue`)
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-bi-frontend/LiteRisingContainer`
 - meta: `requiresAuth` · `usesGlobalLayout`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 2 · 전체 도달 5
 
@@ -3608,7 +3608,7 @@
 
 - BaseTabBar ↗
 - BiContainer ↗
-- [SooRisingMaterialsPane](component-api.md#c-components-soo-soorisingmaterialspane) ↗
+- [LiteRisingMaterialsPane](component-api.md#c-components-lite-literisingmaterialspane) ↗
 
 </details>
 
@@ -3626,8 +3626,8 @@
 
 ### `/portal` · portal
 
-- 화면: SooView (`re-upstream/restored/views/SooView.vue`)
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-emr-portal/SooPortalContainer`
+- 화면: LiteView (`restored/views/LiteView.vue`)
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-portal/LitePortalContainer`
 - meta: `requiresAuth` · `usesGlobalLayout` · `supportsMobile`
 - 컴포넌트: 전용 1 · 공유 1 · API: 화면 0 · 전체 도달 0
 
@@ -3642,8 +3642,8 @@
 
 ### `/library` · library-window
 
-- 화면: LibraryWindowView (`re-upstream/restored/views/LibraryWindowView.vue`)
-- 원격 모듈 (federation, 이 번들에 코드 없음): `upstream-emr-portal/SooPortalContainer`
+- 화면: LibraryWindowView (`restored/views/LibraryWindowView.vue`)
+- 원격 모듈 (federation, 이 번들에 코드 없음): `emr-portal/LitePortalContainer`
 - meta: `requiresAuth`
 - 컴포넌트: 전용 1 · 공유 2 · API: 화면 0 · 전체 도달 1
 
@@ -3659,7 +3659,7 @@
 
 ### `/members/:pathMatch(.*)*` · members
 
-- 화면: MembersView (`re-upstream/restored/views/MembersView.vue`)
+- 화면: MembersView (`restored/views/MembersView.vue`)
 - meta: `requiresAuth` · `usesGlobalLayout` · `supportsMobile`
 - 컴포넌트: 전용 1 · 공유 3 · API: 화면 2 · 전체 도달 296
 
@@ -3688,55 +3688,55 @@
 
 ### `useAccountApplicationsAuthStore`
 
-- 파일: `re-upstream/restored/stores/accountApplicationsAuth.js`
+- 파일: `restored/stores/accountApplicationsAuth.js`
 
 _API 호출 없음_
 
 ### `useAiAgentStore`
 
-- 파일: `re-upstream/restored/stores/aiAgent.js`
+- 파일: `restored/stores/aiAgent.js`
 
 _API 호출 없음_
 
 ### `useClaimWarningOffStore`
 
-- 파일: `re-upstream/restored/stores/claimWarningOff.js`
+- 파일: `restored/stores/claimWarningOff.js`
 
 _API 호출 없음_
 
 ### `useClaimWarningStore`
 
-- 파일: `re-upstream/restored/stores/claimWarning.js`
+- 파일: `restored/stores/claimWarning.js`
 
 _API 호출 없음_
 
 ### `useCrmMessageResultLinksStore`
 
-- 파일: `re-upstream/restored/stores/crmMessageResultLinks.js`
+- 파일: `restored/stores/crmMessageResultLinks.js`
 
 _API 호출 없음_
 
 ### `useDeskDateStore`
 
-- 파일: `re-upstream/restored/stores/deskDate.js`
+- 파일: `restored/stores/deskDate.js`
 
 _API 호출 없음_
 
 ### `useDocumentIssueStore`
 
-- 파일: `re-upstream/restored/stores/documentIssue.js`
+- 파일: `restored/stores/documentIssue.js`
 
 _API 호출 없음_
 
 ### `useHiraSubmissionStore`
 
-- 파일: `re-upstream/restored/stores/hiraSubmission.js`
+- 파일: `restored/stores/hiraSubmission.js`
 
 _API 호출 없음_
 
 ### `useInquiryBotStore`
 
-- 파일: `re-upstream/restored/stores/inquiryBot.js`
+- 파일: `restored/stores/inquiryBot.js`
 
 <details>
 <summary>훅 → API (6)</summary>
@@ -3754,61 +3754,61 @@ _API 호출 없음_
 
 ### `useIntakeLinkPromptStore`
 
-- 파일: `re-upstream/restored/stores/intakeLinkPrompt.js`
+- 파일: `restored/stores/intakeLinkPrompt.js`
 
 _API 호출 없음_
 
 ### `useMedicalAidsStore`
 
-- 파일: `re-upstream/restored/stores/medicalAids.js`
+- 파일: `restored/stores/medicalAids.js`
 
 _API 호출 없음_
 
 ### `useMembersSignUpStore`
 
-- 파일: `re-upstream/restored/stores/membersSignUp.js`
+- 파일: `restored/stores/membersSignUp.js`
 
 _API 호출 없음_
 
 ### `useOnboardingGuideSessionStore`
 
-- 파일: `re-upstream/restored/stores/onboardingGuideSession.js`
+- 파일: `restored/stores/onboardingGuideSession.js`
 
 _API 호출 없음_
 
 ### `useOndangSignUpStore`
 
-- 파일: `re-upstream/restored/stores/ondangSignUp.js`
+- 파일: `restored/stores/ondangSignUp.js`
 
 _API 호출 없음_
 
 ### `usePatientStore`
 
-- 파일: `re-upstream/restored/stores/patient.js`
+- 파일: `restored/stores/patient.js`
 
 _API 호출 없음_
 
 ### `useRepeatedTreatmentStore`
 
-- 파일: `re-upstream/restored/stores/repeatedTreatment.js`
+- 파일: `restored/stores/repeatedTreatment.js`
 
 _API 호출 없음_
 
 ### `useSettingChubyakPrescriptionStore`
 
-- 파일: `re-upstream/restored/stores/settingChubyakPrescription.js`
+- 파일: `restored/stores/settingChubyakPrescription.js`
 
 _API 호출 없음_
 
 ### `useSettingHerbStore`
 
-- 파일: `re-upstream/restored/stores/settingHerb.js`
+- 파일: `restored/stores/settingHerb.js`
 
 _API 호출 없음_
 
 ### `useSocketClientStore`
 
-- 파일: `re-upstream/restored/stores/socketClient.js`
+- 파일: `restored/stores/socketClient.js`
 
 <details>
 <summary>훅 → API (1)</summary>
@@ -3819,21 +3819,21 @@ _API 호출 없음_
 
 </details>
 
-### `useSooSignUpStore`
+### `useLiteSignUpStore`
 
-- 파일: `re-upstream/restored/stores/sooSignUp.js`
+- 파일: `restored/stores/liteSignUp.js`
 
 _API 호출 없음_
 
 ### `useToastNotificationStore`
 
-- 파일: `re-upstream/restored/stores/toastNotification.js`
+- 파일: `restored/stores/toastNotification.js`
 
 _API 호출 없음_
 
 ### `useTreatmentStore`
 
-- 파일: `re-upstream/restored/stores/treatment.js` · 참조 스토어 `useClaimWarningStore`
+- 파일: `restored/stores/treatment.js` · 참조 스토어 `useClaimWarningStore`
 
 <details>
 <summary>훅 → API (17)</summary>
@@ -3861,13 +3861,13 @@ _API 호출 없음_
 
 ### `useTreatmentWindowStore`
 
-- 파일: `re-upstream/restored/stores/treatmentWindow.js`
+- 파일: `restored/stores/treatmentWindow.js`
 
 _API 호출 없음_
 
 ### `useWindowStore`
 
-- 파일: `re-upstream/restored/stores/window.js` · 참조 스토어 `usePatientStore`
+- 파일: `restored/stores/window.js` · 참조 스토어 `usePatientStore`
 
 _API 호출 없음_
 
@@ -3875,10 +3875,10 @@ _API 호출 없음_
 
 클라이언트 모듈의 최상위 문장(인터셉터 등)에서 호출하는 API입니다. 모든 요청에 걸리므로 화면 목록에서는 뺐습니다.
 
-- `re-upstream/restored/api/MembersView/client.js`: `POST authClient /token/refresh`
-- `re-upstream/restored/api/clients/index.js`: API 호출 없음
-- `re-upstream/restored/api/clients/portalClient.js`: API 호출 없음
-- `re-upstream/restored/api/clients/webClient.js`: `POST authClient /token/refresh`
+- `restored/api/MembersView/client.js`: `POST authClient /token/refresh`
+- `restored/api/clients/index.js`: API 호출 없음
+- `restored/api/clients/portalClient.js`: API 호출 없음
+- `restored/api/clients/webClient.js`: `POST authClient /token/refresh`
 
 ## 참조되지 않는 호출
 
@@ -3886,6 +3886,6 @@ _API 호출 없음_
 
 | 함수 | 엔드포인트 |
 |---|---|
-| postChangeRequestsDocuments (`re-upstream/restored/api/users/requests.js`) | `POST accountClient {mI}/documents` |
-| postChangeRequests (`re-upstream/restored/api/users/requests.js`) | `POST accountClient <mI>` |
-| getChangeRequests (`re-upstream/restored/api/users/requests.js`) | `GET accountClient <mI>` |
+| postChangeRequestsDocuments (`restored/api/users/requests.js`) | `POST accountClient {mI}/documents` |
+| postChangeRequests (`restored/api/users/requests.js`) | `POST accountClient <mI>` |
+| getChangeRequests (`restored/api/users/requests.js`) | `GET accountClient <mI>` |

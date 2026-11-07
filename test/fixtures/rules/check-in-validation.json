@@ -3,39 +3,39 @@
   "description": "Check-in (접수) validations: NHIS benefit restriction auto-switch, insurance eligibility, selected-medical-institution (B005) gate, self-verification requirement, auto-insurance guarantee limit and expiry, and today-only check-in from an appointment.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/desk/DeskPatientAccept.vue.js",
+      "file": "restored/components/desk/DeskPatientAccept.vue.js",
       "lines": "395-460, 652-656, 686-691, 805-823, 884-900",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:9306-10509"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:9306-10509"
     },
     {
-      "file": "re-upstream/restored/modules/SidePanelDeskActions/선택된기관기호.js",
+      "file": "restored/modules/SidePanelDeskActions/선택된기관기호.js",
       "lines": "10-78, 97-116, 149-159",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:2840-2985"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:2840-2985"
     },
     {
-      "file": "re-upstream/restored/modules/insurance.js",
+      "file": "restored/modules/insurance.js",
       "lines": "41-57",
-      "origin": "unminified/insurance-DbeX1NlJ.js:12-166"
+      "origin": "unminified/insurance.js:12-166"
     },
     {
-      "file": "re-upstream/restored/api/patients/queries-2.js",
+      "file": "restored/api/patients/queries-2.js",
       "lines": "765-872",
-      "origin": "unminified/index-CBEIvlV0.js:117270-118177"
+      "origin": "unminified/index.js:117270-118177"
     },
     {
-      "file": "re-upstream/restored/modules/DeskPatientRegister/part-3.js",
+      "file": "restored/modules/DeskPatientRegister/part-3.js",
       "lines": "47",
-      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1352-1430"
+      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang.js:1352-1430"
     },
     {
-      "file": "re-upstream/restored/modules/MedicalAidsHospitalSelect/part-1.js",
+      "file": "restored/modules/MedicalAidsHospitalSelect/part-1.js",
       "lines": "84",
-      "origin": "unminified/MedicalAidsHospitalSelect.vue_vue_type_script_setup_true_lang-CIv0SXBi.js:12-127"
+      "origin": "unminified/MedicalAidsHospitalSelect.vue_vue_type_script_setup_true_lang.js:12-127"
     },
     {
-      "file": "re-upstream/restored/components/appointment/AppointmentPlannerSideDetail.vue.js",
+      "file": "restored/components/appointment/AppointmentPlannerSideDetail.vue.js",
       "lines": "210-262, 549-553",
-      "origin": "unminified/AppointmentPlannerView-DLL_lCp9.js:803-1326"
+      "origin": "unminified/AppointmentPlannerView.js:803-1326"
     }
   ],
   "inputSchema": {

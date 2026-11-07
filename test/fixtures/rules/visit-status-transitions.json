@@ -3,49 +3,49 @@
   "description": "Visit (접수) status transitions the client allows by drag-and-drop between the 대기/치료/수납/수납완료 columns and by card menus, with the request each one sends.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/waiting/WaitingColumn.vue.js",
+      "file": "restored/components/waiting/WaitingColumn.vue.js",
       "lines": "157-252, 293-316",
-      "origin": "unminified/DeskView-DTRddRTN.js:6935-7566"
+      "origin": "unminified/DeskView.js:6935-7566"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentColumn.vue.js",
+      "file": "restored/components/treatment/TreatmentColumn.vue.js",
       "lines": "152-203, 249-260",
-      "origin": "unminified/DeskView-DTRddRTN.js:6316-6872"
+      "origin": "unminified/DeskView.js:6316-6872"
     },
     {
-      "file": "re-upstream/restored/components/payment/PaymentColumn.vue.js",
+      "file": "restored/components/payment/PaymentColumn.vue.js",
       "lines": "80-158, 201-207",
-      "origin": "unminified/DeskView-DTRddRTN.js:5405-5804"
+      "origin": "unminified/DeskView.js:5405-5804"
     },
     {
-      "file": "re-upstream/restored/components/payment/PaymentCompleteColumn.vue.js",
+      "file": "restored/components/payment/PaymentCompleteColumn.vue.js",
       "lines": "89, 122-160",
-      "origin": "unminified/DeskView-DTRddRTN.js:5858-6258"
+      "origin": "unminified/DeskView.js:5858-6258"
     },
     {
-      "file": "re-upstream/restored/views/DeskVisitView.vue.js",
+      "file": "restored/views/DeskVisitView.vue.js",
       "lines": "112, 184-210",
-      "origin": "unminified/DeskView-DTRddRTN.js:7624-7931"
+      "origin": "unminified/DeskView.js:7624-7931"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentRoomBedAssignModal.vue.js",
+      "file": "restored/components/treatment/TreatmentRoomBedAssignModal.vue.js",
       "lines": "398-428",
-      "origin": "unminified/useExclusivePopover-BPTgAwCS.js:213-759"
+      "origin": "unminified/useExclusivePopover.js:213-759"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js",
+      "file": "restored/components/desk/DeskVisitPaymentCheckOut.vue.js",
       "lines": "528-539",
-      "origin": "unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang-Ci_y_crh.js:1617-2351"
+      "origin": "unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang.js:1617-2351"
     },
     {
-      "file": "re-upstream/restored/components/desk/DeskPatientAccept.vue.js",
+      "file": "restored/components/desk/DeskPatientAccept.vue.js",
       "lines": "505-506",
-      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:9306-10509"
+      "origin": "unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:9306-10509"
     },
     {
-      "file": "re-upstream/restored/modules/desk-patient/_hoisted_1.js",
+      "file": "restored/modules/desk-patient/_hoisted_1.js",
       "lines": "50-137",
-      "origin": "unminified/desk-patient-DPmTX7Cu.js:27-164"
+      "origin": "unminified/desk-patient.js:27-164"
     }
   ],
   "inputSchema": {

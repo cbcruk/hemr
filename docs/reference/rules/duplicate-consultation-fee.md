@@ -9,11 +9,11 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/ReservedProcedures/처방명.js` `Pu`(239), `Uh`(241-252), 문구 `Fh`(254-261).
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js:279-308` `validate동일일자진찰료중복`.
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-12.js:45-66` `savePatientRecord({ 진찰료중복안내 })`: 옵션이 참이고 검사가 거짓이면 `진찰료중복으로저장중단됨 = true`로 두고 저장하지 않습니다.
-- 호출: 진료 화면 저장 버튼(`TreatmentViewBoard.vue.js:889-891`), 완료 흐름(`TreatmentViewBoard.helpers-11.js:59-82`, 중단되면 `done`을 부르지 않음), 비대면 SOO 저장(같은 파일 94), 환자 전환 시 저장(`views/TreatmentView.vue:547-551`, 중단되면 이동 취소 658).
-- `re-upstream/restored/modules/index/part-221.js` `hee`(904), `ZBt`의 T0004(943-951). `local.js:518-533`이 `같은날대면진찰료있음`을 계산하고 `HFt`가 표시 코드 집합(771)으로 거릅니다.
+- `restored/modules/ReservedProcedures/처방명.js` `Pu`(239), `Uh`(241-252), 문구 `Fh`(254-261).
+- `restored/components/treatment/TreatmentViewBoard.helpers-10.js:279-308` `validate동일일자진찰료중복`.
+- `restored/components/treatment/TreatmentViewBoard.helpers-12.js:45-66` `savePatientRecord({ 진찰료중복안내 })`: 옵션이 참이고 검사가 거짓이면 `진찰료중복으로저장중단됨 = true`로 두고 저장하지 않습니다.
+- 호출: 진료 화면 저장 버튼(`TreatmentViewBoard.vue.js:889-891`), 완료 흐름(`TreatmentViewBoard.helpers-11.js:59-82`, 중단되면 `done`을 부르지 않음), 비대면 LITE 저장(같은 파일 94), 환자 전환 시 저장(`views/TreatmentView.vue:547-551`, 중단되면 이동 취소 658).
+- `restored/modules/index/part-221.js` `hee`(904), `ZBt`의 T0004(943-951). `local.js:518-533`이 `같은날대면진찰료있음`을 계산하고 `HFt`가 표시 코드 집합(771)으로 거릅니다.
 
 ## 로직
 
@@ -35,7 +35,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/ReservedProcedures/처방명.js:239-261` (`// Restored from unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang-BYE69qKn.js:5287-5519`, 해당 부분 5498-5518)
+`restored/modules/ReservedProcedures/처방명.js:239-261` (`// Restored from unminified/ReservedProcedures.vue_vue_type_script_setup_true_lang.js:5287-5519`, 해당 부분 5498-5518)
 
 ```js
 const Pu = t => Gt.진찰료임(t.수가코드 ?? "") && !ck(t.수가코드);   // 진찰료임: startsWith("10"), ck: 91001~91004
@@ -60,7 +60,7 @@ const Fh = {
 };
 ```
 
-`re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-10.js:279-308` (`// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:22369-22665`, 해당 부분 22626-22655)
+`restored/components/treatment/TreatmentViewBoard.helpers-10.js:279-308` (`// Restored from unminified/TreatmentViewBoard.js:22369-22665`, 해당 부분 22626-22655)
 
 ```js
 validate동일일자진찰료중복: async () => {

@@ -10,7 +10,7 @@
 |---|---|---|
 | `/ocs` (v1) | 원내 탕전 목록·상태 | 신형과 같은 개념을 이중 구현 |
 | `/tangjeon` (신형) | 원내 탕전 처방 | 어느 쪽을 쓸지 하드코딩된 요양기관기호 4곳(`epe()`)으로 가름 |
-| `/ocsv2` | **외부 원외탕전(메디원탕) 주문** | 이름과 달리 v1의 후속이 아님. 주문을 `draftId`로 식별해 주문 ID가 따로 없음 |
+| `/ocsv2` | **외부 원외탕전(외부원탕) 주문** | 이름과 달리 v1의 후속이 아님. 주문을 `draftId`로 식별해 주문 ID가 따로 없음 |
 
 그 밖에:
 
@@ -97,7 +97,7 @@ stateDiagram-v2
 | `조제전` | `READY` |
 | `조제중` | `COMPOUNDING` |
 | `조제완료` | `COMPOUNDED` |
-| `수정중` | 원외 주문의 `ExternalHerbalOrder.status = ON_HOLD` (메디원탕 주문 수정 중). 처방 쪽은 `COMPOUNDING` 이전 상태 유지 |
+| `수정중` | 원외 주문의 `ExternalHerbalOrder.status = ON_HOLD` (외부원탕 주문 수정 중). 처방 쪽은 `COMPOUNDING` 이전 상태 유지 |
 | `배송중` | `SHIPPED` |
 | `배송완료` | `DELIVERED` |
 | `취소` | `CANCELED` |

@@ -3,34 +3,34 @@
   "description": "Per-doctor pilot herbal (첩건) prescription counts above 8/day, 60/month or 600/year force 본인부담률구분코드 U and show a warning.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "677-681",
-      "origin": "unminified/index-CBEIvlV0.js:122310-122312"
+      "origin": "unminified/index.js:122310-122312"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "699-703",
-      "origin": "unminified/index-CBEIvlV0.js:122327-122331"
+      "origin": "unminified/index.js:122327-122331"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "745-763",
-      "origin": "unminified/index-CBEIvlV0.js:122371-122388"
+      "origin": "unminified/index.js:122371-122388"
     },
     {
-      "file": "re-upstream/restored/modules/index/첩건본인부담률구분코드.js",
+      "file": "restored/modules/index/첩건본인부담률구분코드.js",
       "lines": "765-818",
-      "origin": "unminified/index-CBEIvlV0.js:122389-122442"
+      "origin": "unminified/index.js:122389-122442"
     },
     {
-      "file": "re-upstream/restored/modules/DeskPatientRegister/part-4.js",
+      "file": "restored/modules/DeskPatientRegister/part-4.js",
       "lines": "13-153",
-      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang-HUV97zKZ.js:1439-1575"
+      "origin": "unminified/DeskPatientRegister.vue_vue_type_style_index_0_lang.js:1439-1575"
     },
     {
-      "file": "re-upstream/restored/api/record/records.js",
+      "file": "restored/api/record/records.js",
       "lines": "17",
-      "origin": "unminified/records-C315hb9A.js:21"
+      "origin": "unminified/records.js:21"
     }
   ],
   "inputSchema": {

@@ -37,11 +37,11 @@
 
 | 현행 | 이유 |
 |---|---|
-| BI·재무·포털·MEMBERS 원격 앱 (`biClient`, `portalClient`, `/settlement`, `/members/upstream/*`) | 원격 앱 코드가 번들에 없어 근거가 없음. 재무 권한 16개는 권한 모델에만 자리를 둠 |
+| BI·재무·포털·MEMBERS 원격 앱 (`biClient`, `portalClient`, `/settlement`, `/members/emr/*`) | 원격 앱 코드가 번들에 없어 근거가 없음. 재무 권한 16개는 권한 모델에만 자리를 둠 |
 | 챗봇·채널톡 베타 (`/api/bot-*`, `/api/channeltalk/*`) | 고객지원 기능 |
 | 챌린지 (`/api/surachal/*`) | 마케팅 기능 |
-| 닥톡·수(thesoo) 연동 (`/doctalk/*`, `thesooClient`) | 외부 예약·비대면 채널. `BookingRequest`·`Appointment.origin`, 비대면 내원(`channel: TELEMEDICINE`)으로 경계만 정의 |
-| 수 라이트 차트 (`/desk/nonbenefit-intake`) | SOO 단독 계정 전용 간이 접수·기록. 수 제품 범위. EMR 재설계에서는 `Visit` + `Encounter`로 대체 가능 여부만 검토 대상 |
+| 예약 중개 서비스·라이트 서비스 연동 (`/booking/*`, `liteClient`) | 외부 예약·비대면 채널. `BookingRequest`·`Appointment.origin`, 비대면 내원(`channel: TELEMEDICINE`)으로 경계만 정의 |
+| 라이트 차트 (`/desk/nonbenefit-intake`) | LITE 단독 계정 전용 간이 접수·기록. 라이트 제품 범위. EMR 재설계에서는 `Visit` + `Encounter`로 대체 가능 여부만 검토 대상 |
 | SaaS 구독·결제 (`/subscriptions`, `/plans`, `/billing/*`) | 제품 과금. 도메인과 무관 |
 | 원내 메신저 (Sync API) | 별도 제품 |
 | dev 전용 화면 (`/schedulers` 루틴) | prod 라우트에 없음 |
@@ -52,7 +52,7 @@ MCP 승인 대기 화면은 prod에서도 데모 계정에 열려 있습니다 (
 
 | 현행 코드 | 재설계 |
 |---|---|
-| `treatment_rooms`, `appointment_planner`, `ocs`, `medi_ocs`, `bi`, `treatment`, `patient_info` | 화면 코드 폐지. 각각 `procedure:read`, `appointment:read`, `herbal_prescription:read`, `external_herbal_order:read`, `report:read`, `encounter:read`, `patient:read` |
+| `treatment_rooms`, `appointment_planner`, `ocs`, `partner_ocs`, `bi`, `treatment`, `patient_info` | 화면 코드 폐지. 각각 `procedure:read`, `appointment:read`, `herbal_prescription:read`, `external_herbal_order:read`, `report:read`, `encounter:read`, `patient:read` |
 | `chart_create/update/delete` | `patient:create/update/delete` |
 | `appointment_create/update/delete` | `appointment:create/update/cancel` |
 | `waiting_create/update/delete` | `visit:check_in/update/cancel` |
@@ -75,7 +75,7 @@ MCP 승인 대기 화면은 prod에서도 데모 계정에 열려 있습니다 (
 | `medical_aid_approval` | `medical_aid:approve` |
 | `home_visit_status` | `encounter.home_visit_form:update` |
 | `billing`, `setting`, `normal_setting`, `info_setting`, `record_setting`, `prescription_setting`, `template_setting`, `appointment_setting`, `caller_number_setting`, `system_setting`, `schedule_setting`, `tablet_settings` | `setting.{area}:update` |
-| `remote_settlement` | 범위 밖 (비대면 정산은 thesoo 연동) |
+| `remote_settlement` | 범위 밖 (비대면 정산은 라이트 서비스 연동) |
 | `finance*` (16개) | `finance.{area}:{action}` 자리만 둠 |
 | `record_digital_signature`, `copayment_digital_signature`, `digital_signature` (enum 밖) | `signature:sign` (+kind) |
 

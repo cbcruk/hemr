@@ -9,11 +9,11 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/part-210.js` `tLt`: 한도 판정 composable. `Z7t = 20`(18), 저장본 매핑 `y`(87-121), 실시간/저장본 선택 `추나조회기록`(154-174), 건수·판정 computed(201-235).
-- `re-upstream/restored/modules/index/part-206.js`: 심평원 실시간 조회 `W7t`(122-247), 조회 기간 `Z8`(13-46), 목록 병합 `q7t`(106-113), 누적횟수 파싱 `z7t`(84-104), 누적횟수 조회 대상 `j7t = ["4","5"]`(82). 페이지 크기 `U7t = 300`, 최대 페이지 `V7t = 10`(`lib/index/part-205.js`).
-- `re-upstream/restored/modules/index/part-223.js` `SFt`(597-612, 건보·급여 I0009), `BFt`(708, 911-931, 산재 I0009).
-- `re-upstream/restored/modules/index/local.js:432-437, 533` `qFt`: `실시간조회여부 === true`일 때만 `추나누적횟수`를 `HFt`에 넘깁니다.
-- `re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-9.js:63-92` 처방 추가 가드 `v`, `re-upstream/restored/modules/TreatmentViewBoard/part-32.js:47-63` `n6`(새로 추가된 추나 라인 분리).
+- `restored/modules/index/part-210.js` `tLt`: 한도 판정 composable. `Z7t = 20`(18), 저장본 매핑 `y`(87-121), 실시간/저장본 선택 `추나조회기록`(154-174), 건수·판정 computed(201-235).
+- `restored/modules/index/part-206.js`: 심평원 실시간 조회 `W7t`(122-247), 조회 기간 `Z8`(13-46), 목록 병합 `q7t`(106-113), 누적횟수 파싱 `z7t`(84-104), 누적횟수 조회 대상 `j7t = ["4","5"]`(82). 페이지 크기 `U7t = 300`, 최대 페이지 `V7t = 10`(`lib/index/part-205.js`).
+- `restored/modules/index/part-223.js` `SFt`(597-612, 건보·급여 I0009), `BFt`(708, 911-931, 산재 I0009).
+- `restored/modules/index/local.js:432-437, 533` `qFt`: `실시간조회여부 === true`일 때만 `추나누적횟수`를 `HFt`에 넘깁니다.
+- `restored/components/treatment/TreatmentViewBoard.helpers-9.js:63-92` 처방 추가 가드 `v`, `restored/modules/TreatmentViewBoard/part-32.js:47-63` `n6`(새로 추가된 추나 라인 분리).
 - UI: 접수 화면 `DeskPatientAcceptNhicChunaSummary`, 진료 화면 `TreatmentViewBoardPrescriptionNhicInsuranceStatus`, `TreatmentViewBoardAsideChunaHistory`, `ChunaTodayAvailability`가 `n/20회`와 소진·당일 여부를 표시합니다. 자동 승인은 [chuna-auto-approval.md](chuna-auto-approval.md).
 
 ## 로직
@@ -51,7 +51,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/part-210.js:201-235` (`// Restored from unminified/index-CBEIvlV0.js:118687-118945`, 해당 부분 118869-118903)
+`restored/modules/index/part-210.js:201-235` (`// Restored from unminified/index.js:118687-118945`, 해당 부분 118869-118903)
 
 ```js
 const 본원추나시행건수 = computed(() => {
@@ -92,7 +92,7 @@ const 오늘추나시술가능 = computed(() => {
 
 `gle`는 date-fns `isSameDay`입니다. 실시간 목록 매핑(같은 파일 154-174)은 `삭제여부: 목록항목$.삭제여부 === "Y"`, `본원: 목록항목$.해당요양기관등록여부 === "Y"`, `시술일: parse(진료일자, "yyyyMMdd")`입니다.
 
-`re-upstream/restored/modules/index/part-206.js:84-113` (`// Restored from unminified/index-CBEIvlV0.js:118184-118390`, 해당 부분 118251-118279)
+`restored/modules/index/part-206.js:84-113` (`// Restored from unminified/index.js:118184-118390`, 해당 부분 118251-118279)
 
 ```js
 const z7t = async (e, t) => {
@@ -127,7 +127,7 @@ const q7t = (e, t) => {
 };
 ```
 
-`re-upstream/restored/modules/index/part-223.js:597-612, 708, 911-931` (`// Restored from unminified/index-CBEIvlV0.js:124928-125807`, 해당 부분 125492-125508, 125593, 125787-125807)
+`restored/modules/index/part-223.js:597-612, 708, 911-931` (`// Restored from unminified/index.js:124928-125807`, 해당 부분 125492-125508, 125593, 125787-125807)
 
 ```js
 const _Ft = 20;
@@ -162,7 +162,7 @@ function BFt(e) {
 }
 ```
 
-`re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-9.js:63-92` (`// Restored from unminified/TreatmentViewBoard-B3k9L_c2.js:21547-21722`, 해당 부분 21591-21620)
+`restored/components/treatment/TreatmentViewBoard.helpers-9.js:63-92` (`// Restored from unminified/TreatmentViewBoard.js:21547-21722`, 해당 부분 21591-21620)
 
 ```js
 const v = async (x, y) => {

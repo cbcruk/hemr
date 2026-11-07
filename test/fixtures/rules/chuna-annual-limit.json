@@ -3,34 +3,34 @@
   "description": "Counts a patient's chuna sessions for the year (or accident) and flags when the 20-session annual limit is reached for HIRA-covered encounters.",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/part-210.js",
+      "file": "restored/modules/index/part-210.js",
       "lines": "18-18, 87-121, 154-235",
-      "origin": "unminified/index-CBEIvlV0.js:118688-118903"
+      "origin": "unminified/index.js:118688-118903"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-206.js",
+      "file": "restored/modules/index/part-206.js",
       "lines": "13-117, 122-247",
-      "origin": "unminified/index-CBEIvlV0.js:118184-118390"
+      "origin": "unminified/index.js:118184-118390"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-223.js",
+      "file": "restored/modules/index/part-223.js",
       "lines": "597-612",
-      "origin": "unminified/index-CBEIvlV0.js:125492-125508"
+      "origin": "unminified/index.js:125492-125508"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-223.js",
+      "file": "restored/modules/index/part-223.js",
       "lines": "708-708, 911-931",
-      "origin": "unminified/index-CBEIvlV0.js:125593-125593, 125787-125807"
+      "origin": "unminified/index.js:125593-125593, 125787-125807"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoard.helpers-9.js",
+      "file": "restored/components/treatment/TreatmentViewBoard.helpers-9.js",
       "lines": "63-92",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:21591-21620"
+      "origin": "unminified/TreatmentViewBoard.js:21591-21620"
     },
     {
-      "file": "re-upstream/restored/modules/TreatmentViewBoard/part-32.js",
+      "file": "restored/modules/TreatmentViewBoard/part-32.js",
       "lines": "47-63",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:21530-21546"
+      "origin": "unminified/TreatmentViewBoard.js:21530-21546"
     }
   ],
   "inputSchema": {

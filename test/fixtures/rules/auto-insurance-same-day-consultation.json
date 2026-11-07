@@ -3,34 +3,34 @@
   "description": "When a patient has 자보 encounters for two or more different accident numbers on the same day, the later encounter is designated '1일 2차' and must not carry a consultation fee (codes 10100*/10200*).",
   "sources": [
     {
-      "file": "re-upstream/restored/modules/index/local.js",
+      "file": "restored/modules/index/local.js",
       "lines": "174-202",
-      "origin": "unminified/index-CBEIvlV0.js:125957-125985"
+      "origin": "unminified/index.js:125957-125985"
     },
     {
-      "file": "re-upstream/restored/modules/index/local.js",
+      "file": "restored/modules/index/local.js",
       "lines": "699-774",
-      "origin": "unminified/index-CBEIvlV0.js:126476-126550"
+      "origin": "unminified/index.js:126476-126550"
     },
     {
-      "file": "re-upstream/restored/modules/index/part-221.js",
+      "file": "restored/modules/index/part-221.js",
       "lines": "423-434",
-      "origin": "unminified/index-CBEIvlV0.js:124401-124412"
+      "origin": "unminified/index.js:124401-124412"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js",
+      "file": "restored/components/treatment/TreatmentViewBoardEditHeaderJabo2ndVisitBanner.vue.js",
       "lines": "68-157",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:27893-27982"
+      "origin": "unminified/TreatmentViewBoard.js:27893-27982"
     },
     {
-      "file": "re-upstream/restored/modules/ClaimHiraView/codes.js",
+      "file": "restored/modules/ClaimHiraView/codes.js",
       "lines": "3547-3572",
-      "origin": "unminified/ClaimHiraView-hepxiFdR.js:6651-6676"
+      "origin": "unminified/ClaimHiraView.js:6651-6676"
     },
     {
-      "file": "re-upstream/restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
+      "file": "restored/components/treatment/TreatmentViewBoardPrescriptionV2.helpers.js",
       "lines": "84-87",
-      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang-DJbyuBXA.js:3823-3826"
+      "origin": "unminified/TreatmentViewBoardPrescriptionV2.vue_vue_type_script_setup_true_lang.js:3823-3826"
     }
   ],
   "inputSchema": {

@@ -226,13 +226,13 @@ export function nonbenefitPrice(
 export const nonbenefitCode = (code: string) => `비${code.trim()}`
 
 /**
- * 수 서비스 전용 처방 이름 중 문서에 남은 것입니다. 현행 클라이언트 상수는 27개이고, 전체 목록은 카탈로그
+ * 라이트 서비스 전용 처방 이름 중 문서에 남은 것입니다. 현행 클라이언트 상수는 27개이고, 전체 목록은 카탈로그
  * 참조데이터로 옮깁니다. 검증 함수는 목록을 반드시 인자로 받습니다.
  */
-export const KNOWN_SOO_RESERVED_NAMES: ReadonlySet<string> = new Set(['경옥고', '수이벤트:경옥고'])
+export const KNOWN_LITE_RESERVED_NAMES: ReadonlySet<string> = new Set(['경옥고', '라이트이벤트:경옥고'])
 
 /**
- * 비급여 항목 저장 검증입니다 (결정 4). 이름·코드가 비었으면 필수 위반, 수 서비스 전용 이름이면 422
+ * 비급여 항목 저장 검증입니다 (결정 4). 이름·코드가 비었으면 필수 위반, 라이트 서비스 전용 이름이면 422
  * `NONBENEFIT_NAME_RESERVED`, 이름이나 코드가 다른 항목과 겹치면 `SETTING_NAME_DUPLICATE`입니다. 기존 코드는
  * `비`가 붙은 저장 값입니다. 수정할 때는 `selfId`로 자기 자신을 뺍니다. 위반을 모두 모읍니다.
  */

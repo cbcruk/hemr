@@ -14,12 +14,12 @@
 
 ## 현행 위치
 
-- 임의처방: `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js` (`yN`), 같은 이름의 `.vue.js` (`disabled`, 경고 문구)
-- 패키지 과세 혼합: `re-upstream/restored/modules/PrescriptionInputSearchTreatment/part-3.js` (`Zl`), `components/setting/SettingPrescriptionViewPackagePrescriptionSidePanel.vue.js`, `SettingPrescriptionViewPackageEditPanel.vue`
-- 패키지 항목 금액: `re-upstream/restored/modules/index/part-105.js` (`Omt`, 세율 `uD = 0.1`)
-- 비급여 등록: `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js`, VAT 계산 `modules/SettingPrescriptionView/part-7.js` (`xy`), 숫자 입력 `lib/SettingPrescriptionView/part-6.js` (`gy`)
-- 치료실: `re-upstream/restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js`, `components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js`
-- 약속처방 이름: `re-upstream/restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue.js`
+- 임의처방: `restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js` (`yN`), 같은 이름의 `.vue.js` (`disabled`, 경고 문구)
+- 패키지 과세 혼합: `restored/modules/PrescriptionInputSearchTreatment/part-3.js` (`Zl`), `components/setting/SettingPrescriptionViewPackagePrescriptionSidePanel.vue.js`, `SettingPrescriptionViewPackageEditPanel.vue`
+- 패키지 항목 금액: `restored/modules/index/part-105.js` (`Omt`, 세율 `uD = 0.1`)
+- 비급여 등록: `restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js`, VAT 계산 `modules/SettingPrescriptionView/part-7.js` (`xy`), 숫자 입력 `lib/SettingPrescriptionView/part-6.js` (`gy`)
+- 치료실: `restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js`, `components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js`
+- 약속처방 이름: `restored/components/setting/SettingPrescriptionViewPersonalFormulaCreateSidePanel.vue.js`
 
 ## 로직
 
@@ -49,7 +49,7 @@
 - VAT 표시: `별도` → `round(금액 × 0.1)`, `포함` → `금액 − round(금액 ÷ 1.1)`(공급가는 `round(금액 ÷ 1.1)`), `면세` → 0.
 - 등록 요청에는 입력값 그대로 `단가`를 문자열로 보내고, 코드는 앞에 "비"를 붙입니다.
 - 이름·코드 중복: 화면에 로드된 목록에서 먼저 비교하고(`처방명`은 trim 후 일치, 코드는 "비"+코드), 없으면 `POST /settings/nonbenefits/validate`(`field`, `value`)를 호출합니다. 호출이 실패하면 오류를 지웁니다(통과).
-- 수 서비스 전용 이름 27개(예: "경옥고", "수이벤트:경옥고")는 "수 서비스 전용 처방으로 설정에서 추가할 수 없습니다."로 막습니다.
+- 라이트 서비스 전용 이름 27개(예: "경옥고", "라이트이벤트:경옥고")는 "라이트 서비스 전용 처방으로 설정에서 추가할 수 없습니다."로 막습니다.
 
 ### 치료실
 
@@ -64,10 +64,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js:1-36`
+`restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.helpers.js:1-36`
 
 ```js
-// Restored from unminified/SettingPrescriptionView-BIi4IB2Q.js:7448-7481
+// Restored from unminified/SettingPrescriptionView.js:7448-7481
 const yN = d => {
   const s = { 최대금액: 3000, 최대사용량: 50, 최대약재수: 15 };
   const { 총사용량, 총금액, 가공된약재목록: 약재목록 } = d.reduce((c, u) => {
@@ -87,10 +87,10 @@ const yN = d => {
 };
 ```
 
-`re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue.js:188-202` (호출 측에서 `단가: +상한금액, 사용량: +사용량, 기준용량: +규격`으로 변환)
+`restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue.js:188-202` (호출 측에서 `단가: +상한금액, 사용량: +사용량, 기준용량: +규격`으로 변환)
 
 ```js
-// Restored from unminified/SettingPrescriptionView-BIi4IB2Q.js:7482-8008
+// Restored from unminified/SettingPrescriptionView.js:7482-8008
 const disabled = computed(() => {
   const { 사용량초과, 금액초과, 총약재초과, 총금액, 약재목록 } = v.value;
   if (!총금액 || !약재목록.length) {
@@ -102,10 +102,10 @@ const disabled = computed(() => {
 });
 ```
 
-`re-upstream/restored/modules/PrescriptionInputSearchTreatment/part-3.js:5-43`
+`restored/modules/PrescriptionInputSearchTreatment/part-3.js:5-43`
 
 ```js
-// Restored from unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:452-492
+// Restored from unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang.js:452-492
 function Ut(t) {
   return t === "별도" || t === "포함";
 }
@@ -135,17 +135,17 @@ function Zl(t) {
 }
 ```
 
-`re-upstream/restored/modules/index/part-105.js:8` (`uD`는 `lib/index/part-104.js:5`의 `0.1`)
+`restored/modules/index/part-105.js:8` (`uD`는 `lib/index/part-104.js:5`의 `0.1`)
 
 ```js
-// Restored from unminified/index-CBEIvlV0.js:80244-80371
+// Restored from unminified/index.js:80244-80371
 const Omt = (e, t) => t === "포함" || t === "별도" ? Math.round(e * uD) : 0;
 ```
 
-`re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js:502-532` (`be`는 `포함`이면 "진료비", 아니면 "단가")
+`restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue.js:502-532` (`be`는 `포함`이면 "진료비", 아니면 "단가")
 
 ```js
-// Restored from unminified/SettingPrescriptionView-BIi4IB2Q.js:12700-13532
+// Restored from unminified/SettingPrescriptionView.js:12700-13532
 const Pe = () => {
   const oe = rawValue.value;
   const R = Number(oe);
@@ -170,10 +170,10 @@ const Bn = () => {
 };
 ```
 
-`re-upstream/restored/modules/SettingPrescriptionView/part-7.js:5-19`
+`restored/modules/SettingPrescriptionView/part-7.js:5-19`
 
 ```js
-// Restored from unminified/SettingPrescriptionView-BIi4IB2Q.js:11249-11271
+// Restored from unminified/SettingPrescriptionView.js:11249-11271
 function xy(d, s) {
   return {
     VAT금액: computed(() => {
@@ -191,7 +191,7 @@ function xy(d, s) {
 }
 ```
 
-`re-upstream/restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js:72-105, 212`
+`restored/components/treatment/TreatmentRoomRegisterOrModifyModal.vue.js:72-105, 212`
 
 ```js
 // Restored from unminified/TreatmentRoomRegisterOrModifyModal.vue_vue_type_script_setup_true_lang-Bip_ua-d.js:12-240
@@ -217,10 +217,10 @@ const x = s => {
 disabled: !!u.value || !modalValues.value.치료실명 || modalValues.value.치료실명.length > 20 || !Number(modalValues.value.베드수) || Number(modalValues.value.베드수) < 0 || Number(modalValues.value.베드수) > 20 || unref(isLoading_2),
 ```
 
-`re-upstream/restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js:131-134`
+`restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue.js:131-134`
 
 ```js
-// Restored from unminified/SettingTreatmentView-BE_swnEi.js:1700-1921
+// Restored from unminified/SettingTreatmentView.js:1700-1921
 if ((data.value || []).length >= 10) {
   C.value = true; // "치료실은 최대 10개까지 추가할 수 있습니다."
   return;
@@ -244,4 +244,4 @@ if ((data.value || []).length >= 10) {
 - 과세 판정은 `별도`/`포함`만 과세입니다. `null`·알 수 없는 값은 면세로 취급되므로 서버는 enum을 강제해야 합니다.
 - 패키지 항목 금액에서 `포함`에도 10%를 더하는 동작이 의도인지 확인해야 합니다(비급여 등록에서는 `포함` 금액을 VAT 포함 진료비로 받습니다).
 - 이름 중복 검사는 현행처럼 실패 시 통과(fail-open)하면 안 됩니다. 서버가 저장 시 유니크 제약으로 409를 돌려주게 하고, 약속처방처럼 100건만 보는 클라이언트 비교에 의존하지 않습니다.
-- 수 서비스 전용 처방 이름 목록은 클라이언트 상수입니다. 서버 카탈로그 정책으로 옮겨야 합니다.
+- 라이트 서비스 전용 처방 이름 목록은 클라이언트 상수입니다. 서버 카탈로그 정책으로 옮겨야 합니다.

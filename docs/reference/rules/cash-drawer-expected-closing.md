@@ -8,9 +8,9 @@
 
 ## 현행 위치
 
-- 계산: `re-upstream/restored/modules/DeskView/part-2.js` (`gr`, `yr`)
-- 수납 집계: `re-upstream/restored/modules/DeskView/part-1.js` (`vo`)
-- 지출 합: `re-upstream/restored/views/DeskPaymentsView.vue.js`
+- 계산: `restored/modules/DeskView/part-2.js` (`gr`, `yr`)
+- 수납 집계: `restored/modules/DeskView/part-1.js` (`vo`)
+- 지출 합: `restored/views/DeskPaymentsView.vue.js`
 
 ## 로직
 
@@ -33,10 +33,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/DeskView/part-2.js:7-86`
+`restored/modules/DeskView/part-2.js:7-86`
 
 ```js
-// Restored from unminified/DeskView-DTRddRTN.js:234-314
+// Restored from unminified/DeskView.js:234-314
 const gr = (u, t, n) => {
   const { 결제수단별합계, 현금환불금액합계 } = vo(() => toValue(t));
   const 현금흐름$ = computed(() => toValue(u)?.현금흐름);
@@ -67,10 +67,10 @@ const yr = ({ 시작금액, 현금정산일시, 마감후수정여부 }) => {
 };
 ```
 
-`re-upstream/restored/modules/DeskView/part-1.js:15, 60-77, 92-95`
+`restored/modules/DeskView/part-1.js:15, 60-77, 92-95`
 
 ```js
-// Restored from unminified/DeskView-DTRddRTN.js:48-153
+// Restored from unminified/DeskView.js:48-153
 const i = computed(() => (data.value ?? []).filter(N => N.행유형 === "수납"));
 const 결제수단별합계 = computed(() => i.value.reduce((N, z) => {
   const { 결제정보 = {} } = z;

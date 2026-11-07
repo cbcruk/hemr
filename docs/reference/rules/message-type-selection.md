@@ -14,9 +14,9 @@
 
 ## 현행 위치
 
-- 바이트 계산 `a`: `re-upstream/restored/modules/byteString.js`
-- 유형 판정 `ht`, 최대 바이트 `bt`, 광고 머리말·꼬리말 `yt`/`F`, 유형 정규화 `ie`/`gt`, 라벨 `S`: `re-upstream/restored/modules/CrmMessagePreview/part-1.js`
-- 본문 갱신 시 `yt` 적용: `re-upstream/restored/components/crm/CrmCommonMessageForm.helpers.js` (`hs`)
+- 바이트 계산 `a`: `restored/modules/byteString.js`
+- 유형 판정 `ht`, 최대 바이트 `bt`, 광고 머리말·꼬리말 `yt`/`F`, 유형 정규화 `ie`/`gt`, 라벨 `S`: `restored/modules/CrmMessagePreview/part-1.js`
+- 본문 갱신 시 `yt` 적용: `restored/components/crm/CrmCommonMessageForm.helpers.js` (`hs`)
 - 사용처: `components/message/MessageViewSend.vue`(유형 배지·예상 비용), `components/crm/CrmCommonMessageForm.vue`(바이트 한도)
 - 발송 시 변수 치환 후 90byte 초과 수신자 처리(`smsOverflowPolicy`: 기본 `upgrade_lms`, 끄면 `exclude`)는 서버 estimate가 합니다.
 
@@ -47,10 +47,10 @@ UTF-16 코드 단위를 앞에서부터 읽습니다.
 
 ## 원본 코드
 
-`re-upstream/restored/modules/byteString.js:3-17`
+`restored/modules/byteString.js:3-17`
 
 ```js
-// Restored from unminified/byteString-W_gkmtJP.js:11-57
+// Restored from unminified/byteString.js:11-57
 const a = e => {
   let t = 0;
   for (let n = 0; n < e.length; n++) {
@@ -68,10 +68,10 @@ const a = e => {
 };
 ```
 
-`re-upstream/restored/modules/CrmMessagePreview/part-1.js:8-56, 71-93`
+`restored/modules/CrmMessagePreview/part-1.js:8-56, 71-93`
 
 ```js
-// Restored from unminified/CrmMessagePreview.vue_vue_type_script_setup_true_lang-Mahdgzip.js:19-450
+// Restored from unminified/CrmMessagePreview.vue_vue_type_script_setup_true_lang.js:19-450
 function Me(e) {
   return ["광고", "알림"].includes(e || "");
 }
@@ -132,10 +132,10 @@ function bt(e) {
 }
 ```
 
-`re-upstream/restored/components/crm/CrmCommonMessageForm.helpers.js:39-61`
+`restored/components/crm/CrmCommonMessageForm.helpers.js:39-61`
 
 ```js
-// Restored from unminified/templatePermission-BWKgEo8f.js:76-141
+// Restored from unminified/templatePermission.js:76-141
 updateMessageType: g => {
   const messageType$ = ie(String(g), { defaultMessageType: toValue(defaultMessageType) });
   const messageText$ = messageData.value?.messageType === "광고" && messageType$ !== "광고" ? F("광고", messageData.value?.messageText) : yt({

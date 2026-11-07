@@ -5,8 +5,8 @@
 | Method | URL | Notes |
 |---|---|---|
 | `POST` | `{bot stream url}` | URL comes from `GET /api/bot-stream-url` (same origin) → `{ url, enabled }`. Sends `Authorization: Bearer`, body `{ product, ... }`. Streaming chatbot answer. |
-| `PUT` | `{signed url}` | Direct-to-storage upload with explicit `Content-Type`. The API first returns `signedUrl` / `originSignedUrl` / `thumbnailSignedUrl` (e.g. `POST /tablet/consent-documents/upload`, `POST /tablet/questionnaire-templates/upload-images`, canvas and onboarding uploads). Sites: `index-CBEIvlV0.js`, `attachments-CRa-dBXP.js:58`, `CanvasView-BGdo1pKi.js:320`, `OnboardingView-m88425Qg.js:868`. |
-| `GET` | `{signed url}` | Downloads of stored images / files from signed URLs (`CanvasView-BGdo1pKi.js:284`, `image-DxUl8TV2.js:12`, `ClaimHiraView-hepxiFdR.js:2889`, `TreatmentViewBoardRecordsList…-BhuZ6DBm.js:545`). |
+| `PUT` | `{signed url}` | Direct-to-storage upload with explicit `Content-Type`. The API first returns `signedUrl` / `originSignedUrl` / `thumbnailSignedUrl` (e.g. `POST /tablet/consent-documents/upload`, `POST /tablet/questionnaire-templates/upload-images`, canvas and onboarding uploads). Sites: `index.js`, `attachments-CRa-dBXP.js:58`, `CanvasView.js:320`, `OnboardingView.js:868`. |
+| `GET` | `{signed url}` | Downloads of stored images / files from signed URLs (`CanvasView.js:284`, `image.js:12`, `ClaimHiraView.js:2889`, `TreatmentViewBoardRecordsList…-BhuZ6DBm.js:545`). |
 
 ### Local notification arbiter (`http://127.0.0.1:{47821|47822|47823}`)
 
@@ -25,7 +25,7 @@ Coordinates alert ringing across multiple open EMR tabs/apps on the same machine
 | `http://localhost:65001` | axios instance created but never assigned or called — dead code in this build; purpose not determinable statically. |
 | `http://localhost:4747` | Passed as the `endpoint` prop to a conditionally rendered component in the app shell. |
 
-### WebSocket — Socket.IO `https://socket.upstream.co.kr`
+### WebSocket — Socket.IO `https://socket.example.com`
 
 Auth token via `getAuthToken` (same access token). All traffic uses the single Socket.IO `message` event with a `{ type, payload }` envelope; the client store dispatches it to `subscribe(type, handler)` listeners.
 
@@ -39,4 +39,4 @@ Auth token via `getAuthToken` (same access token). All traffic uses the single S
 | `ACTION_RECORD` | Refresh records for `환자Id` + `진료Id` / `진료Ids`, invalidate record queries |
 | `ACTION_MEMO` | Invalidate patient memos, refresh for `payload.date` |
 | `ACTION_PATIENT_PHOTO` | Invalidate patient photo / info queries for `환자Id` |
-| `SOO_MIGRATION_COMPLETE` | TheSoo → Upstream migration finished (`payload.payload.payload.success`); invalidates all queries |
+| `LITE_MIGRATION_COMPLETE` | Lite → 현행 EMR migration finished (`payload.payload.payload.success`); invalidates all queries |

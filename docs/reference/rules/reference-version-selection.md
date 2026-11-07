@@ -9,12 +9,12 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/useKcd20260101JsonQuery.js`
+- `restored/modules/index/useKcd20260101JsonQuery.js`
   - `O0`(10-23): 정적 JSON 버전 결정
   - `useKcd20260101JsonQuery`, `useKoicd20260101JsonQuery`, `useJaboReimbursement20260101JsonQuery`(25-64)
   - 같은 이름의 색인 버전: `modules/index/useJaboReimbursement20260101JsonQuery.js`. 자보 수가를 `byCode`로 색인하고 `prefetch…`로 미리 받습니다
-- `re-upstream/restored/api/settings/requests-7.js:6-10`: 버전 문자열이 `"20260101"`이면 새 파일, 아니면 구파일을 `staticClient`로 받습니다. 경로 상수는 `modules/index/KOICD_20240829_JSON_PATH.js`에 있습니다.
-- `re-upstream/restored/modules/index/part-169.js`
+- `restored/api/settings/requests-7.js:6-10`: 버전 문자열이 `"20260101"`이면 새 파일, 아니면 구파일을 `staticClient`로 받습니다. 경로 상수는 `modules/index/KOICD_20240829_JSON_PATH.js`에 있습니다.
+- `restored/modules/index/part-169.js`
   - `jQ`(42-57): 문자열에서 숫자만 남겨 앞 8자리를 숫자로 바꿉니다
   - `qF`(73-100): 적용일자 선택
   - `sge`(146-176): 컴포넌트용 훅. `reimbursementQueryDate = qF(기준일시, 적용일자목록)`로 `useSettingsReferencesReimbursementCodesQuery({적용일자})`를 부릅니다
@@ -45,7 +45,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/useKcd20260101JsonQuery.js:10-23` (`// Restored from unminified/index-CBEIvlV0.js:101227-101282`, 함수는 `unminified/index-CBEIvlV0.js:101231-101244`). `Ts`는 date-fns `startOfDay`, `$f`는 `isBefore`입니다.
+`restored/modules/index/useKcd20260101JsonQuery.js:10-23` (`// Restored from unminified/index.js:101227-101282`, 함수는 `unminified/index.js:101231-101244`). `Ts`는 date-fns `startOfDay`, `$f`는 `isBefore`입니다.
 
 ```js
 function O0(e) {
@@ -65,7 +65,7 @@ function O0(e) {
 }
 ```
 
-`re-upstream/restored/api/settings/requests-7.js:6-10` (`// Restored from unminified/index-CBEIvlV0.js:101005-101026`)
+`restored/api/settings/requests-7.js:6-10` (`// Restored from unminified/index.js:101005-101026`)
 
 ```js
 const getKoicd20260101Json = async input => input && input === "20260101" ? (await staticClient.get(KOICD_20260101_JSON_PATH)).data || [] : (await staticClient.get(KOICD_20240829_JSON_PATH)).data || [];
@@ -73,7 +73,7 @@ const getKcd20260101Json = async input => input && input === "20260101" ? (await
 const getJaboReimbursement20260101Json = async input => input && input === "20260101" ? (await staticClient.get(JABO_REIMBURSEMENT_20260101_JSON_PATH)).data || [] : (await staticClient.get(JABO_REIMBURSEMENT_20250108_JSON_PATH)).data || [];
 ```
 
-`re-upstream/restored/modules/index/part-169.js:42-100` (`// Restored from unminified/index-CBEIvlV0.js:101055-101215`, 함수는 `unminified/index-CBEIvlV0.js:101085-101144`)
+`restored/modules/index/part-169.js:42-100` (`// Restored from unminified/index.js:101055-101215`, 함수는 `unminified/index.js:101085-101144`)
 
 ```js
 const jQ = e => {

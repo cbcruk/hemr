@@ -9,11 +9,11 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/첩건본인부담률구분코드.js`
+- `restored/modules/index/첩건본인부담률구분코드.js`
   - `tBt` 묶음 (1953-1993), 개별 검사 `nBt`…`pBt` (1995-2258), 질환표 `M0e`·`wU` (57-132)
-- `re-upstream/restored/modules/index/local.js:699-772` `HFt`: 진료 내용이 바뀔 때(300ms 디바운스, `삭감검사여부` 설정 시) 호출. `보험구분`이 `건보`/`급여`이고 `현재진료.한방첩약시범사업`이 있으면 `tBt({ 현재진료, 최근진료기록, 환자정보 })`를 부르고, 마지막에 허용 집합 `N0003, N0006, N0029, N0023, N0024, C0001, C0003, S0001-S0008, J0002, J0011, J0013-J0016, I0001, I0003, I0005-I0009`로 거릅니다. 결과는 `claimWarningStore.setTreatmentWarnings`.
-- 문구 정의: `re-upstream/restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js:456-553`
-- 자동 수정: `re-upstream/restored/modules/TreatmentViewBoardPrescriptionV2/part-5.js:11-65` (C0001·C0003·C0004·C0011)
+- `restored/modules/index/local.js:699-772` `HFt`: 진료 내용이 바뀔 때(300ms 디바운스, `삭감검사여부` 설정 시) 호출. `보험구분`이 `건보`/`급여`이고 `현재진료.한방첩약시범사업`이 있으면 `tBt({ 현재진료, 최근진료기록, 환자정보 })`를 부르고, 마지막에 허용 집합 `N0003, N0006, N0029, N0023, N0024, C0001, C0003, S0001-S0008, J0002, J0011, J0013-J0016, I0001, I0003, I0005-I0009`로 거릅니다. 결과는 `claimWarningStore.setTreatmentWarnings`.
+- 문구 정의: `restored/modules/TreatmentViewBoardPrescriptionV2/_hoisted_1.js:456-553`
+- 자동 수정: `restored/modules/TreatmentViewBoardPrescriptionV2/part-5.js:11-65` (C0001·C0003·C0004·C0011)
 
 ## 로직
 
@@ -42,7 +42,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:1953-1993` (`// Restored from unminified/index-CBEIvlV0.js:121672-123969`, 해당 부분 123542-123582)
+`restored/modules/index/첩건본인부담률구분코드.js:1953-1993` (`// Restored from unminified/index.js:121672-123969`, 해당 부분 123542-123582)
 
 ```js
 function tBt(e) {

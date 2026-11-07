@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `/setting` | 설정 (컨테이너) | `설정`(`setting`) + `permissionRequired` | `requiresAuth`, `usesGlobalLayout` |
 | `/setting/common` | 기본 설정 | `기본설정`(`normal_setting`) | |
-| `/setting/telemedicine` | 비대면 진료 설정 | `기본설정` | `soo` 연동 + localStorage `비대면진료등록여부` |
+| `/setting/telemedicine` | 비대면 진료 설정 | `기본설정` | `lite` 연동 + localStorage `비대면진료등록여부` |
 | `/setting/service-integration` | 서비스 연동 | `기본설정` | |
 | `/setting/hospital` | 병원 정보 설정 | `병원정보설정`(`info_setting`) | |
 | `/setting/treatment` | 진료 설정 | `진료설정`(`record_setting`) | 사이드바는 풀 차트일 때만 |
@@ -20,7 +20,7 @@
 | `/setting/mcp-tokens` | MCP 연동 | 역할 `01` | dev/stg 빌드만 등록, prd는 데모 계정만 |
 | `/setting/mcp-pending-contacts` | MCP 승인 대기 | 역할 `01` | 위와 같음 |
 | `/setting/expense-collection` | 지출내역 수집 | `finance_expense_collect` write | 재무 원격 앱 |
-| `/remote-settlement` | 비대면 진료 정산 | 역할 `01` | `soo` + 비대면진료 등록 |
+| `/remote-settlement` | 비대면 진료 정산 | 역할 `01` | `lite` + 비대면진료 등록 |
 | `/setting/appointment` | 예약 설정 | `예약설정` | → [appointment.md](appointment.md) |
 | `/setting/schedule` | 진료 스케줄 설정 | `진료스케줄설정` | → [appointment.md](appointment.md) |
 | `/setting/caller-numbers` | 발신번호 및 채널 설정 | `발신번호설정` | → [crm.md](crm.md) |
@@ -43,7 +43,7 @@
   - 부모 `setting` 권한이 없으면 하위 메뉴 전체를 숨깁니다
   - 하위 항목에는 `R6`(서비스 조건), `requiredRoleType`, `requiresDemoAccountInPrd`, `requiredPermission`만 적용합니다. 태블릿·문서 관리에는 `Sct`도 적용합니다. 하위 항목의 `permissionCode`는 걸러내는 데 쓰지 않습니다
   - 하위 항목이 1개만 남으면 부모 메뉴가 그 경로로 바로 연결됩니다
-- **근거:** `re-upstream/restored/views/SettingView.vue.js`, `re-upstream/restored/router/routes.js:422`, `re-upstream/restored/modules/index/Group.js:323`, `re-upstream/restored/modules/index/part-74.js:76`, part-63.js (`Sct`) (`re-upstream/restored/lib/index/part-63.js`), `re-upstream/restored/lib/index/enabled.js`, part-60.js (`nc`) (`re-upstream/restored/modules/index/part-60.js`)
+- **근거:** `restored/views/SettingView.vue.js`, `restored/router/routes.js:422`, `restored/modules/index/Group.js:323`, `restored/modules/index/part-74.js:76`, part-63.js (`Sct`) (`restored/lib/index/part-63.js`), `restored/lib/index/enabled.js`, part-60.js (`nc`) (`restored/modules/index/part-60.js`)
 
 ## 기본 설정 — `/setting/common` (`setting-common`)
 
@@ -57,43 +57,43 @@
   | 진료 항목 설정 | `SettingCommonViewTreatmentListConfig` | 진료 항목 사용·미사용, 순서, 색, 단축어 (환자 카드 미리보기 포함) |
 - **동작:**
   - 요일별 진료 시간 편집 → `PATCH /settings/clinic-hours` (`요일별진료시간`). 날짜별 임시 진료·휴진 → `PUT /settings/clinic-calendar/days` (`일자`)
-  - 임시 진료·휴진 화면은 공휴일(`GET /settings/holidays/public-holidays/{year}`)과 닥톡 예약 상품(`GET /doctalk/products`, `/doctalk/products/bookable-times`, `POST /doctalk/sync-status`)을 함께 조회합니다. 외부 채널 영향 안내(`ClosedDayDoctalkAlert`)도 여기서 띄웁니다
+  - 임시 진료·휴진 화면은 공휴일(`GET /settings/holidays/public-holidays/{year}`)과 예약 중개 서비스 예약 상품(`GET /booking/products`, `/booking/products/bookable-times`, `POST /booking/sync-status`)을 함께 조회합니다. 외부 채널 영향 안내(`ClosedDayBookingAlert`)도 여기서 띄웁니다
   - 휴진일을 지울 때 "임시 진료는 유지 / 임시 진료도 삭제" 중에서 고릅니다
   - 환자 등급 추가·수정·삭제 → `POST`·`PATCH`·`DELETE /settings/patient-levels` (`등급명`, `등급색명`, `할인율`, `기본설정여부`)
   - 내원 경로 추가·수정·삭제 → `/settings/visit-pathways` (`내원경로명`). 사용/미사용 목록으로 나뉩니다
   - 진료 항목 추가·수정·삭제 → `/settings/medical-treatments` (`기본이름`, `이름`, 색, 단축어)
   - 토글: `PATCH /settings/display/chart-numbers` (`차트번호표기여부`), `PATCH /settings/display/resident-numbers` (`주민등록번호뒷자리표시여부`), `PATCH /settings/hospitals/chart-number` (`추천차트번호`. 새 환자 등록 시 이 번호부터 1씩 증가)
-- **근거:** `re-upstream/restored/views/SettingCommonView.vue`, `re-upstream/restored/components/setting/SettingCommonViewClinicHoursConfig.vue`, `re-upstream/restored/components/setting/SettingCommonViewPatientSettings.vue`, `re-upstream/restored/components/setting/SettingCommonViewTreatmentListConfig.vue`, `re-upstream/restored/modules/index/Tab.js`
+- **근거:** `restored/views/SettingCommonView.vue`, `restored/components/setting/SettingCommonViewClinicHoursConfig.vue`, `restored/components/setting/SettingCommonViewPatientSettings.vue`, `restored/components/setting/SettingCommonViewTreatmentListConfig.vue`, `restored/modules/index/Tab.js`
 
 ## 비대면 진료 설정 — `/setting/telemedicine` (`setting-telemedicine`)
 
-- **목적:** 수(soo) 비대면 진료 접수 설정과 환자용 한의원 홈페이지 정보를 관리합니다
+- **목적:** 라이트 비대면 진료 접수 설정과 환자용 한의원 홈페이지 정보를 관리합니다
 - **접근 조건:** `기본설정` + `permissionRequired`
   - 라우터 가드: localStorage `비대면진료등록여부`가 false면 기본 홈으로 보냅니다 (`jHe`)
-  - 사이드바: `soo` 연동 + 비대면 등록(`SL`)일 때만 보입니다 (`R6`의 `FHe`)
+  - 사이드바: `lite` 연동 + 비대면 등록(`SL`)일 때만 보입니다 (`R6`의 `FHe`)
 - **화면 구성:** 헤더 `저장` 버튼과 `SettingCommonViewTelemedicineConfig` 하나
   - 섹션: 진료 신청 받기/안받기, 비대면 진료 시간(요일별·휴게·휴진), 진료 알림 받을 번호, 진료 원장님 정보(프로필 사진), 한의원 정보, 홈페이지 주소, 네이버 플레이스 링크, 정산 계좌(은행·계좌번호·예금주)
 - **동작:**
-  - 진입 시 `GET thesooClient /members/upstream/clinics/my`, `GET /settings/hospitals`를 조회합니다. "병원 정보 불러오기"로 EMR 병원 정보를 채울 수 있습니다
-  - 홈페이지 주소 중복 확인 → `GET /members/upstream/clinics/check-local?localHomeId=`
-  - 프로필 사진(10MB 이하 이미지) → `POST /members/upstream/clinics/my/profile`
-  - 저장 → `PATCH /members/upstream/clinics/my`. 변경 사항이 없으면 버튼이 비활성입니다. 주소 검색은 `SearchAddress`(juso)를 씁니다
+  - 진입 시 `GET liteClient /members/emr/clinics/my`, `GET /settings/hospitals`를 조회합니다. "병원 정보 불러오기"로 EMR 병원 정보를 채울 수 있습니다
+  - 홈페이지 주소 중복 확인 → `GET /members/emr/clinics/check-local?localHomeId=`
+  - 프로필 사진(10MB 이하 이미지) → `POST /members/emr/clinics/my/profile`
+  - 저장 → `PATCH /members/emr/clinics/my`. 변경 사항이 없으면 버튼이 비활성입니다. 주소 검색은 `SearchAddress`(juso)를 씁니다
   - 알림 번호는 환자에게 보이지 않는다고 안내합니다
-- **근거:** `re-upstream/restored/views/SettingTelemedicineView.vue`, `re-upstream/restored/components/setting/SettingCommonViewTelemedicineConfig.vue`, `re-upstream/restored/router/guards.js:69`, `re-upstream/restored/lib/index/part-41.js:54`
+- **근거:** `restored/views/SettingTelemedicineView.vue`, `restored/components/setting/SettingCommonViewTelemedicineConfig.vue`, `restored/router/guards.js:69`, `restored/lib/index/part-41.js:54`
 
 ## 서비스 연동 — `/setting/service-integration` (`setting-service-integration`)
 
-- **목적:** 수·실손 서비스 연동 상태를 보여주고 연동을 시작합니다
+- **목적:** 라이트·실손 서비스 연동 상태를 보여주고 연동을 시작합니다
 - **접근 조건:** `기본설정` + `permissionRequired`
-- **화면 구성:** `ServiceConnectorCard` 2장 (`soo` "수", `insurance` "실손"). 연동 여부는 각각 `enabled$`(`soo`)와 `rue`(`insurance`)로 판단합니다. 모달은 `SooLinkConnectModal`, `ServiceConnectModal`, `ServiceManageModal`입니다
+- **화면 구성:** `ServiceConnectorCard` 2장 (`lite` "라이트", `insurance` "실손"). 연동 여부는 각각 `enabled$`(`lite`)와 `rue`(`insurance`)로 판단합니다. 모달은 `LiteLinkConnectModal`, `ServiceConnectModal`, `ServiceManageModal`입니다
 - **동작:**
-  - 미연동 "수" 카드 → `SooLinkConnectModal`에서 `migration` 여부를 고릅니다 → `POST accountClient /integrations/soo/link` (`{ migration }`)
+  - 미연동 "라이트" 카드 → `LiteLinkConnectModal`에서 `migration` 여부를 고릅니다 → `POST accountClient /integrations/lite/link` (`{ migration }`)
     - 성공 안내: 데이터 이전은 최대 10분 걸릴 수 있다고 알립니다
     - 실패하면 고객센터 안내를 띄웁니다
-  - 미연동 "실손" 카드 → `ServiceConnectModal` 확인 → `useSooSignUpStore().실손여부 = true` 후 가입 흐름(`state: "soo"`)으로 이동합니다
+  - 미연동 "실손" 카드 → `ServiceConnectModal` 확인 → `useLiteSignUpStore().실손여부 = true` 후 가입 흐름(`state: "lite"`)으로 이동합니다
   - 연동된 카드: 수는 `ServiceManageModal`, 실손은 별도 모달(`open`)을 엽니다
-  - `?openSooConnect=true`로 들어오면 수 연동 모달을 바로 열고 쿼리를 지웁니다
-- **근거:** `re-upstream/restored/views/SettingServiceIntegrationView.vue.js`, `re-upstream/restored/api/integrations/sooSignUp.js`
+  - `?openLiteConnect=true`로 들어오면 라이트 연동 모달을 바로 열고 쿼리를 지웁니다
+- **근거:** `restored/views/SettingServiceIntegrationView.vue.js`, `restored/api/integrations/liteSignUp.js`
 
 ## 병원 정보 설정 — `/setting/hospital` (`setting-hospital-info`)
 
@@ -112,12 +112,12 @@
     - `gated` 필드가 바뀌면 사업자등록증을 업로드하고(`POST accountClient /change-requests/documents`로 준비 → S3 PUT) `POST accountClient /change-requests`로 신청합니다 (`요청값`, `요청출처`, `이미지경로`, `이미지파일명`, `인증타입`)
     - 신청 실패 메시지: 계정주 대표원장만 신청 가능, 중복 신청, 증빙 확인 실패, 업로드 실패
   - 심사 중이면 "사업자등록번호를 … 으로 변경 신청했습니다" 배너를 띄웁니다. 반려되면 반려 배너를 띄우고 "첨부 확인"으로 `GET /change-requests/{id}/document`를 엽니다
-  - 수 비대면 정보가 있으면 저장 시 "수 비대면 진료 홈페이지에 보여줄 정보도 함께 업데이트 하시겠습니까?"를 묻습니다. 함께 업데이트를 고르면 `PATCH thesooClient /members/upstream/clinics/my`도 호출합니다
-  - 인증서: `.der`·`.key` 폴더를 고르고 비밀번호를 입력합니다 → `POST /nhic/cert-files`. 등록 상태와 만료예정일은 `GET /nhic/cert-files`로 봅니다. 수 단독 계정(`vx`)에는 이 섹션이 없습니다
+  - 라이트 비대면 정보가 있으면 저장 시 "라이트 비대면 진료 홈페이지에 보여줄 정보도 함께 업데이트 하시겠습니까?"를 묻습니다. 함께 업데이트를 고르면 `PATCH liteClient /members/emr/clinics/my`도 호출합니다
+  - 인증서: `.der`·`.key` 폴더를 고르고 비밀번호를 입력합니다 → `POST /nhic/cert-files`. 등록 상태와 만료예정일은 `GET /nhic/cert-files`로 봅니다. 라이트 단독 계정(`vx`)에는 이 섹션이 없습니다
   - 이미지 업로드 → `POST /settings/images/private` → signed URL에 PUT. 도장은 배경을 자동으로 지웁니다
-  - 제주 지원사업: 운영사업(`해녀`·`생존희생자`·`유족`·`며느리`) 체크와 지급 계좌 → `PATCH /settings/jeju-claim` (`운영사업`, `지급은행`, `지급계좌번호`, `예금주`). 수 단독 계정이 아닐 때만 저장합니다. 병원 정보만 저장되고 이 저장이 실패하면 별도 오류를 띄웁니다
+  - 제주 지원사업: 운영사업(`해녀`·`생존희생자`·`유족`·`며느리`) 체크와 지급 계좌 → `PATCH /settings/jeju-claim` (`운영사업`, `지급은행`, `지급계좌번호`, `예금주`). 라이트 단독 계정이 아닐 때만 저장합니다. 병원 정보만 저장되고 이 저장이 실패하면 별도 오류를 띄웁니다
   - 선택 약관 → `GET accountClient /terms/my-agreements`, `PUT /terms/optional-agreements` (`약관동의목록`)
-- **근거:** `re-upstream/restored/views/SettingHospitalView.vue`, `re-upstream/restored/views/SettingHospitalView.helpers.js`, `re-upstream/restored/components/setting/SettingHospitalFieldBadge.vue.js`, `re-upstream/restored/components/setting/SettingHospitalJejuClaim.vue`, `re-upstream/restored/api/users/requests.js`
+- **근거:** `restored/views/SettingHospitalView.vue`, `restored/views/SettingHospitalView.helpers.js`, `restored/components/setting/SettingHospitalFieldBadge.vue.js`, `restored/components/setting/SettingHospitalJejuClaim.vue`, `restored/api/users/requests.js`
 
 ## 진료 설정 — `/setting/treatment` (`setting-treatment`)
 
@@ -138,14 +138,14 @@
   - 치료실 → `POST`·`PATCH`·`DELETE /settings/treatments/rooms` (`치료실명`, `베드수`)
     - 최대 10개까지 둘 수 있습니다
     - 치료 중인 환자가 있으면 변경할 수 없습니다 (`GET /treatments/patients/basic`으로 확인)
-- **근거:** `re-upstream/restored/views/SettingTreatmentView.vue`, `re-upstream/restored/components/setting/SettingTreatmentViewExaminationClaim.vue.js:296`, `re-upstream/restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue`
+- **근거:** `restored/views/SettingTreatmentView.vue`, `restored/components/setting/SettingTreatmentViewExaminationClaim.vue.js:296`, `restored/components/setting/SettingTreatmentViewVitaTreatmentRoomsTreatmentRooms.vue`
 
 ## 처방 및 수가 설정 — `/setting/prescription` (`setting-prescription`)
 
 - **목적:** 보험약·치료재료·약속처방·비급여·패키지·자보/산재 수가·첩약 시범사업·개인 방제를 관리합니다
 - **접근 조건:** `처방수가설정`(`prescription_setting`) + `permissionRequired`
 - **탭 노출 규칙:**
-  - 수 단독 계정(`vx`)은 `비급여`, `패키지`만 봅니다
+  - 라이트 단독 계정(`vx`)은 `비급여`, `패키지`만 봅니다
   - 그 밖에는 `보험약`, `치료재료대`, `약속처방`, `비급여`, `패키지`, `자동차 보험 수가`가 보입니다. 병원 정보에 `산재기관번호`가 있으면 `산재보험 수가`가 더해지고, 마지막에 `첩건 시범사업`, `개인 방제`가 붙습니다
 - **탭 상태:** `?tab=`(한글 라벨)과 동기화됩니다
   - 약속처방 편집 중(`x`)에 탭을 바꾸거나 라우트를 떠나면 "저장하지 않은 변경 내용이 있습니다"(계속 편집/저장 안함)를 묻습니다 (`uZt` 가드)
@@ -166,9 +166,9 @@
 - **검증 규칙** (UI 문구에서 확인):
   - **임의처방:** 약재는 최대 15종, 총 투약량 50g 이하, 총 투약가 3,000원 이하이고 이름이 중복되면 안 됩니다
   - **패키지:** 과세/면세 혼합 패키지를 만들 수 없고, 패키지 이름이 중복되면 안 됩니다
-  - **비급여:** 코드와 처방명이 중복되면 안 되고, 금액은 천만원을 넘을 수 없습니다. 수 서비스 전용 처방은 설정에서 추가할 수 없습니다
+  - **비급여:** 코드와 처방명이 중복되면 안 되고, 금액은 천만원을 넘을 수 없습니다. 라이트 서비스 전용 처방은 설정에서 추가할 수 없습니다
   - **약속처방:** 이름이 중복되면 안 됩니다
-- **근거:** `re-upstream/restored/views/SettingPrescriptionView.vue`, Tab.js (`Tab$_4`, `SubTab$`) (`re-upstream/restored/modules/index/Tab.js`), `re-upstream/restored/components/setting/SettingPrescriptionViewReservedMain.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewPackageEditPanel.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue`, `re-upstream/restored/components/setting/SettingPrescriptionViewChubyak.vue`, `re-upstream/restored/stores/settingHerb.js`
+- **근거:** `restored/views/SettingPrescriptionView.vue`, Tab.js (`Tab$_4`, `SubTab$`) (`restored/modules/index/Tab.js`), `restored/components/setting/SettingPrescriptionViewReservedMain.vue`, `restored/components/setting/SettingPrescriptionViewNonBenefitRegistrationPanel.vue`, `restored/components/setting/SettingPrescriptionViewPackageEditPanel.vue`, `restored/components/setting/SettingPrescriptionViewInsuranceMedicineCustomPrescription.vue`, `restored/components/setting/SettingPrescriptionViewChubyak.vue`, `restored/stores/settingHerb.js`
 
 ## 상용구 설정 — `/setting/templates` (`setting-templates`)
 
@@ -185,7 +185,7 @@
   - 상용구명은 공백 없이 최대 20자입니다
   - 저장하지 않은 변경이 있으면 이동할 때 확인합니다 (`uZt`)
   - 처방 선택은 수가 코드 사전(`GET /settings/references/reimbursement-codes`, 자보 수가 JSON)으로 검색합니다
-- **근거:** `re-upstream/restored/components/setting/SettingEditorTemplates.vue`, `re-upstream/restored/components/setting/SettingEditorTemplatesMain.vue`, `re-upstream/restored/components/setting/SettingEditorTemplatesSidebar.vue`
+- **근거:** `restored/components/setting/SettingEditorTemplates.vue`, `restored/components/setting/SettingEditorTemplatesMain.vue`, `restored/components/setting/SettingEditorTemplatesSidebar.vue`
 
 ## 계정 및 권한 설정 — `/setting/account-permission` (`setting-account-permission`)
 
@@ -206,7 +206,7 @@
   - 삭제 → `DELETE /users/{id}`. "차트에서 완전히 삭제되며 복구할 수 없습니다"를 안내합니다
   - 권한 편집 → `GET`·`PATCH accountClient /permissions`. MEMBERS 권한 하위 트리(`MembersPermissionToggleSubtree`)도 여기서 편집합니다
   - 도장 → `POST`·`DELETE /users/{id}/stamp` (`이미지명`, `이미지사이즈`). 진료의(대표원장·부원장) 계정에만 등록할 수 있습니다. 배경은 자동으로 제거하고, 실패하면 원본을 그대로 씁니다
-- **근거:** `re-upstream/restored/views/AccountPermissionsView.vue`, `re-upstream/restored/components/account/AccountPermissionsListDetail.vue`, `re-upstream/restored/components/account/AccountPermissionsTable.vue`
+- **근거:** `restored/views/AccountPermissionsView.vue`, `restored/components/account/AccountPermissionsListDetail.vue`, `restored/components/account/AccountPermissionsTable.vue`
 
 ## 계정 이력 — `/setting/account-history` (`setting-account-history`)
 
@@ -216,7 +216,7 @@
 - **동작:**
   - 표 3개(`AccountHistoryTable*`)는 하드코딩된 샘플 행을 5번 반복해 그립니다. API 호출은 없습니다
   - `record` 탭은 "디자인 작업 완료후 작업 예정" 텍스트만 보여줍니다
-- **근거:** `re-upstream/restored/views/AccountHistoryView.vue`, `re-upstream/restored/views/AccountHistoryView.helpers.js`, `re-upstream/restored/components/account/AccountHistoryTableLoginLog.vue.js`
+- **근거:** `restored/views/AccountHistoryView.vue`, `restored/views/AccountHistoryView.helpers.js`, `restored/components/account/AccountHistoryTableLoginLog.vue.js`
 
 ## 태블릿 설정 — `/setting/tablet` (`setting-tablet`)
 
@@ -234,7 +234,7 @@
   - 관리자 PIN(접수 화면 로고를 7번 누르면 열리는 메뉴) → `PUT /tablet/settings/admin-pin` (`PIN`, 숫자 4자리). 기본값으로 되돌릴 수 있습니다
   - 언어 → `PUT /tablet/settings/languages` (`languages`). 리뷰 링크 → `PUT /tablet/settings/review-links` (`리뷰링크`)
   - 진료항목 → `PUT /tablet/settings/treatment-items` (`진료항목Ids`). 최소 1개는 남아 있어야 합니다
-- **근거:** `re-upstream/restored/views/SettingTabletView.vue`, `re-upstream/restored/views/TabletAccountView.vue`, `re-upstream/restored/components/tablet/TabletAdminPinCard.vue`
+- **근거:** `restored/views/SettingTabletView.vue`, `restored/views/TabletAccountView.vue`, `restored/components/tablet/TabletAdminPinCard.vue`
 
 ## 문서 관리 — `/setting/document-management` (`setting-document-management`)
 
@@ -250,24 +250,24 @@
     - 업로드한 문서 위에 서명·체크박스 등 입력폼을 배치합니다. 언어별 variant를 따로 만들 수 있습니다
   - 중앙 배포(공용) 서식은 수정·삭제할 수 없고 복제해서 써야 합니다. 목록에서 내리려면 비공개로 전환합니다
   - 빈 양식 인쇄(`QuestionnaireBlankPrintSheet`, `ConsentBlankPrintSheet`, `TabletFormPrintModal`)를 지원합니다
-- **근거:** `re-upstream/restored/views/SettingDocumentManagementView.vue`, `re-upstream/restored/components/setting/SettingTabletQuestionnaire.vue`, `re-upstream/restored/components/setting/SettingTabletConsent.vue`, `re-upstream/restored/components/setting/SettingTabletConsentEditor.vue`
+- **근거:** `restored/views/SettingDocumentManagementView.vue`, `restored/components/setting/SettingTabletQuestionnaire.vue`, `restored/components/setting/SettingTabletConsent.vue`, `restored/components/setting/SettingTabletConsentEditor.vue`
 
 ## 결제 정보 — `/setting/billing` (`setting-billing`)
 
-- **목적:** 업스트림 이용료 청구서를 조회·결제하고, 결제 수단과 실손 구독 결제 수단을 관리합니다
+- **목적:** 현행 이용료 청구서를 조회·결제하고, 결제 수단과 실손 구독 결제 수단을 관리합니다
 - **접근 조건:** `결제메뉴접근`(`billing`) + `permissionRequired`. `supportsMobile`이라 모바일 헤더(`MobileHeader`)를 지원합니다
 - **화면 구성:** `CrmBillingView`
   - `BillingCombinedPayBanner`: 합산·즉시 결제 안내
   - `BillingInvoiceList`: 결제 내역. 상태는 결제 대기·완료·실패·유예·연체·환불·미리 결제·발행 예정
   - `BillingInvoiceSidePanel`: 청구서 상세 (문자 유형별 항목·세금계산서·실패 사유)
   - `BillingPaySidePanel`: 결제
-  - `BillingPaymentMethod`: 결제 수단, 메디 예치금. 실손 행은 `InsurancePaymentMethodRow`입니다
+  - `BillingPaymentMethod`: 결제 수단, 예치금. 실손 행은 `InsurancePaymentMethodRow`입니다
 - **동작:**
   - 목록 → `GET crmClient /billing/invoices?…`. 상세 → `GET /billing/invoices/{id}`
   - 결제 → `POST /billing/invoices/payments` (`invoiceIds`, `paymentMethodId`). 오류 문구: 잔액 부족, 연체·유예 시 예치금 결제 불가, 예치금 합산 결제 불가, 청구서 상태 변경됨
-  - 기본 결제 수단·세금계산서 정보 → `PUT /billing/payment-methods/default` (`medipayId`, `depositFallbackEnabled`, `billingTaxInvoice*`)
-  - 실손 결제 수단 → `GET`·`POST`·`PUT`·`DELETE insuranceClient /hospital/payment-methods`. 메디페이 카드 목록은 `GET /hospital/payment-methods/medipay`, 구독 정보는 `GET /subscriptions`로 봅니다. 구독료는 매월 1일에 정기 결제된다고 안내합니다
-- **근거:** `re-upstream/restored/views/CrmBillingView.vue`, `re-upstream/restored/components/billing/BillingPaySidePanel.vue`, `re-upstream/restored/components/insurance/InsurancePaymentMethodModal.vue`
+  - 기본 결제 수단·세금계산서 정보 → `PUT /billing/payment-methods/default` (`partnerPayId`, `depositFallbackEnabled`, `billingTaxInvoice*`)
+  - 실손 결제 수단 → `GET`·`POST`·`PUT`·`DELETE insuranceClient /hospital/payment-methods`. 파트너 결제 카드 목록은 `GET /hospital/payment-methods/partner-pay`, 구독 정보는 `GET /subscriptions`로 봅니다. 구독료는 매월 1일에 정기 결제된다고 안내합니다
+- **근거:** `restored/views/CrmBillingView.vue`, `restored/components/billing/BillingPaySidePanel.vue`, `restored/components/insurance/InsurancePaymentMethodModal.vue`
 
 ## MCP 연동 — `/setting/mcp-tokens` (`setting-mcp-tokens`)
 
@@ -284,7 +284,7 @@
     - 다시 발급하면 기존 키는 즉시 중지됩니다
   - 목록 → `GET /auth/mcp-tokens`. 사용 중지 → `DELETE /auth/mcp-tokens/{id}`
   - 안내 문구: MCP가 작성한 메모·메시지는 본인 확인 뒤에만 정식 저장됩니다. 환자 이름·차트번호·연락처는 모델에 노출하지 않고 핸들로만 다룹니다
-- **근거:** `re-upstream/restored/components/m/MCPTokens.vue`, `re-upstream/restored/modules/index/Group.js:420`
+- **근거:** `restored/components/m/MCPTokens.vue`, `restored/modules/index/Group.js:420`
 
 ## MCP 승인 대기 — `/setting/mcp-pending-contacts` (`setting-mcp-pending-contacts`)
 
@@ -302,7 +302,7 @@
     - 목록 → `GET /patients/me/pending-notes`. 수정 → `PATCH /patients/memos/{id}`
     - 승인 → `POST /patients/memos/{id}/approve`. 승인하면 본인 명의로 차트에 저장됩니다
     - 거부 → `DELETE /patients/memos/{id}` (추정)
-- **근거:** `re-upstream/restored/components/mcp/McpPendingContacts.vue`, `re-upstream/restored/components/mcp/McpApprovalContactsTab.vue`, `re-upstream/restored/components/mcp/McpApprovalNotesTab.vue`
+- **근거:** `restored/components/mcp/McpPendingContacts.vue`, `restored/components/mcp/McpApprovalContactsTab.vue`, `restored/components/mcp/McpApprovalNotesTab.vue`
 
 ## 지출내역 수집 — `/setting/expense-collection` (`setting-expense-collection`)
 
@@ -312,41 +312,41 @@
   - `finance-prd` remoteEntry를 federation으로 로드해 마운트합니다
   - 토큰을 동기화(`ls:change`)하고 `update({ token, initialPath })`로 넘깁니다
 - **데이터:** 원격 앱 코드가 번들에 없어서 API는 알 수 없습니다. 자세한 내용은 [analytics-and-remote-apps.md](analytics-and-remote-apps.md)를 보세요
-- **근거:** `re-upstream/restored/views/SettingExpenseCollectionView.vue`, `re-upstream/restored/components/finance/FinanceContainer.vue.js`, `re-upstream/restored/components/finance/FinanceContainer.helpers.js`
+- **근거:** `restored/views/SettingExpenseCollectionView.vue`, `restored/components/finance/FinanceContainer.vue.js`, `restored/components/finance/FinanceContainer.helpers.js`
 
 ## 비대면 진료 정산 — `/remote-settlement` (`remote-settlement`)
 
-- **목적:** 수 비대면 진료 결제 대금의 월별 정산 내역을 조회합니다
+- **목적:** 라이트 비대면 진료 결제 대금의 월별 정산 내역을 조회합니다
 - **접근 조건:**
   - 라우트: `requiredRoleType` `01`. 가드는 다른 역할을 홈으로 보냅니다
   - localStorage `비대면진료등록여부`가 있어야 합니다 (`jHe`)
-  - 사이드바: `soo` + 비대면 등록 (`R6`). 메뉴 항목에 붙은 `remote_settlement` 코드는 거르는 데 쓰이지 않습니다
+  - 사이드바: `lite` + 비대면 등록 (`R6`). 메뉴 항목에 붙은 `remote_settlement` 코드는 거르는 데 쓰이지 않습니다
   - 화면도 `역할타입 === "01"`을 다시 확인하고, 아니면 `AccessDeniedNotice`를 띄웁니다
 - **화면 구성:** `RemoteSettlementContent` 아래 다음 컴포넌트가 있습니다
   - `RemoteSettlementDataHandler`: 연·월 선택, 엑셀 다운로드
   - `RemoteSettlementCostSummary`: 결제금액·결제 수수료·부가세·정산 금액·정산 예정 금액, 주문·취소 건수
   - `RemoteSettlementTableContent`: AG Grid 표 (주문 번호·처방·수량·결제금액·결제수수료·정산기준금액·주문/정산 상태·결제일)
   - `RemoteSettlementInfoContent`: 정산 기준 안내
-- **데이터:** `GET thesooClient /settlement/upstream/settlements?year=&month=` → `data.data`
-- **근거:** `re-upstream/restored/views/RemoteSettlementView.vue`, `re-upstream/restored/components/remote/RemoteSettlementTableContent.vue`, `re-upstream/restored/router/routes.js:604`
+- **데이터:** `GET liteClient /settlement/emr/settlements?year=&month=` → `data.data`
+- **근거:** `restored/views/RemoteSettlementView.vue`, `restored/components/remote/RemoteSettlementTableContent.vue`, `restored/router/routes.js:604`
 
-## 레거시 차트(OK차트) 대비
+## 레거시 차트 대비
 
-이 절은 한메디 OK차트 매뉴얼을 근거로 정리했으며, 현행 Upstream 코드에서 확인한 내용이 아닙니다.
+이 절은 레거시 차트 매뉴얼을 근거로 정리했으며, 현행 코드에서 확인한 내용이 아닙니다.
 
 ### 현행 스펙에 없는 업무
 
-- **병원 단위 운영 정책 토글:** OK차트의 한의원 환경설정은 환자 삭제 허용, 대기실·치료실 관리 사용, 접수실 사용자 권한 제한, 진료비 수납·현금영수증 승인 방식, 진료기록 관련 옵션을 병원 단위로 켜고 끕니다. 현행 기본 설정·진료 설정에는 환자 삭제 허용 여부나 수납·현금영수증 정책 같은 항목이 없습니다 ([OK차트: 한의원 환경설정](https://www.okmedi.net/Manual/?idx=799))
-- **자보 첩약·탕전료 일투·일수 자동 지정:** 자동차보험 진료에서 한방 첩약과 탕전료를 기록하면 일투·일수를 자동으로 채우는 옵션입니다. 현행 진료 설정의 "첩약 기본 투여량"이 같은 역할을 하는지는 알 수 없습니다 (추정) ([OK차트: 한의원 환경설정](https://www.okmedi.net/Manual/?idx=799))
-- **신환 차트번호 구분자·지역번호 자동 입력:** 새 환자를 등록할 때 차트번호 앞에 붙일 구분자를 고르고, 전화번호에 병원 지역번호를 자동으로 채웁니다. 현행에는 1씩 증가하는 추천 차트번호만 있습니다 ([OK차트: 한의원 환경설정](https://www.okmedi.net/Manual/?idx=799))
-- **청구·DUR 환경:** 건강보험 EDI 기본 수신처(심평원 지원), 차등지수 적용 여부, 심평원 DUR 모듈 사용 여부를 병원 설정으로 둡니다. 현행 병원 정보에는 `청구대행단체`만 있고 수신처나 DUR 사용 여부가 없습니다. 수신처 매핑은 아래 업무 규칙에 적었습니다 ([OK차트: 한의원 환경설정](https://www.okmedi.net/Manual/?idx=799), [OK차트: OK차트 환경설정 저장](https://www.okmedi.net/Manual/?idx=1077))
-- **개인정보보호 로그인 정책:** 환경설정의 "개인정보보호법 관련 설정"에서 다음을 정합니다 ([OK차트: 개인정보보호 자동 로그아웃](https://www.okmedi.net/Manual/?idx=847), [OK차트: 개인정보보호 비밀번호 잠김](https://www.okmedi.net/Manual/?idx=848), [OK차트: 개인정보보호법 적용 로그인 기능 안내](https://www.okmedi.net/Manual/?idx=691))
+- **병원 단위 운영 정책 토글:** 레거시 차트의 한의원 환경설정은 환자 삭제 허용, 대기실·치료실 관리 사용, 접수실 사용자 권한 제한, 진료비 수납·현금영수증 승인 방식, 진료기록 관련 옵션을 병원 단위로 켜고 끕니다. 현행 기본 설정·진료 설정에는 환자 삭제 허용 여부나 수납·현금영수증 정책 같은 항목이 없습니다 (레거시 차트 매뉴얼 「한의원 환경설정」)
+- **자보 첩약·탕전료 일투·일수 자동 지정:** 자동차보험 진료에서 한방 첩약과 탕전료를 기록하면 일투·일수를 자동으로 채우는 옵션입니다. 현행 진료 설정의 "첩약 기본 투여량"이 같은 역할을 하는지는 알 수 없습니다 (추정) (레거시 차트 매뉴얼 「한의원 환경설정」)
+- **신환 차트번호 구분자·지역번호 자동 입력:** 새 환자를 등록할 때 차트번호 앞에 붙일 구분자를 고르고, 전화번호에 병원 지역번호를 자동으로 채웁니다. 현행에는 1씩 증가하는 추천 차트번호만 있습니다 (레거시 차트 매뉴얼 「한의원 환경설정」)
+- **청구·DUR 환경:** 건강보험 EDI 기본 수신처(심평원 지원), 차등지수 적용 여부, 심평원 DUR 모듈 사용 여부를 병원 설정으로 둡니다. 현행 병원 정보에는 `청구대행단체`만 있고 수신처나 DUR 사용 여부가 없습니다. 수신처 매핑은 아래 업무 규칙에 적었습니다 (레거시 차트 매뉴얼 「한의원 환경설정」, 레거시 차트 매뉴얼 「레거시 차트 환경설정 저장」)
+- **개인정보보호 로그인 정책:** 환경설정의 "개인정보보호법 관련 설정"에서 다음을 정합니다 (레거시 차트 매뉴얼 「개인정보보호 자동 로그아웃」, 레거시 차트 매뉴얼 「개인정보보호 비밀번호 잠김」, 레거시 차트 매뉴얼 「개인정보보호법 적용 로그인 기능 안내」)
   - 일정 시간(60분) 넘게 쓰지 않으면 자동 로그아웃합니다. 현행 병원 정보의 "로그인 유지 시간"이 이에 해당하는지는 알 수 없습니다 (추정)
   - 비밀번호를 정한 횟수 이상 틀리면 계정을 잠급니다. 횟수를 0으로 두면 잠금을 쓰지 않습니다
   - 접수실 프로그램에도 사용자별 로그인과 비밀번호 규칙을 강제할지 고릅니다
   - 사용자가 자리를 비울 때 쓰는 수동 화면 잠금이 있습니다
-- **잠긴 계정 복구 흐름:** 관리자 권한이 있는 한의사가 잠긴 사용자에게 임시 비밀번호를 지정하면, 그 사용자가 임시 비밀번호로 로그인한 뒤 규칙에 맞는 새 비밀번호로 바꿉니다. 유일한 관리자 계정이 잠기면 작업동의서를 받아 개발사가 초기화합니다. 관리자 외의 제3자에게 비밀번호 설정을 맡기면 개인정보보호법 위반이라고 안내합니다 ([OK차트: OK차트 사용자의 임시비밀번호 지정하기](https://www.okmedi.net/Manual/?idx=1124), [OK차트: 개인정보보호 비밀번호 잠김](https://www.okmedi.net/Manual/?idx=848))
-- **진료한의사 속성:** 진료한의사 계정에 다음 값을 둡니다. 현행 계정 생성은 `근무형태`·`입사일자`를 받지만, 이 값이 차등수가 인정 인원이나 추나 급여 자격과 연결되는지는 스펙에 없습니다 ([OK차트: 진료한의사 추가 및 퇴사 관리](https://www.okmedi.net/Manual/?idx=336), [OK차트: 진료 한의사 관리](https://www.okmedi.net/Manual/?idx=410), [OK차트: 대진의 심평원에 신고 및 OK차트에 추가 방법 안내](https://www.okmedi.net/Manual/?idx=866))
+- **잠긴 계정 복구 흐름:** 관리자 권한이 있는 한의사가 잠긴 사용자에게 임시 비밀번호를 지정하면, 그 사용자가 임시 비밀번호로 로그인한 뒤 규칙에 맞는 새 비밀번호로 바꿉니다. 유일한 관리자 계정이 잠기면 작업동의서를 받아 개발사가 초기화합니다. 관리자 외의 제3자에게 비밀번호 설정을 맡기면 개인정보보호법 위반이라고 안내합니다 (레거시 차트 매뉴얼 「레거시 차트 사용자의 임시비밀번호 지정하기」, 레거시 차트 매뉴얼 「개인정보보호 비밀번호 잠김」)
+- **진료한의사 속성:** 진료한의사 계정에 다음 값을 둡니다. 현행 계정 생성은 `근무형태`·`입사일자`를 받지만, 이 값이 차등수가 인정 인원이나 추나 급여 자격과 연결되는지는 스펙에 없습니다 (레거시 차트 매뉴얼 「진료한의사 추가 및 퇴사 관리」, 레거시 차트 매뉴얼 「진료 한의사 관리」, 레거시 차트 매뉴얼 「대진의 심평원에 신고 및 레거시 차트에 추가 방법 안내」)
   - 실명, 한의사 면허번호, 주민번호 앞자리
   - `관리자`: 경영관리(통계·설정)를 포함한 모든 기능을 씁니다. 해제하면 경영관리 메뉴가 숨겨집니다
   - 근무 형태: 상근(미체크)·대진의·비상근(격일제)·비상근(시간제)·기타. 차등수가 인원 산정에 쓰입니다 (아래 업무 규칙)
@@ -354,30 +354,30 @@
   - `연동솔루션에 노출`: 외부 접수 앱 화면에 한의사 이름을 보일지 정합니다
   - `권한 제한`: 개별 기능을 막습니다
   - 대진의는 심평원 보건의료자원통합신고포털에 먼저 신고한 뒤 차트에 추가합니다
-- **진료의 바로변경:** 여러 진료의가 함께 쓰는 치료실 PC에서, 로그인 사용자는 그대로 두고 진료기록의 진료의만 바꿔 기록합니다. 이때 경영관리·양식 출력·보험청구·통계 같은 기능은 관리자 권한을 공유하지 않고 가립니다. 반면 "다른 사용자로 로그인"은 비밀번호를 다시 받고 그 사용자의 권한을 모두 씁니다 ([OK차트: 진료의 바로변경](https://www.okmedi.net/Manual/?idx=912), [OK차트: 진료 한의사 관리](https://www.okmedi.net/Manual/?idx=410))
-- **가감처방 등록:** 기준처방(보험 한약제제)을 고르고 약재를 더하거나 빼서 병원 전용 보험처방을 만듭니다. 현행 보험약 탭의 `from-mixture`가 가감처방에 해당하는지는 확인하지 못했습니다 (추정) ([OK차트: 가감, 임의처방 등록](https://www.okmedi.net/Manual/?idx=393))
-- **한자 사전:** 상용구와 별도로 "한글 표기 → 한자" 추천 단어를 등록해 진료메모를 한자로 바꿉니다. 상용구와 함께 서버에 올리고 내려받습니다 ([OK차트: 상용구 등록·사용 및 서버에 저장](https://www.okmedi.net/Manual/?idx=400))
-- **환자 관리정보 지정 항목 일괄 변경·삭제:** 주치의, VIP, 유입경로, 직업, 진행중치료, 예정된치료, 소개자관계는 병원이 정의한 선택지입니다 ([OK차트: 관리정보에서의 지정 항목 관리](https://www.okmedi.net/Manual/?idx=855), [OK차트: 주치의 지정 항목 관리](https://www.okmedi.net/Manual/?idx=1040), [OK차트: 관리정보 입력 항목 일괄 수정](https://www.okmedi.net/Manual/?idx=394))
+- **진료의 바로변경:** 여러 진료의가 함께 쓰는 치료실 PC에서, 로그인 사용자는 그대로 두고 진료기록의 진료의만 바꿔 기록합니다. 이때 경영관리·양식 출력·보험청구·통계 같은 기능은 관리자 권한을 공유하지 않고 가립니다. 반면 "다른 사용자로 로그인"은 비밀번호를 다시 받고 그 사용자의 권한을 모두 씁니다 (레거시 차트 매뉴얼 「진료의 바로변경」, 레거시 차트 매뉴얼 「진료 한의사 관리」)
+- **가감처방 등록:** 기준처방(보험 한약제제)을 고르고 약재를 더하거나 빼서 병원 전용 보험처방을 만듭니다. 현행 보험약 탭의 `from-mixture`가 가감처방에 해당하는지는 확인하지 못했습니다 (추정) (레거시 차트 매뉴얼 「가감, 임의처방 등록」)
+- **한자 사전:** 상용구와 별도로 "한글 표기 → 한자" 추천 단어를 등록해 진료메모를 한자로 바꿉니다. 상용구와 함께 서버에 올리고 내려받습니다 (레거시 차트 매뉴얼 「상용구 등록·사용 및 서버에 저장」)
+- **환자 관리정보 지정 항목 일괄 변경·삭제:** 주치의, VIP, 유입경로, 직업, 진행중치료, 예정된치료, 소개자관계는 병원이 정의한 선택지입니다 (레거시 차트 매뉴얼 「관리정보에서의 지정 항목 관리」, 레거시 차트 매뉴얼 「주치의 지정 항목 관리」, 레거시 차트 매뉴얼 「관리정보 입력 항목 일괄 수정」)
   - 선택지 값을 바꾸면 그 값이 저장된 모든 환자의 관리정보가 함께 바뀝니다. 빈 값으로 바꾸면 삭제됩니다
   - 주치의는 대기실·치료실로 보낼 때 지정하는 담당의사와 연동됩니다
   - 환자 데이터와 묶여 있어 작업 전 백업을 권하고, 별도 암호로 화면을 보호합니다
   - 현행 기본 설정에는 내원 경로(사용/미사용)와 환자 등급만 있습니다. 직업·진행중치료·예정된치료 같은 항목과 값 일괄 치환은 없습니다
-- **보험약·치료재료 입고/재고 관리:** ([OK차트: 보험처방, 치료재료 매입/재고 관리](https://www.okmedi.net/Manual/?idx=399))
+- **보험약·치료재료 입고/재고 관리:** (레거시 차트 매뉴얼 「보험처방, 치료재료 매입/재고 관리」)
   - 보험약 입고는 "며칠분" 단위로 기록합니다 (예: 300포 100일분이면 100)
   - 치료재료(일회용 부항컵·탄력붕대 등) 입고는 개수 단위이고, 제조원 제품별로 따로 관리합니다
   - 재고가 실제와 다르면 재고조정으로 맞춥니다. 실제 재고가 적으면 음수로 입력합니다
   - 매입사(거래처)를 등록해 둡니다
   - 진료기록에서 보험약이나 습식부항·이체부항을 고를 때 현재 재고를 보여주고, 사용 개수만큼 차감합니다
   - 현행 치료재료대 탭에는 구매 내역(`histories`)이 있지만, 보험약 재고나 진료기록 연동 차감은 스펙에 없습니다
-- **치료재료 실구입가 기간 관리:** 상한가보다 싸게 산 치료재료는 제조사별 실구입단가를 적용 시작일·종료일과 함께 등록합니다. 재고를 다 쓰면 종료일을 넣고, 그 뒤로는 상한금액으로 자동 기록합니다. 같은 제품을 다른 단가로 다시 사면 기존 행을 종료하고 새 행을 추가합니다. 현행 구매 내역에 단가 적용 기간 개념이 있는지는 확인하지 못했습니다 (추정) ([OK차트: 치료재료 실구입가 관리](https://www.okmedi.net/Manual/?idx=412))
-- **금전출납부 계정과목:** 수입·지출 계정과목을 병원이 정의하고, 일자별로 계정과목·금액·거래처를 기록합니다. 수납 데이터에서 현금분만, 또는 현금+카드분(환불 포함)을 불러와 수입으로 넣을 수 있습니다. 현행 재무 원격 앱의 지출내역 수집과 겹칠 수 있습니다 (추정). 통계는 [analytics-and-remote-apps.md](analytics-and-remote-apps.md)의 같은 절에 적었습니다 ([OK차트: 금전출납부 기록 및 통계](https://www.okmedi.net/Manual/?idx=395))
-- **화면 배치 저장:** PC(원장실·접수실)마다 첫 화면의 대기실·치료실·치료완료·수납현황 목록 배치와 표시 항목, 진료차트와 진료내역의 컬럼 순서·폭·숨김을 저장하고 초기화합니다. 기록 시각 컬럼을 켜면 차트 출력에도 기록 시각이 찍힙니다. 재설계에서는 사용자별 또는 기기별 UI 설정 저장소가 필요할 수 있습니다 (추정) ([OK차트: 화면 배치저장 활용](https://www.okmedi.net/Manual/?idx=339))
-- **진료의별 메모장:** 진료의 개인 메모 문서를 만들어 둡니다 ([OK차트: 진료 한의사 관리](https://www.okmedi.net/Manual/?idx=410))
+- **치료재료 실구입가 기간 관리:** 상한가보다 싸게 산 치료재료는 제조사별 실구입단가를 적용 시작일·종료일과 함께 등록합니다. 재고를 다 쓰면 종료일을 넣고, 그 뒤로는 상한금액으로 자동 기록합니다. 같은 제품을 다른 단가로 다시 사면 기존 행을 종료하고 새 행을 추가합니다. 현행 구매 내역에 단가 적용 기간 개념이 있는지는 확인하지 못했습니다 (추정) (레거시 차트 매뉴얼 「치료재료 실구입가 관리」)
+- **금전출납부 계정과목:** 수입·지출 계정과목을 병원이 정의하고, 일자별로 계정과목·금액·거래처를 기록합니다. 수납 데이터에서 현금분만, 또는 현금+카드분(환불 포함)을 불러와 수입으로 넣을 수 있습니다. 현행 재무 원격 앱의 지출내역 수집과 겹칠 수 있습니다 (추정). 통계는 [analytics-and-remote-apps.md](analytics-and-remote-apps.md)의 같은 절에 적었습니다 (레거시 차트 매뉴얼 「금전출납부 기록 및 통계」)
+- **화면 배치 저장:** PC(원장실·접수실)마다 첫 화면의 대기실·치료실·치료완료·수납현황 목록 배치와 표시 항목, 진료차트와 진료내역의 컬럼 순서·폭·숨김을 저장하고 초기화합니다. 기록 시각 컬럼을 켜면 차트 출력에도 기록 시각이 찍힙니다. 재설계에서는 사용자별 또는 기기별 UI 설정 저장소가 필요할 수 있습니다 (추정) (레거시 차트 매뉴얼 「화면 배치저장 활용」)
+- **진료의별 메모장:** 진료의 개인 메모 문서를 만들어 둡니다 (레거시 차트 매뉴얼 「진료 한의사 관리」)
 
 ### 업무 규칙
 
-- **비밀번호 규칙:** 영문·숫자를 섞어 10자 이상입니다. 같은 문자나 연속 문자를 4번 이상 쓸 수 없고, 같은 비밀번호를 6개월 넘게 쓸 수 없습니다. 오입력 잠금은 5회를 권장합니다. 자동 로그아웃(60분 미사용)과 잠금은 개인정보보호 자율점검 3.2.9·3.2.8 항목에 대응합니다 ([OK차트: 진료한의사 추가 및 퇴사 관리](https://www.okmedi.net/Manual/?idx=336), [OK차트: 개인정보보호 자동 로그아웃](https://www.okmedi.net/Manual/?idx=847), [OK차트: 개인정보보호 비밀번호 잠김](https://www.okmedi.net/Manual/?idx=848))
-- **근무 형태별 차등수가 인정 인원:** 매뉴얼 기준입니다 ([OK차트: 진료한의사 추가 및 퇴사 관리](https://www.okmedi.net/Manual/?idx=336), [OK차트: 진료 한의사 관리](https://www.okmedi.net/Manual/?idx=410), [OK차트: (용어) - 차등수가제 : 차등지수](https://www.okmedi.net/Manual/?idx=746))
+- **비밀번호 규칙:** 영문·숫자를 섞어 10자 이상입니다. 같은 문자나 연속 문자를 4번 이상 쓸 수 없고, 같은 비밀번호를 6개월 넘게 쓸 수 없습니다. 오입력 잠금은 5회를 권장합니다. 자동 로그아웃(60분 미사용)과 잠금은 개인정보보호 자율점검 3.2.9·3.2.8 항목에 대응합니다 (레거시 차트 매뉴얼 「진료한의사 추가 및 퇴사 관리」, 레거시 차트 매뉴얼 「개인정보보호 자동 로그아웃」, 레거시 차트 매뉴얼 「개인정보보호 비밀번호 잠김」)
+- **근무 형태별 차등수가 인정 인원:** 매뉴얼 기준입니다 (레거시 차트 매뉴얼 「진료한의사 추가 및 퇴사 관리」, 레거시 차트 매뉴얼 「진료 한의사 관리」, 레거시 차트 매뉴얼 「(용어) - 차등수가제 : 차등지수」)
 
   | 근무 형태 | 조건 | 인정 인원 |
   |---|---|---|
@@ -388,24 +388,24 @@
   | 기타 | 주 20시간 미만, 후입사 기관 근무 | 0 (청구 시 차등 진료일수에서 자동 제외) |
 
   - 매뉴얼 안에서 비상근 기준이 엇갈립니다. 한 항목은 "주 3일 종일·주 20시간 이상 비상근"을 1인으로, 다른 두 항목은 같은 조건을 0.5인으로 적었습니다. 실제 기준은 심평원 고시로 확인해야 합니다
-- **임의처방 범위와 단가:** ([OK차트: 가감, 임의처방 등록](https://www.okmedi.net/Manual/?idx=393))
+- **임의처방 범위와 단가:** (레거시 차트 매뉴얼 「가감, 임의처방 등록」)
   - 구성 약제는 종료일이 없는(현재 유효한) 한약제제만 고릅니다. EX산제량에는 1일 총 투여량을 넣습니다
   - 1일 15종, 50g 이내이고 총 투약가는 3,000원까지입니다. 현행 스펙의 임의처방 검증 규칙과 같습니다
   - 수가가 바뀌면 기존 처방을 고치지 않고 다른 이름으로 새로 등록합니다
   - 1일 약가 = Σ(약제 단위가격 × 1일 투여량)이고, 원 미만은 사사오입합니다. 예: 작약 7.41×67 = 496.47, 감초 3.7×60 = 222, 합계 718.47 → 718원
   - 단미엑스산제를 나눠 투여하면 1일 투여량은 소수 셋째 자리에서 사사오입하고, 총 투여일수는 실제 투여일수로 적습니다
   - 금액 = 1일 약가(또는 상한금액표 단위가격) × 1일 투여량 × 투여일수
-- **가감처방 범위:** 기준처방에 1일 5종, 10g 이내로 더하거나 뺄 수 있습니다 ([OK차트: 가감, 임의처방 등록](https://www.okmedi.net/Manual/?idx=393))
-- **묶음처방 유지:** 보험수가는 해마다 바뀌므로 연도가 바뀌면 묶음처방을 다시 구성해야 의도한 본인부담금이 나옵니다. 심평원은 세트 기록을 지양하라고 안내합니다 ([OK차트: 묶음처방 등록 활용 & 관리하기](https://www.okmedi.net/Manual/?idx=398))
-- **치료재료 제출과 단가:** 일회용 부항컵은 살 때마다 요양기관 업무포털에 구입내역을 제출해야 합니다. 실구입가 입력은 상한가 이하로 샀을 때만 합니다. 상한가 제한 시행일 이후에는 변경된 단가까지만 인정되므로, 이전 재고는 환불 후 재구매하는 방법도 안내합니다 ([OK차트: 치료재료 실구입가 관리](https://www.okmedi.net/Manual/?idx=412))
-- **한방물리요법 산정:** 매뉴얼 기준입니다 ([OK차트: 한방물리요법 관리](https://www.okmedi.net/Manual/?idx=809), [OK차트: 우리 한의원의 물리요법 산정횟수와 월평균 시술현황](https://www.okmedi.net/Manual/?idx=731))
+- **가감처방 범위:** 기준처방에 1일 5종, 10g 이내로 더하거나 뺄 수 있습니다 (레거시 차트 매뉴얼 「가감, 임의처방 등록」)
+- **묶음처방 유지:** 보험수가는 해마다 바뀌므로 연도가 바뀌면 묶음처방을 다시 구성해야 의도한 본인부담금이 나옵니다. 심평원은 세트 기록을 지양하라고 안내합니다 (레거시 차트 매뉴얼 「묶음처방 등록 활용 & 관리하기」)
+- **치료재료 제출과 단가:** 일회용 부항컵은 살 때마다 요양기관 업무포털에 구입내역을 제출해야 합니다. 실구입가 입력은 상한가 이하로 샀을 때만 합니다. 상한가 제한 시행일 이후에는 변경된 단가까지만 인정되므로, 이전 재고는 환불 후 재구매하는 방법도 안내합니다 (레거시 차트 매뉴얼 「치료재료 실구입가 관리」)
+- **한방물리요법 산정:** 매뉴얼 기준입니다 (레거시 차트 매뉴얼 「한방물리요법 관리」, 레거시 차트 매뉴얼 「우리 한의원의 물리요법 산정횟수와 월평균 시술현황」)
   - 급여 항목은 경피경근온열(핫팩 등)·경피적외선조사(IR)·경피경근한냉(냉팩) 3가지입니다. 나머지 한방물리요법은 비급여입니다
   - 한의사가 실시하고 결과를 진료기록부에 적어야 산정합니다
   - 하루 2회 이상 해도 외래는 1일 1회, 입원은 1일 2회만 산정합니다. 3가지를 동시에 해도 1가지만 산정합니다
   - 상근 한의사 1인당 실시 인원은 월평균(또는 주평균) 1일 30명까지 인정하고, 의료급여 환자를 포함합니다. 주 3일 이상·주 20시간 이상의 시간제·격일제는 0.5인으로 보아 15명입니다
   - 월(주)평균 실시 인원 = 기간 내 한방물리요법 총 청구건수 ÷ 기간 내 한의사 근무일수. 하루 환자 수 자체를 제한하는 규정은 아닙니다
-  - OK차트는 당일 산정 횟수가 30회에 이르면 그 뒤로 알림을 반복해 띄웁니다. 자보·산재 환자는 횟수에서 뺍니다
-- **건강보험 EDI 기본 수신처(심평원 지원) 매핑:** 매뉴얼 기준입니다 ([OK차트: 한의원 환경설정](https://www.okmedi.net/Manual/?idx=799), [OK차트: OK차트 환경설정 저장](https://www.okmedi.net/Manual/?idx=1077))
+  - 레거시 차트는 당일 산정 횟수가 30회에 이르면 그 뒤로 알림을 반복해 띄웁니다. 자보·산재 환자는 횟수에서 뺍니다
+- **건강보험 EDI 기본 수신처(심평원 지원) 매핑:** 매뉴얼 기준입니다 (레거시 차트 매뉴얼 「한의원 환경설정」, 레거시 차트 매뉴얼 「레거시 차트 환경설정 저장」)
 
   | 수신처 | 관할 |
   |---|---|
@@ -420,24 +420,24 @@
   | 전북본부 | 전라북도 |
   | 인천본부 | 인천시 |
 
-- **백업 정책:** 「전자의무기록의 관리·보존에 필요한 시설과 장비에 관한 기준」(보건복지부 고시, 매뉴얼은 2016-08-06 시행본과 2021-01-05 개정본을 인용)과 의료법 시행규칙 제16조를 근거로 듭니다 ([OK차트: OK차트 백업 경로 설정하기](https://www.okmedi.net/Manual/?idx=1045), [OK차트: OK관리툴에서 데이터 백업 관리](https://www.okmedi.net/Manual/?idx=827), [OK차트: 전자의무기록의 관리·보존에 필요한 시설과 장비에 관한 기준](https://www.okmedi.net/Manual/?idx=1102))
+- **백업 정책:** 「전자의무기록의 관리·보존에 필요한 시설과 장비에 관한 기준」(보건복지부 고시, 매뉴얼은 2016-08-06 시행본과 2021-01-05 개정본을 인용)과 의료법 시행규칙 제16조를 근거로 듭니다 (레거시 차트 매뉴얼 「레거시 차트 백업 경로 설정하기」, 레거시 차트 매뉴얼 「OK관리툴에서 데이터 백업 관리」, 레거시 차트 매뉴얼 「전자의무기록의 관리·보존에 필요한 시설과 장비에 관한 기준」)
   - 백업 장비로 USB·외장하드·NAS·자기테이프, DR 센터, 클라우드 스토리지를 쓸 수 있습니다. 개인용 클라우드(네이버 MYBOX, OneDrive, iCloud 등)는 인정되지 않고, 클라우드는 보안인증을 받은 사업자여야 합니다
   - 같은 PC의 별도 디스크나 늘 꽂혀 있는 USB는 독립된 백업 장치로 보지 않습니다
   - 백업 주기(일·주·월)는 기관이 정하고, 개인정보보호법 제29조의 내부관리계획에 반영해야 합니다
   - 백업 장치는 잠금장치가 있는 곳에 보관합니다. 기관 출입문 잠금만으로는 부족합니다
   - 진료기록을 추가 기재·수정하면 원본도 모두 보존해야 하고, 원본 대조는 날짜별 백업본으로 합니다. 시행규칙 제16조 제2항은 추가 기재·수정 시 접속 기록을 따로 보관하라고 정합니다
-  - OK차트는 매번 개원일부터의 전체 데이터를 누적 백업하고, 1차·2차(외부 장치 또는 클라우드 동기화 폴더) 두 경로와 예약 백업 스케줄을 둡니다. 백업 파일은 지우지 않고 보관합니다. 랜섬웨어를 피하려고 백업 파일 확장자를 바꿔 저장합니다. 백업이 안 되고 있으면 종료 시 경고를 띄웁니다
-- **제증명수수료:** 「의료기관의 제증명수수료 항목 및 금액에 관한 기준」(보건복지부 고시 제2017-166호)을 따릅니다. 2017-09-21부터 시행했고, 인터넷 홈페이지 고지 의무는 2017-10-21부터입니다. 매뉴얼 본문에 항목별 금액은 없습니다(이미지). 현행 스펙에는 서식별 수수료 설정이 보이지 않아, 재설계 때 서식 발급 수수료 상한을 둘지 정해야 합니다 (추정) ([OK차트: 제증명수수료 항목 및 금액에 관한 기준](https://www.okmedi.net/Manual/?idx=825))
+  - 레거시 차트는 매번 개원일부터의 전체 데이터를 누적 백업하고, 1차·2차(외부 장치 또는 클라우드 동기화 폴더) 두 경로와 예약 백업 스케줄을 둡니다. 백업 파일은 지우지 않고 보관합니다. 랜섬웨어를 피하려고 백업 파일 확장자를 바꿔 저장합니다. 백업이 안 되고 있으면 종료 시 경고를 띄웁니다
+- **제증명수수료:** 「의료기관의 제증명수수료 항목 및 금액에 관한 기준」(보건복지부 고시 제2017-166호)을 따릅니다. 2017-09-21부터 시행했고, 인터넷 홈페이지 고지 의무는 2017-10-21부터입니다. 매뉴얼 본문에 항목별 금액은 없습니다(이미지). 현행 스펙에는 서식별 수수료 설정이 보이지 않아, 재설계 때 서식 발급 수수료 상한을 둘지 정해야 합니다 (추정) (레거시 차트 매뉴얼 「제증명수수료 항목 및 금액에 관한 기준」)
 
 ### 현행과 다른 점
 
-- **설정 저장 위치:** OK차트는 원장실·접수실 프로그램마다 환경설정·복용관리설정·SMS설정을 따로 저장하고, 화면 배치도 PC별로 저장합니다. 병원 공통 정책은 "한의원 환경설정"에 모읍니다. 현행은 설정을 서버 API(`/settings/*`)로 병원 단위로 저장합니다 ([OK차트: 원장실 및 접수실 프로그램 환경설정](https://www.okmedi.net/Manual/?idx=337), [OK차트: 화면 배치저장 활용](https://www.okmedi.net/Manual/?idx=339))
-- **권한 모델:** OK차트는 사용자 종류(진료한의사 / 접수실 사용자)와 `관리자` 플래그, 기능별 `권한 제한` 체크로 권한을 나눕니다. 현행은 역할 타입과 권한 트리(`/permissions`)를 씁니다 ([OK차트: 진료한의사 추가 및 퇴사 관리](https://www.okmedi.net/Manual/?idx=336), [OK차트: 접수실프로그램 사용자 추가 및 퇴사 관리](https://www.okmedi.net/Manual/?idx=1130))
-- **퇴사 처리:** OK차트는 계정을 지우지 않고 `퇴사`를 체크해 남깁니다. 현행은 비활성화(시작일 지정)와 완전 삭제를 둘 다 둡니다. 진료기록의 진료의 실명 보존을 생각하면 삭제보다 비활성화가 맞습니다 (추정) ([OK차트: 진료한의사 추가 및 퇴사 관리](https://www.okmedi.net/Manual/?idx=336))
-- **묶음처방 ↔ 약속처방:** OK차트 묶음처방은 기존 진료내역 하루치를 오른쪽 클릭으로 그대로 저장하는 방식입니다. 범위는 보험진료만 / 보험+일반 / 일반만 중에서 고릅니다. 이름 기준 숫자순·가나다순으로 정렬하고, 일괄 삭제 위험 때문에 한 개씩만 지웁니다. 현행 약속처방은 그룹·정렬 순서·사용 범위(개인/모든 진료의)를 두고 진료기록·상병·처방을 직접 구성합니다 ([OK차트: 묶음처방 등록 활용 & 관리하기](https://www.okmedi.net/Manual/?idx=398))
-- **상용구:** OK차트 상용구는 메모에서 문구를 끌어 선택하고 단축키로 이름을 붙여 등록하고, 이름을 치고 단축키를 누르면 바뀝니다. PC 로컬 파일에 저장되고 다른 PC와는 "서버에 저장 / 서버에서 내려받기"로 수동으로 맞춥니다. 범위 구분은 없습니다. 현행은 서버에 저장하고 범위(전역·서식·처방별)를 나눕니다 ([OK차트: 상용구 등록·사용 및 서버에 저장](https://www.okmedi.net/Manual/?idx=400))
-- **도장 이미지:** OK차트는 한의원 도장과 진료의 도장을 출력 양식 환경설정에서 추가하고, "도장 이미지 출력" 옵션으로 진단서·진료비계산서 등에 찍을지 정합니다. 배경 제거는 사용자가 외부 도구로 합니다. 전자서명 사용 여부와는 별개입니다. 현행은 병원 대표자 도장과 진료의 계정 도장을 업로드하면 배경을 자동으로 지우고, 출력 여부 옵션은 스펙에 없습니다 ([OK차트: 도장 이미지 추가 및 사용](https://www.okmedi.net/Manual/?idx=397))
-- **유입경로:** OK차트 유입경로는 관리정보 지정 항목 중 하나라서, 값을 바꾸면 기존 환자 기록까지 일괄로 바뀝니다. 현행 내원 경로는 사용/미사용으로 나눠 관리하고, 수정이 기존 환자에게 어떻게 반영되는지는 스펙에 없습니다 ([OK차트: 주치의 지정 항목 관리](https://www.okmedi.net/Manual/?idx=1040))
+- **설정 저장 위치:** 레거시 차트는 원장실·접수실 프로그램마다 환경설정·복용관리설정·SMS설정을 따로 저장하고, 화면 배치도 PC별로 저장합니다. 병원 공통 정책은 "한의원 환경설정"에 모읍니다. 현행은 설정을 서버 API(`/settings/*`)로 병원 단위로 저장합니다 (레거시 차트 매뉴얼 「원장실 및 접수실 프로그램 환경설정」, 레거시 차트 매뉴얼 「화면 배치저장 활용」)
+- **권한 모델:** 레거시 차트는 사용자 종류(진료한의사 / 접수실 사용자)와 `관리자` 플래그, 기능별 `권한 제한` 체크로 권한을 나눕니다. 현행은 역할 타입과 권한 트리(`/permissions`)를 씁니다 (레거시 차트 매뉴얼 「진료한의사 추가 및 퇴사 관리」, 레거시 차트 매뉴얼 「접수실프로그램 사용자 추가 및 퇴사 관리」)
+- **퇴사 처리:** 레거시 차트는 계정을 지우지 않고 `퇴사`를 체크해 남깁니다. 현행은 비활성화(시작일 지정)와 완전 삭제를 둘 다 둡니다. 진료기록의 진료의 실명 보존을 생각하면 삭제보다 비활성화가 맞습니다 (추정) (레거시 차트 매뉴얼 「진료한의사 추가 및 퇴사 관리」)
+- **묶음처방 ↔ 약속처방:** 레거시 차트 묶음처방은 기존 진료내역 하루치를 오른쪽 클릭으로 그대로 저장하는 방식입니다. 범위는 보험진료만 / 보험+일반 / 일반만 중에서 고릅니다. 이름 기준 숫자순·가나다순으로 정렬하고, 일괄 삭제 위험 때문에 한 개씩만 지웁니다. 현행 약속처방은 그룹·정렬 순서·사용 범위(개인/모든 진료의)를 두고 진료기록·상병·처방을 직접 구성합니다 (레거시 차트 매뉴얼 「묶음처방 등록 활용 & 관리하기」)
+- **상용구:** 레거시 차트 상용구는 메모에서 문구를 끌어 선택하고 단축키로 이름을 붙여 등록하고, 이름을 치고 단축키를 누르면 바뀝니다. PC 로컬 파일에 저장되고 다른 PC와는 "서버에 저장 / 서버에서 내려받기"로 수동으로 맞춥니다. 범위 구분은 없습니다. 현행은 서버에 저장하고 범위(전역·서식·처방별)를 나눕니다 (레거시 차트 매뉴얼 「상용구 등록·사용 및 서버에 저장」)
+- **도장 이미지:** 레거시 차트는 한의원 도장과 진료의 도장을 출력 양식 환경설정에서 추가하고, "도장 이미지 출력" 옵션으로 진단서·진료비계산서 등에 찍을지 정합니다. 배경 제거는 사용자가 외부 도구로 합니다. 전자서명 사용 여부와는 별개입니다. 현행은 병원 대표자 도장과 진료의 계정 도장을 업로드하면 배경을 자동으로 지우고, 출력 여부 옵션은 스펙에 없습니다 (레거시 차트 매뉴얼 「도장 이미지 추가 및 사용」)
+- **유입경로:** 레거시 차트 유입경로는 관리정보 지정 항목 중 하나라서, 값을 바꾸면 기존 환자 기록까지 일괄로 바뀝니다. 현행 내원 경로는 사용/미사용으로 나눠 관리하고, 수정이 기존 환자에게 어떻게 반영되는지는 스펙에 없습니다 (레거시 차트 매뉴얼 「주치의 지정 항목 관리」)
 
 ## 미확인·추정
 

@@ -3,39 +3,39 @@
   "description": "External decoction (ocsv2) pre-payment flow: precheck gate whose catch swallows all failures, herb/pack quantity derivation, payment-method allocation to the server quote, and duplicate-payment risk detection.",
   "sources": [
     {
-      "file": "re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js",
+      "file": "restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js",
       "lines": "546-618",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:9758-9830"
+      "origin": "unminified/TreatmentViewBoard.js:9758-9830"
     },
     {
-      "file": "re-upstream/restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js",
+      "file": "restored/components/ocsV2/OcsV2DecoctionOrderAsideAccordion.vue.js",
       "lines": "478-545",
-      "origin": "unminified/TreatmentViewBoard-B3k9L_c2.js:9690-9757"
+      "origin": "unminified/TreatmentViewBoard.js:9690-9757"
     },
     {
-      "file": "re-upstream/restored/views/OcsV2OrderCreateView.vue.js",
+      "file": "restored/views/OcsV2OrderCreateView.vue.js",
       "lines": "1145-1219",
-      "origin": "unminified/OcsV2OrderCreateView-Bf492rpY.js:4120-4194"
+      "origin": "unminified/OcsV2OrderCreateView.js:4120-4194"
     },
     {
-      "file": "re-upstream/restored/modules/useOcsV2배송상태/part-7.js",
+      "file": "restored/modules/useOcsV2배송상태/part-7.js",
       "lines": "8-37, 99-144",
       "origin": "unminified/useOcsV2배송상태-DHC-CIRk.js:2190-2332"
     },
     {
-      "file": "re-upstream/restored/modules/useOcsV2배송상태/탕전실설정.js",
+      "file": "restored/modules/useOcsV2배송상태/탕전실설정.js",
       "lines": "1324-1331",
       "origin": "unminified/useOcsV2배송상태-DHC-CIRk.js:3940-3947"
     },
     {
-      "file": "re-upstream/restored/api/ocs-v2/query-keys.js",
+      "file": "restored/api/ocs-v2/query-keys.js",
       "lines": "68, 91-99",
-      "origin": "unminified/OcsV2MedicationGuidePagedSheets-vEnmJYhw.js:13-101"
+      "origin": "unminified/OcsV2MedicationGuidePagedSheets.js:13-101"
     },
     {
-      "file": "re-upstream/restored/api/ocsv2/queries.js",
+      "file": "restored/api/ocsv2/queries.js",
       "lines": "201-219",
-      "origin": "unminified/OcsV2MedicationGuidePagedSheets-vEnmJYhw.js:102-306"
+      "origin": "unminified/OcsV2MedicationGuidePagedSheets.js:102-306"
     }
   ],
   "inputSchema": {

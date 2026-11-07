@@ -9,11 +9,11 @@
 
 ## 현행 위치
 
-- `re-upstream/restored/modules/index/첩건본인부담률구분코드.js`
+- `restored/modules/index/첩건본인부담률구분코드.js`
   - `M0e` 질환 코드표 (57-93), `첩건본인부담률구분코드$` (95-99)
   - `R0e` 다른 질환 2개 판정 (683), `N0e` 선택 질환 행 병합 (685-697)
   - `Cdn` 처방 가능 여부·문구 (705-743), `$dn` 본인부담률구분코드 (765-818)
-- `re-upstream/restored/modules/DeskPatientRegister/part-4.js` 컴포저블 `kc`
+- `restored/modules/DeskPatientRegister/part-4.js` 컴포저블 `kc`
   - `첩건처방가능여부 = Cdn(...)`, `watch(첩건질환코드)`에서 `$dn(...)` 결과로 코드 설정
   - 이력 조회
     - 데스크톱 앱: `hiraDynamicServiceProxy.selectPatPcmdList({ 수진자주민번호, 요양기관기호, 진료년도: 올해, 첩약상병구분코드: "00", 본인부담률구분코드: "Z" })` → `목록조회내역` (전체 질환). 조회 후 첫 행을 `POST /chart/pcmd/patients/{pId}`로 서버에 기록합니다.
@@ -50,7 +50,7 @@
 
 ## 원본 코드
 
-`re-upstream/restored/modules/index/첩건본인부담률구분코드.js:683-818` (`// Restored from unminified/index-CBEIvlV0.js:121672-123969`, 해당 부분은 `unminified/index-CBEIvlV0.js:122313-122442`)
+`restored/modules/index/첩건본인부담률구분코드.js:683-818` (`// Restored from unminified/index.js:121672-123969`, 해당 부분은 `unminified/index.js:122313-122442`)
 
 ```js
 const R0e = (e, t) => new Set(e.filter(r => r.첩약상병구분코드 !== "00" && r.첩약상병구분코드 !== t && r.해당요양기관등록여부?.toUpperCase() === "Y" && Number(r.누적투약일수) > 0).map(r => r.첩약상병구분코드)).size >= 2;

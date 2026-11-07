@@ -9,11 +9,11 @@
 
 ## 현행 위치
 
-- 결산 계산기: `re-upstream/restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js`
-- 받을 금액 합산: `re-upstream/restored/components/payment/PaymentCalculator.vue.js`
-- 수납 화면, 제주 지원금, 미수 확인, 저장: `re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js`
-- 선수금 분할: `re-upstream/restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js`
-- 환자 등급 할인: `re-upstream/restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js`
+- 결산 계산기: `restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js`
+- 받을 금액 합산: `restored/components/payment/PaymentCalculator.vue.js`
+- 수납 화면, 제주 지원금, 미수 확인, 저장: `restored/components/desk/DeskVisitPaymentCheckOut.vue.js`
+- 선수금 분할: `restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js`
+- 환자 등급 할인: `restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js`
 
 ## 로직
 
@@ -60,10 +60,10 @@
 
 ## 원본 코드
 
-`re-upstream/restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js:219-348`
+`restored/components/desk/DeskVisitPaymentCheckOutCalculator.vue.js:219-348`
 
 ```js
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:20779-21530
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:20779-21530
 const v = computed(() => {
   if (props.과수금액 < 0) return props.받을금액_비과세 + Math.abs(props.과수금액);
   if (과수납금사용여부.value.비과세 && props.과수금액 > 0) {
@@ -105,10 +105,10 @@ watch(() => H.value.남은금액상태, O => {
 });
 ```
 
-`re-upstream/restored/components/desk/DeskVisitPaymentCheckOut.vue.js:368-387, 429`
+`restored/components/desk/DeskVisitPaymentCheckOut.vue.js:368-387, 429`
 
 ```js
-// Restored from unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang-Ci_y_crh.js:1617-2351
+// Restored from unminified/DeskVisitPaymentCheckOut.vue_vue_type_script_setup_true_lang.js:1617-2351
 const a = computed(() => !I.value.length || !T.value?.length ? 0 : T.value.filter(o => o.진료Id && I.value.includes(o.진료Id)).reduce((o, l) => {
   const r = Ae.value[l.진료Id || ""] || { 비과세: 0, 과세: 0 };
   return o + (l.비과세미수금액 || 0) + r.비과세 + (l.과세미수금액 || 0) + r.과세;
@@ -123,10 +123,10 @@ if (!(a.value - n.value > 0) || o !== 0 || !!de.value.비과세 || !!de.value.�
   title: `받은 금액이 입력되지 않았습니다.\n미수금으로 처리하시겠습니까?`, /* ... */ }))) { /* submit */ }
 ```
 
-`re-upstream/restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js:441-471`
+`restored/modules/SidePanelDeskActions/usePostDeskPrepaidChartsChargesMutation.js:441-471`
 
 ```js
-// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang-BfVK1o3L.js:18683-19127
+// Restored from unminified/SidePanelDeskActions.vue_vue_type_script_setup_true_lang.js:18683-19127
 const XU = (t, s) => {
   const e = Math.max(0, s[vt.현금]);
   const 비과세$ = Math.min(t.비과세, e);
@@ -141,10 +141,10 @@ const ZU = (t, s) => t.flatMap(e => {
 });
 ```
 
-`re-upstream/restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js:176-177, 195-200`
+`restored/components/treatment/TreatmentNonBenefitPrescriptionsRow.vue.js:176-177, 195-200`
 
 ```js
-// Restored from unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang-D_OKxOYX.js:3485-4044
+// Restored from unminified/PrescriptionInputSearchTreatment.vue_vue_type_script_setup_true_lang.js:3485-4044
 const g = computed(() => (props.row.단가 + props.row.세금) * v.value * x.value);   // v=일투여량, x=투약일수
 const k = computed(() => Math.max(0, g.value - y.value));
 const B = () => {
