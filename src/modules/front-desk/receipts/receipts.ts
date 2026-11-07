@@ -5,15 +5,18 @@ import { idempotent, IdempotencyKeyReused, IdempotencyStore } from '../../../sha
 import { isId, newId, newIds } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
+import { ageOn } from '../../../shared/time/calendar.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
+import { PatientRepository } from '../../patients/patient-repository.ts'
 import { VisitRepository } from '../visits/visit-repository.ts'
 import { Visit, VisitNotFound, VisitTransitionInvalid } from '../visits/visit.ts'
 import { Visits } from '../visits/visits.ts'
 import { normalizedPayments, settleCheckout } from './checkout-settlement.ts'
 import type { CheckoutPayment, EncounterDue, OverpaidCreditTarget, PaymentMethod } from './checkout-settlement.types.ts'
 import { refundableOf, toReceiptPayment, voidReceipt } from './receipt-adjustments.ts'
+import { type CopayBasis, copayBasis } from './insured-copay.ts'
 import { chargesOf, encounterDue, quoteIdOf } from './receipt-charges.ts'
 import { ReceiptRepository } from './receipt-repository.ts'
 import {
@@ -122,8 +125,8 @@ const EXTERNAL_METHODS: ReadonlySet<PaymentMethod> = new Set(ExternalPaymentMeth
  * 수납입니다 (front-desk.md 수납 커맨드, 환불과 정정). 견적(`quote`)·수납(`checkout`)·정정(`correct`)이 같은
  * 계산(`settleCheckout`)을 씁니다.
  *
- * 지금은 일반(`SELF_PAY`) 진료의 처방 금액만 계산합니다. 선수금·과수납금 잔액은 0으로 보고, 제주 지원금·패키지·등급
- * 할인은 없습니다. 그 데이터가 생길 때 결산 입력에 더합니다.
+ * 금액은 일반 진료의 처방 금액과 건보·의료급여 진료의 급여 본인부담(`insuredCopay`)입니다. 선수금·과수납금 잔액은
+ * 0으로 보고, 제주 지원금·패키지·등급 할인은 없습니다. 그 데이터가 생길 때 결산 입력에 더합니다.
  */
 export class Receipts extends Context.Service<
   Receipts,
@@ -131,7 +134,7 @@ export class Receipts extends Context.Service<
     /**
      * 수납 견적입니다. 결산이 막을 이유가 있어도 200으로 `errors`·`warnings`를 담아 돌려줍니다. 수납할 수 없는 내원은
      * 수납과 같이 409 `VISIT_TRANSITION_INVALID`·`RECEIPT_ALREADY_EXISTS`입니다. 고른 진료가 이
-     * 내원의 진료가 아니면 422 `CHECKOUT_ENCOUNTER_INVALID`, 처방이 있는 보험 진료는 422
+     * 내원의 진료가 아니면 422 `CHECKOUT_ENCOUNTER_INVALID`, 급여 본인부담을 계산할 수 없는 진료는 422
      * `CHECKOUT_COVERAGE_UNSUPPORTED`입니다. 고른 결제(`paymentIds`)를 적용할 수 없으면 422
      * `CHECKOUT_PAYMENT_INVALID`입니다.
      */
@@ -182,6 +185,7 @@ export class Receipts extends Context.Service<
       const visits = yield* VisitRepository
       const visitCommands = yield* Visits
       const encounters = yield* EncounterRepository
+      const patients = yield* PatientRepository
       const transaction = yield* Transaction
       const idempotency = yield* IdempotencyStore
 
@@ -227,10 +231,19 @@ export class Receipts extends Context.Service<
           const invalid = ids.filter((id) => !byId.has(id))
           if (invalid.length > 0) return yield* new CheckoutEncounterInvalid({ encounterIds: invalid })
 
+          // 급여 본인부담은 내원의 자격과 진료일 기준 만 나이로 계산합니다. 보험구분을 바꾼 진료는 접수 때 받은 자격과
+          // 맞지 않아 계산하지 않습니다
+          const patient = Option.getOrUndefined(yield* patients.findById(visit.tenantId, visit.patientId))
+          const age = patient?.birthDate == null ? null : ageOn(patient.birthDate, visit.date)
           const dues: EncounterDue[] = []
           const unsupported: Array<Id<'encounter'>> = []
           for (const id of ids) {
-            const due = encounterDue(byId.get(id)!)
+            const encounter = byId.get(id)!
+            const basis: CopayBasis =
+              encounter.coverage === visit.coverage
+                ? copayBasis({ ...visit, benefitFlags: encounter.benefitFlags })
+                : { kind: 'UNSUPPORTED' }
+            const due = encounterDue(encounter, { basis, age })
             if (due === null) unsupported.push(id)
             else dues.push(due)
           }
