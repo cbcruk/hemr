@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from 'effect/http-api'
 import { IdempotencyKey, IdempotencyKeyReused } from '../../../shared/http/idempotency.ts'
+import { PageCursor, PageLimit } from '../../../shared/http/paging.ts'
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
 import { Access } from '../../identity/auth/access.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
@@ -29,10 +30,6 @@ const isPositive = Schema.makeFilter(
 const PositiveAmount = (description: string) =>
   Schema.Struct({ taxable: Won, taxExempt: Won }).annotate({ description }).check(isPositive)
 
-const Limit = Schema.String.annotate({ description: '한 쪽의 개수입니다. 1–200입니다.' }).pipe(
-  Schema.decodeTo(Schema.NumberFromString.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 200 }))),
-)
-
 /**
  * 결제 그룹의 구현 메모입니다. API 설명은 `OpenApi.Description`에 있습니다.
  *
@@ -45,7 +42,6 @@ export class PaymentsApi extends HttpApiGroup.make('payments')
       headers: { 'idempotency-key': IdempotencyKey },
       payload: Schema.Struct({
         patientId: PatientId,
-        // 내원 상태는 보지 않습니다. 돈은 이미 오갔으므로 수납했거나 취소한 내원의 결제도 남깁니다
         visitId: Schema.optionalKey(VisitId),
         method: ExternalPaymentMethod,
         amount: PositiveAmount('결제 금액입니다. 과세·비과세 합이 0보다 커야 합니다.'),
@@ -54,7 +50,7 @@ export class PaymentsApi extends HttpApiGroup.make('payments')
         }),
       }).annotate({
         description:
-          '외부 승인 결제 본문입니다. 내원을 정하면 그 환자의 내원이어야 하고(아니면 422 `PAYMENT_VISIT_MISMATCH`), 그 내원의 수납에만 적용합니다.',
+          '외부 승인 결제 본문입니다. 없는 환자·내원은 404입니다. 내원을 정하면 그 환자의 내원이어야 하고(아니면 422 `PAYMENT_VISIT_MISMATCH`), 그 내원의 수납에만 적용합니다. 내원 상태는 보지 않아 수납했거나 취소한 내원의 결제도 남깁니다. 돈은 이미 오갔기 때문입니다. 취소한 내원에 묶인 결제는 다른 내원에 적용할 수 없어 환불합니다.',
       }),
       success: Payment,
       error: [PatientNotFound, VisitNotFound, PaymentVisitMismatch, IdempotencyKeyReused],
@@ -67,10 +63,8 @@ export class PaymentsApi extends HttpApiGroup.make('payments')
         // 수납현황의 미적용 결제는 `UNAPPLIED`입니다
         status: Schema.optionalKey(PaymentStatus),
         patientId: Schema.optionalKey(PatientId),
-        limit: Schema.optionalKey(Limit),
-        cursor: Schema.optionalKey(
-          Schema.String.check(Schema.isMaxLength(100)).annotate({ description: '앞 쪽 응답의 `nextCursor`입니다.' }),
-        ),
+        limit: Schema.optionalKey(PageLimit),
+        cursor: Schema.optionalKey(PageCursor(100)),
       },
       success: Schema.Struct({ items: Schema.Array(Payment), nextCursor: Schema.NullOr(Schema.String) }),
       error: ValidationFailed,
@@ -88,7 +82,9 @@ export class PaymentsApi extends HttpApiGroup.make('payments')
       params: { id: PaymentId },
       headers: { 'idempotency-key': IdempotencyKey },
       payload: Schema.Struct({
-        amount: PositiveAmount('환불 금액입니다. 과세·비과세 각각 남은 금액까지입니다.'),
+        amount: PositiveAmount(
+          '환불 금액입니다. 과세·비과세 합이 0보다 커야 하고(400), 각각 남은 금액을 넘으면 422 `REFUND_REJECTED`(`AMOUNT_EXCEEDED`)입니다.',
+        ),
         refundMethod: RefundMethod,
         reason: Schema.String.check(Schema.isMaxLength(500), Schema.isPattern(/\S/)).annotate({
           description: '환불 사유입니다. 500자까지이고 공백만은 안 됩니다.',

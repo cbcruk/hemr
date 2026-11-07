@@ -47,7 +47,7 @@ export const PaymentMethod = Schema.Literals([
 ]).annotate({
   identifier: 'PaymentMethod',
   description:
-    '결제 수단입니다. 카드(`CARD`), 현금(`CASH`), 계좌이체(`BANK_TRANSFER`), 카카오페이(`KAKAO_PAY`), 지역화폐(`LOCAL_CURRENCY`), 제로페이(`ZERO_PAY`), 선수금(`PREPAID`), 과수납금(`OVERPAID_CREDIT`), 제주 지원금(`JEJU_SUBSIDY`), 패키지(`PACKAGE`)입니다. 과수납금·제주 지원금·패키지는 서버가 만듭니다.',
+    '결제 수단입니다. 카드(`CARD`), 현금(`CASH`), 계좌이체(`BANK_TRANSFER`), 카카오페이(`KAKAO_PAY`), 지역화폐(`LOCAL_CURRENCY`), 제로페이(`ZERO_PAY`), 선수금(`PREPAID`), 과수납금(`OVERPAID_CREDIT`), 제주 지원금(`JEJU_SUBSIDY`), 패키지(`PACKAGE`)입니다. 과수납금·제주 지원금·패키지는 서버가 만드는 수단이고, 지금은 과수납 잔액·제주 지원금·패키지가 없어 만들지 않습니다.',
 })
 
 export const PrepaidKind = Schema.Literals(['CASH_LIKE', 'CARD_LIKE']).annotate({
@@ -88,7 +88,7 @@ export const RefundMethod = Schema.Literals([
 ]).annotate({
   identifier: 'RefundMethod',
   description:
-    '환불 수단입니다. `CARD_CANCEL`은 카드 승인 취소, 카카오페이·지역화폐·제로페이는 같은 수단의 취소입니다. 결제에 쓸 수 있는 수단은 결제 수단마다 다릅니다(어긋나면 422 `REFUND_REJECTED`의 `allowedMethods`).',
+    '환불 수단입니다. `CARD_CANCEL`은 카드 승인 취소, 카카오페이·지역화폐·제로페이는 같은 수단의 취소입니다. 원 결제 수단마다 쓸 수 있는 환불 수단이 다릅니다. 카드는 `CARD_CANCEL`, 카카오페이·지역화폐·제로페이는 같은 수단 취소·`BANK_TRANSFER`·`CASH`, 현금·계좌이체는 `BANK_TRANSFER`·`CASH`, 과수납금은 `OVERPAID_CREDIT`, 선수금은 같은 계열 `PREPAID`이고, 제주 지원금·패키지는 환불할 수 없습니다. 어긋나면 422 `REFUND_REJECTED`의 `allowedMethods`가 쓸 수 있는 수단입니다.',
 })
 export type RefundMethod = typeof RefundMethod.Type
 
@@ -118,12 +118,15 @@ export const Payment = Schema.Struct({
     description:
       '결제를 받은 내원입니다. 기록할 때 정했으면 그 내원의 수납에만 적용하고, 없으면 적용한 수납의 내원이 됩니다.',
   }),
-  receiptId: Schema.NullOr(ReceiptId).annotate({ description: '적용한 영수증입니다. `UNAPPLIED`이면 `null`입니다.' }),
+  receiptId: Schema.NullOr(ReceiptId).annotate({
+    description:
+      '적용한 영수증입니다. 수납에 적용하지 않은 결제(`UNAPPLIED`, 수납 전에 환불한 `REFUNDED`)는 `null`입니다.',
+  }),
   method: PaymentMethod,
   prepaidKind: Schema.NullOr(PrepaidKind).annotate({ description: '선수금 계열입니다. 선수금이 아니면 `null`입니다.' }),
   amount: SplitAmount,
   processorRef: Schema.NullOr(Schema.String).annotate({
-    description: '카드 승인번호처럼 밖에서 받은 참조입니다.',
+    description: '카드 승인번호처럼 밖에서 받은 참조입니다. 수납 요청 안에서 받은 현금·계좌이체는 `null`입니다.',
   }),
   status: PaymentStatus,
   refunds: Schema.Array(Refund).annotate({ description: '환불 기록입니다. 시각 순서입니다.' }),
@@ -172,6 +175,11 @@ export const SettlementResult = Schema.Literals(['PAID', 'OUTSTANDING', 'OVERPAI
   description: '완납(`PAID`), 미수(`OUTSTANDING`), 과수납(`OVERPAID`), 손비(`WRITTEN_OFF`)입니다.',
 })
 
+export const CheckoutWarningCode = Schema.Literals(['OUTSTANDING']).annotate({
+  identifier: 'CheckoutWarningCode',
+  description: '결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다.',
+})
+
 // 판정은 `settleCheckout`입니다
 export const ReceiptSettlement = Schema.Struct({
   due: SplitAmount,
@@ -180,13 +188,13 @@ export const ReceiptSettlement = Schema.Struct({
   outstanding: Schema.Int.annotate({ description: '미수 금액입니다.' }),
   overpaid: Schema.Int.annotate({ description: '과수납 금액입니다.' }),
   writtenOff: Schema.Int.annotate({ description: '손비로 둔 금액입니다.' }),
-  acknowledged: Schema.Array(Schema.Literals(['OUTSTANDING'])).annotate({
+  acknowledged: Schema.Array(CheckoutWarningCode).annotate({
     description: '확인을 받고 넘어간 경고입니다.',
   }),
 }).annotate({
   identifier: 'ReceiptSettlement',
   description:
-    '결산입니다. 받을 금액(`due`)과 받은 금액(`received`)이고, `due − received`가 남은 금액입니다. 받은 금액에는 제주 지원금·과수납금 결제도 들어갑니다.',
+    '결산입니다. 받을 금액(`due`)과 받은 금액(`received`)이고, `due − received`가 남은 금액입니다. 받은 금액에는 제주 지원금·과수납금 결제도 들어갑니다(지금은 둘 다 0입니다).',
 })
 export type ReceiptSettlement = typeof ReceiptSettlement.Type
 
@@ -262,7 +270,7 @@ export class CheckoutRejected extends HttpApiError.Problem<CheckoutRejected>()(
   {
     code: Schema.tag('CHECKOUT_REJECTED'),
     errors: Schema.Array(CheckoutErrorCode),
-    warnings: Schema.Array(Schema.Literals(['OUTSTANDING'])),
+    warnings: Schema.Array(CheckoutWarningCode),
   },
 ) {}
 

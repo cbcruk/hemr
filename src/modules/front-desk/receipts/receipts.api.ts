@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from 'effect/http-api'
 import { IdempotencyKey, IdempotencyKeyReused } from '../../../shared/http/idempotency.ts'
+import { PageCursor, PageLimit } from '../../../shared/http/paging.ts'
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
 import { EncounterId } from '../../clinical/encounters/encounter-id.ts'
 import { Access } from '../../identity/auth/access.ts'
@@ -13,6 +14,7 @@ import {
   CheckoutErrorCode,
   CheckoutPaymentInvalid,
   CheckoutRejected,
+  CheckoutWarningCode,
   PaymentId,
   PaymentMethod,
   PaymentRefundRequired,
@@ -40,11 +42,7 @@ const PaymentInput = Schema.Struct({
   amount: Schema.Struct({ taxable: Won, taxExempt: Won }),
 }).annotate({
   description:
-    '수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요합니다. 0원 결제는 받되 기록하지 않습니다.',
-})
-
-const WarningCode = Schema.Literals(['OUTSTANDING']).annotate({
-  description: '결제 없이 남은 금액을 미수로 남기는 경고(`OUTSTANDING`)입니다.',
+    '수납 요청 안에서 받는 결제 하나입니다. 서버 안에서 끝나는 현금·계좌이체·선수금만 받고, 그 밖의 수단은 결산 오류 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 선수금은 `prepaidKind`가 필요하고, 지금은 선수금 잔액이 없어 0원이 아니면 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 받되 기록하지 않습니다.',
 })
 
 /** 견적과 수납이 같이 받는 필드입니다. */
@@ -63,7 +61,8 @@ const options = {
   payments: Schema.optionalKey(Schema.Array(PaymentInput).check(Schema.isMaxLength(20))),
   useOverpaidCredit: Schema.optionalKey(
     Schema.NullOr(Schema.Literals(['TAX_EXEMPT', 'TAXABLE'])).annotate({
-      description: '과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다.',
+      description:
+        '과수납금을 쓸 쪽(비과세·과세)입니다. 한쪽에만 쓰고, 그쪽 받을 금액까지만 씁니다. 지금은 과수납 잔액이 없어 효과가 없습니다.',
     }),
   ),
   writeOffRemainder: Schema.optionalKey(
@@ -73,9 +72,10 @@ const options = {
     }),
   ),
   acknowledge: Schema.optionalKey(
-    Schema.Array(WarningCode)
-      .check(Schema.isMaxLength(1))
-      .annotate({ description: '확인하고 넘길 경고입니다. 입력 결제 없이 미수로 남길 때 보냅니다.' }),
+    Schema.Array(CheckoutWarningCode).check(Schema.isMaxLength(1)).annotate({
+      description:
+        '확인하고 넘길 경고입니다. 결제(`paymentIds`·`payments`, 0원 제외) 없이 남은 금액을 미수로 남길 때 보냅니다.',
+    }),
   ),
 }
 
@@ -95,14 +95,16 @@ const CheckoutQuote = Schema.Struct({
     outstanding: Schema.Int,
     overpaid: Schema.Int,
     writtenOff: Schema.Int,
-    jejuSubsidy: Schema.Int.annotate({ description: '서버가 만드는 제주 지원금 결제(비과세)입니다.' }),
+    jejuSubsidy: Schema.Int.annotate({
+      description: '서버가 만드는 제주 지원금 결제(비과세)입니다. 지금은 늘 0입니다.',
+    }),
     overpaidCreditApplied: SplitAmount,
   }).annotate({
     description:
-      '결산 미리보기입니다. `due`는 고른 진료의 받을 금액, `effectiveDue`는 제주 지원금·과수납금(`overpaidCreditApplied`)을 뺀 금액, `entered`는 입력 결제의 합, `received`는 입력 결제에 제주 지원금·과수납금을 더한 받은 금액입니다.',
+      '결산 미리보기입니다. `due`는 고른 진료의 받을 금액, `effectiveDue`는 제주 지원금·과수납금(`overpaidCreditApplied`)을 뺀 금액, `entered`는 결제(`paymentIds`의 남은 금액과 `payments`)의 합, `received`는 그 합에 제주 지원금·과수납금을 더한 받은 금액입니다.',
   }),
   errors: Schema.Array(CheckoutErrorCode),
-  warnings: Schema.Array(WarningCode).annotate({
+  warnings: Schema.Array(CheckoutWarningCode).annotate({
     description: '확인을 받지 않은 경고입니다. 있으면 수납이 422입니다.',
   }),
 }).annotate({
@@ -124,12 +126,6 @@ const Reason = Schema.String.check(Schema.isMaxLength(500), Schema.isPattern(/\S
 })
 const Memo = Schema.String.check(Schema.isMaxLength(500)).annotate({ description: '메모입니다. 500자까지입니다.' })
 const ExcludeFromTaxDeduction = Schema.Boolean.annotate({ description: '연말정산 의료비 공제에서 뺍니다.' })
-const Limit = Schema.String.annotate({ description: '한 쪽의 개수입니다. 1–200입니다.' }).pipe(
-  Schema.decodeTo(Schema.NumberFromString.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 200 }))),
-)
-const Cursor = Schema.String.check(Schema.isMaxLength(100)).annotate({
-  description: '앞 쪽 응답의 `nextCursor`입니다.',
-})
 
 /**
  * 수납 그룹의 구현 메모입니다. API 설명은 `OpenApi.Description`에 있습니다.
@@ -168,8 +164,8 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
       query: {
         date: Schema.optionalKey(LocalDate.annotate({ description: '수납한 날(병원 시간대)입니다.' })),
         patientId: Schema.optionalKey(PatientId),
-        limit: Schema.optionalKey(Limit),
-        cursor: Schema.optionalKey(Cursor),
+        limit: Schema.optionalKey(PageLimit),
+        cursor: Schema.optionalKey(PageCursor(100)),
       },
       success: Schema.Struct({ items: Schema.Array(Receipt), nextCursor: Schema.NullOr(Schema.String) }),
       error: ValidationFailed,
@@ -185,7 +181,10 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
       .annotate(OpenApi.Summary, '영수증 조회'),
     HttpApiEndpoint.post('void', '/receipts/:id::void', {
       params: { id: ReceiptId },
-      payload: Schema.Struct({ reason: Reason }),
+      payload: Schema.Struct({ reason: Reason }).annotate({
+        description:
+          '수납 취소 본문입니다. 현금·계좌이체처럼 서버 안에서 받은 결제는 받지 않은 것으로 `VOIDED`가 됩니다. 내원 상태는 바꾸지 않으므로, 다시 수납하려면 처방을 고친 뒤 내원을 다시 열고(`:reopen`) 수납합니다.',
+      }),
       success: Receipt,
       error: [ReceiptNotFound, ReceiptVoided, PaymentRefundRequired],
     })
@@ -206,7 +205,7 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
         reason: Reason,
       }).annotate({
         description:
-          '수납 정정 본문입니다. 진료는 앞 영수증 그대로이고 결제만 다시 받습니다. 보내지 않은 `memo`·`excludeFromTaxDeduction`은 앞 영수증 것을 이어받습니다.',
+          '수납 정정 본문입니다. 앞 영수증을 취소하고 같은 진료로 새 영수증을 만듭니다. 카드·간편결제처럼 밖에서 승인한 결제는 환불하지 않고 남은 금액으로 새 영수증에 옮기고, 현금·계좌이체처럼 서버 안에서 받은 결제는 `VOIDED`가 되므로 `payments`로 다시 보냅니다. 청구 금액이 바뀌지 않아 `quoteId`는 받지 않습니다. 새 영수증의 수납일은 정정한 날입니다. 보내지 않은 `memo`·`excludeFromTaxDeduction`은 앞 영수증 것을 이어받습니다.',
       }),
       success: Receipt,
       error: [
@@ -216,6 +215,7 @@ export class ReceiptsApi extends HttpApiGroup.make('receipts')
         CheckoutCoverageUnsupported,
         CheckoutPaymentInvalid,
         CheckoutRejected,
+        CheckoutWarningCode,
         IdempotencyKeyReused,
       ],
     })
