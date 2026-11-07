@@ -93,8 +93,8 @@ const secondaryDiagnosis = {
   },
 }
 
-describe.each(['memory', 'sqlite'] as const)('amendment proposals HTTP (%s)', (store) => {
-  it('lets the desk propose and a doctor apply it as an amendment with a new revision', async () => {
+describe.each(['memory', 'sqlite'] as const)('정정 제안 HTTP (%s)', (store) => {
+  it('데스크가 제안하고 의사가 반영하면 새 판의 정정이 됩니다', async () => {
     const send = app(store)
     const encounterId = await encounter(send)
     const proposed = await propose(send, encounterId, secondaryDiagnosis)
@@ -129,7 +129,7 @@ describe.each(['memory', 'sqlite'] as const)('amendment proposals HTTP (%s)', (s
     ).toEqual([])
   })
 
-  it('refuses proposals the encounter cannot take', async () => {
+  it('진료에 적용할 수 없는 제안과 사유 없는 제안은 거절합니다', async () => {
     const send = app(store)
     const draft = await encounter(send, false)
     const encounterId = await encounter(send)
@@ -147,7 +147,7 @@ describe.each(['memory', 'sqlite'] as const)('amendment proposals HTTP (%s)', (s
     expect(noReason.status).toBe(400)
   })
 
-  it('checks who may propose, apply and dismiss, and keeps tenants apart', async () => {
+  it('제안은 데스크가, 반영·버림은 의사만 하고 다른 병원은 볼 수 없습니다', async () => {
     const send = app(store)
     const encounterId = await encounter(send)
     const byTherapist = await propose(send, encounterId, secondaryDiagnosis, therapist)
@@ -167,7 +167,7 @@ describe.each(['memory', 'sqlite'] as const)('amendment proposals HTTP (%s)', (s
     expect(proposeElsewhere.status).toBe(404)
   })
 
-  it('does not apply a proposal made before a later amendment, and lets a doctor dismiss it', async () => {
+  it('제안 뒤 정정된 진료에는 반영하지 않고 의사가 버릴 수 있습니다', async () => {
     const send = app(store)
     const encounterId = await encounter(send)
     const proposal = await json(await propose(send, encounterId, secondaryDiagnosis))
@@ -197,7 +197,7 @@ describe.each(['memory', 'sqlite'] as const)('amendment proposals HTTP (%s)', (s
     expect(await json(again)).toMatchObject({ code: 'AMENDMENT_PROPOSAL_NOT_PENDING', currentStatus: 'DISMISSED' })
   })
 
-  it('applies with the checks of an amendment and leaves the proposal pending when they fail', async () => {
+  it('반영은 정정의 검사를 거치고 실패하면 제안이 대기로 남습니다', async () => {
     const send = app(store)
     const encounterId = await encounter(send)
     const lines = await json(await propose(send, encounterId, { prescriptionLines: { upsert: [acupuncture] } }))

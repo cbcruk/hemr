@@ -22,12 +22,21 @@
 | 처방 | `PrescriptionLine` |
 | 수가코드 | `feeCode` |
 | 시술 (치료실) | `Procedure` |
+| 시술 상태 | `ProcedureStatus`: `PENDING`, `RUNNING`, `TIMER_ELAPSED`(타이머 만료), `DONE` |
+| 시술 완료 / 다시 열기 | `:complete` (`DONE`) / `:reopen`. 진료 완료·내원 다시 열기와 다릅니다 |
 | 치료 세트 | `ProcedureSet` |
 | 발침 | `needleRemoval` |
 | 첩약 시범사업 (건보 첩약) | `PILOT_HERBAL` |
 | 추나 | `CHUNA` |
 | 약침 | `PHARMACOPUNCTURE` |
-| 고정된 기록 | `locked` |
+| 진료 완료 | `:complete` (`COMPLETED`). 내원 `COMPLETED`(수납완료)·시술 `DONE`과 다릅니다 |
+| 진료기록 정정 | `:amend` (`AMENDED`). 수납 정정(`correct`, front-desk.md)과 다릅니다 |
+| 판 (완료·정정마다 남는 기록) | `revision` (`source: COMPLETION | AMENDMENT`). 낙관적 잠금 `version`과 다릅니다. 판 조회 경로는 예외로 `/encounters/{id}/versions/{n}`이고 `n`이 판입니다 |
+| 철회 (잘못 연 진료) | `:retract` (`ENTERED_IN_ERROR`, `retraction`) |
+| 고정된 기록 | `locked` (`:lock` / `:unlock`) |
+| 정정 제안 / 반영 / 버림 | `AmendmentProposal` / `:apply` (`APPLIED`) / `:dismiss` (`DISMISSED`) |
+| 낡은 제안 (제안 뒤 정정됨) | `stale` (`baseRevision` ≠ 지금 `revision`) |
+| 확인하고 넘어감 (경고) | `acknowledge` / `acknowledged` |
 
 ## 진료 (Encounter)
 

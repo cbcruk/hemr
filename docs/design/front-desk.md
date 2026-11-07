@@ -20,15 +20,40 @@
 | 외부 예약 요청 | `BookingRequest` |
 | 예약 차단 / 마킹 | `ScheduleBlock` (`kind: BLOCK | MARK`) |
 | 접수·내원 | `Visit` |
+| 내원 상태 | `VisitStatus`: `WAITING`(대기), `IN_TREATMENT`(진료중), `AWAITING_PAYMENT`(수납대기), `COMPLETED`(수납완료), `CANCELED`(취소). `COMPLETED`는 진료 완료(clinical.md)와 다릅니다 |
+| 내원 다시 열기 (수납 뒤) | `:reopen`. 시재 다시 열기·시술 다시 열기와 다릅니다 |
+| 연쇄 취소 | `cascade` |
+| 자격 (접수 때 판정) | `eligibility` (`status`, `nhis`, `identityVerified`, `benefitRestricted`, `copayCode`) |
+| 자격여부 / 급여제한여부 / 본인부담여부 (공단 조회) | `eligibility.nhis.qualificationCode` / `.benefitRestrictionCode` / `.copayCode` (원래 값) |
 | 진료항목 (예약 단위) | `visitType` |
 | 보험구분 | `coverage`: `NHIS`(건보), `MEDICAL_AID`(의료급여), `AUTO_INSURANCE`(자보), `INDUSTRIAL_ACCIDENT`(산재), `SELF_PAY`(일반) |
 | 초진 / 재진 | `isFirstVisit` |
 | 수납 | `Receipt` |
 | 결제 | `Payment` |
-| 손비처리 | `writeOff` |
+| 결제 상태 | `PaymentStatus`: `UNAPPLIED`(수납 전), `CAPTURED`, `PARTIALLY_REFUNDED`, `REFUNDED`, `VOIDED` |
+| 손비처리 | `writeOff` (결산의 `writtenOff`) |
+| 결산 결과 | `SettlementResult`: `PAID`, `OUTSTANDING`(미수), `OVERPAID`(과수납), `WRITTEN_OFF`(손비) |
 | 미수 / 과수납 | `outstanding` / `overpaid` |
 | 시재 | `CashDrawer` |
-| 지출 | `Expense` |
+| 시재 상태 | `CashDrawerStatus`: `NOT_OPENED`, `OPEN`, `CLOSED`, `REOPENED` |
+| 시재 개시 / 마감 / 다시 열기 | `:open` / `:close` (`closing`) / `:reopen`. 다시 열린 기록 `reopened`의 `cause`는 `MANUAL`(`:reopen`)과 `CHANGED_AFTER_CLOSE`(마감 뒤 현금 원장이 바뀜)입니다. 내원 다시 열기와 다릅니다 |
+| 마감 | 시재 마감(`:close`)입니다. 진료 마감(병원 일정의 마지막 구간 종료)·청구 마감(claims.md)과 다릅니다 |
+| 시작 금액 / 이월 | `openingAmount` / 요청 `carryOver`, 응답 `carriedOver` (앞 시재 마감 금액에서 이어받음) |
+| 예상 마감 금액 / 실사 금액 / 차액 | `expectedClosing` / `countedAmount` / `difference` |
+| 지출 / 지출 분류 | `Expense` / `ExpenseCategory` |
+| 견적 | `quoteId` (저장하지 않는 해시) |
+| 받을 금액 / 받은 금액 / 결산 | `due` / `received` / `settlement` |
+| 급여 본인부담 | `insuredCopay` |
+| 요양급여비용 총액 | 계산 함수 `insuredCopay()`가 돌려주는 `total`(내부 값). 응답의 `charges.total`과 다릅니다 |
+| 청구 합계 (본인부담 + 비급여) | `charges.total` |
+| 비급여 | `nonbenefit` |
+| 본인부담 근거 | `CopayBasis` (`NHIS`, `MEDICAL_AID { exempt }`, `FULL`, `UNSUPPORTED`) |
+| 본인부담여부 (직원이 고른 코드) | `eligibility.copayCode`. 공단 값 `eligibility.nhis.copayCode`보다 앞섭니다 (`M003`–`M018` 의료급여 1종 면제 등, 원래 값) |
+| 급여제한 (체납 `02`·`03`) | `eligibility.benefitRestricted` (`benefitRestrictionCode`에서 판정) |
+| 본인부담 100% | `benefitFlags.fullSelfPay` |
+| 수납 취소 | `:void` (`VOIDED`, `voided`). 결제 취소도 `VOIDED`입니다. 내원 취소(`:cancel`, `CANCELED`)와 다릅니다 |
+| 수납 정정 | `:correct` (`correctionOf`, `voided.correctedBy`). 진료기록 정정(`amend`, clinical.md)과 다릅니다 |
+| 환불 | `Refund` |
 
 ## 예약
 
