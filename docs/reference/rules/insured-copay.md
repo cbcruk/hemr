@@ -124,7 +124,7 @@ copay = floor100(total × rate)
 
 ## 서버 구현
 
-[insured-copay.ts](../../../src/modules/front-desk/receipts/insured-copay.ts)의 `copayBasis`·`insuredCopay`, 라인 분류는 [receipt-charges.ts](../../../src/modules/front-desk/receipts/receipt-charges.ts)의 `encounterDue`입니다. 무엇을 계산하고 무엇을 막는지는 [front-desk.md 급여 본인부담 구현 결정](../../design/front-desk.md#급여-본인부담-구현-결정)에 있습니다.
+[insured-copay.ts](../../../src/modules/front-desk/receipts/insured-copay.ts)의 `copayBasis`·`insuredCopay`, 라인 분류는 [receipt-charges.ts](../../../src/modules/front-desk/receipts/receipt-charges.ts)의 `encounterDue`입니다. 산정특례·조산아는 접수가 아직 받지 않아 일반 부담률로 계산되는 알려진 위험이 있습니다. 무엇을 계산하고 무엇을 막는지는 [front-desk.md 급여 본인부담 구현 결정](../../design/front-desk.md#급여-본인부담-구현-결정)에 있습니다.
 
 ## 확인하지 못한 항목
 

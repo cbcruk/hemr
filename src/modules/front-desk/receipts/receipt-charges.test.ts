@@ -114,6 +114,42 @@ describe('encounterDue', () => {
     }
   })
 
+  it('needs the age only where it changes the copay', () => {
+    const priced = (context: Parameters<typeof encounterDue>[1], pregnant = false) =>
+      encounterDue(
+        encounter({
+          coverage: 'MEDICAL_AID',
+          benefitFlags: { fullSelfPay: false, pregnant },
+          prescriptionLines: [insuredLine('CONSULTATION', 12_000), insuredLine('INSURED_MEDICINE', 3_000), line(5_000)],
+        }),
+        context,
+      )
+    expect(priced({ basis: { kind: 'FULL' }, age: null })).toMatchObject({
+      insuredCopay: 15_000,
+      due: { taxExempt: 20_000 },
+    })
+    expect(priced({ basis: { kind: 'MEDICAL_AID', exempt: true }, age: null })?.insuredCopay).toBe(0)
+    expect(priced({ basis: { kind: 'MEDICAL_AID', exempt: false }, age: null })).toBeNull()
+    expect(priced({ basis: { kind: 'MEDICAL_AID', exempt: false }, age: 40 })?.insuredCopay).toBe(1_500)
+  })
+
+  it('refuses medical aid minors and pregnant patients without an exempt code since type 1 would be exempt', () => {
+    const aid = (age: number, pregnant = false) =>
+      encounterDue(
+        encounter({
+          coverage: 'MEDICAL_AID',
+          benefitFlags: { fullSelfPay: false, pregnant },
+          prescriptionLines: [insuredLine('CONSULTATION', 12_000)],
+        }),
+        { basis: { kind: 'MEDICAL_AID', exempt: false }, age },
+      )?.insuredCopay
+    expect(aid(10)).toBeUndefined()
+    expect(aid(17)).toBeUndefined()
+    expect(aid(30, true)).toBeUndefined()
+    expect(aid(0)).toBe(0)
+    expect(aid(18)).toBe(1_000)
+  })
+
   it('still refuses auto-insurance and industrial-accident encounters with content', () => {
     expect(encounterDue(encounter({ coverage: 'AUTO_INSURANCE', prescriptionLines: [line(3_000)] }), adult)).toBeNull()
     expect(
