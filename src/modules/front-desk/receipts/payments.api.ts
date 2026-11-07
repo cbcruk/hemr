@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from 'effect/http-api'
 import { IdempotencyKey, IdempotencyKeyReused } from '../../../shared/http/idempotency.ts'
-import { PageCursor, PageLimit } from '../../../shared/http/paging.ts'
+import { Page, PageCursor, PageLimit } from '../../../shared/http/paging.ts'
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
 import { Access } from '../../identity/auth/access.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
@@ -66,7 +66,7 @@ export class PaymentsApi extends HttpApiGroup.make('payments')
         limit: Schema.optionalKey(PageLimit),
         cursor: Schema.optionalKey(PageCursor(100)),
       },
-      success: Schema.Struct({ items: Schema.Array(Payment), nextCursor: Schema.NullOr(Schema.String) }),
+      success: Page(Payment, '찾은 결제의 한 쪽입니다.'),
       error: ValidationFailed,
     })
       .annotate(Access, Access.requires('receipt:read'))

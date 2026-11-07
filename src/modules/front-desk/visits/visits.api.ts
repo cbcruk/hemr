@@ -103,7 +103,9 @@ export class VisitsApi extends HttpApiGroup.make('visits')
         date: Schema.optionalKey(LocalDate.annotate({ description: '진료일입니다. 없으면 병원 시간대의 오늘입니다.' })),
         status: Schema.optionalKey(VisitStatus),
       },
-      success: Schema.Struct({ items: Schema.Array(Visit) }),
+      success: Schema.Struct({ items: Schema.Array(Visit) }).annotate({
+        description: '그날의 내원입니다. `status`를 주면 그 상태만입니다.',
+      }),
     })
       .annotate(Access, Access.requires('visit:read'))
       .annotate(OpenApi.Summary, '그날 내원 목록'),

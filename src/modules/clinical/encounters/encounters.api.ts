@@ -94,7 +94,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       .annotate(OpenApi.Summary, '진료 조회'),
     HttpApiEndpoint.get('listForPatient', '/patients/:id/encounters', {
       params: { id: PatientId },
-      success: Schema.Struct({ items: Schema.Array(Encounter) }),
+      success: Schema.Struct({ items: Schema.Array(Encounter) }).annotate({ description: '환자의 진료 전부입니다.' }),
       error: PatientNotFound,
     })
       .annotate(Access, Access.requires('encounter:read'))
@@ -108,7 +108,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
           encounter: Encounter,
           warnings: Schema.Array(EncounterWarning),
           prescriptionLineRefs: PrescriptionLineRefs,
-        }),
+        }).annotate({ description: '저장한 진료와 경고입니다.' }),
       ),
       error: [
         EncounterNotFound,
@@ -131,7 +131,7 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
         Schema.Struct({
           encounter: Encounter,
           visit: Schema.NullOr(Visit).annotate({ description: '완료 뒤의 내원입니다. 내원 없는 진료는 `null`입니다.' }),
-        }),
+        }).annotate({ description: '완료한 진료와 내원입니다.' }),
       ),
       error: [
         EncounterNotFound,
@@ -148,7 +148,11 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       params: { id: EncounterId },
       headers,
       payload: AmendPayload,
-      success: withETag(Schema.Struct({ encounter: Encounter, prescriptionLineRefs: PrescriptionLineRefs })),
+      success: withETag(
+        Schema.Struct({ encounter: Encounter, prescriptionLineRefs: PrescriptionLineRefs }).annotate({
+          description: '정정한 진료입니다.',
+        }),
+      ),
       error: [
         EncounterNotFound,
         EncounterNotEditable,
@@ -178,7 +182,9 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
     lockEndpoint('unlock'),
     HttpApiEndpoint.get('listRevisions', '/encounters/:id/versions', {
       params: { id: EncounterId },
-      success: Schema.Struct({ items: Schema.Array(EncounterRevision) }),
+      success: Schema.Struct({ items: Schema.Array(EncounterRevision) }).annotate({
+        description: '진료기록의 판 전부입니다.',
+      }),
       error: EncounterNotFound,
     })
       .annotate(Access, Access.requires('encounter:read'))

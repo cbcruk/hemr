@@ -85,7 +85,7 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.get('listExpenses', '/expenses', {
       query: { from: CalendarDate, to: CalendarDate },
-      success: Schema.Struct({ items: Schema.Array(Expense) }),
+      success: Schema.Struct({ items: Schema.Array(Expense) }).annotate({ description: '기간 안의 지출입니다.' }),
       error: ValidationFailed,
     })
       .annotate(Access, Access.requires('cash_drawer:read'))
@@ -119,13 +119,15 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.delete('removeExpense', '/expenses/:id', {
       params: { id: ExpenseId },
-      success: HttpApiSchema.NoContent,
+      success: HttpApiSchema.NoContent.annotate({ description: '지출을 지웠습니다.' }),
       error: [ExpenseNotFound, CashDrawerNotOpen],
     })
       .annotate(Access, Access.requires('cash_drawer:update'))
       .annotate(OpenApi.Summary, '지출 지우기'),
     HttpApiEndpoint.get('listCategories', '/settings/expense-categories', {
-      success: Schema.Struct({ items: Schema.Array(ExpenseCategory) }),
+      success: Schema.Struct({ items: Schema.Array(ExpenseCategory) }).annotate({
+        description: '병원의 지출 분류입니다.',
+      }),
     })
       .annotate(Access, Access.requires('cash_drawer:read'))
       .annotate(OpenApi.Summary, '지출 분류 목록 (이름 순서)'),
@@ -143,7 +145,7 @@ export class CashDrawersApi extends HttpApiGroup.make('cashDrawers')
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.delete('removeCategory', '/settings/expense-categories/:id', {
       params: { id: ExpenseCategoryId },
-      success: HttpApiSchema.NoContent,
+      success: HttpApiSchema.NoContent.annotate({ description: '지출 분류를 지웠습니다.' }),
       error: ExpenseCategoryNotFound,
     })
       .annotate(Access, Access.requires('setting.normal:update'))

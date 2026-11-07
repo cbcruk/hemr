@@ -85,6 +85,19 @@ describe('OpenAPI 문서', () => {
     expect(english).toEqual([])
   })
 
+  it('성공 응답에 영문 기본 설명(`Success`, `<No Content>`)이 남지 않습니다', () => {
+    // 성공 Schema에 `description`이 없으면 Effect가 영문 기본값을 씁니다. 목록·묶음 Schema에 설명을 답니다
+    const defaults = Object.entries(openApiDocument().paths).flatMap(([path, item]) =>
+      Object.entries(item as Record<string, { responses?: Record<string, { description?: string }> }>).flatMap(
+        ([method, operation]) =>
+          Object.entries(operation.responses ?? {})
+            .filter(([status, response]) => Number(status) < 400 && !/[가-힣]/.test(response.description ?? ''))
+            .map(([status, response]) => `${method} ${path} ${status}: ${response.description}`),
+      ),
+    )
+    expect(defaults).toEqual([])
+  })
+
   it('Schema의 title은 그 이름을 키로 둔 용어 표 행의 업무 용어입니다', () => {
     const pairs = termPairs()
     const schemas = openApiDocument().components.schemas as Record<string, { title?: string }>

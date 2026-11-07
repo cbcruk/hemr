@@ -15,7 +15,9 @@ import { RequestValidation } from './shared/problem/request-validation.ts'
 export class SystemApi extends HttpApiGroup.make('system')
   .add(
     HttpApiEndpoint.get('health', '/health', {
-      success: Schema.Struct({ status: Schema.Literal('ok') }),
+      success: Schema.Struct({ status: Schema.Literal('ok') }).annotate({
+        description: '서버가 요청을 받을 수 있습니다.',
+      }),
     })
       .annotate(Access, Access.public)
       .annotate(OpenApi.Summary, '생존 확인'),

@@ -95,7 +95,9 @@ export class AuthApi extends HttpApiGroup.make('auth')
     HttpApiEndpoint.post('refresh', '/sessions::refresh', {
       // 탭이 보고 있던 병원입니다. 다른 탭이 병원을 바꿔도 이 탭은 그대로 둡니다
       query: { tenantId: Schema.optionalKey(TenantId) },
-      success: Schema.Struct({ ...AccessToken, tenantId: RefreshTenantId }),
+      success: Schema.Struct({ ...AccessToken, tenantId: RefreshTenantId }).annotate({
+        description: '새 access token입니다. refresh token을 새로 바꿨으면 쿠키도 새로 줍니다.',
+      }),
       error: Unauthenticated,
     })
       .annotate(Access, Access.public)
@@ -104,7 +106,9 @@ export class AuthApi extends HttpApiGroup.make('auth')
         OpenApi.Description,
         'refresh token 쿠키로 새 access token을 받습니다. 탭이 보고 있던 병원을 `?tenantId=`로 보내면 다른 탭이 병원을 바꿔도 이 탭은 그 병원에 머뭅니다. 그 병원에 유효한 소속이 없으면 실패하지 않고 `tenantId: null`로 줍니다.',
       ),
-    HttpApiEndpoint.delete('logout', '/sessions/current', { success: HttpApiSchema.NoContent })
+    HttpApiEndpoint.delete('logout', '/sessions/current', {
+      success: HttpApiSchema.NoContent.annotate({ description: '로그아웃했습니다. refresh token 쿠키를 지웁니다.' }),
+    })
       .annotate(Access, Access.public)
       .annotate(OpenApi.Summary, '로그아웃')
       .annotate(
@@ -113,7 +117,7 @@ export class AuthApi extends HttpApiGroup.make('auth')
       ),
     HttpApiEndpoint.post('switchTenant', '/sessions::switch-tenant', {
       payload: Schema.Struct({ tenantId: TenantId }),
-      success: Schema.Struct(AccessToken),
+      success: Schema.Struct(AccessToken).annotate({ description: '고른 병원을 가리키는 새 access token입니다.' }),
       error: TenantAccessDenied,
     })
       .middleware(Authentication)

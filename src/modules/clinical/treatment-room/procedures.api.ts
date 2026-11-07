@@ -34,7 +34,12 @@ const AddPayload = Schema.Struct({
   description: '시술 더하기 본문입니다. 시간이 없으면 기본 시술 시간(300초), 하는 사람이 없으면 `STAFF`입니다.',
 })
 
-const Procedures = Schema.Struct({ items: Schema.Array(Procedure) })
+const Procedures = Schema.Struct({ items: Schema.Array(Procedure) }).annotate({
+  description: '내원의 시술 전부입니다. 진행 순서대로입니다.',
+})
+const ChangedProcedures = Schema.Struct({ items: Schema.Array(Procedure) }).annotate({
+  description: '이 커맨드로 바뀐 시술입니다. 바뀌지 않은 시술은 빠집니다.',
+})
 const visitParams = { id: VisitId }
 const procedureParams = { id: ProcedureId }
 const strict = { errors: 'all', onExcessProperty: 'error' } as const
@@ -71,7 +76,7 @@ export class ProceduresApi extends HttpApiGroup.make('procedures')
           description: '서버 시각입니다. 남은 시간은 `timerEndsAt − serverTime`으로 그립니다.',
         }),
         items: Schema.Array(Schema.Struct({ visit: Visit, procedures: Schema.Array(Procedure) })),
-      }),
+      }).annotate({ description: '그날 치료실 보드입니다.' }),
     })
       // 내원 전체(보험구분·자격 등)를 함께 주므로 내원 조회 권한도 봅니다
       .annotate(Access, Access.requires('procedure:read', 'visit:read'))
@@ -103,7 +108,7 @@ export class ProceduresApi extends HttpApiGroup.make('procedures')
       .annotate(HttpApi.PayloadParseOptions, strict),
     HttpApiEndpoint.delete('remove', '/procedures/:id', {
       params: procedureParams,
-      success: HttpApiSchema.NoContent,
+      success: HttpApiSchema.NoContent.annotate({ description: '시술을 지웠습니다.' }),
       error: [ProcedureNotFound, ProcedureTransitionInvalid],
     })
       .annotate(Access, Access.requires('procedure:write'))
@@ -111,7 +116,7 @@ export class ProceduresApi extends HttpApiGroup.make('procedures')
     HttpApiEndpoint.post('start', '/procedures/:id::start', {
       params: procedureParams,
       // 같은 내원에서 함께 완료한 만료 시술도 담습니다
-      success: Procedures,
+      success: ChangedProcedures,
       error: [ProcedureNotFound, ProcedureTransitionInvalid, ProcedureVisitClosed],
     })
       .annotate(Access, Access.requires('procedure:write'))
@@ -121,14 +126,14 @@ export class ProceduresApi extends HttpApiGroup.make('procedures')
     procedureCommand('reopen', 'reopen', '시술 다시 열기 (대기로)'),
     HttpApiEndpoint.post('startAll', '/visits/:id/procedures::start-all', {
       params: visitParams,
-      success: Procedures,
+      success: ChangedProcedures,
       error: [VisitNotFound, ProcedureVisitClosed],
     })
       .annotate(Access, Access.requires('procedure:write'))
       .annotate(OpenApi.Summary, '내원의 시술 모두 시작'),
     HttpApiEndpoint.post('completeAll', '/visits/:id/procedures::complete-all', {
       params: visitParams,
-      success: Procedures,
+      success: ChangedProcedures,
       error: VisitNotFound,
     })
       .annotate(Access, Access.requires('procedure:write'))

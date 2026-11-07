@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from 'effect/http-api'
-import { PageCursor, PageLimit } from '../../shared/http/paging.ts'
+import { Page, PageCursor, PageLimit } from '../../shared/http/paging.ts'
 import { ValidationFailed, VersionMismatch } from '../../shared/problem/problem.ts'
 import { Access } from '../identity/auth/access.ts'
 import { Authorization } from '../identity/auth/authorization.ts'
@@ -79,7 +79,7 @@ export class PatientsApi extends HttpApiGroup.make('patients')
         limit: Schema.optionalKey(PageLimit),
         cursor: Schema.optionalKey(PageCursor(500)),
       },
-      success: Schema.Struct({ items: Schema.Array(Patient), nextCursor: Schema.NullOr(Schema.String) }),
+      success: Page(Patient, '찾은 환자의 한 쪽입니다.'),
       error: ValidationFailed,
     })
       .annotate(Access, Access.requires('patient:read'))
@@ -92,7 +92,9 @@ export class PatientsApi extends HttpApiGroup.make('patients')
       .annotate(Access, Access.requires('patient:create'))
       .annotate(OpenApi.Summary, '환자 등록'),
     HttpApiEndpoint.get('nextChartNumber', '/patients::next-chart-number', {
-      success: Schema.Struct({ chartNumber: Schema.String }),
+      success: Schema.Struct({ chartNumber: Schema.String }).annotate({
+        description: '지금 등록하면 받을 차트번호입니다.',
+      }),
     })
       .annotate(Access, Access.requires('patient:create'))
       .annotate(OpenApi.Summary, '다음 차트번호')
@@ -128,7 +130,7 @@ export class PatientsApi extends HttpApiGroup.make('patients')
         rrn: Schema.NullOr(Schema.String).annotate({
           description: '주민등록번호 원문입니다. 형식은 `900101-1234567`이고, 없으면 `null`입니다.',
         }),
-      }),
+      }).annotate({ description: '주민등록번호 원문입니다. 열람 기록을 남긴 뒤에 줍니다.' }),
       error: [PatientNotFound, ValidationFailed],
     })
       .annotate(Access, Access.requires('patient.rrn:read'))
@@ -139,14 +141,16 @@ export class PatientsApi extends HttpApiGroup.make('patients')
       ),
     HttpApiEndpoint.get('consents', '/patients/:id/consents', {
       params,
-      success: Schema.Array(Consent),
+      success: Schema.Array(Consent).annotate({
+        description: '목적마다 마지막 동의 기록입니다. 기록이 없는 목적은 빠집니다.',
+      }),
       error: PatientNotFound,
     })
       .annotate(Access, Access.requires('patient:read'))
       .annotate(OpenApi.Summary, '현재 동의 (목적별 마지막 기록)'),
     HttpApiEndpoint.get('consentHistory', '/patients/:id/consents/history', {
       params,
-      success: Schema.Array(Consent),
+      success: Schema.Array(Consent).annotate({ description: '환자의 동의 기록 전부입니다.' }),
       error: PatientNotFound,
     })
       .annotate(Access, Access.requires('patient:read'))

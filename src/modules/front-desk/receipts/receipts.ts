@@ -96,7 +96,9 @@ export interface CheckoutQuote {
 }
 
 /** 수납한 영수증과 `COMPLETED`가 된 내원입니다. */
-export const CheckedOut = Schema.Struct({ receipt: Receipt, visit: Visit })
+export const CheckedOut = Schema.Struct({ receipt: Receipt, visit: Visit }).annotate({
+  description: '수납 결과입니다. 만든 영수증과 수납 뒤의 내원입니다.',
+})
 export type CheckedOut = typeof CheckedOut.Type
 
 export type QuoteError =
