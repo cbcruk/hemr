@@ -139,35 +139,41 @@ export class VisitNotFound extends HttpApiError.Problem<VisitNotFound>()(
   'VisitNotFound',
   { type: problemType('VISIT_NOT_FOUND'), status: 404, title: 'Visit not found' },
   { code: Schema.tag('VISIT_NOT_FOUND') },
-  { description: '요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.' },
+  { description: '`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.' },
 ) {}
 
 export class VisitTransitionInvalid extends HttpApiError.Problem<VisitTransitionInvalid>()(
   'VisitTransitionInvalid',
   { type: problemType('VISIT_TRANSITION_INVALID'), status: 409, title: 'Visit status does not allow this command' },
   { code: Schema.tag('VISIT_TRANSITION_INVALID'), currentStatus: VisitStatus, command: VisitCommand },
-  { description: '내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.' },
+  { description: '`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.' },
 ) {}
 
 export class VisitHasClinicalData extends HttpApiError.Problem<VisitHasClinicalData>()(
   'VisitHasClinicalData',
   { type: problemType('VISIT_HAS_CLINICAL_DATA'), status: 409, title: 'Visit has clinical data' },
   { code: Schema.tag('VISIT_HAS_CLINICAL_DATA'), currentStatus: VisitStatus },
-  { description: '진료나 수납 기록이 있는 내원을 `cascade` 없이 취소하려 했습니다.' },
+  { description: '`VISIT_HAS_CLINICAL_DATA`: 진료나 수납 기록이 있는 내원을 `cascade` 없이 취소하려 했습니다.' },
 ) {}
 
 export class VisitDatePast extends HttpApiError.Problem<VisitDatePast>()(
   'VisitDatePast',
   { type: problemType('VISIT_DATE_PAST'), status: 422, title: 'Visit date has passed' },
   { code: Schema.tag('VISIT_DATE_PAST'), date: Schema.String },
-  { description: '지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다.' },
+  {
+    description:
+      '`VISIT_DATE_PAST`: 지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다. `date`는 내원 날짜입니다.',
+  },
 ) {}
 
 export class VisitAlreadyExists extends HttpApiError.Problem<VisitAlreadyExists>()(
   'VisitAlreadyExists',
   { type: problemType('VISIT_ALREADY_EXISTS'), status: 409, title: 'Visit already exists' },
   { code: Schema.tag('VISIT_ALREADY_EXISTS') },
-  { description: '같은 ID의 내원이 이미 있습니다. 응답을 받지 못해 다시 보냈다면 `GET /visits/{id}`로 확인합니다.' },
+  {
+    description:
+      '`VISIT_ALREADY_EXISTS`: 같은 ID의 내원이 이미 있습니다. 응답을 받지 못해 다시 보냈다면 `GET /visits/{id}`로 확인합니다.',
+  },
 ) {}
 
 export class CheckInRejected extends HttpApiError.Problem<CheckInRejected>()(
@@ -187,5 +193,5 @@ export class CheckInRejected extends HttpApiError.Problem<CheckInRejected>()(
       ] satisfies ReadonlyArray<CheckInErrorCode>),
     ),
   },
-  { description: '접수 검증이 막았습니다. `errors`는 검사 순서대로 모든 이유입니다.' },
+  { description: '`CHECK_IN_REJECTED`: 접수 검증이 막았습니다. `errors`는 검사 순서대로 모든 이유입니다.' },
 ) {}

@@ -67,7 +67,7 @@ export class ProcedureNotFound extends HttpApiError.Problem<ProcedureNotFound>()
   'ProcedureNotFound',
   { type: problemType('PROCEDURE_NOT_FOUND'), status: 404, title: 'Procedure not found' },
   { code: Schema.tag('PROCEDURE_NOT_FOUND') },
-  { description: '요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.' },
+  { description: '`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.' },
 ) {}
 
 export class ProcedureTransitionInvalid extends HttpApiError.Problem<ProcedureTransitionInvalid>()(
@@ -80,7 +80,7 @@ export class ProcedureTransitionInvalid extends HttpApiError.Problem<ProcedureTr
   { code: Schema.tag('PROCEDURE_TRANSITION_INVALID'), currentStatus: ProcedureStatus },
   {
     description:
-      '시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제',
+      '`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다.',
   },
 ) {}
 
@@ -91,7 +91,10 @@ export class ProcedureDurationRejected extends HttpApiError.Problem<ProcedureDur
     code: Schema.tag('PROCEDURE_DURATION_REJECTED'),
     reason: Schema.Literals(['PROCEDURE_DURATION_TOO_SHORT']),
   },
-  { description: '진행 중인 시술의 새 시간이 서버 시계 기준 지난 시간 + 1초보다 짧습니다.' },
+  {
+    description:
+      '`PROCEDURE_DURATION_REJECTED`: 진행 중인 시술의 새 시간이 서버 시계 기준 지난 시간 + 1초보다 짧습니다(`reason`: `PROCEDURE_DURATION_TOO_SHORT`).',
+  },
 ) {}
 
 export class ProcedureVisitClosed extends HttpApiError.Problem<ProcedureVisitClosed>()(
@@ -100,19 +103,18 @@ export class ProcedureVisitClosed extends HttpApiError.Problem<ProcedureVisitClo
   { code: Schema.tag('PROCEDURE_VISIT_CLOSED') },
   {
     description:
-      '취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.',
+      '`PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.',
   },
 ) {}
 
 /** 내원 하나의 시술 수 상한입니다. 순서 변경이 모든 시술 ID를 한 번에 받으므로 같은 상한을 씁니다. */
 export const MAX_PROCEDURES_PER_VISIT = 100
 
-// 설명의 100은 `MAX_PROCEDURES_PER_VISIT`입니다
 export class ProcedureLimitExceeded extends HttpApiError.Problem<ProcedureLimitExceeded>()(
   'ProcedureLimitExceeded',
   { type: problemType('PROCEDURE_LIMIT_EXCEEDED'), status: 422, title: 'Too many procedures on the visit' },
   { code: Schema.tag('PROCEDURE_LIMIT_EXCEEDED') },
-  { description: '내원에 시술이 이미 100개 있습니다.' },
+  { description: `\`PROCEDURE_LIMIT_EXCEEDED\`: 내원에 시술이 이미 ${MAX_PROCEDURES_PER_VISIT}개 있습니다.` },
 ) {}
 
 export class ProcedureOrderInvalid extends HttpApiError.Problem<ProcedureOrderInvalid>()(
@@ -123,5 +125,5 @@ export class ProcedureOrderInvalid extends HttpApiError.Problem<ProcedureOrderIn
     title: 'Procedure order must list every procedure once',
   },
   { code: Schema.tag('PROCEDURE_ORDER_INVALID') },
-  { description: '순서를 바꿀 때 내원의 시술 ID를 빠짐없이 한 번씩 보내지 않았습니다.' },
+  { description: '`PROCEDURE_ORDER_INVALID`: 순서를 바꿀 때 내원의 시술 ID를 빠짐없이 한 번씩 보내지 않았습니다.' },
 ) {}

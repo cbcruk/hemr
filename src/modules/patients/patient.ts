@@ -17,8 +17,7 @@ export const ChartNumber = Schema.String.check(Schema.isPattern(/^[0-9A-Za-z-]{1
 // 자동 채번은 15자리까지 세어, 큰 수동 번호 하나 때문에 채번이 막히지 않습니다. 직접 만든 검사 뒤의 설명은 문서에서
 // 빠지므로 앞에 답니다
 export const ChartNumberInput = Schema.String.annotate({
-  description:
-    '직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다. 비우면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다.',
+  description: '직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다.',
 }).check(
   Schema.isPattern(/^[0-9A-Za-z-]{1,20}$/),
   Schema.makeFilter((value: string) => !/^\d{13,}$/.test(value), { title: 'numeric chart number up to 12 digits' }),
@@ -40,7 +39,7 @@ export const Sex = Schema.Literals(['MALE', 'FEMALE']).annotate({
 
 export const Contact = Schema.Struct({
   kind: Schema.Literals(['MOBILE', 'HOME', 'GUARDIAN']).annotate({
-    description: '휴대전화(`MOBILE`), 집 전화(`HOME`), 보호자(`GUARDIAN`)입니다.',
+    description: '연락처 종류입니다. 휴대전화(`MOBILE`), 집 전화(`HOME`), 보호자(`GUARDIAN`)입니다.',
   }),
   number: Schema.String.check(Schema.isPattern(/^[0-9-]{8,20}$/)).annotate({
     description: '전화번호입니다. 숫자와 `-`만 8–20자 받습니다. 예: `010-1234-5678`',
@@ -63,7 +62,7 @@ export const ConsentPurpose = Schema.String.check(
   ),
 ).annotate({
   description:
-    '동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로)입니다.',
+    '동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로, `templateId`는 영문·숫자·`_`·`-` 1–64자)입니다.',
 })
 export const ConsentStatus = Schema.Literals(['GRANTED', 'DENIED', 'UNDECIDED', 'WITHDRAWN']).annotate({
   identifier: 'ConsentStatus',
@@ -104,7 +103,7 @@ export const Patient = Schema.Struct({
   birthDate: Schema.NullOr(LocalDate).annotate({
     description: '생년월일입니다. 등록 때 비어 있으면 주민등록번호에서 채웁니다.',
   }),
-  isLunarBirthday: Schema.Boolean.annotate({ description: '음력 생일인지입니다.' }),
+  isLunarBirthday: Schema.Boolean.annotate({ description: '음력 생일이면 `true`입니다.' }),
   sex: Schema.NullOr(Sex),
   contacts: Schema.Array(Contact),
   addresses: Schema.Array(Address),
@@ -143,28 +142,34 @@ export class PatientNotFound extends HttpApiError.Problem<PatientNotFound>()(
   'PatientNotFound',
   { type: problemType('PATIENT_NOT_FOUND'), status: 404, title: 'Patient not found' },
   { code: Schema.tag('PATIENT_NOT_FOUND') },
-  { description: '요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.' },
+  { description: '`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.' },
 ) {}
 
 export class ChartNumberTaken extends HttpApiError.Problem<ChartNumberTaken>()(
   'ChartNumberTaken',
   { type: problemType('CHART_NUMBER_TAKEN'), status: 409, title: 'Chart number is already taken' },
   { code: Schema.tag('CHART_NUMBER_TAKEN'), chartNumber: Schema.String },
-  { description: '병원에 이미 있는 차트번호입니다.' },
+  { description: '`CHART_NUMBER_TAKEN`: 병원에 이미 있는 차트번호입니다.' },
 ) {}
 
 export class DuplicateRrn extends HttpApiError.Problem<DuplicateRrn>()(
   'DuplicateRrn',
   { type: problemType('PATIENT_DUPLICATE_RRN'), status: 409, title: 'A patient with this RRN already exists' },
   { code: Schema.tag('PATIENT_DUPLICATE_RRN'), patientId: PatientId },
-  { description: '병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.' },
+  {
+    description:
+      '`PATIENT_DUPLICATE_RRN`: 병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.',
+  },
 ) {}
 
 export class ConsentLockedByPatient extends HttpApiError.Problem<ConsentLockedByPatient>()(
   'ConsentLockedByPatient',
   { type: problemType('CONSENT_LOCKED_BY_PATIENT'), status: 409, title: 'Patient opted out through 080' },
   { code: Schema.tag('CONSENT_LOCKED_BY_PATIENT'), purpose: Schema.String },
-  { description: '환자가 080으로 거부한 목적입니다. 병원이 동의로 되돌릴 수 없고, 환자가 다시 동의해야 합니다.' },
+  {
+    description:
+      '`CONSENT_LOCKED_BY_PATIENT`: 환자가 080으로 거부한 목적입니다. 병원이 동의로 되돌릴 수 없고, 환자가 다시 동의해야 합니다.',
+  },
 ) {}
 
 const INITIALS = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'

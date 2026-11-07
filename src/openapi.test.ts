@@ -68,6 +68,23 @@ describe('OpenAPI 문서', () => {
     expect(strays).toEqual([])
   })
 
+  it('오류 응답의 설명은 오류 코드로 시작하는 한글입니다', () => {
+    // 문제 클래스에 `{ description }`이 없으면 영문 `title`이 설명으로 나갑니다. 같은 상태 코드의 설명은 ` | `로 이어 붙으므로 조각마다 봅니다
+    const english = Object.entries(openApiDocument().paths).flatMap(([path, item]) =>
+      Object.entries(item as Record<string, { responses?: Record<string, { description?: string }> }>).flatMap(
+        ([method, operation]) =>
+          Object.entries(operation.responses ?? {})
+            .filter(
+              ([status, response]) =>
+                Number(status) >= 400 &&
+                (response.description ?? '').split(' | ').some((part) => !/^`[A-Z_]+`: .*[가-힣]/.test(part)),
+            )
+            .map(([status, response]) => `${method} ${path} ${status}: ${response.description}`),
+      ),
+    )
+    expect(english).toEqual([])
+  })
+
   it('Schema의 title은 그 이름을 키로 둔 용어 표 행의 업무 용어입니다', () => {
     const pairs = termPairs()
     const schemas = openApiDocument().components.schemas as Record<string, { title?: string }>

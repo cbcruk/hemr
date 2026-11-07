@@ -126,7 +126,7 @@ export class EncounterNotFound extends HttpApiError.Problem<EncounterNotFound>()
   'EncounterNotFound',
   { type: problemType('ENCOUNTER_NOT_FOUND'), status: 404, title: 'Encounter not found' },
   { code: Schema.tag('ENCOUNTER_NOT_FOUND') },
-  { description: '요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.' },
+  { description: '`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.' },
 ) {}
 
 export class EncounterNotEditable extends HttpApiError.Problem<EncounterNotEditable>()(
@@ -135,7 +135,7 @@ export class EncounterNotEditable extends HttpApiError.Problem<EncounterNotEdita
   { code: Schema.tag('ENCOUNTER_NOT_EDITABLE'), currentStatus: EncounterStatus },
   {
     description:
-      '진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.',
+      '`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.',
   },
 ) {}
 
@@ -145,7 +145,7 @@ export class EncounterVisitCanceled extends HttpApiError.Problem<EncounterVisitC
   { code: Schema.tag('ENCOUNTER_VISIT_CANCELED') },
   {
     description:
-      '취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 취소한 내원은 다시 열 수 없으므로, 기록을 정리하려면 진료를 철회합니다(`:retract`).',
+      '`ENCOUNTER_VISIT_CANCELED`: 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 내원을 취소하면 진료도 철회되므로, 진료 철회가 생기기 전에 취소한 내원에서만 납니다. 취소한 내원은 다시 열 수 없으므로 진료를 철회합니다(`:retract`).',
   },
 ) {}
 
@@ -169,7 +169,7 @@ export class EncounterChangeInvalid extends HttpApiError.Problem<EncounterChange
   { code: Schema.tag('ENCOUNTER_CHANGE_INVALID'), errors: Schema.Array(EncounterChangeError) },
   {
     description:
-      '없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다.',
+      '`ENCOUNTER_CHANGE_INVALID`: 없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다.',
   },
 ) {}
 
@@ -197,7 +197,10 @@ export class EncounterCompletionRejected extends HttpApiError.Problem<EncounterC
   'EncounterCompletionRejected',
   { type: problemType('ENCOUNTER_COMPLETION_REJECTED'), status: 422, title: 'Encounter completion rejected' },
   { code: Schema.tag('ENCOUNTER_COMPLETION_REJECTED'), violations: Schema.Array(CompletionViolation) },
-  { description: '완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.' },
+  {
+    description:
+      '`ENCOUNTER_COMPLETION_REJECTED`: 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.',
+  },
 ) {}
 
 export class EncounterBilled extends HttpApiError.Problem<EncounterBilled>()(
@@ -206,7 +209,7 @@ export class EncounterBilled extends HttpApiError.Problem<EncounterBilled>()(
   { code: Schema.tag('ENCOUNTER_BILLED'), receiptId: Schema.String },
   {
     description:
-      '수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다.',
+      '`ENCOUNTER_BILLED`: 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. `receiptId`는 그 영수증입니다.',
   },
 ) {}
 
@@ -214,7 +217,7 @@ export class EncounterLocked extends HttpApiError.Problem<EncounterLocked>()(
   'EncounterLocked',
   { type: problemType('ENCOUNTER_LOCKED'), status: 409, title: 'Encounter is locked' },
   { code: Schema.tag('ENCOUNTER_LOCKED') },
-  { description: '고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`).' },
+  { description: '`ENCOUNTER_LOCKED`: 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`).' },
 ) {}
 
 export const EncounterRevision = Schema.Struct({
@@ -244,5 +247,5 @@ export class EncounterRevisionNotFound extends HttpApiError.Problem<EncounterRev
   'EncounterRevisionNotFound',
   { type: problemType('ENCOUNTER_REVISION_NOT_FOUND'), status: 404, title: 'Encounter revision not found' },
   { code: Schema.tag('ENCOUNTER_REVISION_NOT_FOUND') },
-  { description: '요청한 판이 없습니다.' },
+  { description: '`ENCOUNTER_REVISION_NOT_FOUND`: 요청한 판이 없습니다.' },
 ) {}

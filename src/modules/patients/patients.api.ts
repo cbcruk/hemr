@@ -31,6 +31,7 @@ const withEtag = HttpApiSchema.WithHeaders(Patient, {
 
 const RegisterPayload = Schema.Struct({
   name: Text(50).annotate({ description: '이름입니다. 50자까지이고 공백만은 안 됩니다.' }),
+  // 보내지 않으면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다(설명은 본문에 있습니다)
   chartNumber: Schema.optionalKey(ChartNumberInput),
   rrn: Schema.optionalKey(RrnInput),
   birthDate: Schema.optionalKey(LocalDate),
@@ -41,11 +42,11 @@ const RegisterPayload = Schema.Struct({
   notes: Schema.optionalKey(Text(2000)),
 }).annotate({
   description:
-    '환자 등록 본문입니다. 생년월일·성별이 비어 있으면 주민등록번호에서 채우고, 함께 보내면 맞아야 합니다(400 `VALIDATION_FAILED`의 `RRN_MISMATCH`). 대표 연락처·주소는 하나까지입니다(`MULTIPLE_PRIMARY`).',
+    '환자 등록 본문입니다. 차트번호를 보내지 않으면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다. 생년월일·성별이 비어 있으면 주민등록번호에서 채우고, 함께 보내면 맞아야 합니다(400 `VALIDATION_FAILED`의 `RRN_MISMATCH`). 대표 연락처·주소는 하나까지입니다(`MULTIPLE_PRIMARY`).',
 })
 
 const UpdatePayload = Schema.Struct({
-  name: Schema.optionalKey(Text(50)),
+  name: Schema.optionalKey(Text(50).annotate({ description: '이름입니다. 50자까지이고 공백만은 안 됩니다.' })),
   chartNumber: Schema.optionalKey(ChartNumberInput),
   rrn: Schema.optionalKey(Schema.NullOr(RrnInput)),
   birthDate: Schema.optionalKey(Schema.NullOr(LocalDate)),
@@ -56,7 +57,7 @@ const UpdatePayload = Schema.Struct({
   notes: Schema.optionalKey(Schema.NullOr(Text(2000))),
 }).annotate({
   description:
-    '환자 수정 본문입니다. 보낸 필드만 바꾸고 `null`은 지웁니다. 연락처·주소는 통째로 바꿉니다. 주민등록번호로 생년월일을 채우지 않고 맞는지만 보므로, 번호를 바꾸면 생년월일도 함께 보냅니다. 바뀐 것이 없으면 버전을 올리지 않습니다.',
+    '환자 수정 본문입니다. 보낸 필드만 바꾸고 `null`은 지웁니다. 연락처·주소는 통째로 바꿉니다. 주민등록번호로 생년월일을 채우지 않고 맞는지만 보므로, 번호를 바꾸면 생년월일·성별도 함께 보냅니다. 바뀐 것이 없으면 버전을 올리지 않습니다.',
 })
 
 /**
@@ -105,7 +106,7 @@ export class PatientsApi extends HttpApiGroup.make('patients')
         'if-match': Schema.optionalKey(
           Schema.String.annotate({
             description:
-              '다른 사람의 변경을 덮어쓰지 않도록 보내는 버전입니다. 선택이고, 없으면 서버가 다시 읽어 적용합니다.',
+              '다른 사람의 변경을 덮어쓰지 않도록 보내는 버전입니다. 예: `"7"`. 선택이고, 없으면 서버가 다시 읽어 적용합니다.',
           }),
         ),
       },
@@ -124,7 +125,9 @@ export class PatientsApi extends HttpApiGroup.make('patients')
         }),
       },
       success: Schema.Struct({
-        rrn: Schema.NullOr(Schema.String).annotate({ description: '주민등록번호 원문입니다. 없으면 `null`입니다.' }),
+        rrn: Schema.NullOr(Schema.String).annotate({
+          description: '주민등록번호 원문입니다. 형식은 `900101-1234567`이고, 없으면 `null`입니다.',
+        }),
       }),
       error: [PatientNotFound, ValidationFailed],
     })
