@@ -49,7 +49,7 @@ flowchart LR
 | 본사 제공 프로그램 | `source: CENTRAL` |
 | 발송 묶음 (발송 그룹) | `MessageCampaign` |
 | 개별 메시지 | `Message` |
-| 광고 / 알림 | `purpose: ADVERTISING | INFORMATIONAL` |
+| 광고 / 알림 | `purpose: ADVERTISING \| INFORMATIONAL` |
 | 발신번호 | `SenderNumber` |
 | 수신거부 | 동의 `DENIED` / `WITHDRAWN` |
 | 대체 발송 (알림톡 실패 시 문자) | `fallback` |

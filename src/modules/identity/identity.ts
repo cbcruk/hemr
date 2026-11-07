@@ -4,8 +4,9 @@ import type { Id } from '../../shared/ids/ids.types.ts'
 import { DOCTOR_ROLES, effectivePermissions } from './permissions.ts'
 import type { AccessGrant, LicenseType, PatientScope, PermissionGrant, Role } from './permissions.ts'
 
-/** 병원 ID입니다. 예: `ten_01J...` */
-export const TenantId = Schema.String.pipe(Schema.refine((value): value is Id<'tenant'> => isId('tenant', value)))
+export const TenantId = Schema.String.annotate({ description: '병원(테넌트) ID입니다. 예: `ten_01J...`' }).pipe(
+  Schema.refine((value): value is Id<'tenant'> => isId('tenant', value)),
+)
 
 /** 사용자 ID입니다. 예: `usr_01J...` */
 export const UserId = Schema.String.pipe(Schema.refine((value): value is Id<'user'> => isId('user', value)))

@@ -8,13 +8,24 @@ import { TenantId } from '../../identity/identity.ts'
 import { LocalDate, PatientId } from '../../patients/patient.ts'
 import type { CheckInErrorCode } from './check-in-validation.types.ts'
 
-/** 내원 ID입니다. 예: `vis_01J...` */
-export const VisitId = Schema.String.pipe(Schema.refine((value): value is Id<'visit'> => isId('visit', value)))
+// 설명은 `refine` 앞에 답니다. 뒤에 달면 OpenAPI 문서에서 빠집니다
+export const VisitId = Schema.String.annotate({ description: '내원 ID입니다. 예: `vis_01J...`' }).pipe(
+  Schema.refine((value): value is Id<'visit'> => isId('visit', value)),
+)
 
-/** 진료 당일 접수 흐름에서 내원이 있는 단계입니다. */
-export const VisitStatus = Schema.Literals(['WAITING', 'IN_TREATMENT', 'AWAITING_PAYMENT', 'COMPLETED', 'CANCELED'])
+export const VisitStatus = Schema.Literals([
+  'WAITING',
+  'IN_TREATMENT',
+  'AWAITING_PAYMENT',
+  'COMPLETED',
+  'CANCELED',
+]).annotate({
+  identifier: 'VisitStatus',
+  title: '내원 상태',
+  description:
+    '진료 당일 접수 흐름의 단계입니다. 대기(`WAITING`), 진료중(`IN_TREATMENT`), 수납대기(`AWAITING_PAYMENT`), 수납완료(`COMPLETED`), 취소(`CANCELED`)입니다. `COMPLETED`는 수납완료이고 진료 완료와 다릅니다.',
+})
 
-/** 내원 상태를 옮기는 커맨드입니다. */
 export const VisitCommand = Schema.Literals([
   'START_TREATMENT',
   'RETURN_TO_WAITING',
@@ -22,84 +33,104 @@ export const VisitCommand = Schema.Literals([
   'CHECKOUT',
   'REOPEN',
   'CANCEL',
-])
+]).annotate({
+  identifier: 'VisitCommand',
+  description:
+    '내원 상태를 옮기는 커맨드입니다. 진료 시작, 대기로 되돌리기, 수납으로 보내기, 수납, 다시 열기(수납 뒤), 취소입니다.',
+})
 
-/** 보험구분입니다. `docs/design/front-desk.md`의 용어 표를 따릅니다. */
-export const Coverage = Schema.Literals(['NHIS', 'MEDICAL_AID', 'AUTO_INSURANCE', 'INDUSTRIAL_ACCIDENT', 'SELF_PAY'])
+export const Coverage = Schema.Literals([
+  'NHIS',
+  'MEDICAL_AID',
+  'AUTO_INSURANCE',
+  'INDUSTRIAL_ACCIDENT',
+  'SELF_PAY',
+]).annotate({
+  identifier: 'Coverage',
+  title: '보험구분',
+  description:
+    '건보(`NHIS`), 의료급여(`MEDICAL_AID`), 자보(`AUTO_INSURANCE`), 산재(`INDUSTRIAL_ACCIDENT`), 일반(`SELF_PAY`)입니다.',
+})
 
-/** 접수 때 받은 공단 자격 조회 결과입니다. 코드는 공단이 정한 값 그대로입니다 (`NhisEligibility`). */
 export const NhisEligibility = Schema.Struct({
-  /** `자격여부`입니다. `1`–`6`은 건보, `7`·`8`은 의료급여입니다. */
-  qualificationCode: Schema.String.check(Schema.isMaxLength(4)),
-  /** `급여제한여부`입니다. */
-  benefitRestrictionCode: Schema.NullOr(Schema.String.check(Schema.isMaxLength(4))),
-  /** `본인부담여부`입니다. */
-  copayCode: Schema.NullOr(Schema.String.check(Schema.isMaxLength(8))),
-  /** 선택기관기호 1–4입니다. */
-  selectedInstitutionCodes: Schema.Array(Schema.String.check(Schema.isMaxLength(20))).check(Schema.isMaxLength(4)),
-  /** `본인확인예외여부`가 `Y`인지입니다. */
-  identityExempt: Schema.Boolean,
+  qualificationCode: Schema.String.check(Schema.isMaxLength(4)).annotate({
+    description: '자격여부입니다. `1`–`6`은 건보, `7`·`8`은 의료급여입니다.',
+  }),
+  benefitRestrictionCode: Schema.NullOr(Schema.String.check(Schema.isMaxLength(4))).annotate({
+    description: '급여제한여부입니다.',
+  }),
+  copayCode: Schema.NullOr(Schema.String.check(Schema.isMaxLength(8))).annotate({ description: '본인부담여부입니다.' }),
+  selectedInstitutionCodes: Schema.Array(Schema.String.check(Schema.isMaxLength(20)))
+    .check(Schema.isMaxLength(4))
+    .annotate({ description: '선택기관기호 1–4입니다.' }),
+  identityExempt: Schema.Boolean.annotate({ description: '본인확인예외여부가 `Y`인지입니다.' }),
+}).annotate({
+  identifier: 'NhisEligibility',
+  description: '접수 때 받은 공단 자격 조회 결과입니다. 코드는 공단이 정한 값 그대로입니다.',
 })
 export type NhisEligibility = typeof NhisEligibility.Type
 
-/** 접수 때 판정한 자격입니다. */
 export const VisitEligibility = Schema.Struct({
-  /** 건보·의료급여는 자격 조회를 거쳐 `VERIFIED`, 그 밖의 보험구분은 `NOT_REQUIRED`입니다. */
-  status: Schema.Literals(['VERIFIED', 'NOT_REQUIRED']),
+  status: Schema.Literals(['VERIFIED', 'NOT_REQUIRED']).annotate({
+    description: '건보·의료급여는 자격 조회를 거쳐 `VERIFIED`, 그 밖의 보험구분은 `NOT_REQUIRED`입니다.',
+  }),
   nhis: Schema.NullOr(NhisEligibility),
-  /** 이번 접수에서 본인확인을 했는지입니다. 다음 접수의 6개월 판정에 씁니다. */
-  identityVerified: Schema.Boolean,
-  /** 체납(`02`·`03`) 급여제한자입니다. 접수는 되지만 전액 수납하고 청구를 보냅니다. */
-  benefitRestricted: Schema.Boolean,
-  /** 직원이 고른 본인부담여부입니다. */
-  copayCode: Schema.NullOr(Schema.String),
-  /** 저장한 선택의료기관 기호입니다. 의뢰 코드가 아니면 서버가 비웁니다. */
-  selectedInstitutionCode: Schema.NullOr(Schema.String),
-})
+  identityVerified: Schema.Boolean.annotate({
+    description: '이번 접수에서 본인확인을 했는지입니다. 다음 접수의 6개월 판정에 씁니다.',
+  }),
+  benefitRestricted: Schema.Boolean.annotate({
+    description: '체납(`02`·`03`) 급여제한자입니다. 접수는 되지만 전액 수납하고 청구를 보냅니다.',
+  }),
+  copayCode: Schema.NullOr(Schema.String).annotate({ description: '직원이 고른 본인부담여부입니다.' }),
+  selectedInstitutionCode: Schema.NullOr(Schema.String).annotate({
+    description: '저장한 선택의료기관 기호입니다. 의뢰 코드가 아니면 서버가 비웁니다.',
+  }),
+}).annotate({ identifier: 'VisitEligibility', title: '자격', description: '접수 때 판정한 자격입니다.' })
 export type VisitEligibility = typeof VisitEligibility.Type
 
-/** 본인부담·검사 예외에 쓰는 표시입니다. 나머지 표시(산정특례 등)는 쓰는 기능이 생길 때 더합니다. */
+// 나머지 표시(산정특례 등)는 쓰는 기능이 생길 때 더합니다
 export const BenefitFlags = Schema.Struct({
-  /** 본인부담 100%입니다. */
-  fullSelfPay: Schema.Boolean,
-  pregnant: Schema.Boolean,
-})
+  fullSelfPay: Schema.Boolean.annotate({ description: '본인부담 100%입니다.' }),
+  pregnant: Schema.Boolean.annotate({ description: '임신부입니다.' }),
+}).annotate({ identifier: 'BenefitFlags', description: '본인부담·검사 예외에 쓰는 표시입니다.' })
 export type BenefitFlags = typeof BenefitFlags.Type
 
-/**
- * 진료 당일 환자의 내원입니다.
- *
- * 지금은 접수와 상태 커맨드에 필요한 필드만 두었습니다. 진료의·진료항목·예약은 그 모듈이 생길 때 더합니다. 전체 리소스는 `docs/design/front-desk.md`를 보세요.
- */
+// 지금은 접수와 상태 커맨드에 필요한 필드만 두었습니다. 진료의·진료항목·예약은 그 모듈이 생길 때 더합니다
 export const Visit = Schema.Struct({
   id: VisitId,
-  /** 내원을 받은 병원입니다. 다른 병원의 내원은 없는 것과 같이 다룹니다(404). */
+  // 다른 병원의 내원은 없는 것과 같이 다룹니다(404)
   tenantId: TenantId,
   patientId: PatientId,
-  /** 진료일입니다. 형식은 `YYYY-MM-DD`입니다. */
-  date: LocalDate,
-  /** 접수한 시각입니다. 목록은 이 순서입니다. */
-  checkedInAt: Schema.String,
+  date: LocalDate.annotate({ description: '진료일입니다. 형식은 `YYYY-MM-DD`입니다.' }),
+  checkedInAt: Schema.String.annotate({ description: '접수한 시각입니다. 목록은 이 순서입니다.' }),
   coverage: Coverage,
-  /** 초진인지입니다. 취소하지 않은 이전 내원이 없으면 초진으로 서버가 정합니다. */
-  isFirstVisit: Schema.Boolean,
+  isFirstVisit: Schema.Boolean.annotate({
+    description: '초진인지입니다. 취소하지 않은 이전 내원이 없으면 초진으로 서버가 정합니다.',
+  }),
   eligibility: VisitEligibility,
   benefitFlags: BenefitFlags,
-  /** 접수 때 함께 만든 진료입니다. 진료가 생기기 전(마이그레이션 `0007` 전)에 접수한 내원은 `null`입니다. */
-  encounterId: Schema.NullOr(EncounterId),
+  // 마이그레이션 `0007` 전에 접수한 내원이 `null`입니다
+  encounterId: Schema.NullOr(EncounterId).annotate({
+    description: '접수 때 함께 만든 진료입니다. 진료 기능이 생기기 전에 접수한 내원은 `null`입니다.',
+  }),
   status: VisitStatus,
-  statusChangedAt: Schema.String,
-  /** 마지막 `:reopen` 또는 `:cancel`에서 받은 사유입니다. */
-  statusReason: Schema.optionalKey(Schema.String),
-  /**
-   * 진료 내용이나 수납 기록이 있는지 여부입니다. 있으면 `cascade` 없이 취소할 수 없습니다.
-   *
-   * 수납 모듈이 생기기 전까지 저장된 값으로 둡니다. 진료 내용은 상태 커맨드가 진료에서 따로 읽어 더합니다
-   * (`Visits.apply`). 수납이 생기면 두 모듈에서 파생합니다.
-   */
-  hasClinicalData: Schema.Boolean,
-  /** 낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다. */
-  version: Schema.Int,
+  statusChangedAt: Schema.String.annotate({ description: '상태가 마지막으로 바뀐 시각입니다.' }),
+  statusReason: Schema.optionalKey(
+    Schema.String.annotate({ description: '마지막 `:reopen` 또는 `:cancel`에서 받은 사유입니다.' }),
+  ),
+  // 수납 모듈이 생기기 전까지 저장된 값으로 둡니다. 진료 내용은 상태 커맨드가 진료에서 따로 읽어 더합니다
+  // (`Visits.apply`). 수납이 생기면 두 모듈에서 파생합니다
+  hasClinicalData: Schema.Boolean.annotate({
+    description:
+      '저장된 진료·수납 기록 표시입니다. 진료 내용은 여기에 늘 반영되지 않아 `false`여도 취소가 409 `VISIT_HAS_CLINICAL_DATA`일 수 있습니다. 취소 판정은 서버가 진료 내용을 더해 합니다.',
+  }),
+  version: Schema.Int.annotate({
+    description: '낙관적 잠금 버전입니다. 응답의 `ETag`로 주고 `If-Match`로 받습니다.',
+  }),
+}).annotate({
+  identifier: 'Visit',
+  title: '내원',
+  description: '진료 당일 환자의 내원입니다. 전체 리소스는 `docs/design/front-desk.md`를 보세요.',
 })
 
 export type Visit = typeof Visit.Type

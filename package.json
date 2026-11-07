@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "openapi": "tsx scripts/openapi.ts"
   },
   "dependencies": {
     "@effect/platform-node": "4.1.2",
