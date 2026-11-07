@@ -46,9 +46,12 @@ export const Procedure = Schema.Struct({
     description: '마지막으로 시작한 시각입니다. 대기(`PENDING`)면 `null`입니다.',
   }),
   timerEndsAt: Schema.NullOr(Schema.String).annotate({
-    description: '타이머가 끝나는 시각입니다. `startedAt + durationSeconds`입니다. 대기면 `null`입니다.',
+    description:
+      '타이머가 끝나는 시각입니다. 진행 중에는 `startedAt + durationSeconds`이고, 만료한 뒤 시간을 바꿔도 실제로 끝난 시각을 지킵니다. 대기면 `null`입니다.',
   }),
-  completedAt: Schema.NullOr(Schema.String),
+  completedAt: Schema.NullOr(Schema.String).annotate({
+    description: '완료한 시각입니다. 완료 전이나 다시 연 뒤에는 `null`입니다.',
+  }),
   createdAt: Schema.String,
   updatedAt: Schema.String,
   version: Schema.Int,

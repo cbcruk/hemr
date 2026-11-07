@@ -8,7 +8,6 @@ const NOTE_MAX_LENGTH = 200_000
 /** 한 요청에서 고치거나 지울 수 있는 처방 라인 수입니다. */
 const LINES_MAX = 100
 
-// 이 진료에 있는지는 서비스가 봅니다(`PRESCRIPTION_LINE_NOT_FOUND`)
 const PrescriptionLineUpsert = Schema.Struct({
   id: Schema.optionalKey(PrescriptionLineId),
   clientRef: Schema.optionalKey(
@@ -29,7 +28,7 @@ const PrescriptionLineUpsert = Schema.Struct({
   prn: Schema.optionalKey(Schema.Boolean.annotate({ description: '빠지면 `false`입니다.' })),
 }).annotate({
   description:
-    '처방 라인 하나입니다. `id`가 있으면 그 라인을 통째로 바꾸고, 없으면 새 라인을 뒤에 더합니다. 금액은 서버가 계산하므로 받지 않습니다.',
+    '처방 라인 하나입니다. `id`가 있으면 그 라인을 통째로 바꾸고, 없으면 새 라인을 뒤에 더합니다. 이 진료에 없는 `id`는 422 `ENCOUNTER_CHANGE_INVALID`(`PRESCRIPTION_LINE_NOT_FOUND`)입니다. 금액은 서버가 계산하므로 받지 않습니다.',
 })
 
 export const EncounterChangesPayload = Schema.Struct({

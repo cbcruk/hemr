@@ -52,7 +52,7 @@ export const EncounterStatus = Schema.Literals(['DRAFT', 'COMPLETED', 'AMENDED',
 export const EncounterType = Schema.Literals(['OFFICE', 'HOME_VISIT', 'TELEMEDICINE']).annotate({
   identifier: 'EncounterType',
   description:
-    '진료 방식입니다. 내원(`OFFICE`), 방문진료(`HOME_VISIT`), 비대면(`TELEMEDICINE`)입니다. 지금은 내원 접수로 만드는 `OFFICE`만 있습니다.',
+    '진료 방식입니다. 내원 진료(`OFFICE`), 방문진료(`HOME_VISIT`), 비대면(`TELEMEDICINE`)입니다. 지금은 내원 접수로 만드는 `OFFICE`만 있습니다.',
 })
 
 // 활력징후·서명·`allowedActions`는 그 기능이 생길 때 더합니다
@@ -69,9 +69,9 @@ export const Encounter = Schema.Struct({
   }),
   encounterType: EncounterType,
   coverage: Coverage,
+  // 현행 기준일시입니다
   serviceAt: Schema.String.annotate({
-    description:
-      '진료 기준 시각입니다(현행 기준일시). 참조데이터·수가는 이 시각으로 고릅니다. 내원 진료는 접수 시각입니다.',
+    description: '진료 기준 시각입니다. 참조데이터·수가는 이 시각으로 고릅니다. 내원 진료는 접수 시각입니다.',
   }),
   note: ClinicalNote,
   diagnoses: Schema.Array(Diagnosis).annotate({ description: '저장한 순서입니다.' }),
@@ -85,8 +85,9 @@ export const Encounter = Schema.Struct({
     description:
       '진료기록 판입니다. 초안은 0, 완료하면 1, 정정할 때마다 1씩 오릅니다. 판마다 그때 내용이 `/encounters/{id}/versions/{n}`에 남습니다. 낙관적 잠금 `version`과 다릅니다.',
   }),
+  // 현행 고정된기록여부입니다
   locked: Schema.Boolean.annotate({
-    description: '고정한 기록입니다(현행 고정된기록여부). 고정하면 정정·철회할 수 없습니다.',
+    description: '고정한 기록입니다. 고정하면 정정·철회할 수 없습니다.',
   }),
   retraction: Schema.NullOr(
     Schema.Struct({ reason: Schema.String, retractedAt: Schema.String, retractedBy: Schema.NullOr(UserId) }),
@@ -116,7 +117,8 @@ export const EncounterWarning = Schema.Struct({
   targets: Schema.optionalKey(Schema.Array(Schema.String).annotate({ description: '문제가 있는 처방 라인 ID입니다.' })),
 }).annotate({
   identifier: 'EncounterWarning',
-  description: '저장은 통과했지만 완료 전에 고쳐야 하는 것입니다. 완료는 같은 이유로 막힙니다.',
+  description:
+    '저장은 통과했지만 완료 전에 고쳐야 하는 것입니다. 상병이 없으면 경고하지 않고, 경고가 없어도 완료 검증(`CompletionViolation`)이 막을 수 있습니다.',
 })
 export type EncounterWarning = typeof EncounterWarning.Type
 
@@ -150,7 +152,10 @@ export const EncounterChangeError = Schema.Struct({
     'DIAGNOSIS_DUPLICATE',
     'PRESCRIPTION_LINE_NOT_FOUND',
     'PRESCRIPTION_LINE_DUPLICATE',
-  ]),
+  ]).annotate({
+    description:
+      '없는 상병 ID, 상병코드 중복(한 요청에 같은 `id` 포함), 없는 처방 라인 ID, 한 요청에 같은 처방 라인 `id`·`clientRef`를 두 번 보냄입니다.',
+  }),
   target: Schema.String.annotate({ description: '상병 ID·상병코드나 처방 라인 ID·`clientRef`입니다.' }),
 }).annotate({ identifier: 'EncounterChangeError', description: '변경을 적용할 수 없는 이유입니다.' })
 export type EncounterChangeError = typeof EncounterChangeError.Type

@@ -56,13 +56,14 @@ export type AmendmentProposal = typeof AmendmentProposal.Type
 export const AmendmentProposalView = Schema.Struct({
   ...AmendmentProposal.fields,
   stale: Schema.Boolean.annotate({
-    description: '낡은 제안입니다. 제안 뒤 진료가 정정되어(`baseRevision` ≠ 진료의 `revision`) 반영할 수 없습니다.',
+    description:
+      '낡은 제안입니다. 제안 뒤 진료가 정정되어(`baseRevision` ≠ 진료의 `revision`) 반영할 수 없습니다. 대기(`PENDING`) 제안만 판정하고, 반영·버린 제안은 늘 `false`입니다.',
   }),
 }).annotate({
   identifier: 'AmendmentProposalView',
   title: '정정 제안',
   description:
-    '정정 제안입니다. 면허 없는 사용자나 시스템이 완료한 진료기록을 바꿔야 할 때 만들고, 의사가 `:apply`로 정정(`:amend`)과 같이 반영하거나 `:dismiss`로 버립니다.',
+    '정정 제안입니다. 면허 없는 사용자가 완료한 진료기록을 바꿔야 할 때 만들고, 의사가 `:apply`로 정정(`:amend`)과 같이 반영하거나 `:dismiss`로 버립니다.',
 })
 export type AmendmentProposalView = typeof AmendmentProposalView.Type
 
