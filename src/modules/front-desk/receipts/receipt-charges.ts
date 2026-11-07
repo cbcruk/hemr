@@ -38,7 +38,8 @@ const GENERAL_KINDS: ReadonlySet<PrescriptionLine['kind']> = new Set([
  * - 일반(`SELF_PAY`) 진료는 처방 라인 금액의 합이 모두 비과세 비급여입니다
  * - 건보·의료급여 진료는 급여 라인의 합으로 급여 본인부담(`insuredCopay`)을 계산하고 비급여 라인을 더합니다.
  *   진찰료도 처방 라인이라 라인에 없으면 받지 않습니다. 본인부담 근거를 정할 수 없거나, 따로
- *   매기는 급여 라인(추나·첩약 시범 등)이 있거나, 급여 라인이 있는데 나이를 모르면 `null`입니다
+ *   매기는 급여 라인(추나·첩약 시범 등)이 있거나, 나이가 필요한데 모르거나, 의료급여 1종 면제일 수 있는데 면제 코드가
+ *   없으면 `null`입니다
  * - 자보·산재 진료는 처방이나 본문·상병이 있으면 `null`이고, 아무것도 쓰지 않았으면 0원입니다
  *
  * 처방 라인에 과세 여부가 아직 없어 모두 비과세로 봅니다. 한의원 진료는 대부분 부가가치세 면세이고, 과세 비급여(미용
@@ -64,12 +65,23 @@ export function encounterDue(encounter: Encounter, context: DueContext): Encount
   const insured = encounter.prescriptionLines.filter((line) => !nonbenefit.includes(line))
   if (insured.length === 0) return due(0, sum(nonbenefit))
   const { basis, age } = context
-  if (basis.kind === 'UNSUPPORTED' || age === null || insured.some((line) => !GENERAL_KINDS.has(line.kind))) {
+  if (basis.kind === 'UNSUPPORTED' || insured.some((line) => !GENERAL_KINDS.has(line.kind))) return null
+  // 나이는 건보 부담률과 의료급여 정액에만 씁니다. 전액·1종 면제는 나이와 상관없습니다
+  const needsAge = basis.kind === 'NHIS' || (basis.kind === 'MEDICAL_AID' && !basis.exempt)
+  if (needsAge && age === null) return null
+  // 1종의 18세 미만·임산부는 면제(0원)인데, 면제 코드가 없으면 1종인지 2종인지 몰라 계산하지 않습니다
+  if (
+    basis.kind === 'MEDICAL_AID' &&
+    !basis.exempt &&
+    age !== null &&
+    age >= 1 &&
+    (age < 18 || encounter.benefitFlags.pregnant)
+  ) {
     return null
   }
   const { copay } = insuredCopay({
     basis,
-    age,
+    age: age ?? 0,
     pregnant: encounter.benefitFlags.pregnant,
     dispensed: insured.some((line) => line.kind === 'INSURED_MEDICINE'),
     amount: sum(insured),

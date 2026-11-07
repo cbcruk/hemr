@@ -154,6 +154,47 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
     expect(result.receipt.settlement.result).toBe('PAID')
   })
 
+  it('refuses an NHIS visit with insured lines when the patient has no birth date', async () => {
+    const error = await run(
+      Effect.gen(function* () {
+        const patient = yield* (yield* Patients).register({ name: '무생일' })
+        const visit = yield* (yield* Visits).checkIn({
+          patientId: patient.id,
+          coverage: 'NHIS',
+          eligibility: { qualificationCode: '1', selectedInstitutionCodes: [] },
+          identityVerified: true,
+        })
+        const encounters = yield* EncounterRepository
+        const encounter = Option.getOrThrow(
+          yield* encounters.findById(visit.tenantId, visit.encounterId as Id<'encounter'>),
+        )
+        yield* encounters.save(
+          {
+            ...encounter,
+            prescriptionLines: [
+              {
+                id: 'pl_01JBQ000000000000000000001' as Id<'prescriptionLine'>,
+                kind: 'CONSULTATION',
+                feeCode: '10200',
+                categoryCode: '33001001',
+                name: '재진',
+                dose: { perDay: 1, days: 1 },
+                unitPrice: 12_000,
+                amount: 12_000,
+                prn: false,
+              },
+            ],
+            version: encounter.version + 1,
+          },
+          { expectedVersion: encounter.version },
+        )
+        return yield* Effect.flip((yield* Receipts).quote(visit.id, {}))
+      }),
+      store,
+    )
+    expect(error).toMatchObject({ code: 'CHECKOUT_COVERAGE_UNSUPPORTED', encounterIds: [expect.any(String)] })
+  })
+
   it('applies a recorded payment ahead of in-request payments and reads them back in that order', async () => {
     const result = await run(
       Effect.gen(function* () {
