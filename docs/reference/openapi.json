@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Api",
+    "title": "hemr",
     "version": "0.0.1",
-    "description": "hemr 한의원 EMR 백엔드의 HTTP API입니다. 모든 경로는 `/v1` 아래에 있습니다. 오류는 RFC 9457 문제 응답(`application/problem+json`)이고 `code`로 가립니다. 요청이 스키마를 통과하지 못하면 첫 오류에서 멈추지 않고 모든 위반을 모아 400 `VALIDATION_FAILED`로 돌려줍니다. 커맨드는 `POST /리소스/{id}:커맨드`로 보냅니다."
+    "description": "hemr 한의원 EMR 백엔드의 HTTP API입니다. 모든 경로는 `/v1` 아래에 있습니다. 오류는 RFC 9457 문제 응답(`application/problem+json`)이고 `code`로 가립니다. 요청이 스키마를 통과하지 못하면 첫 오류에서 멈추지 않고 모든 위반을 모아 400 `VALIDATION_FAILED`로 돌려줍니다. 커맨드는 경로 끝에 `:커맨드`를 붙여 보냅니다(`POST /visits/{id}:cancel`, `POST /visits:check-in`). 로그인(`POST /auth/sessions`)으로 받은 access token을 `Authorization: Bearer`로 보내고, 병원 업무 API는 병원을 고른 토큰이 필요합니다(아니면 403 `TENANT_NOT_SELECTED`, `:switch-tenant`로 고름). 목록의 `limit` 기본값은 50이고 마지막 쪽의 `nextCursor`는 `null`입니다."
   },
   "paths": {
     "/v1/health": {
@@ -38,7 +38,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -48,7 +48,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -106,7 +106,7 @@
                           "type": "null"
                         }
                       ],
-                      "description": "access token이 가리키는 병원입니다. 소속이 여럿이면 `null`이고 병원 전환(`:switch-tenant`)으로 고릅니다."
+                      "description": "access token이 가리키는 병원입니다. 오늘 유효한 소속이 하나면 그 병원이고, 여럿이거나 없으면 `null`이라 병원 전환(`:switch-tenant`)으로 고릅니다."
                     }
                   },
                   "required": [
@@ -123,7 +123,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -133,7 +133,7 @@
             }
           },
           "401": {
-            "description": "아이디가 없거나 비밀번호가 틀렸습니다. 아이디 존재 여부가 드러나지 않게 둘을 나누지 않습니다.",
+            "description": "`INVALID_CREDENTIALS`: 아이디가 없거나 비밀번호가 틀렸습니다. 아이디 존재 여부가 드러나지 않게 둘을 나누지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -143,7 +143,7 @@
             }
           },
           "423": {
-            "description": "연속 로그인 실패로 잠긴 계정입니다. 본인확인으로 잠금을 풀어야 합니다.",
+            "description": "`ACCOUNT_LOCKED`: 연속 로그인 실패(5회)로 잠긴 계정입니다. 잠긴 동안은 맞는 비밀번호도 거절하고, 시간이 지나도 풀리지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -153,7 +153,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -240,7 +240,7 @@
                           "type": "null"
                         }
                       ],
-                      "description": "access token이 가리키는 병원입니다. 소속이 여럿이면 `null`이고 병원 전환(`:switch-tenant`)으로 고릅니다."
+                      "description": "새 access token이 가리키는 병원입니다. `?tenantId=`로 물은 병원(없으면 세션이 고른 병원)에 오늘 유효한 소속이 없거나, 묻지 않았는데 세션이 병원을 고르지 않았으면 오류가 아니라 `null`입니다."
                     }
                   },
                   "required": [
@@ -254,7 +254,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -264,7 +264,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -274,7 +274,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -284,7 +284,7 @@
             }
           }
         },
-        "description": "refresh token 쿠키로 새 access token을 받습니다. 탭이 보고 있던 병원을 `?tenantId=`로 보내면 다른 탭이 병원을 바꿔도 이 탭은 그 병원에 머뭅니다.",
+        "description": "refresh token 쿠키로 새 access token을 받습니다. 탭이 보고 있던 병원을 `?tenantId=`로 보내면 다른 탭이 병원을 바꿔도 이 탭은 그 병원에 머뭅니다. 그 병원에 유효한 소속이 없으면 실패하지 않고 `tenantId: null`로 줍니다.",
         "summary": "access token 새로 받기"
       }
     },
@@ -301,7 +301,7 @@
             "description": "<No Content>"
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -311,7 +311,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -366,7 +366,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -376,7 +376,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -386,7 +386,7 @@
             }
           },
           "403": {
-            "description": "유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
+            "description": "`TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -396,7 +396,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -456,7 +456,8 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/MembershipSummary"
-                      }
+                      },
+                      "description": "오늘 유효한 소속입니다."
                     },
                     "tenant": {
                       "anyOf": [
@@ -495,7 +496,7 @@
                           "type": "null"
                         }
                       ],
-                      "description": "access token이 가리키는 병원입니다. 병원을 고르지 않았으면 `null`입니다."
+                      "description": "access token이 가리키는 병원입니다. 병원을 고르지 않았거나 그 병원의 소속이 더는 유효하지 않으면 `null`이고, 그때 `role`·`scope`는 `null`, `permissions`는 비어 있습니다."
                     },
                     "role": {
                       "anyOf": [
@@ -520,7 +521,7 @@
                           "type": "null"
                         }
                       ],
-                      "description": "볼 수 있는 환자 범위입니다. 모든 환자(`ALL`), 자기 환자(`OWN`)입니다."
+                      "description": "볼 수 있는 환자 범위입니다. 모든 환자(`ALL`), 담당 환자(`OWN`)입니다. `OWN`은 아직 조회를 좁히지 않습니다."
                     },
                     "permissions": {
                       "type": "array",
@@ -545,7 +546,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -555,7 +556,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -565,7 +566,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -600,7 +601,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "description": "한 쪽의 개수입니다. 1–200입니다."
+              "description": "한 쪽의 개수입니다. 1–200이고 기본값은 50입니다."
             },
             "required": false
           },
@@ -655,7 +656,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -665,7 +666,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -675,7 +676,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -695,7 +696,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -739,7 +740,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -749,7 +750,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -759,7 +760,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -779,7 +780,7 @@
             }
           },
           "409": {
-            "description": "병원에 이미 있는 차트번호입니다. | 병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.",
+            "description": "`CHART_NUMBER_TAKEN`: 병원에 이미 있는 차트번호입니다. | `PATIENT_DUPLICATE_RRN`: 병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -796,7 +797,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -820,7 +821,7 @@
                   },
                   "chartNumber": {
                     "type": "string",
-                    "description": "직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다. 비우면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다."
+                    "description": "직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다."
                   },
                   "rrn": {
                     "type": "string",
@@ -859,7 +860,7 @@
                   "name"
                 ],
                 "additionalProperties": false,
-                "description": "환자 등록 본문입니다. 생년월일·성별이 비어 있으면 주민등록번호에서 채우고, 함께 보내면 맞아야 합니다(400 `VALIDATION_FAILED`의 `RRN_MISMATCH`). 대표 연락처·주소는 하나까지입니다(`MULTIPLE_PRIMARY`)."
+                "description": "환자 등록 본문입니다. 차트번호를 보내지 않으면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다. 생년월일·성별이 비어 있으면 주민등록번호에서 채우고, 함께 보내면 맞아야 합니다(400 `VALIDATION_FAILED`의 `RRN_MISMATCH`). 대표 연락처·주소는 하나까지입니다(`MULTIPLE_PRIMARY`)."
               }
             }
           },
@@ -900,7 +901,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -910,7 +911,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -920,7 +921,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -940,7 +941,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -997,7 +998,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1007,7 +1008,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1017,7 +1018,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1037,7 +1038,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1047,7 +1048,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1079,7 +1080,7 @@
             "in": "header",
             "schema": {
               "type": "string",
-              "description": "다른 사람의 변경을 덮어쓰지 않도록 보내는 버전입니다. 선택이고, 없으면 서버가 다시 읽어 적용합니다."
+              "description": "다른 사람의 변경을 덮어쓰지 않도록 보내는 버전입니다. 예: `\"7\"`. 선택이고, 없으면 서버가 다시 읽어 적용합니다."
             },
             "required": false
           }
@@ -1110,7 +1111,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1120,7 +1121,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1130,7 +1131,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1150,7 +1151,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1160,7 +1161,7 @@
             }
           },
           "409": {
-            "description": "병원에 이미 있는 차트번호입니다. | 병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.",
+            "description": "`CHART_NUMBER_TAKEN`: 병원에 이미 있는 차트번호입니다. | `PATIENT_DUPLICATE_RRN`: 병원에 같은 주민등록번호의 환자가 이미 있습니다. `patientId`는 그 환자입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1177,7 +1178,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1187,7 +1188,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1206,11 +1207,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "description": "이름입니다. 50자까지이고 공백만은 안 됩니다."
                   },
                   "chartNumber": {
                     "type": "string",
-                    "description": "직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다. 비우면 서버가 숫자 차트번호 중 가장 큰 값 + 1로 채번합니다."
+                    "description": "직원이 입력하는 차트번호입니다. 영문·숫자·`-` 20자까지이고, 숫자로만 된 번호는 12자리까지입니다."
                   },
                   "rrn": {
                     "anyOf": [
@@ -1274,7 +1276,7 @@
                   }
                 },
                 "additionalProperties": false,
-                "description": "환자 수정 본문입니다. 보낸 필드만 바꾸고 `null`은 지웁니다. 연락처·주소는 통째로 바꿉니다. 주민등록번호로 생년월일을 채우지 않고 맞는지만 보므로, 번호를 바꾸면 생년월일도 함께 보냅니다. 바뀐 것이 없으면 버전을 올리지 않습니다."
+                "description": "환자 수정 본문입니다. 보낸 필드만 바꾸고 `null`은 지웁니다. 연락처·주소는 통째로 바꿉니다. 주민등록번호로 생년월일을 채우지 않고 맞는지만 보므로, 번호를 바꾸면 생년월일·성별도 함께 보냅니다. 바뀐 것이 없으면 버전을 올리지 않습니다."
               }
             }
           },
@@ -1331,7 +1333,7 @@
                           "type": "null"
                         }
                       ],
-                      "description": "주민등록번호 원문입니다. 없으면 `null`입니다."
+                      "description": "주민등록번호 원문입니다. 형식은 `900101-1234567`이고, 없으면 `null`입니다."
                     }
                   },
                   "required": [
@@ -1343,7 +1345,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1353,7 +1355,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1363,7 +1365,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1383,7 +1385,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1393,7 +1395,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1444,7 +1446,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1454,7 +1456,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1464,7 +1466,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1484,7 +1486,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1494,7 +1496,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1539,7 +1541,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1549,7 +1551,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1559,7 +1561,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1579,7 +1581,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1589,7 +1591,7 @@
             }
           },
           "409": {
-            "description": "환자가 080으로 거부한 목적입니다. 병원이 동의로 되돌릴 수 없고, 환자가 다시 동의해야 합니다.",
+            "description": "`CONSENT_LOCKED_BY_PATIENT`: 환자가 080으로 거부한 목적입니다. 병원이 동의로 되돌릴 수 없고, 환자가 다시 동의해야 합니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1599,7 +1601,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1619,7 +1621,7 @@
                 "properties": {
                   "purpose": {
                     "type": "string",
-                    "description": "동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로)입니다."
+                    "description": "동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로, `templateId`는 영문·숫자·`_`·`-` 1–64자)입니다."
                   },
                   "status": {
                     "$ref": "#/components/schemas/ConsentStatus"
@@ -1678,7 +1680,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1688,7 +1690,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1698,7 +1700,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1718,7 +1720,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1728,7 +1730,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1795,7 +1797,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1805,7 +1807,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1815,7 +1817,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1835,7 +1837,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1880,7 +1882,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1890,7 +1892,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1900,7 +1902,7 @@
             }
           },
           "403": {
-            "description": "이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
+            "description": "`PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | `TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1920,7 +1922,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1930,7 +1932,7 @@
             }
           },
           "409": {
-            "description": "같은 ID의 내원이 이미 있습니다. 응답을 받지 못해 다시 보냈다면 `GET /visits/{id}`로 확인합니다.",
+            "description": "`VISIT_ALREADY_EXISTS`: 같은 ID의 내원이 이미 있습니다. 응답을 받지 못해 다시 보냈다면 `GET /visits/{id}`로 확인합니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1940,7 +1942,7 @@
             }
           },
           "422": {
-            "description": "접수 검증이 막았습니다. `errors`는 검사 순서대로 모든 이유입니다.",
+            "description": "`CHECK_IN_REJECTED`: 접수 검증이 막았습니다. `errors`는 검사 순서대로 모든 이유입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1950,7 +1952,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2197,7 +2199,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2207,7 +2209,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2217,7 +2219,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2237,7 +2239,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2247,7 +2249,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2312,7 +2314,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2322,7 +2324,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2332,7 +2334,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2352,7 +2354,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2362,7 +2364,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2372,7 +2374,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2382,7 +2384,7 @@
             }
           },
           "422": {
-            "description": "지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다.",
+            "description": "`VISIT_DATE_PAST`: 지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다. `date`는 내원 날짜입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2392,7 +2394,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2457,7 +2459,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2467,7 +2469,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2477,7 +2479,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2497,7 +2499,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2507,7 +2509,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2517,7 +2519,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2527,7 +2529,7 @@
             }
           },
           "422": {
-            "description": "지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다.",
+            "description": "`VISIT_DATE_PAST`: 지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다. `date`는 내원 날짜입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2537,7 +2539,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2602,7 +2604,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2612,7 +2614,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2622,7 +2624,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2642,7 +2644,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2652,7 +2654,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2662,7 +2664,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2672,7 +2674,7 @@
             }
           },
           "422": {
-            "description": "지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다.",
+            "description": "`VISIT_DATE_PAST`: 지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다. `date`는 내원 날짜입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2682,7 +2684,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2747,7 +2749,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2757,7 +2759,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2767,7 +2769,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2787,7 +2789,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2797,7 +2799,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2807,7 +2809,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2817,7 +2819,7 @@
             }
           },
           "422": {
-            "description": "지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다.",
+            "description": "`VISIT_DATE_PAST`: 지난 날짜의 내원에 진료 흐름 커맨드를 보냈습니다. 수납·다시 열기·취소만 받습니다. `date`는 내원 날짜입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2827,7 +2829,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2921,7 +2923,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2931,7 +2933,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2941,7 +2943,7 @@
             }
           },
           "403": {
-            "description": "이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
+            "description": "`PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | `TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2961,7 +2963,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2971,7 +2973,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. | 진료나 수납 기록이 있는 내원을 `cascade` 없이 취소하려 했습니다. | 밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. 먼저 `:refund`로 전액 환불합니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. | `VISIT_HAS_CLINICAL_DATA`: 진료나 수납 기록이 있는 내원을 `cascade` 없이 취소하려 했습니다. | `PAYMENT_REFUND_REQUIRED`: 밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. `receiptId`는 그 영수증(내원 취소면 내원의 영수증)이고, `paymentIds`의 결제를 먼저 `:refund`로 전액 환불합니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2991,7 +2993,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3001,7 +3003,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3082,7 +3084,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3092,7 +3094,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3102,7 +3104,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3122,7 +3124,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3132,7 +3134,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3215,7 +3217,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3225,7 +3227,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3235,7 +3237,7 @@
             }
           },
           "403": {
-            "description": "이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
+            "description": "`PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | `TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3255,7 +3257,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3265,7 +3267,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. | 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 취소한 내원은 다시 열 수 없으므로, 기록을 정리하려면 진료를 철회합니다(`:retract`).",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | `ENCOUNTER_BILLED`: 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. `receiptId`는 그 영수증입니다. | `ENCOUNTER_VISIT_CANCELED`: 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 내원을 취소하면 진료도 철회되므로, 진료 철회가 생기기 전에 취소한 내원에서만 납니다. 취소한 내원은 다시 열 수 없으므로 진료를 철회합니다(`:retract`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3285,7 +3287,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3295,7 +3297,7 @@
             }
           },
           "422": {
-            "description": "없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다.",
+            "description": "`ENCOUNTER_CHANGE_INVALID`: 없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3305,7 +3307,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3374,7 +3376,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3384,7 +3386,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3394,7 +3396,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3414,7 +3416,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3424,7 +3426,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3510,7 +3512,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3520,7 +3522,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3530,7 +3532,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3550,7 +3552,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3560,7 +3562,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 취소한 내원은 다시 열 수 없으므로, 기록을 정리하려면 진료를 철회합니다(`:retract`).",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | `ENCOUNTER_VISIT_CANCELED`: 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 내원을 취소하면 진료도 철회되므로, 진료 철회가 생기기 전에 취소한 내원에서만 납니다. 취소한 내원은 다시 열 수 없으므로 진료를 철회합니다(`:retract`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3577,7 +3579,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3587,7 +3589,7 @@
             }
           },
           "422": {
-            "description": "완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.",
+            "description": "`ENCOUNTER_COMPLETION_REJECTED`: 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3597,7 +3599,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3713,7 +3715,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3723,7 +3725,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3733,7 +3735,7 @@
             }
           },
           "403": {
-            "description": "이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
+            "description": "`PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | `TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3753,7 +3755,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3763,7 +3765,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). | 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. | 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 취소한 내원은 다시 열 수 없으므로, 기록을 정리하려면 진료를 철회합니다(`:retract`).",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | `ENCOUNTER_LOCKED`: 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). | `ENCOUNTER_BILLED`: 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. `receiptId`는 그 영수증입니다. | `ENCOUNTER_VISIT_CANCELED`: 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 내원을 취소하면 진료도 철회되므로, 진료 철회가 생기기 전에 취소한 내원에서만 납니다. 취소한 내원은 다시 열 수 없으므로 진료를 철회합니다(`:retract`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3786,7 +3788,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3796,7 +3798,7 @@
             }
           },
           "422": {
-            "description": "없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. | 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.",
+            "description": "`ENCOUNTER_CHANGE_INVALID`: 없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. | `ENCOUNTER_COMPLETION_REJECTED`: 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3813,7 +3815,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3920,7 +3922,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3930,7 +3932,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3940,7 +3942,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3960,7 +3962,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3970,7 +3972,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). | 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다.",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | `ENCOUNTER_LOCKED`: 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). | `ENCOUNTER_BILLED`: 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. `receiptId`는 그 영수증입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3990,7 +3992,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4000,7 +4002,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4087,7 +4089,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4097,7 +4099,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4107,7 +4109,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4127,7 +4129,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4137,7 +4139,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4147,7 +4149,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4157,7 +4159,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4222,7 +4224,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4232,7 +4234,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4242,7 +4244,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4262,7 +4264,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4272,7 +4274,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4282,7 +4284,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4292,7 +4294,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4351,7 +4353,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4361,7 +4363,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4371,7 +4373,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4391,7 +4393,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4401,7 +4403,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4457,7 +4459,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4467,7 +4469,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4477,7 +4479,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4497,7 +4499,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다. | 요청한 판이 없습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다. | `ENCOUNTER_REVISION_NOT_FOUND`: 요청한 판이 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4514,7 +4516,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4561,7 +4563,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4571,7 +4573,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4581,7 +4583,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4601,7 +4603,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4611,7 +4613,7 @@
             }
           },
           "409": {
-            "description": "진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.",
+            "description": "`ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4621,7 +4623,7 @@
             }
           },
           "422": {
-            "description": "없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. | 진료를 바꾸지 않는 제안입니다.",
+            "description": "`ENCOUNTER_CHANGE_INVALID`: 없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. | `AMENDMENT_PROPOSAL_EMPTY`: 진료를 바꾸지 않는 제안입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4638,7 +4640,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4729,7 +4731,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4739,7 +4741,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4749,7 +4751,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4769,7 +4771,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4779,7 +4781,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4826,7 +4828,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4836,7 +4838,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4846,7 +4848,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4866,7 +4868,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다.",
+            "description": "`AMENDMENT_PROPOSAL_NOT_FOUND`: 요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4876,7 +4878,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4949,7 +4951,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4959,7 +4961,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4969,7 +4971,7 @@
             }
           },
           "403": {
-            "description": "이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
+            "description": "`PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다. | `TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4989,7 +4991,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다. | 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
+            "description": "`AMENDMENT_PROPOSAL_NOT_FOUND`: 요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다. | `ENCOUNTER_NOT_FOUND`: 요청한 ID의 진료가 없습니다. 다른 병원의 진료도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5006,7 +5008,7 @@
             }
           },
           "409": {
-            "description": "이미 반영했거나 버린 제안입니다. | 제안을 만든 뒤 진료가 정정되어 제안이 낡은 내용 위에 있습니다. 새로 제안하거나 버립니다. | 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). | 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. | 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 취소한 내원은 다시 열 수 없으므로, 기록을 정리하려면 진료를 철회합니다(`:retract`).",
+            "description": "`AMENDMENT_PROPOSAL_NOT_PENDING`: 이미 반영했거나 버린 제안입니다. | `AMENDMENT_PROPOSAL_STALE`: 제안을 만든 뒤 진료가 정정되어 제안이 낡은 내용 위에 있습니다. `baseRevision`은 제안의 판, `currentRevision`은 진료의 지금 판입니다. 새로 제안하거나 버립니다. | `ENCOUNTER_NOT_EDITABLE`: 진료의 상태에서 할 수 없는 커맨드입니다. 초안만 `PATCH`·완료할 수 있고(완료한 진료는 정정 `:amend`), 완료·정정한 진료만 정정·고정할 수 있고, 철회한 진료는 아무것도 할 수 없습니다. | `ENCOUNTER_LOCKED`: 고정한 진료라 정정·철회할 수 없습니다. 먼저 고정을 풉니다(`:unlock`). | `ENCOUNTER_BILLED`: 수납한 진료라 처방을 바꾸거나 철회할 수 없습니다. 영수증 금액과 진료 처방이 어긋나지 않게, 먼저 영수증을 취소합니다(`:void`). 정정은 같은 진료를 다시 수납하므로 잠금을 풀지 않습니다. 본문·상병은 바꿀 수 있습니다. `receiptId`는 그 영수증입니다. | `ENCOUNTER_VISIT_CANCELED`: 취소한 내원의 진료라 저장·완료·정정할 수 없습니다. 내원을 취소하면 진료도 철회되므로, 진료 철회가 생기기 전에 취소한 내원에서만 납니다. 취소한 내원은 다시 열 수 없으므로 진료를 철회합니다(`:retract`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5035,7 +5037,7 @@
             }
           },
           "412": {
-            "description": "`If-Match`로 보낸 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다.",
+            "description": "`VERSION_MISMATCH`: `If-Match`로 보냈거나 서버가 읽은 버전이 저장된 버전과 다릅니다. 다른 사람이 먼저 고쳤습니다. `currentVersion`은 지금 버전이고(0이면 그사이 지워짐), 다시 읽어 고친 뒤 보냅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5045,7 +5047,7 @@
             }
           },
           "422": {
-            "description": "없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. | 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.",
+            "description": "`ENCOUNTER_CHANGE_INVALID`: 없는 상병·처방 라인을 고치거나 지우려 했거나, 같은 상병코드가 둘이 되거나, 한 요청에 같은 라인을 두 번 보냈습니다. `errors`는 찾은 순서대로 모든 이유입니다. | `ENCOUNTER_COMPLETION_REJECTED`: 완료 검증이 막았습니다. `violations`는 검사 순서대로 모든 이유입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5062,7 +5064,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5137,7 +5139,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5147,7 +5149,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5157,7 +5159,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5177,7 +5179,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다.",
+            "description": "`AMENDMENT_PROPOSAL_NOT_FOUND`: 요청한 ID의 정정 제안이 없습니다. 다른 병원의 제안도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5187,7 +5189,7 @@
             }
           },
           "409": {
-            "description": "이미 반영했거나 버린 제안입니다.",
+            "description": "`AMENDMENT_PROPOSAL_NOT_PENDING`: 이미 반영했거나 버린 제안입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5197,7 +5199,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5299,7 +5301,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5309,7 +5311,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5319,7 +5321,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5339,7 +5341,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5398,7 +5400,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5408,7 +5410,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5418,7 +5420,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5438,7 +5440,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5448,7 +5450,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5493,7 +5495,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5503,7 +5505,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5513,7 +5515,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5533,7 +5535,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5543,7 +5545,7 @@
             }
           },
           "409": {
-            "description": "취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
+            "description": "`PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5553,7 +5555,7 @@
             }
           },
           "422": {
-            "description": "내원에 시술이 이미 100개 있습니다.",
+            "description": "`PROCEDURE_LIMIT_EXCEEDED`: 내원에 시술이 이미 100개 있습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5563,7 +5565,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5645,7 +5647,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5655,7 +5657,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5665,7 +5667,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5685,7 +5687,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
+            "description": "`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5695,7 +5697,7 @@
             }
           },
           "409": {
-            "description": "시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제 | 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
+            "description": "`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다. | `PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5712,7 +5714,7 @@
             }
           },
           "422": {
-            "description": "진행 중인 시술의 새 시간이 서버 시계 기준 지난 시간 + 1초보다 짧습니다.",
+            "description": "`PROCEDURE_DURATION_REJECTED`: 진행 중인 시술의 새 시간이 서버 시계 기준 지난 시간 + 1초보다 짧습니다(`reason`: `PROCEDURE_DURATION_TOO_SHORT`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5722,7 +5724,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5782,7 +5784,7 @@
             "description": "<No Content>"
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5792,7 +5794,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5802,7 +5804,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5822,7 +5824,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
+            "description": "`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5832,7 +5834,7 @@
             }
           },
           "409": {
-            "description": "시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제",
+            "description": "`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5842,7 +5844,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5901,7 +5903,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5911,7 +5913,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5921,7 +5923,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5941,7 +5943,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
+            "description": "`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5951,7 +5953,7 @@
             }
           },
           "409": {
-            "description": "시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제 | 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
+            "description": "`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다. | `PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5968,7 +5970,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6015,7 +6017,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6025,7 +6027,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6035,7 +6037,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6055,7 +6057,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
+            "description": "`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6065,7 +6067,7 @@
             }
           },
           "409": {
-            "description": "시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제",
+            "description": "`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6075,7 +6077,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6122,7 +6124,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6132,7 +6134,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6142,7 +6144,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6162,7 +6164,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
+            "description": "`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6172,7 +6174,7 @@
             }
           },
           "409": {
-            "description": "시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제 | 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
+            "description": "`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다. | `PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6189,7 +6191,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6236,7 +6238,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6246,7 +6248,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6256,7 +6258,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6276,7 +6278,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
+            "description": "`PROCEDURE_NOT_FOUND`: 요청한 ID의 시술이 없습니다. 다른 병원의 시술도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6286,7 +6288,7 @@
             }
           },
           "409": {
-            "description": "시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제 | 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
+            "description": "`PROCEDURE_TRANSITION_INVALID`: 시술 상태에서 할 수 없는 커맨드입니다. 예: 진행 중인 시술 다시 시작, 대기 시술 완료, 대기가 아닌 시술 삭제입니다. | `PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6303,7 +6305,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6362,7 +6364,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6372,7 +6374,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6382,7 +6384,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6402,7 +6404,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6412,7 +6414,7 @@
             }
           },
           "409": {
-            "description": "취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
+            "description": "`PROCEDURE_VISIT_CLOSED`: 취소했거나 수납까지 끝난 내원입니다. 시술 더하기·시작·모두 시작·시간 바꾸기·타이머 다시 시작·다시 열기를 할 수 없습니다. 완료·모두 완료·지우기·순서 바꾸기는 됩니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6422,7 +6424,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6481,7 +6483,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6491,7 +6493,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6501,7 +6503,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6521,7 +6523,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6531,7 +6533,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6590,7 +6592,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6600,7 +6602,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6610,7 +6612,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6630,7 +6632,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6640,7 +6642,7 @@
             }
           },
           "422": {
-            "description": "순서를 바꿀 때 내원의 시술 ID를 빠짐없이 한 번씩 보내지 않았습니다.",
+            "description": "`PROCEDURE_ORDER_INVALID`: 순서를 바꿀 때 내원의 시술 ID를 빠짐없이 한 번씩 보내지 않았습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6650,7 +6652,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6840,7 +6842,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6850,7 +6852,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6860,7 +6862,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6880,7 +6882,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6890,7 +6892,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. | 내원에 이미 유효한 영수증이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다(`:void`). 결제만 고치려면 `:correct`입니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. | `RECEIPT_ALREADY_EXISTS`: 내원에 이미 유효한 영수증(`receiptId`)이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다(`:void`). 결제만 고치려면 `:correct`입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6907,7 +6909,7 @@
             }
           },
           "422": {
-            "description": "고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). | 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인이 그렇습니다. 규칙은 `docs/reference/rules/insured-copay.md`에 있습니다. | 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원).",
+            "description": "`CHECKOUT_ENCOUNTER_INVALID`: 고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). `encounterIds`는 그 진료입니다. | `CHECKOUT_COVERAGE_UNSUPPORTED`: 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인, 보험구분을 접수 때와 다르게 바꾼 진료가 그렇습니다. `encounterIds`는 그 진료입니다. | `CHECKOUT_PAYMENT_INVALID`: 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). `paymentIds`는 그 결제입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6927,7 +6929,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7100,7 +7102,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7110,7 +7112,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7120,7 +7122,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7140,7 +7142,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7150,7 +7152,7 @@
             }
           },
           "409": {
-            "description": "내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. | 내원에 이미 유효한 영수증이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다(`:void`). 결제만 고치려면 `:correct`입니다. | 견적 뒤 청구 금액이 바뀌었습니다. 새 견적을 받아 다시 수납합니다.",
+            "description": "`VISIT_TRANSITION_INVALID`: 내원의 현재 상태에서는 이 커맨드를 보낼 수 없습니다. | `RECEIPT_ALREADY_EXISTS`: 내원에 이미 유효한 영수증(`receiptId`)이 있습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하려면 먼저 그 영수증을 취소합니다(`:void`). 결제만 고치려면 `:correct`입니다. | `QUOTE_STALE`: 견적 뒤 청구 금액이 바뀌었습니다. `quoteId`는 지금 금액의 견적이고, 새 견적을 받아 다시 수납합니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7170,7 +7172,7 @@
             }
           },
           "422": {
-            "description": "고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). | 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인이 그렇습니다. 규칙은 `docs/reference/rules/insured-copay.md`에 있습니다. | 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). | 결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다. | 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
+            "description": "`CHECKOUT_ENCOUNTER_INVALID`: 고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). `encounterIds`는 그 진료입니다. | `CHECKOUT_COVERAGE_UNSUPPORTED`: 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인, 보험구분을 접수 때와 다르게 바꾼 진료가 그렇습니다. `encounterIds`는 그 진료입니다. | `CHECKOUT_PAYMENT_INVALID`: 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). `paymentIds`는 그 결제입니다. | `CHECKOUT_REJECTED`: 결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다. | `IDEMPOTENCY_KEY_REUSED`: 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7196,7 +7198,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7357,7 +7359,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "description": "한 쪽의 개수입니다. 1–200입니다."
+              "description": "한 쪽의 개수입니다. 1–200이고 기본값은 50입니다."
             },
             "required": false
           },
@@ -7412,7 +7414,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7422,7 +7424,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7432,7 +7434,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7452,7 +7454,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7499,7 +7501,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7509,7 +7511,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7519,7 +7521,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7539,7 +7541,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.",
+            "description": "`RECEIPT_NOT_FOUND`: 요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7549,7 +7551,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7596,7 +7598,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7606,7 +7608,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7616,7 +7618,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7636,7 +7638,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.",
+            "description": "`RECEIPT_NOT_FOUND`: 요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7646,7 +7648,7 @@
             }
           },
           "409": {
-            "description": "이미 취소한 영수증입니다. 취소·정정할 수 없습니다. | 밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. 먼저 `:refund`로 전액 환불합니다.",
+            "description": "`RECEIPT_VOIDED`: 이미 취소한 영수증입니다. 취소·정정할 수 없습니다. | `PAYMENT_REFUND_REQUIRED`: 밖에서 취소해야 하는 결제(카드·간편결제 등)가 남아 영수증을 취소할 수 없습니다. `receiptId`는 그 영수증(내원 취소면 내원의 영수증)이고, `paymentIds`의 결제를 먼저 `:refund`로 전액 환불합니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7663,7 +7665,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7743,7 +7745,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7753,7 +7755,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7763,7 +7765,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7783,7 +7785,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.",
+            "description": "`RECEIPT_NOT_FOUND`: 요청한 ID의 영수증이 없습니다. 다른 병원의 영수증도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7793,7 +7795,7 @@
             }
           },
           "409": {
-            "description": "이미 취소한 영수증입니다. 취소·정정할 수 없습니다.",
+            "description": "`RECEIPT_VOIDED`: 이미 취소한 영수증입니다. 취소·정정할 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7803,7 +7805,7 @@
             }
           },
           "422": {
-            "description": "고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). | 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인이 그렇습니다. 규칙은 `docs/reference/rules/insured-copay.md`에 있습니다. | 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). | 결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다. | 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
+            "description": "`CHECKOUT_ENCOUNTER_INVALID`: 고른 진료가 이 내원의 수납할 수 있는 진료가 아닙니다(다른 내원, 철회, 없음). `encounterIds`는 그 진료입니다. | `CHECKOUT_COVERAGE_UNSUPPORTED`: 급여 본인부담을 계산할 수 없는 진료입니다. 자보·산재, 해석하지 않은 본인부담여부, 추나·첩약 시범처럼 따로 매기는 급여 라인, 생년월일이 없는 환자의 급여 라인, 보험구분을 접수 때와 다르게 바꾼 진료가 그렇습니다. `encounterIds`는 그 진료입니다. | `CHECKOUT_PAYMENT_INVALID`: 고른 결제를 이 수납에 적용할 수 없습니다(없음, 이미 적용함, 다른 환자, 다른 내원). `paymentIds`는 그 결제입니다. | `CHECKOUT_REJECTED`: 결산이 수납을 막았습니다. 결제 오류(`errors`)나 확인을 받지 않은 경고(`warnings`)를 모두 담습니다. | `IDEMPOTENCY_KEY_REUSED`: 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7829,7 +7831,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7988,7 +7990,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7998,7 +8000,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8008,7 +8010,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8028,7 +8030,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다. | 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
+            "description": "`PATIENT_NOT_FOUND`: 요청한 ID의 환자가 없습니다. 다른 병원의 환자도 없는 것과 같습니다. | `VISIT_NOT_FOUND`: 요청한 ID의 내원이 없습니다. 다른 병원의 내원도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8045,7 +8047,7 @@
             }
           },
           "422": {
-            "description": "결제의 내원이 결제의 환자의 내원이 아닙니다. | 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
+            "description": "`PAYMENT_VISIT_MISMATCH`: 결제의 내원이 결제의 환자의 내원이 아닙니다. | `IDEMPOTENCY_KEY_REUSED`: 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8062,7 +8064,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8163,7 +8165,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "description": "한 쪽의 개수입니다. 1–200입니다."
+              "description": "한 쪽의 개수입니다. 1–200이고 기본값은 50입니다."
             },
             "required": false
           },
@@ -8218,7 +8220,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8228,7 +8230,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8238,7 +8240,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8258,7 +8260,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8305,7 +8307,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8315,7 +8317,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8325,7 +8327,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8345,7 +8347,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다.",
+            "description": "`PAYMENT_NOT_FOUND`: 요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8355,7 +8357,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8413,7 +8415,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8423,7 +8425,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8433,7 +8435,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8453,7 +8455,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다.",
+            "description": "`PAYMENT_NOT_FOUND`: 요청한 ID의 결제가 없습니다. 다른 병원의 결제도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8463,7 +8465,7 @@
             }
           },
           "409": {
-            "description": "이 결제는 지금 환불할 수 없습니다(이미 전액 환불했거나 취소함). 서버가 만든 수단은 422 `REFUND_REJECTED`입니다.",
+            "description": "`PAYMENT_NOT_REFUNDABLE`: 이 결제는 지금 환불할 수 없습니다(이미 전액 환불했거나 취소함). `paymentStatus`는 결제의 지금 상태입니다. 서버가 만든 수단은 422 `REFUND_REJECTED`입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8473,7 +8475,7 @@
             }
           },
           "422": {
-            "description": "환불 요청이 결제와 맞지 않습니다. `errors`에 이유를 모두 담고, `allowedMethods`는 이 결제에 쓸 수 있는 환불 수단, `refundable`은 더 환불할 수 있는 금액입니다. | 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
+            "description": "`REFUND_REJECTED`: 환불 요청이 결제와 맞지 않습니다. `errors`에 이유를 모두 담고, `allowedMethods`는 이 결제에 쓸 수 있는 환불 수단, `refundable`은 더 환불할 수 있는 금액입니다. | `IDEMPOTENCY_KEY_REUSED`: 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8490,7 +8492,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8591,7 +8593,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8601,7 +8603,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8611,7 +8613,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8631,7 +8633,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8678,7 +8680,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8688,7 +8690,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8698,7 +8700,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8718,7 +8720,7 @@
             }
           },
           "409": {
-            "description": "시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`CASH_DRAWER_TRANSITION_INVALID`: 시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8728,7 +8730,7 @@
             }
           },
           "422": {
-            "description": "미래 날짜의 시재는 열 수 없습니다. 오늘과 지난 날짜는 열 수 있습니다. | 이어받을 앞 시재가 없습니다. 앞서 마감한 시재가 없거나, 가장 늦은 시재가 다시 열려 실사 금액을 믿을 수 없습니다.",
+            "description": "`CASH_DRAWER_DATE_IN_FUTURE`: 미래 날짜의 시재는 열 수 없습니다. 오늘과 지난 날짜는 열 수 있습니다. | `CASH_DRAWER_CARRY_OVER_UNAVAILABLE`: 이어받을 앞 시재가 없습니다. 이 날짜 전에 마감한 시재가 없거나, 그중 가장 늦은 시재가 다시 열려(`:reopen` 또는 마감 뒤 현금 기록이 바뀜) 실사 금액을 믿을 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8745,7 +8747,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8816,7 +8818,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8826,7 +8828,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8836,7 +8838,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8856,7 +8858,7 @@
             }
           },
           "409": {
-            "description": "시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`CASH_DRAWER_TRANSITION_INVALID`: 시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8866,7 +8868,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8935,7 +8937,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8945,7 +8947,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8955,7 +8957,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8975,7 +8977,7 @@
             }
           },
           "409": {
-            "description": "시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.",
+            "description": "`CASH_DRAWER_TRANSITION_INVALID`: 시재의 지금 상태에서는 이 커맨드를 보낼 수 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8985,7 +8987,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9074,7 +9076,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9084,7 +9086,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9094,7 +9096,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9114,7 +9116,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9162,7 +9164,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9172,7 +9174,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9182,7 +9184,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9202,7 +9204,7 @@
             }
           },
           "409": {
-            "description": "지출은 그날 시재가 열려 있을 때(`OPEN`·`REOPENED`)만 기록하거나 지웁니다.",
+            "description": "`CASH_DRAWER_NOT_OPEN`: 지출은 그날 시재가 열려 있을 때(`OPEN`·`REOPENED`)만 기록하거나 지웁니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9212,7 +9214,7 @@
             }
           },
           "422": {
-            "description": "지출에 고른 지출 분류가 없습니다. | 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
+            "description": "`EXPENSE_CATEGORY_INVALID`: 지출에 고른 지출 분류가 없습니다. | `IDEMPOTENCY_KEY_REUSED`: 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9229,7 +9231,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9307,7 +9309,7 @@
             "description": "<No Content>"
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9317,7 +9319,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9327,7 +9329,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9347,7 +9349,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 지출이 없습니다. 이미 지운 지출과 다른 병원의 지출도 없는 것과 같습니다.",
+            "description": "`EXPENSE_NOT_FOUND`: 요청한 ID의 지출이 없습니다. 이미 지운 지출과 다른 병원의 지출도 없는 것과 같습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9357,7 +9359,7 @@
             }
           },
           "409": {
-            "description": "지출은 그날 시재가 열려 있을 때(`OPEN`·`REOPENED`)만 기록하거나 지웁니다.",
+            "description": "`CASH_DRAWER_NOT_OPEN`: 지출은 그날 시재가 열려 있을 때(`OPEN`·`REOPENED`)만 기록하거나 지웁니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9367,7 +9369,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9416,7 +9418,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9426,7 +9428,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9436,7 +9438,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9456,7 +9458,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9491,7 +9493,7 @@
             }
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9501,7 +9503,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9511,7 +9513,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9531,7 +9533,7 @@
             }
           },
           "409": {
-            "description": "병원에 같은 이름의 지출 분류가 이미 있습니다.",
+            "description": "`EXPENSE_CATEGORY_NAME_TAKEN`: 병원에 같은 이름의 지출 분류가 이미 있습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9541,7 +9543,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9603,7 +9605,7 @@
             "description": "<No Content>"
           },
           "400": {
-            "description": "요청 경로·쿼리·헤더·본문이 스키마를 통과하지 못했습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
+            "description": "`VALIDATION_FAILED`: 요청이 받을 수 없는 값입니다. 경로·쿼리·헤더·본문이 스키마를 통과하지 못했거나, 서비스의 입력 규칙(주민등록번호와 생년월일·성별 불일치 `RRN_MISMATCH`, 대표 연락처·주소 둘 이상 `MULTIPLE_PRIMARY`, 그 밖의 `INVALID_VALUE` 등)에 맞지 않습니다. `violations`는 첫 오류에서 멈추지 않고 모은 모든 위반의 필드와 코드입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9613,7 +9615,7 @@
             }
           },
           "401": {
-            "description": "access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
+            "description": "`UNAUTHENTICATED`: access token·refresh token이 없거나, 틀렸거나, 만료됐거나, 폐기된 세션입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9623,7 +9625,7 @@
             }
           },
           "403": {
-            "description": "병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
+            "description": "`TENANT_NOT_SELECTED`: 병원 업무 엔드포인트인데 access token이 병원을 가리키지 않습니다. `:switch-tenant`로 먼저 골라야 합니다. | `TENANT_ACCESS_DENIED`: 유효한 소속이 없는 병원으로 전환하려 했거나, 고른 병원의 소속이 더는 유효하지 않습니다. | `PERMISSION_DENIED`: 이 요청에 필요한 권한이 없습니다. `missing`은 빠진 권한 모두입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9643,7 +9645,7 @@
             }
           },
           "404": {
-            "description": "요청한 ID의 지출 분류가 없습니다.",
+            "description": "`EXPENSE_CATEGORY_NOT_FOUND`: 요청한 ID의 지출 분류가 없습니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -9653,7 +9655,7 @@
             }
           },
           "500": {
-            "description": "예상 밖의 서버 오류입니다. 서버가 오류를 기록합니다.",
+            "description": "`INTERNAL`: 예상 밖의 서버 오류입니다.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -14242,7 +14244,7 @@
         "properties": {
           "purpose": {
             "type": "string",
-            "description": "동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로)입니다."
+            "description": "동의 목적입니다. 광고성 문자(`MARKETING_SMS`)·카카오(`MARKETING_KAKAO`), 야간(21:00–08:00) 광고성 정보(`MARKETING_NIGHT`), 알림성 정보(`INFO_MESSAGE`), 제3자 제공(`THIRD_PARTY_PROVISION`), 시술 동의서(`TREATMENT_CONSENT:{templateId}`, 서식마다 따로, `templateId`는 영문·숫자·`_`·`-` 1–64자)입니다."
           },
           "status": {
             "$ref": "#/components/schemas/ConsentStatus"
@@ -14441,7 +14443,7 @@
           },
           "isLunarBirthday": {
             "type": "boolean",
-            "description": "음력 생일인지입니다."
+            "description": "음력 생일이면 `true`입니다."
           },
           "sex": {
             "anyOf": [
@@ -14590,7 +14592,7 @@
               "HOME",
               "GUARDIAN"
             ],
-            "description": "휴대전화(`MOBILE`), 집 전화(`HOME`), 보호자(`GUARDIAN`)입니다."
+            "description": "연락처 종류입니다. 휴대전화(`MOBILE`), 집 전화(`HOME`), 보호자(`GUARDIAN`)입니다."
           },
           "number": {
             "type": "string",
@@ -14626,7 +14628,7 @@
           "FRONT_DESK",
           "THERAPIST"
         ],
-        "description": "병원에서의 역할입니다. 대표원장, 봉직의, 실장, 데스크, 치료사입니다."
+        "description": "병원에서의 역할입니다. 대표원장(`OWNER_DOCTOR`), 봉직의(`ASSOCIATE_DOCTOR`), 실장(`MANAGER`), 데스크(`FRONT_DESK`), 치료사(`THERAPIST`)입니다."
       },
       "MembershipSummary": {
         "type": "object",
@@ -14786,7 +14788,7 @@
     },
     {
       "name": "me",
-      "description": "로그인한 사용자 자신의 소속·역할·권한입니다."
+      "description": "로그인한 사용자 자신의 소속·역할·권한입니다. 앱을 시작할 때 한 번 받고, 권한이 바뀔 수 있어 저장해 두지 않습니다."
     },
     {
       "name": "patients",

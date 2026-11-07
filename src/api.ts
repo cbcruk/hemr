@@ -45,7 +45,8 @@ export class Api extends HttpApi.make('hemr')
   .prefix('/v1')
   .middleware(RequestValidation)
   .annotate(HttpApi.ParseOptions, { errors: 'all' })
+  .annotate(OpenApi.Title, 'hemr')
   .annotate(
     OpenApi.Description,
-    'hemr 한의원 EMR 백엔드의 HTTP API입니다. 모든 경로는 `/v1` 아래에 있습니다. 오류는 RFC 9457 문제 응답(`application/problem+json`)이고 `code`로 가립니다. 요청이 스키마를 통과하지 못하면 첫 오류에서 멈추지 않고 모든 위반을 모아 400 `VALIDATION_FAILED`로 돌려줍니다. 커맨드는 `POST /리소스/{id}:커맨드`로 보냅니다.',
+    'hemr 한의원 EMR 백엔드의 HTTP API입니다. 모든 경로는 `/v1` 아래에 있습니다. 오류는 RFC 9457 문제 응답(`application/problem+json`)이고 `code`로 가립니다. 요청이 스키마를 통과하지 못하면 첫 오류에서 멈추지 않고 모든 위반을 모아 400 `VALIDATION_FAILED`로 돌려줍니다. 커맨드는 경로 끝에 `:커맨드`를 붙여 보냅니다(`POST /visits/{id}:cancel`, `POST /visits:check-in`). 로그인(`POST /auth/sessions`)으로 받은 access token을 `Authorization: Bearer`로 보내고, 병원 업무 API는 병원을 고른 토큰이 필요합니다(아니면 403 `TENANT_NOT_SELECTED`, `:switch-tenant`로 고름). 목록의 `limit` 기본값은 50이고 마지막 쪽의 `nextCursor`는 `null`입니다.',
   ) {}

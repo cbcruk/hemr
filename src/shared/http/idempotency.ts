@@ -21,7 +21,7 @@ export class IdempotencyKeyReused extends HttpApiError.Problem<IdempotencyKeyReu
     title: 'Idempotency key was used for a different request',
   },
   { code: Schema.tag('IDEMPOTENCY_KEY_REUSED') },
-  { description: '같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.' },
+  { description: '`IDEMPOTENCY_KEY_REUSED`: 같은 키를 다른 요청에 썼습니다. 처음 요청과 경로·본문이 다릅니다.' },
 ) {}
 
 /** 저장한 처음 응답입니다. */
