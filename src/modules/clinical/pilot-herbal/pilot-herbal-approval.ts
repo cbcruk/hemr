@@ -36,10 +36,12 @@ export interface PilotHerbalNotApproved {
  * 상관없이 같은 검사를 하며, 첩약 줄이 없으면 통과합니다.
  */
 export function pilotHerbalApprovalViolation(lines: readonly PilotHerbalApprovalLine[]): PilotHerbalNotApproved | null {
-  const lineIds = lines
+  const 미승인첩약줄Ids = lines
     .filter((line) => requiresHiraApproval(line.category) && !isHiraApproved(line))
     .map((line) => line.lineId)
-  return lineIds.length > 0 ? { code: 'PILOT_HERBAL_NOT_APPROVED', lineIds, blocksCompletion: true } : null
+  return 미승인첩약줄Ids.length > 0
+    ? { code: 'PILOT_HERBAL_NOT_APPROVED', lineIds: 미승인첩약줄Ids, blocksCompletion: true }
+    : null
 }
 
 /**

@@ -38,20 +38,20 @@ export function timerEndsAt(startedAt: string, durationSeconds: number): string 
 }
 
 /** 시작 뒤 지난 초입니다. 초 단위로 내리고, 서버 시계가 시작 시각보다 이르면 0입니다. */
-function elapsedSeconds(startedAt: string, nowMs: number): number {
+function 경과초(startedAt: string, nowMs: number): number {
   return Math.max(0, Math.floor((nowMs - Date.parse(startedAt)) / 1000))
 }
 
 /** 진행 중인 시술의 남은 초입니다. 진행 중이 아니면 `null`입니다 (결정 4). */
 export function remainingSeconds(procedure: ProcedureTimer, nowMs: number): number | null {
   if (procedure.status !== 'RUNNING' || procedure.startedAt === null) return null
-  return procedure.durationSeconds - elapsedSeconds(procedure.startedAt, nowMs)
+  return procedure.durationSeconds - 경과초(procedure.startedAt, nowMs)
 }
 
 /** 남은 시간이 0초 이하인 진행 중 시술입니다 (결정 1). */
-const isDue = (procedure: ProcedureTimer, nowMs: number) => {
-  const remaining = remainingSeconds(procedure, nowMs)
-  return remaining !== null && remaining <= 0
+const 만료대상 = (시술: ProcedureTimer, nowMs: number) => {
+  const 남은초 = remainingSeconds(시술, nowMs)
+  return 남은초 !== null && 남은초 <= 0
 }
 
 /**
@@ -62,13 +62,13 @@ export function elapseDueTimers(
   procedures: readonly ProcedureTimer[],
   nowMs: number,
 ): { procedures: ProcedureTimer[]; elapsedIds: string[] } {
-  const elapsedIds: string[] = []
-  const next = procedures.map((procedure): ProcedureTimer => {
-    if (!isDue(procedure, nowMs)) return procedure
-    elapsedIds.push(procedure.procedureId)
-    return { ...procedure, status: 'TIMER_ELAPSED' }
+  const 만료시술Ids: string[] = []
+  const next = procedures.map((시술): ProcedureTimer => {
+    if (!만료대상(시술, nowMs)) return 시술
+    만료시술Ids.push(시술.procedureId)
+    return { ...시술, status: 'TIMER_ELAPSED' }
   })
-  return { procedures: next, elapsedIds }
+  return { procedures: next, elapsedIds: 만료시술Ids }
 }
 
 /**
@@ -97,35 +97,43 @@ export function startProcedures(
   nowMs: number,
   settings: Pick<ProcedureTimerSettings, 'autoCompleteElapsedOnNextStart'> = DEFAULT_PROCEDURE_TIMER_SETTINGS,
 ): ProcedureStartResult {
-  const { procedures: current, elapsedIds } = elapseDueTimers(procedures, nowMs)
-  const targets = new Set(targetIds)
-  const found = current.filter((procedure) => targets.has(procedure.procedureId))
-  if (targetIds.length === 0 || found.length < targets.size) return { changed: false, reason: 'NOT_FOUND', elapsedIds }
-  if (found.every((procedure) => procedure.status === 'RUNNING')) {
-    return { changed: false, reason: 'ALREADY_RUNNING', elapsedIds }
+  const { procedures: 만료반영시술, elapsedIds: 만료시술Ids } = elapseDueTimers(procedures, nowMs)
+  const 대상 = new Set(targetIds)
+  const 찾은대상 = 만료반영시술.filter((시술) => 대상.has(시술.procedureId))
+  if (targetIds.length === 0 || 찾은대상.length < 대상.size) {
+    return { changed: false, reason: 'NOT_FOUND', elapsedIds: 만료시술Ids }
+  }
+  if (찾은대상.every((시술) => 시술.status === 'RUNNING')) {
+    return { changed: false, reason: 'ALREADY_RUNNING', elapsedIds: 만료시술Ids }
   }
   const now = isoAt(nowMs)
-  const startedIds: string[] = []
-  const autoCompletedIds: string[] = []
-  const next = current.map((procedure): ProcedureTimer => {
-    if (targets.has(procedure.procedureId)) {
-      if (procedure.status === 'RUNNING') return procedure
-      startedIds.push(procedure.procedureId)
+  const 시작시술Ids: string[] = []
+  const 자동완료시술Ids: string[] = []
+  const next = 만료반영시술.map((시술): ProcedureTimer => {
+    if (대상.has(시술.procedureId)) {
+      if (시술.status === 'RUNNING') return 시술
+      시작시술Ids.push(시술.procedureId)
       return {
-        ...procedure,
+        ...시술,
         status: 'RUNNING',
         startedAt: now,
-        timerEndsAt: timerEndsAt(now, procedure.durationSeconds),
+        timerEndsAt: timerEndsAt(now, 시술.durationSeconds),
         completedAt: null,
       }
     }
-    if (settings.autoCompleteElapsedOnNextStart && procedure.status === 'TIMER_ELAPSED') {
-      autoCompletedIds.push(procedure.procedureId)
-      return { ...procedure, status: 'DONE', completedAt: now }
+    if (settings.autoCompleteElapsedOnNextStart && 시술.status === 'TIMER_ELAPSED') {
+      자동완료시술Ids.push(시술.procedureId)
+      return { ...시술, status: 'DONE', completedAt: now }
     }
-    return procedure
+    return 시술
   })
-  return { changed: true, procedures: next, startedIds, autoCompletedIds, elapsedIds }
+  return {
+    changed: true,
+    procedures: next,
+    startedIds: 시작시술Ids,
+    autoCompletedIds: 자동완료시술Ids,
+    elapsedIds: 만료시술Ids,
+  }
 }
 
 export type ProcedureDurationError =
@@ -151,22 +159,28 @@ export function setProcedureDuration(
     return { ok: false, error: 'PROCEDURE_DURATION_INVALID' }
   }
   if (procedure.status === 'DONE') return { ok: false, error: 'PROCEDURE_ALREADY_DONE' }
-  const [current] = elapseDueTimers([procedure], nowMs).procedures
-  const checked = current ?? procedure
-  const elapsed = checked.status !== procedure.status
-  if (checked.durationSeconds === durationSeconds) return { ok: true, changed: elapsed, elapsed, procedure: checked }
-  if (checked.status === 'RUNNING' && checked.startedAt !== null) {
-    if (durationSeconds - elapsedSeconds(checked.startedAt, nowMs) < 1) {
+  const [만료반영] = elapseDueTimers([procedure], nowMs).procedures
+  const 확인한시술 = 만료반영 ?? procedure
+  const 만료됨 = 확인한시술.status !== procedure.status
+  if (확인한시술.durationSeconds === durationSeconds) {
+    return { ok: true, changed: 만료됨, elapsed: 만료됨, procedure: 확인한시술 }
+  }
+  if (확인한시술.status === 'RUNNING' && 확인한시술.startedAt !== null) {
+    if (durationSeconds - 경과초(확인한시술.startedAt, nowMs) < 1) {
       return { ok: false, error: 'PROCEDURE_DURATION_TOO_SHORT' }
     }
     return {
       ok: true,
       changed: true,
-      elapsed,
-      procedure: { ...checked, durationSeconds, timerEndsAt: timerEndsAt(checked.startedAt, durationSeconds) },
+      elapsed: 만료됨,
+      procedure: {
+        ...확인한시술,
+        durationSeconds,
+        timerEndsAt: timerEndsAt(확인한시술.startedAt, durationSeconds),
+      },
     }
   }
-  return { ok: true, changed: true, elapsed, procedure: { ...checked, durationSeconds } }
+  return { ok: true, changed: true, elapsed: 만료됨, procedure: { ...확인한시술, durationSeconds } }
 }
 
 /** 시술 시간을 늘이거나 줄입니다. 0이 아닌 정수 증감만 받습니다. */
@@ -184,7 +198,8 @@ export function procedureSetSeconds(
   items: readonly { durationSeconds: number }[],
   settings: Pick<ProcedureTimerSettings, 'defaultSetSeconds'> = DEFAULT_PROCEDURE_TIMER_SETTINGS,
 ): number {
-  return items.reduce((longest, item) => Math.max(longest, item.durationSeconds), 0) || settings.defaultSetSeconds
+  const 가장긴시간 = items.reduce((longest, 항목) => Math.max(longest, 항목.durationSeconds), 0)
+  return 가장긴시간 || settings.defaultSetSeconds
 }
 
 /** 종료 알림의 중복 제거 키입니다. 시술 ID와 종료 시각으로 만듭니다. 만료 시술은 종료 시각이 늘 있습니다 (결정 3). */
@@ -214,21 +229,21 @@ export interface LegacyProcedureRow {
  */
 export function migratedProcedure(row: LegacyProcedureRow): ProcedureTimer {
   const base = { procedureId: row.procedureId, durationSeconds: row.durationSeconds }
-  const status = migratedStatus(row)
-  if (status === 'PENDING') return { ...base, status, startedAt: null, timerEndsAt: null, completedAt: null }
-  const startedAt = row.startedAt
+  const 상태 = 이관할상태(row)
+  if (상태 === 'PENDING') return { ...base, status: 상태, startedAt: null, timerEndsAt: null, completedAt: null }
+  const 시작시각 = row.startedAt
   return {
     ...base,
-    status,
-    startedAt,
-    timerEndsAt: startedAt === null ? null : timerEndsAt(startedAt, row.durationSeconds),
-    completedAt: status === 'DONE' ? row.completedAt : null,
+    status: 상태,
+    startedAt: 시작시각,
+    timerEndsAt: 시작시각 === null ? null : timerEndsAt(시작시각, row.durationSeconds),
+    completedAt: 상태 === 'DONE' ? row.completedAt : null,
   }
 }
 
-function migratedStatus(row: LegacyProcedureRow): ProcedureStatus {
-  if (row.status === 'done') return 'DONE'
-  if (row.startedAt === null) return 'PENDING'
-  if (row.status === 'running') return 'RUNNING'
-  return row.timerEnded ? 'TIMER_ELAPSED' : 'PENDING'
+function 이관할상태(현행행: LegacyProcedureRow): ProcedureStatus {
+  if (현행행.status === 'done') return 'DONE'
+  if (현행행.startedAt === null) return 'PENDING'
+  if (현행행.status === 'running') return 'RUNNING'
+  return 현행행.timerEnded ? 'TIMER_ELAPSED' : 'PENDING'
 }

@@ -53,7 +53,7 @@ export type ChunaAutoSubmissionDecision =
   { action: 'QUEUE'; lineId: string } | { action: 'SKIP'; reason: ChunaAutoSubmissionSkip }
 
 /** 심평원에 추나를 사전 제출하는 보험구분입니다. 보험자구분코드 `4`·`5`·`8`에 대응합니다. */
-const SUBMITTABLE_COVERAGES: ReadonlySet<Coverage> = new Set(['NHIS', 'MEDICAL_AID', 'AUTO_INSURANCE'])
+const 추나사전제출보험구분: ReadonlySet<Coverage> = new Set(['NHIS', 'MEDICAL_AID', 'AUTO_INSURANCE'])
 
 /**
  * 진료 완료 트랜잭션에서 추나 제출 작업(`QUEUED`)을 만들지 판정합니다 (결정 1·2·3·5).
@@ -69,18 +69,18 @@ const SUBMITTABLE_COVERAGES: ReadonlySet<Coverage> = new Set(['NHIS', 'MEDICAL_A
  */
 export function chunaAutoSubmission(input: ChunaAutoSubmissionInput): ChunaAutoSubmissionDecision {
   if (!input.autoSubmit) return { action: 'SKIP', reason: 'POLICY_OFF' }
-  if (!SUBMITTABLE_COVERAGES.has(input.coverage)) return { action: 'SKIP', reason: 'COVERAGE_NOT_SUBMITTABLE' }
+  if (!추나사전제출보험구분.has(input.coverage)) return { action: 'SKIP', reason: 'COVERAGE_NOT_SUBMITTABLE' }
   if (input.hiraUsage !== null) {
-    const limit = (input.limits ?? DEFAULT_CHUNA_LIMITS)[input.coverage] ?? Number.POSITIVE_INFINITY
-    const summary = chunaUsageSummary(input.hiraUsage, { serviceAt: input.serviceAt, limit })
-    const limited = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
-    if (limited && input.hiraUsage.complete && summary.exhausted) return { action: 'SKIP', reason: 'ANNUAL_LIMIT' }
-    if (summary.sameDay) return { action: 'SKIP', reason: 'SAME_DAY' }
+    const 한도 = (input.limits ?? DEFAULT_CHUNA_LIMITS)[input.coverage] ?? Number.POSITIVE_INFINITY
+    const 사용량 = chunaUsageSummary(input.hiraUsage, { serviceAt: input.serviceAt, limit: 한도 })
+    const 소진시건너뜀 = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
+    if (소진시건너뜀 && input.hiraUsage.complete && 사용량.exhausted) return { action: 'SKIP', reason: 'ANNUAL_LIMIT' }
+    if (사용량.sameDay) return { action: 'SKIP', reason: 'SAME_DAY' }
   }
-  if (input.sameDaySubmissions.some((status) => status !== 'CANCELED')) return { action: 'SKIP', reason: 'SAME_DAY' }
-  const line = input.lines.find((each) => each.category === CHUNA_CATEGORY && !each.approved)
-  if (line === undefined || !line.feeCode) return { action: 'SKIP', reason: 'NO_UNAPPROVED_LINE' }
-  return { action: 'QUEUE', lineId: line.lineId }
+  if (input.sameDaySubmissions.some((상태) => 상태 !== 'CANCELED')) return { action: 'SKIP', reason: 'SAME_DAY' }
+  const 제출할줄 = input.lines.find((줄) => 줄.category === CHUNA_CATEGORY && !줄.approved)
+  if (제출할줄 === undefined || !제출할줄.feeCode) return { action: 'SKIP', reason: 'NO_UNAPPROVED_LINE' }
+  return { action: 'QUEUE', lineId: 제출할줄.lineId }
 }
 
 /** 자격조회 결과 중 제출에 쓰는 값입니다. */
@@ -155,45 +155,45 @@ export type ChunaPayloadResult =
 
 /** 추나 제출 페이로드를 만듭니다. 시술자는 줄의 시술 의사, 없으면 기본 추나 시술자입니다. */
 export function chunaSubmissionPayload(input: ChunaPayloadInput): ChunaPayloadResult {
-  const performerId = input.line.performerId || input.defaultPerformerId
-  const licenseNumber = input.doctors.find((doctor) => doctor.doctorId === performerId)?.licenseNumber
-  const { patient } = input
+  const 시술자Id = input.line.performerId || input.defaultPerformerId
+  const 면허번호 = input.doctors.find((의사) => 의사.doctorId === 시술자Id)?.licenseNumber
+  const 환자 = input.patient
   if (input.diagnosisCodes.length === 0) return { failure: 'DIAGNOSIS_MISSING' }
-  if (!patient.name || !patient.rrnFront || !patient.rrnBack) return { failure: 'PATIENT_INFO_MISSING' }
-  if (!performerId || !licenseNumber) return { failure: 'LICENSE_MISSING' }
+  if (!환자.name || !환자.rrnFront || !환자.rrnBack) return { failure: 'PATIENT_INFO_MISSING' }
+  if (!시술자Id || !면허번호) return { failure: 'LICENSE_MISSING' }
   if (!input.clinicCode) return { failure: 'CLINIC_CODE_MISSING' }
-  const insurerType = insurerTypeOf(input.coverage, input.eligibility?.qualification ?? null)
-  if (insurerType === null) return { failure: 'COVERAGE_NOT_SUBMITTABLE' }
+  const 보험자구분코드 = 보험자구분판정(input.coverage, input.eligibility?.qualification ?? null)
+  if (보험자구분코드 === null) return { failure: 'COVERAGE_NOT_SUBMITTABLE' }
 
   const payload: ChunaSubmissionPayload = {
     clinicCode: input.clinicCode,
-    patientName: patient.name,
-    rrn: patient.rrnFront + patient.rrnBack,
-    licenseNumber,
+    patientName: 환자.name,
+    rrn: 환자.rrnFront + 환자.rrnBack,
+    licenseNumber: 면허번호,
     diagnosisCodes: [...input.diagnosisCodes],
     serviceDate: input.serviceAt.date,
-    insurerType,
+    insurerType: 보험자구분코드,
     feeCodes: [input.line.feeCode],
   }
-  const qualification = input.eligibility?.qualification
-  if (qualification === '7') payload.medicalAidType = '1'
-  if (qualification === '8') payload.medicalAidType = '2'
+  const 자격여부 = input.eligibility?.qualification
+  if (자격여부 === '7') payload.medicalAidType = '1'
+  if (자격여부 === '8') payload.medicalAidType = '2'
   if (input.coverage === 'AUTO_INSURANCE') {
     if (!input.accidentNumber) return { failure: 'ACCIDENT_NUMBER_MISSING' }
     payload.accidentNumber = input.accidentNumber
   } else {
     if (input.eligibility === null) return { failure: 'ELIGIBILITY_MISSING' }
-    payload.benefitCategory = benefitCategory(input.eligibility, input.serviceAt.date, input.rareDiseaseSupport)
+    payload.benefitCategory = 공상구분코드(input.eligibility, input.serviceAt.date, input.rareDiseaseSupport)
   }
-  return { payload, performer: { doctorId: performerId, licenseNumber } }
+  return { payload, performer: { doctorId: 시술자Id, licenseNumber: 면허번호 } }
 }
 
-function insurerTypeOf(coverage: Coverage, qualification: string | null): '4' | '5' | '8' | null {
-  if (coverage === 'AUTO_INSURANCE') return '8'
-  if (!SUBMITTABLE_COVERAGES.has(coverage)) return null
-  if (!qualification) return coverage === 'NHIS' ? '4' : coverage === 'MEDICAL_AID' ? '5' : null
-  if (/^[1-6]$/.test(qualification)) return '4'
-  if (qualification === '7' || qualification === '8') return '5'
+function 보험자구분판정(보험구분: Coverage, 자격여부: string | null): '4' | '5' | '8' | null {
+  if (보험구분 === 'AUTO_INSURANCE') return '8'
+  if (!추나사전제출보험구분.has(보험구분)) return null
+  if (!자격여부) return 보험구분 === 'NHIS' ? '4' : 보험구분 === 'MEDICAL_AID' ? '5' : null
+  if (/^[1-6]$/.test(자격여부)) return '4'
+  if (자격여부 === '7' || 자격여부 === '8') return '5'
   return null
 }
 
@@ -201,18 +201,18 @@ function insurerTypeOf(coverage: Coverage, qualification: string | null): '4' | 
  * 공상구분코드입니다. 차상위가 진료일에 유효하면 `C`, `E`(장애면 `F`)이고, 아니면 희귀난치 지원 대상이 유효하고
  * 희귀난치 지원 진료일 때 `H`, 그 밖은 `0`입니다. 종료일이 비어 있으면 끝이 없는 것으로 봅니다.
  */
-function benefitCategory(eligibility: ChunaEligibility, date: string, rareDiseaseSupport: boolean) {
-  const compact = date.replaceAll('-', '')
-  const valid = (start: string, end: string) =>
+function 공상구분코드(자격: ChunaEligibility, 진료일: string, 희귀난치지원진료: boolean) {
+  const compact = 진료일.replaceAll('-', '')
+  const 진료일유효 = (start: string, end: string) =>
     start.trim() !== '' && start <= compact && (end.trim() === '' || compact <= end)
-  const nearPoverty = eligibility.nearPoverty ?? ''
-  if (valid(nearPoverty.slice(4, 12), nearPoverty.slice(12, 20))) {
-    if (nearPoverty.startsWith('C')) return 'C'
-    if (nearPoverty.startsWith('E')) return eligibility.disabled ? 'F' : 'E'
+  const 차상위대상자 = 자격.nearPoverty ?? ''
+  if (진료일유효(차상위대상자.slice(4, 12), 차상위대상자.slice(12, 20))) {
+    if (차상위대상자.startsWith('C')) return 'C'
+    if (차상위대상자.startsWith('E')) return 자격.disabled ? 'F' : 'E'
   }
-  const rare = eligibility.rareDiseaseSupportTarget ?? ''
-  if (rare.startsWith('H') && rareDiseaseSupport && valid(rare.slice(4, 12), rare.slice(12, 20))) return 'H'
-  return '0'
+  const 희귀난치대상자 = 자격.rareDiseaseSupportTarget ?? ''
+  if (!희귀난치대상자.startsWith('H') || !희귀난치지원진료) return '0'
+  return 진료일유효(희귀난치대상자.slice(4, 12), 희귀난치대상자.slice(12, 20)) ? 'H' : '0'
 }
 
 /** 에이전트 처리 결과로 바뀌는 제출 작업 상태입니다. */
@@ -239,17 +239,17 @@ export function existingSubmissionOutcome(
   diagnosisCodes: readonly string[],
   doctors: ChunaPayloadInput['doctors'],
 ): ChunaSubmissionOutcome {
-  const current = new Set(diagnosisCodes)
-  const submitted = existing.diagnosisCodes
+  const 현재상병집합 = new Set(diagnosisCodes)
+  const 기제출상병 = existing.diagnosisCodes
     .split(',')
     .map((code) => code.trim())
     .filter(Boolean)
-  if (submitted.length === 0 || !submitted.every((code) => current.has(code)))
+  if (기제출상병.length === 0 || !기제출상병.every((code) => 현재상병집합.has(code)))
     return { status: 'FAILED', reason: 'DIAGNOSIS_MISMATCH' }
-  const doctor = doctors.find((each) => each.licenseNumber !== null && each.licenseNumber === existing.licenseNumber)
+  const 시술자 = doctors.find((의사) => 의사.licenseNumber !== null && 의사.licenseNumber === existing.licenseNumber)
   return {
     status: 'APPROVED',
-    performer: doctor?.licenseNumber ? { doctorId: doctor.doctorId, licenseNumber: doctor.licenseNumber } : null,
+    performer: 시술자?.licenseNumber ? { doctorId: 시술자.doctorId, licenseNumber: 시술자.licenseNumber } : null,
   }
 }
 
@@ -290,7 +290,7 @@ export function matchHiraChunaSubmission(
   key: HiraChunaSubmissionKey,
 ): HiraChunaSubmissionRow | null {
   const name = (value: string) => value.replace(/\s/g, '')
-  const base = rows.filter(
+  const 보험자구분뺀일치 = rows.filter(
     (row) =>
       !row.deleted &&
       row.serviceDate === key.serviceDate &&
@@ -299,9 +299,10 @@ export function matchHiraChunaSubmission(
       row.sex === key.sex &&
       row.accidentNumber === key.accidentNumber,
   )
-  const exact = base.filter((row) => row.insurerType === key.insurerType)
-  const candidates = exact.length > 0 ? exact : new Set(base.map((row) => row.insurerType)).size === 1 ? base : []
-  return candidates.reduce<HiraChunaSubmissionRow | null>(
+  const 키모두일치 = 보험자구분뺀일치.filter((row) => row.insurerType === key.insurerType)
+  const 보험자구분한종류 = new Set(보험자구분뺀일치.map((row) => row.insurerType)).size === 1
+  const 후보 = 키모두일치.length > 0 ? 키모두일치 : 보험자구분한종류 ? 보험자구분뺀일치 : []
+  return 후보.reduce<HiraChunaSubmissionRow | null>(
     (best, row) => (best === null || row.serialNumber > best.serialNumber ? row : best),
     null,
   )

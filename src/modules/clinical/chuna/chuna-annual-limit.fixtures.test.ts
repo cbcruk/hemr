@@ -154,8 +154,8 @@ const NOT_PORTED: Record<string, string> = {
   'exhausted undefined (loading) -> unchanged': '서버는 저장된 사용량으로 판정하므로 로딩 중 상태가 없습니다',
 }
 
-describe('chuna-annual-limit fixture', () => {
-  describe('usage summary (tLt, 결정 1·5·6)', () => {
+describe('추나 연간 한도 픽스처 (chuna-annual-limit)', () => {
+  describe('사용량 요약 (tLt, 결정 1·5·6)', () => {
     it.each(cases('tLt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const record = input['record']
       const at = serviceAt(record['기준일시'])
@@ -183,13 +183,13 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  describe('HIRA cumulative count (z7t)', () => {
+  describe('심평원 누적 횟수 (z7t)', () => {
     it.each(cases('z7t').map((c) => [c.name, c] as const))('%s', (_name, { input, expected }) => {
       expect(parseHiraChunaCount(toCountResponse(input['getChunaDataResponse']))).toBe(expected['누적횟수'])
     })
   })
 
-  describe('HIRA list merge (q7t)', () => {
+  describe('심평원 목록 병합 (q7t)', () => {
     it.each(cases('q7t').map((c) => [c.name, c] as const))('%s', (_name, { input, expected }) => {
       const merged = mergeHiraChunaLists(
         (input['byPatient'] as any[]).map(toListRow),
@@ -199,7 +199,7 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  describe('coverages that query the cumulative count (j7t)', () => {
+  describe('누적 횟수를 조회하는 보험구분 (j7t)', () => {
     it.each(cases('j7t').map((c) => [c.name, c] as const))('%s', (_name, { expected }) => {
       const coverages = Object.values(COVERAGE).filter(queriesHiraChunaCount)
       expect(coverages).toEqual(
@@ -208,7 +208,7 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  describe('HIRA query window (Z8)', () => {
+  describe('심평원 조회 기간 (Z8)', () => {
     it.each(cases('Z8').map((c) => [c.name, c] as const))('%s', (_name, { input, expected }) => {
       const accident = input['자보정보']
       const window = hiraChunaQueryWindow(
@@ -227,7 +227,7 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  describe('NHIS and medical aid limit (SFt, 결정 1·4·7·8)', () => {
+  describe('건보·의료급여 한도 (SFt, 결정 1·4·7·8)', () => {
     it.each(cases('SFt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const record = input['현재진료']
       const count = input['추나누적횟수']
@@ -244,7 +244,7 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  describe('industrial accident limit (BFt, 결정 2·3)', () => {
+  describe('산재 한도 (BFt, 결정 2·3)', () => {
     it.each(cases('BFt').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const record = input['현재진료']
       const result = judgeChunaAnnualLimit({
@@ -266,7 +266,7 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  describe('add guard (addChunaGuard, 결정 4·8)', () => {
+  describe('처방 추가 가드 (addChunaGuard, 결정 4·8)', () => {
     it.each(cases('addChunaGuard').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const after = (input['after'] as any[]).map(toLine)
       const result = judgeChunaAnnualLimit({
@@ -284,7 +284,7 @@ describe('chuna-annual-limit fixture', () => {
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했거나 이식하지 않은 이유를 적었고 예외 목록은 있는 케이스만 가리킵니다', () => {
     const ported = new Set(['tLt', 'z7t', 'q7t', 'j7t', 'Z8', 'SFt', 'BFt', 'addChunaGuard'])
     const unaccounted = fixture.cases.filter(
       (testCase) => !(testCase.name in NOT_PORTED) && !ported.has(testCase.input['kind']),

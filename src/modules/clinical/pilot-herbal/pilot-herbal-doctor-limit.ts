@@ -17,9 +17,9 @@ export const DEFAULT_PILOT_HERBAL_DOCTOR_LIMITS: PilotHerbalDoctorCounts = { day
 
 export type PilotHerbalDoctorPeriod = 'DAY' | 'MONTH' | 'YEAR'
 
-const PERIOD_KEYS = { DAY: 'day', MONTH: 'month', YEAR: 'year' } as const
+const 구간키 = { DAY: 'day', MONTH: 'month', YEAR: 'year' } as const
 /** 초과를 알릴 때 보는 순서입니다. 일 → 월 → 연입니다. */
-const PERIODS: readonly PilotHerbalDoctorPeriod[] = ['DAY', 'MONTH', 'YEAR']
+const 구간알림순서: readonly PilotHerbalDoctorPeriod[] = ['DAY', 'MONTH', 'YEAR']
 
 /**
  * 같은 의사의 첩약 시범사업 처방이 있는 진료입니다. 호출하는 쪽이 진료 연도(병원 시간대)의 취소되지 않은 진료를
@@ -41,9 +41,9 @@ export function pilotHerbalDoctorCounts(
   current: Pick<PilotHerbalDoctorEncounter, 'encounterId' | 'serviceAt'>,
   encounters: readonly PilotHerbalDoctorEncounter[],
 ): PilotHerbalDoctorCounts {
-  const before = encounters.filter((other) => other.encounterId !== current.encounterId && precedes(other, current))
-  const counts = pilotHerbalDoctorUsage(current.serviceAt.date, before)
-  return { day: counts.day + 1, month: counts.month + 1, year: counts.year + 1 }
+  const 앞선진료 = encounters.filter((진료) => 진료.encounterId !== current.encounterId && precedes(진료, current))
+  const 쓴건수 = pilotHerbalDoctorUsage(current.serviceAt.date, 앞선진료)
+  return { day: 쓴건수.day + 1, month: 쓴건수.month + 1, year: 쓴건수.year + 1 }
 }
 
 /**
@@ -54,10 +54,10 @@ export function pilotHerbalDoctorUsage(
   date: string,
   encounters: readonly PilotHerbalDoctorEncounter[],
 ): PilotHerbalDoctorCounts {
-  const partial = encounters.filter((other) => other.copayCode === 'G')
-  const within = (length: number) =>
-    partial.filter((other) => other.serviceAt.date.slice(0, length) === date.slice(0, length)).length
-  return { day: within(10), month: within(7), year: within(4) }
+  const 일부부담진료 = encounters.filter((진료) => 진료.copayCode === 'G')
+  const 같은구간건수 = (length: number) =>
+    일부부담진료.filter((진료) => 진료.serviceAt.date.slice(0, length) === date.slice(0, length)).length
+  return { day: 같은구간건수(10), month: 같은구간건수(7), year: 같은구간건수(4) }
 }
 
 type Ordered = Pick<PilotHerbalDoctorEncounter, 'encounterId' | 'serviceAt'>
@@ -73,7 +73,7 @@ export function exceededPilotHerbalDoctorPeriod(
   counts: PilotHerbalDoctorCounts,
   limits: PilotHerbalDoctorCounts = DEFAULT_PILOT_HERBAL_DOCTOR_LIMITS,
 ): PilotHerbalDoctorPeriod | null {
-  return PERIODS.find((period) => counts[PERIOD_KEYS[period]] > limits[PERIOD_KEYS[period]]) ?? null
+  return 구간알림순서.find((구간) => counts[구간키[구간]] > limits[구간키[구간]]) ?? null
 }
 
 /** 이미 쓴 건수(`pilotHerbalDoctorUsage`)로 본 남은 처방 가능 건수입니다. 현행처럼 넘으면 음수가 그대로 나옵니다. */
@@ -114,24 +114,24 @@ export function applyPilotHerbalDoctorLimit(
   lineIds: readonly string[],
   input: PilotHerbalDoctorLimitInput,
 ): PilotHerbalCopayJudgement {
-  const limits = input.limits ?? DEFAULT_PILOT_HERBAL_DOCTOR_LIMITS
-  const period = exceededPilotHerbalDoctorPeriod(input.counts, limits)
-  if (period === null) return judgement
-  const key = PERIOD_KEYS[period]
-  const warning: PilotHerbalDoctorLimitWarning = {
+  const 한도 = input.limits ?? DEFAULT_PILOT_HERBAL_DOCTOR_LIMITS
+  const 초과구간 = exceededPilotHerbalDoctorPeriod(input.counts, 한도)
+  if (초과구간 === null) return judgement
+  const key = 구간키[초과구간]
+  const 경고: PilotHerbalDoctorLimitWarning = {
     code: 'PILOT_HERBAL_DOCTOR_LIMIT',
-    period,
+    period: 초과구간,
     count: input.counts[key],
-    limit: limits[key],
+    limit: 한도[key],
     lineIds: [...lineIds],
     blocksCompletion: false,
   }
-  return { ...judgement, copayCode: 'U', fullPayOptional: false, warnings: [...judgement.warnings, warning] }
+  return { ...judgement, copayCode: 'U', fullPayOptional: false, warnings: [...judgement.warnings, 경고] }
 }
 
-const MESSAGE_PERIOD = { DAY: '오늘', MONTH: '이번달', YEAR: '올해' } as const
+const 구간문구 = { DAY: '오늘', MONTH: '이번달', YEAR: '올해' } as const
 
 /** 경고 문구입니다. 현행 문구를 그대로 씁니다. */
 export function pilotHerbalDoctorLimitMessage(warning: Pick<PilotHerbalDoctorLimitWarning, 'period'>): string {
-  return `${MESSAGE_PERIOD[warning.period]} 원장님의 처방 가능 횟수가 초과됐습니다.`
+  return `${구간문구[warning.period]} 원장님의 처방 가능 횟수가 초과됐습니다.`
 }

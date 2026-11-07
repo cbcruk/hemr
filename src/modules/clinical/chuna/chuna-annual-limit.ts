@@ -5,7 +5,7 @@ import type { ServiceAt } from '../fees/consultation-fee-code.ts'
 export const CHUNA_CATEGORY = '33001005'
 
 /** 추나 수가코드(단순·복잡·복잡80·특수)입니다. 산재 진료기록은 이 코드로 추나 줄을 찾습니다. */
-const CHUNA_FEE_CODES: ReadonlySet<string> = new Set(['40710', '40720', '40721', '40730'])
+const 추나수가코드: ReadonlySet<string> = new Set(['40710', '40720', '40721', '40730'])
 
 /**
  * 보험구분별 추나 한도 초기값입니다. 참조데이터 `regulatory-limits`에 유효기간과 함께 둘 값입니다 (결정 2).
@@ -68,15 +68,22 @@ export interface ChunaUsageContext {
  * 열었는지와 상관없이 같은 답이 나옵니다. 심평원 누적 횟수는 조회 기간 전체의 값이라 행을 빼는 것으로 맞춥니다.
  */
 export function chunaUsageSummary(usage: HiraChunaUsage, context: ChunaUsageContext): ChunaUsageSummary {
-  const live = usage.rows.filter((row) => !row.deleted)
-  const ownCount = live.filter((row) => row.ownClinic).length
-  const otherCount = live.length - ownCount
-  const date = context.serviceAt.date
-  const sameDay = live.some((row) => row.serviceDate === date)
-  const notPrior = live.filter((row) => row.serviceDate >= date).length
-  const priorCount = Math.max(0, (usage.cumulativeCount ?? live.length) - notPrior)
-  const exhausted = priorCount >= context.limit
-  return { ownCount, otherCount, priorCount, sameDay, exhausted, availableToday: !sameDay && !exhausted }
+  const 삭제안된행 = usage.rows.filter((row) => !row.deleted)
+  const 본원추나시행건수 = 삭제안된행.filter((row) => row.ownClinic).length
+  const 타원추나시행건수 = 삭제안된행.length - 본원추나시행건수
+  const 진료일 = context.serviceAt.date
+  const 당일추나시술여부 = 삭제안된행.some((row) => row.serviceDate === 진료일)
+  const 진료일부터시행수 = 삭제안된행.filter((row) => row.serviceDate >= 진료일).length
+  const 이전시행수 = Math.max(0, (usage.cumulativeCount ?? 삭제안된행.length) - 진료일부터시행수)
+  const 추나횟수소진 = 이전시행수 >= context.limit
+  return {
+    ownCount: 본원추나시행건수,
+    otherCount: 타원추나시행건수,
+    priorCount: 이전시행수,
+    sameDay: 당일추나시술여부,
+    exhausted: 추나횟수소진,
+    availableToday: !당일추나시술여부 && !추나횟수소진,
+  }
 }
 
 /** 판정에 쓰는 처방 줄입니다. */
@@ -88,7 +95,7 @@ export interface ChunaLine {
 
 /** 추나 줄인지입니다. 카테고리 `33001005`이거나 기본코드(앞 5자리)가 추나 수가코드면 추나입니다. */
 export function isChunaLine(line: Omit<ChunaLine, 'lineId'>): boolean {
-  return line.category === CHUNA_CATEGORY || (line.feeCode !== null && CHUNA_FEE_CODES.has(line.feeCode.slice(0, 5)))
+  return line.category === CHUNA_CATEGORY || (line.feeCode !== null && 추나수가코드.has(line.feeCode.slice(0, 5)))
 }
 
 /** 산재 사용량을 셀 같은 환자의 다른 진료입니다. 취소·철회한 진료는 호출하는 쪽이 뺍니다. */
@@ -107,15 +114,15 @@ export function industrialAccidentPriorDays(
   current: { encounterId: string; serviceAt: ServiceAt },
   others: readonly ChunaEncounter[],
 ): number {
-  const year = current.serviceAt.date.slice(0, 4)
-  const days = new Set<string>()
-  for (const other of others) {
-    if (other.encounterId === current.encounterId || other.coverage !== 'INDUSTRIAL_ACCIDENT') continue
-    if (other.serviceAt === null || other.serviceAt.date.slice(0, 4) !== year) continue
-    if (other.serviceAt.date >= current.serviceAt.date || !other.lines.some(isChunaLine)) continue
-    days.add(other.serviceAt.date)
+  const 진료연도 = current.serviceAt.date.slice(0, 4)
+  const 시행일 = new Set<string>()
+  for (const 진료 of others) {
+    if (진료.encounterId === current.encounterId || 진료.coverage !== 'INDUSTRIAL_ACCIDENT') continue
+    if (진료.serviceAt === null || 진료.serviceAt.date.slice(0, 4) !== 진료연도) continue
+    if (진료.serviceAt.date >= current.serviceAt.date || !진료.lines.some(isChunaLine)) continue
+    시행일.add(진료.serviceAt.date)
   }
-  return days.size
+  return 시행일.size
 }
 
 /** 이전 시행 수가 한도에 이른 위반입니다. */
@@ -167,25 +174,33 @@ export interface ChunaAnnualLimitJudgement {
  * 3. `이전 시행 수 ≥ 한도`면 `CHUNA_ANNUAL_LIMIT`입니다. 자보는 경고만 내고, 나머지는 완료를 막습니다
  */
 export function judgeChunaAnnualLimit(input: ChunaAnnualLimitInput): ChunaAnnualLimitJudgement {
-  const none: ChunaAnnualLimitJudgement = { warnings: [], accepted: true }
-  const limit = (input.limits ?? DEFAULT_CHUNA_LIMITS)[input.coverage]
-  const lineIds = input.lines.filter(isChunaLine).map((line) => line.lineId)
-  if (limit === undefined || lineIds.length === 0) return none
+  const 경고없음: ChunaAnnualLimitJudgement = { warnings: [], accepted: true }
+  const 한도 = (input.limits ?? DEFAULT_CHUNA_LIMITS)[input.coverage]
+  const 추나줄Ids = input.lines.filter(isChunaLine).map((line) => line.lineId)
+  if (한도 === undefined || 추나줄Ids.length === 0) return 경고없음
 
-  let priorCount: number
+  let 이전시행수: number
   if (input.coverage === 'INDUSTRIAL_ACCIDENT') {
-    priorCount = industrialAccidentPriorDays(input, input.others)
+    이전시행수 = industrialAccidentPriorDays(input, input.others)
   } else if (input.hiraUsage === null || !input.hiraUsage.complete) {
-    return { warnings: [{ code: 'CHUNA_USAGE_UNKNOWN', lineIds, blocksCompletion: false }], accepted: true }
+    return { warnings: [{ code: 'CHUNA_USAGE_UNKNOWN', lineIds: 추나줄Ids, blocksCompletion: false }], accepted: true }
   } else {
-    priorCount = chunaUsageSummary(input.hiraUsage, { ...input, limit }).priorCount
+    이전시행수 = chunaUsageSummary(input.hiraUsage, { ...input, limit: 한도 }).priorCount
   }
-  if (priorCount < limit) return none
+  if (이전시행수 < 한도) return 경고없음
 
-  const blocksCompletion = input.coverage !== 'AUTO_INSURANCE'
+  const 완료차단 = input.coverage !== 'AUTO_INSURANCE'
   return {
-    warnings: [{ code: 'CHUNA_ANNUAL_LIMIT', lineIds, priorCount, limit, blocksCompletion }],
-    accepted: !blocksCompletion,
+    warnings: [
+      {
+        code: 'CHUNA_ANNUAL_LIMIT',
+        lineIds: 추나줄Ids,
+        priorCount: 이전시행수,
+        limit: 한도,
+        blocksCompletion: 완료차단,
+      },
+    ],
+    accepted: !완료차단,
   }
 }
 
@@ -201,8 +216,8 @@ export function parseHiraChunaCount(response: HiraChunaCountResponse | null): nu
   if (response === null || response.errorCode || response.errorMessage) return null
   const text = (response.count ?? '').trim()
   if (text === '') return null
-  const count = Number(text)
-  return Number.isFinite(count) ? count : null
+  const 누적횟수 = Number(text)
+  return Number.isFinite(누적횟수) ? 누적횟수 : null
 }
 
 /** 누적 횟수를 따로 조회하는 보험구분입니다. 자보는 사고 단위 목록만 셉니다. */
@@ -249,8 +264,10 @@ export function hiraChunaQueryWindow(
   today: string,
   accident?: { accidentNumber: string; accidentDate: string },
 ): HiraChunaQueryWindow {
-  const year = serviceDate.slice(0, 4)
-  const to = year === today.slice(0, 4) ? today : `${year}-12-31`
-  if (accident !== undefined) return { from: accident.accidentDate, to, accidentNumber: accident.accidentNumber }
-  return { from: `${year}-01-01`, to, year }
+  const 진료연도 = serviceDate.slice(0, 4)
+  const 진료기간To = 진료연도 === today.slice(0, 4) ? today : `${진료연도}-12-31`
+  if (accident !== undefined) {
+    return { from: accident.accidentDate, to: 진료기간To, accidentNumber: accident.accidentNumber }
+  }
+  return { from: `${진료연도}-01-01`, to: 진료기간To, year: 진료연도 }
 }

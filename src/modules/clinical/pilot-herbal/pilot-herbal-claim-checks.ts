@@ -6,22 +6,22 @@ import { isHiraApproved } from './pilot-herbal-approval.ts'
 import type { HiraApprovalStatus } from './pilot-herbal-approval.ts'
 import { PILOT_HERBAL_CATEGORY } from './pilot-herbal-categories.ts'
 
-const HERBAL_MEDICINE_CATEGORY = '34001001'
-const HERBAL_DISPENSING_CATEGORY = '34002001'
+const 한방보험약카테고리 = '34001001'
+const 한방조제료카테고리 = '34002001'
 
 /** 첩약 시범사업과 함께 청구할 수 없는 수가코드 접두어입니다. 변증기술료·양도락·맥전도·경락기능검사입니다. */
-const NOT_BILLABLE_PREFIXES = ['40400', '20010', '20020', '20030']
-const DEEP_PATTERN_FEE = '90401'
+const 첩약동시청구불가수가접두어 = ['40400', '20010', '20020', '20030']
+const 심층변증방제기술료코드 = '90401'
 /** 조제·탕전료(자체·공동이용 탕전 10일분·5일분)입니다 (결정 4). */
-const DISPENSING_DECOCTION_FEES: ReadonlySet<string> = new Set(['90411', '90412', '90421', '90422'])
-/** 다른 진료에 심층변증방제기술료가 있으면 경고하는 날짜 간격(양방향)입니다. */
-const DEEP_PATTERN_INTERVAL_DAYS = 10
+const 조제탕전료코드: ReadonlySet<string> = new Set(['90411', '90412', '90421', '90422'])
+/** 다른 진료에 심층변증방제기술료가 진료일 앞뒤로 이 일수 이내(그날 포함)에 있으면 경고합니다. */
+const 심층변증중복경고일수 = 10
 
-const COMMON_PRESCRIPTION = '00'
-const CEREBROVASCULAR_SEQUELAE = '03'
-const FUNCTIONAL_DYSPEPSIA = '06'
+const 공통처방코드 = '00'
+const 뇌혈관질환후유증코드 = '03'
+const 기능성소화불량코드 = '06'
 /** 기능성소화불량에 처방할 수 없는 처방명입니다. */
-const DYSPEPSIA_EXCLUDED_PRESCRIPTIONS: ReadonlySet<string> = new Set(['마황정천탕', '보폐원탕'])
+const 기능성소화불량불가처방명: ReadonlySet<string> = new Set(['마황정천탕', '보폐원탕'])
 
 /**
  * 질환별로 인정되는 상병 접두어입니다. 뇌혈관질환후유증(`03`)은 제1부상병, 나머지는 주상병에 있어야 합니다.
@@ -100,10 +100,10 @@ export interface PilotHerbalClaimIssue {
  * 다른 검사 결과는 남습니다 (결정 7). 결과는 코드 순서입니다.
  */
 export function pilotHerbalClaimIssues(input: PilotHerbalClaimInput): PilotHerbalClaimIssue[] {
-  const covered = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
-  if (!covered || input.pilotHerbal === null) return []
+  const 건보의료급여 = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
+  if (!건보의료급여 || input.pilotHerbal === null) return []
   const context = { ...input, diseaseCode: input.pilotHerbal.diseaseCode }
-  return CHECKS.flatMap((check) => check(context) ?? [])
+  return 청구검사.flatMap((검사) => 검사(context) ?? [])
 }
 
 type CheckContext = PilotHerbalClaimInput & { diseaseCode: string }
@@ -114,123 +114,119 @@ const issue = (code: PilotHerbalClaimCode, lineIds: string[]): PilotHerbalClaimI
   lineIds.length > 0 ? { code, lineIds } : null
 const encounterIssue = (code: PilotHerbalClaimCode, failed: boolean): PilotHerbalClaimIssue | null =>
   failed ? { code, lineIds: [] } : null
-const herbalLines = <L extends Pick<PilotHerbalClaimLine, 'category'>>(lines: readonly L[]) =>
+const 첩약줄 = <L extends Pick<PilotHerbalClaimLine, 'category'>>(lines: readonly L[]) =>
   lines.filter((line) => line.category === PILOT_HERBAL_CATEGORY)
-const deepPatternLines = <L extends Pick<PilotHerbalClaimLine, 'feeCode'>>(lines: readonly L[]) =>
-  lines.filter((line) => line.feeCode?.startsWith(DEEP_PATTERN_FEE) === true)
+const 심층변증방제기술료줄 = <L extends Pick<PilotHerbalClaimLine, 'feeCode'>>(lines: readonly L[]) =>
+  lines.filter((line) => line.feeCode?.startsWith(심층변증방제기술료코드) === true)
 
 /** 질환에 인정되는 상병 접두어입니다. 표에 없으면 `undefined`이고, 빈 접두어는 버립니다. */
-function diagnosisPrefixes(context: CheckContext): string[] | undefined {
-  const prefixes = (context.diseaseDiagnoses ?? DEFAULT_PILOT_HERBAL_DIAGNOSES).get(context.diseaseCode)
-  return prefixes?.map(normalizeDiagnosis).filter((prefix) => prefix !== '')
+function 인정상병접두어(context: CheckContext): string[] | undefined {
+  const 접두어 = (context.diseaseDiagnoses ?? DEFAULT_PILOT_HERBAL_DIAGNOSES).get(context.diseaseCode)
+  return 접두어?.map(normalizeDiagnosis).filter((prefix) => prefix !== '')
 }
 
 /** 상병코드를 점 없는 대문자로 맞춥니다. 서버 상병은 `U23.4`, 접두어 표는 `U234` 꼴입니다. */
 const normalizeDiagnosis = (code: string) => code.replaceAll('.', '').trim().toUpperCase()
 
 /** 상병이 접두어 중 하나로 시작하는지입니다. 상병이 없으면 거짓입니다. */
-const diagnosisMatches = (code: string | undefined, prefixes: readonly string[]) =>
-  code !== undefined && prefixes.some((prefix) => normalizeDiagnosis(code).startsWith(prefix))
+const 상병접두어일치 = (code: string | undefined, 접두어: readonly string[]) =>
+  code !== undefined && 접두어.some((prefix) => normalizeDiagnosis(code).startsWith(prefix))
 
 /** 주민번호 앞·뒷자리가 모두 있을 때만 비교합니다. 하나라도 비면 모르는 것으로 봅니다. */
-const completeRrn = (rrn: Rrn | null): rrn is Rrn => rrn !== null && rrn.front !== '' && rrn.back !== ''
+const 주민번호앞뒤있음 = (rrn: Rrn | null): rrn is Rrn => rrn !== null && rrn.front !== '' && rrn.back !== ''
 
 /** 다른 진료 중 조건에 맞는 진료가 진료일과 `maxDays` 이내(양방향)에 있는지입니다 (결정 2·3·12). */
-function nearbyEncounter(
+function 전후다른진료있음(
   context: CheckContext,
   maxDays: number,
-  matches: (other: PilotHerbalOtherEncounter) => boolean,
+  조건: (다른진료: PilotHerbalOtherEncounter) => boolean,
 ): boolean {
   return context.others.some(
-    (other) =>
-      other.encounterId !== context.encounterId &&
-      matches(other) &&
-      Math.abs(daysBetween(other.serviceAt.date, context.serviceAt.date)) <= maxDays,
+    (다른진료) =>
+      다른진료.encounterId !== context.encounterId &&
+      조건(다른진료) &&
+      Math.abs(daysBetween(다른진료.serviceAt.date, context.serviceAt.date)) <= maxDays,
   )
 }
 
-const CHECKS: readonly Check[] = [
+const 청구검사: readonly Check[] = [
   // C0001: 변증기술료·양도락·맥전도·경락기능검사는 함께 청구할 수 없습니다
   ({ lines }) =>
     issue(
       'C0001',
-      ids(lines.filter((line) => NOT_BILLABLE_PREFIXES.some((prefix) => line.feeCode?.startsWith(prefix)))),
+      ids(lines.filter((line) => 첩약동시청구불가수가접두어.some((prefix) => line.feeCode?.startsWith(prefix)))),
     ),
   // C0002: 첩약 특정내역의 대상 질환이 내원 질환과 다르면 인정되지 않는 처방입니다. 특정내역이 없으면 통과입니다
   ({ lines, diseaseCode, diseases }) => {
-    const name = (diseases ?? DEFAULT_PILOT_HERBAL_DISEASES).get(diseaseCode)
-    if (diseaseCode === COMMON_PRESCRIPTION || name === undefined) return null
-    const target = (line: PilotHerbalClaimLine) => line.herbalDetails?.targetDisease
-    return issue('C0002', ids(herbalLines(lines).filter((line) => !!target(line) && target(line) !== name)))
+    const 질환명 = (diseases ?? DEFAULT_PILOT_HERBAL_DISEASES).get(diseaseCode)
+    if (diseaseCode === 공통처방코드 || 질환명 === undefined) return null
+    const 대상질환 = (line: PilotHerbalClaimLine) => line.herbalDetails?.targetDisease
+    return issue('C0002', ids(첩약줄(lines).filter((line) => !!대상질환(line) && 대상질환(line) !== 질환명)))
   },
   // C0003: 한방보험약과 같은 날 함께 청구할 수 없습니다. 정정 제안은 딸린 한방조제료도 지웁니다
   ({ lines }) => {
-    const medicines = lines.filter((line) => line.category === HERBAL_MEDICINE_CATEGORY)
-    if (medicines.length === 0) return null
-    const dispensing = lines.filter((line) => line.category === HERBAL_DISPENSING_CATEGORY)
-    return { code: 'C0003', lineIds: ids(medicines), fixRemovesLineIds: ids([...medicines, ...dispensing]) }
+    const 한방보험약줄 = lines.filter((line) => line.category === 한방보험약카테고리)
+    if (한방보험약줄.length === 0) return null
+    const 한방조제료줄 = lines.filter((line) => line.category === 한방조제료카테고리)
+    return { code: 'C0003', lineIds: ids(한방보험약줄), fixRemovesLineIds: ids([...한방보험약줄, ...한방조제료줄]) }
   },
   // C0004: 심층변증방제기술료는 10일당 1회입니다
   (context) => {
-    const current = deepPatternLines(context.lines)
-    if (current.length === 0) return null
-    const repeated = nearbyEncounter(context, DEEP_PATTERN_INTERVAL_DAYS, (o) => deepPatternLines(o.lines).length > 0)
-    return repeated ? issue('C0004', ids(current)) : null
+    const 현재심층변증줄 = 심층변증방제기술료줄(context.lines)
+    if (현재심층변증줄.length === 0) return null
+    const 중복 = 전후다른진료있음(context, 심층변증중복경고일수, (o) => 심층변증방제기술료줄(o.lines).length > 0)
+    return 중복 ? issue('C0004', ids(현재심층변증줄)) : null
   },
   // C0005: 심평원에 제출(승인)되지 않은 첩약 줄입니다 (결정 10)
-  ({ lines }) => issue('C0005', ids(herbalLines(lines).filter((line) => !isHiraApproved(line)))),
+  ({ lines }) => issue('C0005', ids(첩약줄(lines).filter((line) => !isHiraApproved(line)))),
   // C0006: 첩약 특정내역이 있는데 체크리스트를 제출하지 않았습니다. 제출 여부를 모르면 미제출로 봅니다
   ({ lines }) =>
     issue(
       'C0006',
       ids(
-        herbalLines(lines).filter(
-          (line) => line.herbalDetails !== null && line.herbalDetails.checklistSubmitted !== true,
-        ),
+        첩약줄(lines).filter((line) => line.herbalDetails !== null && line.herbalDetails.checklistSubmitted !== true),
       ),
     ),
   // C0007: 심층변증방제기술료와 조제·탕전료에는 가산을 붙일 수 없습니다. 가산은 6자리 이상 코드입니다 (결정 4·5)
   ({ lines }) => {
-    const deep = deepPatternLines(lines)
-    const decoction = lines.filter(
-      (line) => line.feeCode !== null && DISPENSING_DECOCTION_FEES.has(line.feeCode.slice(0, 5)),
-    )
-    if (deep.length === 0 || decoction.length === 0) return null
-    return issue('C0007', ids([...deep, ...decoction].filter((line) => (line.feeCode ?? '').length > 5)))
+    const 심층변증줄 = 심층변증방제기술료줄(lines)
+    const 조제탕전료줄 = lines.filter((line) => line.feeCode !== null && 조제탕전료코드.has(line.feeCode.slice(0, 5)))
+    if (심층변증줄.length === 0 || 조제탕전료줄.length === 0) return null
+    return issue('C0007', ids([...심층변증줄, ...조제탕전료줄].filter((line) => (line.feeCode ?? '').length > 5)))
   },
   // C0008: 질환에 인정되는 상병이 주상병이어야 합니다. 공통처방과 뇌혈관질환후유증은 건너뜁니다 (결정 7)
   (context) => {
-    const prefixes = diagnosisPrefixes(context)
-    if (context.diseaseCode === CEREBROVASCULAR_SEQUELAE || prefixes === undefined) return null
-    const primary = context.diagnoses.find((diagnosis) => diagnosis.kind === 'PRIMARY')
-    return encounterIssue('C0008', !diagnosisMatches(primary?.code, prefixes))
+    const 접두어 = 인정상병접두어(context)
+    if (context.diseaseCode === 뇌혈관질환후유증코드 || 접두어 === undefined) return null
+    const 주상병 = context.diagnoses.find((상병) => 상병.kind === 'PRIMARY')
+    return encounterIssue('C0008', !상병접두어일치(주상병?.code, 접두어))
   },
   // C0009: 뇌혈관질환후유증은 제1부상병이 인정 상병이어야 합니다 (결정 8)
   (context) => {
-    const prefixes = diagnosisPrefixes(context)
-    if (context.diseaseCode !== CEREBROVASCULAR_SEQUELAE || prefixes === undefined) return null
-    const firstSecondary = context.diagnoses.find((diagnosis) => diagnosis.kind === 'SECONDARY')
-    return encounterIssue('C0009', !diagnosisMatches(firstSecondary?.code, prefixes))
+    const 접두어 = 인정상병접두어(context)
+    if (context.diseaseCode !== 뇌혈관질환후유증코드 || 접두어 === undefined) return null
+    const 제1부상병 = context.diagnoses.find((상병) => 상병.kind === 'SECONDARY')
+    return encounterIssue('C0009', !상병접두어일치(제1부상병?.code, 접두어))
   },
   // C0010: 같은 진료일에 다른 진료의 첩약이 있으면 기준 처방을 2개 청구하게 됩니다 (결정 2)
   (context) => {
-    const current = herbalLines(context.lines)
-    if (current.length === 0) return null
-    return nearbyEncounter(context, 0, (other) => herbalLines(other.lines).length > 0)
-      ? issue('C0010', ids(current))
+    const 현재첩약줄 = 첩약줄(context.lines)
+    if (현재첩약줄.length === 0) return null
+    return 전후다른진료있음(context, 0, (다른진료) => 첩약줄(다른진료.lines).length > 0)
+      ? issue('C0010', ids(현재첩약줄))
       : null
   },
   // C0011: 기능성소화불량에는 마황정천탕·보폐원탕을 처방할 수 없습니다. 원인은 그 처방 줄입니다
   ({ diseaseCode, lines }) =>
-    diseaseCode === FUNCTIONAL_DYSPEPSIA
-      ? issue('C0011', ids(lines.filter((line) => DYSPEPSIA_EXCLUDED_PRESCRIPTIONS.has(line.name))))
+    diseaseCode === 기능성소화불량코드
+      ? issue('C0011', ids(lines.filter((line) => 기능성소화불량불가처방명.has(line.name))))
       : null,
   // C0012: 진료 의사 본인에게는 처방할 수 없습니다 (결정 6)
   ({ patientRrn, doctorRrn }) =>
     encounterIssue(
       'C0012',
-      completeRrn(patientRrn) &&
-        completeRrn(doctorRrn) &&
+      주민번호앞뒤있음(patientRrn) &&
+        주민번호앞뒤있음(doctorRrn) &&
         patientRrn.front === doctorRrn.front &&
         patientRrn.back === doctorRrn.back,
     ),

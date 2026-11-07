@@ -148,22 +148,22 @@ const NOT_PORTED: Record<string, string> = {
   'eligibility: no code selected': '첩약 시범사업 처방의 질환 코드는 요청 스키마의 필수 값이라 빈 값이 없습니다',
 }
 
-describe('pilot-herbal-diagnosis-limit fixture', () => {
-  describe('eligibility (Cdn, 결정 1·5·6·7·9)', () => {
+describe('첩약 질환 이력 픽스처 (pilot-herbal-diagnosis-limit)', () => {
+  describe('처방 가능 여부 (Cdn, 결정 1·5·6·7·9)', () => {
     it.each(cases('prescriptionEligibility').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const want = CHANGED[name] ?? legacyEligibility(expected['returned'])
       expect(eligibilityOf(judge(input))).toEqual(want)
     })
   })
 
-  describe('copay code (resolveCopayCode, 결정 1·2·6)', () => {
+  describe('본인부담률 코드 (resolveCopayCode, 결정 1·2·6)', () => {
     it.each(cases('resolveCopayCode').map((c) => [c.name, c] as const))('%s', (name, { input, expected }) => {
       const want = CHANGED[name] ?? legacyCopay(expected['returned'])
       expect(copayOf(judge(input))).toEqual(want)
     })
   })
 
-  describe('current disease merge (N0e, 결정 3·6)', () => {
+  describe('선택 질환 이력 합치기 (N0e, 결정 3·6)', () => {
     it.each(cases('mergeCurrentDiagnosisHistory').map((c) => [c.name, c] as const))(
       '%s',
       (_name, { input, expected }) => {
@@ -173,13 +173,13 @@ describe('pilot-herbal-diagnosis-limit fixture', () => {
     )
   })
 
-  describe('two other diseases (R0e, 결정 1)', () => {
+  describe('다른 2개 질환 (R0e, 결정 1)', () => {
     it.each(cases('hasTwoOtherDiagnoses').map((c) => [c.name, c] as const))('%s', (_name, { input, expected }) => {
       expect(hasTwoOtherDiseases(toHistory(input['history']), input['code'])).toBe(expected['returned'])
     })
   })
 
-  it('accounts for every fixture case', () => {
+  it('모든 픽스처 케이스를 이식했거나 이식하지 않은 이유를 적었고 예외 목록은 있는 케이스만 가리킵니다', () => {
     const ported = new Set([
       'prescriptionEligibility',
       'resolveCopayCode',

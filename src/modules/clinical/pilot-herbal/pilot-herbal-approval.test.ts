@@ -13,8 +13,8 @@ const line = (lineId: string, status: HiraApprovalStatus | null, category = '350
   hiraApproval: status === null ? null : { status },
 })
 
-describe('pilotHerbalApprovalViolation', () => {
-  it('collects every pending, rejected or missing herbal line', () => {
+describe('첩약 미승인 위반 (pilotHerbalApprovalViolation)', () => {
+  it('제출 전·거부·승인 상태 없는 첩약 줄을 모두 모읍니다', () => {
     const lines = [line('a', 'APPROVED'), line('b', 'PENDING'), line('c', 'REJECTED'), line('d', null)]
     expect(pilotHerbalApprovalViolation(lines)).toEqual({
       code: 'PILOT_HERBAL_NOT_APPROVED',
@@ -23,15 +23,15 @@ describe('pilotHerbalApprovalViolation', () => {
     })
   })
 
-  it('treats NOT_REQUIRED on a herbal line as not approved', () => {
+  it('첩약 줄의 NOT_REQUIRED는 승인되지 않은 것으로 봅니다', () => {
     expect(pilotHerbalApprovalViolation([line('a', 'NOT_REQUIRED')])?.lineIds).toEqual(['a'])
   })
 
-  it('passes an empty list', () => {
+  it('줄이 없으면 위반이 없습니다', () => {
     expect(pilotHerbalApprovalViolation([])).toBeNull()
   })
 
-  it('agrees with the C0005 claim check on the same lines (결정 3·5)', () => {
+  it('같은 줄에 대해 청구 검사 C0005와 같은 줄을 가리킵니다 (결정 3·5)', () => {
     const lines = [
       line('a', 'APPROVED'),
       line('b', 'PENDING'),
@@ -53,21 +53,21 @@ describe('pilotHerbalApprovalViolation', () => {
     expect(issues).toEqual([{ code: 'C0005', lineIds: pilotHerbalApprovalViolation(lines)!.lineIds }])
   })
 
-  it('ignores other pilot categories even when not approved', () => {
+  it('첩약이 아닌 시범사업 카테고리는 승인되지 않아도 보지 않습니다', () => {
     expect(pilotHerbalApprovalViolation([line('a', 'PENDING', '35002001'), line('b', null, '35003001')])).toBeNull()
   })
 })
 
-describe('initialHiraApprovalStatus', () => {
-  it('starts herbal lines as pending and others as not required', () => {
+describe('처음 승인 상태 (initialHiraApprovalStatus)', () => {
+  it('첩약 줄은 PENDING, 나머지는 NOT_REQUIRED로 시작합니다', () => {
     expect(initialHiraApprovalStatus('35001001')).toBe('PENDING')
     expect(initialHiraApprovalStatus('35002001')).toBe('NOT_REQUIRED')
     expect(initialHiraApprovalStatus('31001001')).toBe('NOT_REQUIRED')
   })
 })
 
-describe('pilotHerbalLineRejection', () => {
-  it('rejects every pilot category for tenants without EMR', () => {
+describe('시범사업 줄 거부 (pilotHerbalLineRejection)', () => {
+  it('EMR 제품이 없는 테넌트는 시범사업 카테고리 줄을 모두 거부합니다', () => {
     expect(pilotHerbalLineRejection('35003001', ['SOO'])).toBe('PILOT_HERBAL_NOT_AVAILABLE')
     expect(pilotHerbalLineRejection('35001001', ['SOO', 'EMR'])).toBeNull()
     expect(pilotHerbalLineRejection('31001001', ['SOO'])).toBeNull()
