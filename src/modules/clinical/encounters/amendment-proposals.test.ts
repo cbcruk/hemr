@@ -62,8 +62,8 @@ const completedEncounter = Effect.gen(function* () {
   return encounterId
 })
 
-describe.each(['memory', 'sqlite'] as const)('AmendmentProposals (%s)', (store) => {
-  it('applies a prescription line proposal with its client refs and writes the events', async () => {
+describe.each(['memory', 'sqlite'] as const)('정정 제안 (%s)', (store) => {
+  it('처방 라인 제안을 반영하면 clientRef 대응을 돌려주고 이벤트를 남깁니다', async () => {
     const result = await run(
       Effect.gen(function* () {
         const encounterId = yield* completedEncounter
@@ -108,7 +108,7 @@ describe.each(['memory', 'sqlite'] as const)('AmendmentProposals (%s)', (store) 
     })
   })
 
-  it('refuses a proposal on a retracted encounter', async () => {
+  it('철회한 진료에는 제안할 수 없습니다', async () => {
     const result = await run(
       Effect.gen(function* () {
         const encounterId = yield* completedEncounter
