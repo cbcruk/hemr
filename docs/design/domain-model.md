@@ -226,10 +226,26 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - 시작 금액·이어받기를 함께 보냈는지(400)는 요청 검증이지만, 열기의 다른 거부보다 먼저 나가야 해서 판정 안에 두었습니다
 - 지출 항목 추가·삭제는 판정할 규칙이 이름 중복(저장소의 유일 제약)뿐이라 옮기지 않았습니다
 
+### 환자 묶음과 #67을 마치며
+
+환자를 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
+
+- [patient.aggregate.ts](../../src/modules/patients/patient.aggregate.ts): 등록(`decideRegister`), 수정(`decideUpdate`), 동의 기록(`decideRecordConsent`). 이슈는 "판정이 거의 없으면 옮기지 않는다"였지만, 생년월일·성별과 주민등록번호의 일치, 대표 연락처·주소 개수, 080 거부 잠금이 있어 옮겼습니다
+- **비밀키를 쓰는 일은 서비스에 둡니다.** 주민등록번호 암호화(`PatientCrypto`)는 서비스가 하고 판정은 원문 숫자와 저장할 값(`SealedRrn`)을 받습니다. 수정은 바뀐 것이 있을 때만 지금 번호를 열어야 해서, 여는 함수(`currentDigits`)를 넘기고 판정이 필요할 때만 부릅니다
+- **차트 번호는 저장소가 채번합니다.** 그래서 등록 판정은 `patient.created`를 저장한 기록으로 만드는 함수(`events`)로 돌려줍니다
+
+#67에서 정한 것 전체:
+
+- **완료 검증 같은 규칙 계산은 판정이 직접 부릅니다.** 서비스가 결과를 `context`로 넘기지 않습니다. 규칙 모듈이 순수 함수라 판정이 순수함을 잃지 않고, 무엇을 어떤 순서로 보는지가 판정 한 곳에 남습니다
+- **서비스에서 `domainEvent(`를 직접 부르는 곳은 없습니다.** 판정 파일 밖에서 이벤트를 만드는 곳은 둘이 남았습니다. 진료 애그리거트의 일부지만 내원 판정이 import하므로, 진료 판정 파일로 옮기면 진료 판정 ↔ 내원 판정이 서로를 import합니다
+  - [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)(`draftEncounter`): 접수가 빈 진료를 만듭니다. M1([#69](https://github.com/cbcruk/hemr/issues/69))에서 정책으로 옮기면 내원이 import하지 않게 되므로 그때 진료 판정으로 모읍니다
+  - [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)(`retractEncounter`): 진료 철회(`decideRetract`)와 내원 연쇄 취소(`decideCancel`)가 같이 씁니다. 연쇄 취소가 컨텍스트를 넘는 예외라 남습니다
+- `conventions.md`에는 판정 함수 절이 없습니다. 규약은 이 문서(코드 배치와 위 절들)와 `CLAUDE.md`에 있습니다
+
 ## 단계
 
 1. **내원 시범**([#66](https://github.com/cbcruk/hemr/issues/66)): `visit.aggregate.ts`로 옮기고 동작은 바꾸지 않습니다. 이 문서의 규약을 확정합니다
-2. **나머지 애그리거트**([#67](https://github.com/cbcruk/hemr/issues/67)): 묶은 경계 표의 묶음부터 `decide`로 옮깁니다. 동작은 바꾸지 않습니다
+2. **나머지 애그리거트**([#67](https://github.com/cbcruk/hemr/issues/67)): 묶은 경계 표의 묶음부터 `decide`로 옮깁니다. 동작은 바꾸지 않습니다. 수납·진료·시술·시재·환자를 옮겨 마쳤습니다
 3. **정책 기반**([#68](https://github.com/cbcruk/hemr/issues/68)): 소비자별 `seq` 저장과 정책 실행기를 만듭니다. 첫 정책은 동작이 바뀌지 않는 것으로 고릅니다(진료 후 시술 종료처럼 응답에 실리지 않는 것)
 4. **트랜잭션에서 정책으로 옮기기**([#69](https://github.com/cbcruk/hemr/issues/69)): 아래 결정대로 하나씩 옮깁니다. 응답 모양이 바뀌는 것(M1·M2)은 OpenAPI와 도메인 문서를 함께 고칩니다
 5. **시술 애그리거트 넓히기(M4)**([#70](https://github.com/cbcruk/hemr/issues/70))

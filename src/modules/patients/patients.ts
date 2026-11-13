@@ -1,54 +1,31 @@
-import { Clock, Context, Effect, Layer, Option } from 'effect'
+import { Clock, Context, DateTime, Effect, Layer, Option } from 'effect'
 import { AccessLog } from '../../shared/audit/access-log.ts'
-import { domainEvent } from '../../shared/events/domain-event.ts'
+import { decisionContext } from '../../shared/events/domain-event.ts'
 import { isId, newId } from '../../shared/ids/ids.ts'
 import type { Id } from '../../shared/ids/ids.types.ts'
-import { ValidationFailed, VersionMismatch } from '../../shared/problem/problem.ts'
+import { ValidationFailed } from '../../shared/problem/problem.ts'
+import type { VersionMismatch } from '../../shared/problem/problem.ts'
 import { CurrentAccess } from '../identity/auth/access.ts'
-import { ConsentLockedByPatient, PatientNotFound } from './patient.ts'
-import type { Address, ChartNumberTaken, Consent, Contact, DuplicateRrn, Patient, PatientRecord } from './patient.ts'
+import { decideRecordConsent, decideRegister, decideUpdate } from './patient.aggregate.ts'
+import type { RecordConsentCommand, RegisterCommand, UpdateCommand } from './patient.aggregate.ts'
+import { PatientNotFound } from './patient.ts'
+import type {
+  ChartNumberTaken,
+  Consent,
+  ConsentLockedByPatient,
+  DuplicateRrn,
+  Patient,
+  PatientRecord,
+} from './patient.ts'
 import { classifyQuery } from './patient.ts'
 import { PatientCrypto } from './patient-crypto.ts'
 import { PatientRepository } from './patient-repository.ts'
 import type { ConsentRecord } from './patient-repository.ts'
-import { birthDateOf, maskRrn, normalizeRrn, sexOf } from './rrn.ts'
+import { maskRrn, normalizeRrn } from './rrn.ts'
 
-/** 환자 등록 입력입니다. `chartNumber`를 비우면 서버가 채번합니다. */
-export interface RegisterPatientInput {
-  name: string
-  chartNumber?: string
-  /** 주면 비어 있는 `birthDate`·`sex`를 이 번호에서 채웁니다. */
-  rrn?: string
-  birthDate?: string
-  isLunarBirthday?: boolean
-  sex?: Patient['sex']
-  contacts?: ReadonlyArray<Contact>
-  addresses?: ReadonlyArray<Address>
-  notes?: string
-}
-
-/** 바꿀 필드만 보냅니다. `null`은 값을 지웁니다. 컬렉션(`contacts`·`addresses`)은 통째로 바꿉니다. */
-export interface UpdatePatientInput {
-  name?: string
-  chartNumber?: string
-  rrn?: string | null
-  birthDate?: string | null
-  isLunarBirthday?: boolean
-  sex?: Patient['sex']
-  contacts?: ReadonlyArray<Contact>
-  addresses?: ReadonlyArray<Address>
-  notes?: string | null
-}
-
-/**
- * 직원이 기록하는 동의입니다. 출처는 늘 `DESK`입니다. 태블릿(`TABLET`)은 환자 본인의 기록이라 기기 토큰이 생기면
- * 그 입구에서만 쓰고, 080 거부와 이관(`PATIENT_080`·`IMPORT`)은 연동·이관 작업만 씁니다.
- */
-export interface RecordConsentInput {
-  purpose: string
-  status: Consent['status']
-  evidenceDocumentId?: string
-}
+export type RegisterPatientInput = RegisterCommand
+export type UpdatePatientInput = UpdateCommand
+export type RecordConsentInput = RecordConsentCommand
 
 export interface PatientPage {
   items: Patient[]
@@ -59,7 +36,7 @@ export interface PatientPage {
 type Errors = ChartNumberTaken | DuplicateRrn | ValidationFailed
 
 /**
- * 환자 등록·조회·수정과 동의입니다 (patients.md). 모든 작업은 현재 사용자(`CurrentAccess`)가 고른 병원 안에서 합니다.
+ * 환자 등록·조회·수정과 동의입니다 (patients.md). 판정은 `patient.aggregate.ts`입니다. 모든 작업은 현재 사용자(`CurrentAccess`)가 고른 병원 안에서 합니다.
  * 다른 병원의 환자는 404 `PATIENT_NOT_FOUND`입니다.
  */
 export class Patients extends Context.Service<
@@ -148,31 +125,13 @@ export class Patients extends Context.Service<
 
       const register = Effect.fn('Patients.register')(function* (input: RegisterPatientInput) {
         const access = yield* CurrentAccess
-        const time = yield* now
-        const id = newId('patient', Date.parse(time))
+        const context = decisionContext(access, yield* DateTime.now)
+        const id = newId('patient', Date.parse(context.at))
         const digits = input.rrn === undefined ? null : normalizeRrn(input.rrn)
-        const record = {
-          id,
-          tenantId: access.tenantId,
-          chartNumber: input.chartNumber ?? null,
-          name: input.name.trim(),
-          ...sealed(access.tenantId, id, digits),
-          birthDate: input.birthDate ?? (digits === null ? null : birthDateOf(digits)),
-          isLunarBirthday: input.isLunarBirthday ?? false,
-          sex: input.sex ?? (digits === null ? null : sexOf(digits)),
-          contacts: input.contacts ?? [],
-          addresses: input.addresses ?? [],
-          notes: input.notes ?? null,
-          firstVisitDate: null,
-          status: 'ACTIVE' as const,
-          createdAt: time,
-          updatedAt: time,
-          version: 1,
-        }
-        yield* validate(record, digits)
-        const saved = yield* repository.create(record, (each) => [
-          domainEvent('patient.created', id, time, { patientId: id, chartNumber: each.chartNumber }, context(access)),
-        ])
+        const decided = yield* Effect.fromResult(
+          decideRegister(input, id, { digits, sealed: sealed(access.tenantId, id, digits) }, context),
+        )
+        const saved = yield* repository.create(decided.record, decided.events)
         return yield* toPatient(saved)
       })
 
@@ -183,35 +142,18 @@ export class Patients extends Context.Service<
       ) {
         const access = yield* CurrentAccess
         const current = yield* find(access, id)
-        if (expectedVersion !== undefined && expectedVersion !== current.version) {
-          return yield* new VersionMismatch({ currentVersion: current.version })
-        }
+        const context = decisionContext(access, yield* DateTime.now)
         const digits = input.rrn === undefined || input.rrn === null ? null : normalizeRrn(input.rrn)
-        const rrn = input.rrn === undefined ? {} : sealed(access.tenantId, id, digits)
-        const { rrn: _, ...fields } = input
-        const merged: PatientRecord = {
-          ...current,
-          ...fields,
-          ...(fields.name === undefined ? {} : { name: fields.name.trim() }),
-          ...rrn,
-        }
-        const changed = changedFields(current, merged)
-        if (changed.length === 0) return yield* toPatient(current)
-        // 생년월일·성별과 맞는지 보려면 바뀌지 않은 번호도 원문이 필요합니다
-        const finalDigits =
-          input.rrn !== undefined
-            ? digits
-            : current.rrnSealed === null
-              ? null
-              : crypto.openRrn(current.tenantId, current.id, current.rrnSealed)
-        yield* validate(merged, finalDigits)
-        const time = yield* now
-        const next: PatientRecord = { ...merged, updatedAt: time, version: current.version + 1 }
-        yield* repository.update(next, {
-          expectedVersion: current.version,
-          events: [domainEvent('patient.updated', id, time, { patientId: id, fields: changed }, context(access))],
-        })
-        return yield* toPatient(next)
+        const rrn = input.rrn === undefined ? null : { digits, sealed: sealed(access.tenantId, id, digits) }
+        // 생년월일·성별과 맞는지 보려면 바뀌지 않은 번호도 원문이 필요합니다. 판정이 바뀐 것이 있을 때만 엽니다
+        const currentDigits = () =>
+          current.rrnSealed === null ? null : crypto.openRrn(current.tenantId, current.id, current.rrnSealed)
+        const decided = yield* Effect.fromResult(
+          decideUpdate(current, input, expectedVersion, rrn, currentDigits, context),
+        )
+        if (decided === null) return yield* toPatient(current)
+        yield* repository.update(decided.next, { expectedVersion: current.version, events: [decided.event] })
+        return yield* toPatient(decided.next)
       })
 
       const update = (id: Id<'patient'>, input: UpdatePatientInput, options: { expectedVersion?: number } = {}) =>
@@ -278,29 +220,10 @@ export class Patients extends Context.Service<
         const access = yield* CurrentAccess
         yield* find(access, id)
         const history = yield* repository.consentsOf(access.tenantId, [id])
-        if (input.status === 'GRANTED' && lockedByPatient(history.filter((each) => each.purpose === input.purpose))) {
-          return yield* new ConsentLockedByPatient({ purpose: input.purpose })
-        }
-        const time = yield* now
-        const consent: ConsentRecord = {
-          patientId: id,
-          purpose: input.purpose,
-          status: input.status,
-          source: 'DESK',
-          decidedAt: time,
-          decidedBy: access.userId,
-          evidenceDocumentId: input.evidenceDocumentId ?? null,
-        }
+        const context = decisionContext(access, yield* DateTime.now)
+        const { consent, event } = yield* Effect.fromResult(decideRecordConsent(id, history, input, context))
+        yield* repository.appendConsent(access.tenantId, consent, [event])
         const { patientId: _, ...result } = consent
-        yield* repository.appendConsent(access.tenantId, consent, [
-          domainEvent(
-            'consent.changed',
-            id,
-            time,
-            { patientId: id, purpose: input.purpose, status: input.status, source: consent.source },
-            context(access),
-          ),
-        ])
         return result
       })
 
@@ -326,71 +249,9 @@ export class Patients extends Context.Service<
   )
 }
 
-/** 환자 본인이 남긴 기록의 출처입니다. 직원이 대신 고를 수 없습니다. */
-const PATIENT_SOURCES: ReadonlySet<Consent['source']> = new Set(['TABLET', 'PATIENT_080'])
-
-/** 한 목적의 기록에서, 마지막 080 거부 뒤에 환자 본인의 동의가 없으면 잠겨 있습니다. */
-function lockedByPatient(history: ReadonlyArray<Consent>): boolean {
-  const optOut = history.findLastIndex(
-    (each) => each.source === 'PATIENT_080' && (each.status === 'DENIED' || each.status === 'WITHDRAWN'),
-  )
-  if (optOut === -1) return false
-  return !history.slice(optOut + 1).some((each) => each.status === 'GRANTED' && PATIENT_SOURCES.has(each.source))
-}
-
 /** 목적별 마지막 기록입니다. 목적 이름 순서입니다. */
 function currentConsents(history: ReadonlyArray<ConsentRecord>): Consent[] {
   const latest = new Map<string, Consent>()
   for (const { patientId: _, ...each } of history) latest.set(each.purpose, each)
   return [...latest.values()].sort((a, b) => (a.purpose < b.purpose ? -1 : 1))
-}
-
-const UPDATABLE = [
-  'name',
-  'chartNumber',
-  'rrnIndex',
-  'birthDate',
-  'isLunarBirthday',
-  'sex',
-  'contacts',
-  'addresses',
-  'notes',
-] as const
-
-/** 바뀐 필드 이름입니다. 주민등록번호는 색인으로 비교하고 `rrn`으로 적습니다. */
-function changedFields(before: PatientRecord, after: PatientRecord): string[] {
-  return UPDATABLE.filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key])).map((key) =>
-    key === 'rrnIndex' ? 'rrn' : key,
-  )
-}
-
-/**
- * 스키마로 못 보는 규칙입니다. 대표 연락처·주소는 하나까지이고, 생년월일은 실제 날짜이며, 주민등록번호가 있으면 생년월일·
- * 성별이 번호와 맞아야 합니다. 위반을 모두 모아 400 `VALIDATION_FAILED`로 줍니다.
- */
-function validate(
-  record: Pick<PatientRecord, 'contacts' | 'addresses' | 'birthDate' | 'sex'>,
-  digits: string | null,
-): Effect.Effect<void, ValidationFailed> {
-  const violations: Array<{ field: string; code: string }> = []
-  if (record.contacts.filter((each) => each.isPrimary).length > 1) {
-    violations.push({ field: 'contacts', code: 'MULTIPLE_PRIMARY' })
-  }
-  if (record.addresses.filter((each) => each.isPrimary).length > 1) {
-    violations.push({ field: 'addresses', code: 'MULTIPLE_PRIMARY' })
-  }
-  if (record.birthDate !== null && !isRealDate(record.birthDate)) {
-    violations.push({ field: 'birthDate', code: 'INVALID_VALUE' })
-  } else if (digits !== null && record.birthDate !== null && record.birthDate !== birthDateOf(digits)) {
-    violations.push({ field: 'birthDate', code: 'RRN_MISMATCH' })
-  }
-  if (digits !== null && record.sex !== null && record.sex !== sexOf(digits)) {
-    violations.push({ field: 'sex', code: 'RRN_MISMATCH' })
-  }
-  return violations.length === 0 ? Effect.void : Effect.fail(new ValidationFailed({ violations }))
-}
-
-function isRealDate(value: string): boolean {
-  const date = new Date(`${value}T00:00:00Z`)
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }
