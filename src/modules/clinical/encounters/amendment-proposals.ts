@@ -1,29 +1,30 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { domainEvent } from '../../../shared/events/domain-event.ts'
+import { decisionContext } from '../../../shared/events/domain-event.ts'
 import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
+import { ReceiptRepository } from '../../front-desk/receipts/receipt-repository.ts'
+import { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import {
   type AmendmentProposal,
-  AmendmentProposalEmpty,
+  type AmendmentProposalEmpty,
   AmendmentProposalNotFound,
-  AmendmentProposalNotPending,
-  AmendmentProposalStale,
+  type AmendmentProposalNotPending,
+  type AmendmentProposalStale,
   type AmendmentProposalView,
 } from './amendment-proposal.ts'
+import { applicable, decideApply, decideDismiss, decidePropose } from './amendment-proposal.aggregate.ts'
+import type { ProposalWrite, ProposeCommand } from './amendment-proposal.aggregate.ts'
 import { AmendmentProposalRepository } from './amendment-proposal-repository.ts'
 import type { Acknowledgeable } from './encounter-completion.ts'
-import { applyChanges, type EncounterChanges } from './encounter-changes.ts'
+import { encounterFacts, requirePrescriptionPermissions } from './encounter-facts.ts'
 import { EncounterRepository } from './encounter-repository.ts'
-import { type Encounter, EncounterChangeInvalid, EncounterNotEditable, EncounterNotFound } from './encounter.ts'
+import type { Encounter, EncounterChangeInvalid, EncounterNotEditable, EncounterNotFound } from './encounter.ts'
 import type { PrescriptionLineRef } from '../prescriptions/prescription-line-changes.ts'
-import { type AmendEncounterError, Encounters } from './encounters.ts'
+import { type AmendEncounterError, NEW_IDS } from './encounters.ts'
 
-export interface ProposeInput {
-  reason: string
-  changes: EncounterChanges
-}
+export type ProposeInput = ProposeCommand
 
 export type ProposeError = EncounterNotFound | EncounterNotEditable | EncounterChangeInvalid | AmendmentProposalEmpty
 export type ApplyError =
@@ -38,7 +39,7 @@ export interface AppliedProposal {
 
 /**
  * 정정 제안입니다 (clinical.md 진료). 면허 없는 사용자가 완료한 진료기록의 정정을 요청하고, 의사가 반영하거나
- * 버립니다. 반영은 정정(`Encounters.amend`)을 그대로 불러 검증·판 보존·권한이 정정과 같습니다.
+ * 버립니다. 반영은 정정 판정(`decideAmend`)을 그대로 불러(`decideApply`) 검증·판 보존·권한이 정정과 같습니다.
  */
 export class AmendmentProposals extends Context.Service<
   AmendmentProposals,
@@ -79,17 +80,12 @@ export class AmendmentProposals extends Context.Service<
     Effect.gen(function* () {
       const repository = yield* AmendmentProposalRepository
       const encounters = yield* EncounterRepository
-      const commands = yield* Encounters
       const transaction = yield* Transaction
-
-      const findEncounter = (tenantId: Id<'tenant'>, id: Id<'encounter'>) =>
-        encounters
-          .findById(tenantId, id)
-          .pipe(
-            Effect.flatMap(
-              Option.match({ onNone: () => Effect.fail(new EncounterNotFound({})), onSome: Effect.succeed }),
-            ),
-          )
+      const facts = encounterFacts({
+        encounters,
+        visits: yield* VisitRepository,
+        receipts: yield* ReceiptRepository,
+      })
 
       const findProposal = (tenantId: Id<'tenant'>, id: Id<'amendmentProposal'>) =>
         repository
@@ -106,60 +102,23 @@ export class AmendmentProposals extends Context.Service<
         stale: proposal.status === 'PENDING' && encounter?.revision !== proposal.baseRevision,
       })
 
-      const event = (type: string, proposal: AmendmentProposal, at: string, access: CurrentAccess['Service']) =>
-        domainEvent(
-          type,
-          proposal.id,
-          at,
-          { proposalId: proposal.id, encounterId: proposal.encounterId, patientId: proposal.patientId },
-          { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
-        )
-
-      /** 대기 제안이 아니면 실패합니다. */
-      const requirePending = (proposal: AmendmentProposal) =>
-        proposal.status === 'PENDING'
-          ? Effect.void
-          : Effect.fail(new AmendmentProposalNotPending({ currentStatus: proposal.status }))
+      const save = (decided: ProposalWrite) =>
+        repository.save(decided.proposal, { expectedVersion: decided.expectedVersion, events: [decided.event] })
 
       const propose = Effect.fn('AmendmentProposals.propose')(function* (
         encounterId: Id<'encounter'>,
         input: ProposeInput,
       ) {
         const access = yield* CurrentAccess
-        const at = DateTime.formatIso(yield* DateTime.now)
+        const context = decisionContext(access, yield* DateTime.now)
         return yield* transaction.run(
           Effect.gen(function* () {
-            const encounter = yield* findEncounter(access.tenantId, encounterId)
-            if (encounter.status !== 'COMPLETED' && encounter.status !== 'AMENDED') {
-              return yield* new EncounterNotEditable({ currentStatus: encounter.status })
-            }
-            // 지금 진료에 적용되는지만 봅니다. 새 상병·처방 라인 ID는 반영할 때 정합니다
-            const result = applyChanges(encounter, input.changes, {
-              diagnosis: () => newId('diagnosis'),
-              prescriptionLine: () => newId('prescriptionLine'),
-            })
-            if (!result.ok) return yield* new EncounterChangeInvalid({ errors: result.errors })
-            if (result.changed.length === 0) return yield* new AmendmentProposalEmpty({})
-            const proposal: AmendmentProposal = {
-              id: newId('amendmentProposal'),
-              tenantId: access.tenantId,
-              encounterId: encounter.id,
-              patientId: encounter.patientId,
-              changes: input.changes,
-              reason: input.reason,
-              source: 'USER',
-              proposedBy: access.userId,
-              proposedAt: at,
-              baseRevision: encounter.revision,
-              status: 'PENDING',
-              resolution: null,
-              version: 1,
-            }
-            yield* repository.save(proposal, {
-              expectedVersion: null,
-              events: [event('amendment_proposal.created', proposal, at, access)],
-            })
-            return viewOf(proposal, encounter)
+            const encounter = yield* facts.find(access.tenantId, encounterId)
+            const decided = yield* Effect.fromResult(
+              decidePropose(encounter, input, newId('amendmentProposal'), NEW_IDS, context),
+            )
+            yield* save(decided)
+            return viewOf(decided.proposal, encounter)
           }),
         )
       })
@@ -169,7 +128,7 @@ export class AmendmentProposals extends Context.Service<
         status?: AmendmentProposal['status'],
       ) {
         const access = yield* CurrentAccess
-        const encounter = yield* findEncounter(access.tenantId, encounterId)
+        const encounter = yield* facts.find(access.tenantId, encounterId)
         const proposals = yield* repository.listByEncounter(access.tenantId, encounterId, status)
         return proposals.map((each) => viewOf(each, encounter))
       })
@@ -188,60 +147,43 @@ export class AmendmentProposals extends Context.Service<
         input: { acknowledge?: ReadonlyArray<Acknowledgeable> },
       ) {
         const access = yield* CurrentAccess
+        const context = decisionContext(access, yield* DateTime.now)
         return yield* transaction.run(
           Effect.gen(function* () {
             const proposal = yield* findProposal(access.tenantId, id)
-            yield* requirePending(proposal)
-            const current = yield* findEncounter(access.tenantId, proposal.encounterId)
-            if (current.revision !== proposal.baseRevision) {
-              return yield* new AmendmentProposalStale({
-                baseRevision: proposal.baseRevision,
-                currentRevision: current.revision,
-              })
+            const current = yield* facts.find(access.tenantId, proposal.encounterId)
+            // 반영할 수 없는 제안(대기 아님·낡음)은 처방 권한보다 먼저 거부합니다
+            yield* Effect.fromResult(applicable(proposal, current))
+            yield* requirePrescriptionPermissions(proposal.changes)
+            const known = {
+              visit: yield* facts.visitOf(current),
+              billedBy: yield* facts.billedBy(current),
+              others: yield* facts.othersOf(current),
             }
-            // 정정이 업무 규칙으로 실패할 수 있으므로 제안은 정정 뒤에 씁니다. SQL에서는 한 트랜잭션이라 함께
-            // 되돌립니다. 메모리 저장소는 반영·버림이 겹치면 정정만 남고 제안 쓰기가 결함으로 끝날 수 있습니다
-            const { encounter, prescriptionLineRefs } = yield* commands.amend(proposal.encounterId, {
-              reason: proposal.reason,
-              changes: proposal.changes,
-              ...(input.acknowledge === undefined ? {} : { acknowledge: input.acknowledge }),
-              expectedVersion: current.version,
-              proposalId: proposal.id,
-            })
-            const at = DateTime.formatIso(yield* DateTime.now)
-            const applied: AmendmentProposal = {
-              ...proposal,
-              status: 'APPLIED',
-              resolution: { at, by: access.userId, revision: encounter.revision, reason: null },
-              version: proposal.version + 1,
+            const decided = yield* Effect.fromResult(decideApply(proposal, current, input, known, NEW_IDS, context))
+            // 정정이 업무 규칙으로 실패할 수 있으므로 판정을 마친 뒤 진료, 제안 순서로 씁니다. SQL에서는 한 트랜잭션이라
+            // 함께 되돌립니다. 메모리 저장소는 반영·버림이 겹치면 정정만 남고 제안 쓰기가 결함으로 끝날 수 있습니다
+            const { amended, applied } = decided
+            if (amended.write !== null) yield* facts.write(amended.write)
+            yield* save(applied)
+            return {
+              proposal: viewOf(applied.proposal, amended.encounter),
+              encounter: amended.encounter,
+              prescriptionLineRefs: amended.prescriptionLineRefs,
             }
-            yield* repository.save(applied, {
-              expectedVersion: proposal.version,
-              events: [event('amendment_proposal.applied', applied, at, access)],
-            })
-            return { proposal: viewOf(applied, encounter), encounter, prescriptionLineRefs }
           }),
         )
       })
 
       const dismiss = Effect.fn('AmendmentProposals.dismiss')(function* (id: Id<'amendmentProposal'>, reason: string) {
         const access = yield* CurrentAccess
-        const at = DateTime.formatIso(yield* DateTime.now)
+        const context = decisionContext(access, yield* DateTime.now)
         return yield* transaction.run(
           Effect.gen(function* () {
             const proposal = yield* findProposal(access.tenantId, id)
-            yield* requirePending(proposal)
-            const dismissed: AmendmentProposal = {
-              ...proposal,
-              status: 'DISMISSED',
-              resolution: { at, by: access.userId, revision: null, reason },
-              version: proposal.version + 1,
-            }
-            yield* repository.save(dismissed, {
-              expectedVersion: proposal.version,
-              events: [event('amendment_proposal.dismissed', dismissed, at, access)],
-            })
-            return viewOf(dismissed, undefined)
+            const decided = yield* Effect.fromResult(decideDismiss(proposal, reason, context))
+            yield* save(decided)
+            return viewOf(decided.proposal, undefined)
           }),
         )
       })

@@ -20,15 +20,14 @@ type Services = Encounters | Visits | VisitRepository | Patients | Outbox | Curr
 const run = <A, E>(
   program: Effect.Effect<A, E, Services>,
   store: 'memory' | 'sqlite',
-  visits: typeof Visits.layer = Visits.layer,
+  visitRepository?: Layer.Layer<VisitRepository, never, VisitRepository>,
 ) =>
   Effect.runPromise(
     program.pipe(
       Effect.provideService(CurrentAccess, doctor.access),
       Effect.provide(
-        // 진료가 쓰는 내원 커맨드만 `visits`로 바꿀 수 있습니다. 접수는 늘 `Visits.layer`입니다
-        Encounters.layer.pipe(
-          Layer.provide(visits),
+        // 진료가 쓰는 내원 저장소만 `visitRepository`로 바꿀 수 있습니다. 접수는 늘 원래 저장소입니다
+        (visitRepository === undefined ? Encounters.layer : Encounters.layer.pipe(Layer.provide(visitRepository))).pipe(
           Layer.provideMerge(Procedures.layer),
           Layer.provideMerge(Visits.layer),
           Layer.provideMerge(Patients.layer),
@@ -138,10 +137,10 @@ describe('Encounters on a visit canceled before cancel retracted encounters', ()
 describe('Encounters.complete (sqlite)', () => {
   it('rolls the completion back when moving the visit fails', async () => {
     const failing = Layer.effect(
-      Visits,
+      VisitRepository,
       Effect.gen(function* () {
-        const inner = yield* Visits
-        return Visits.of({ ...inner, apply: () => Effect.die('visit move failed') })
+        const inner = yield* VisitRepository
+        return VisitRepository.of({ ...inner, save: () => Effect.die('visit move failed') })
       }),
     )
     const result = await run(
@@ -156,7 +155,7 @@ describe('Encounters.complete (sqlite)', () => {
         }
       }),
       'sqlite',
-      failing.pipe(Layer.provide(Visits.layer)) as typeof Visits.layer,
+      failing,
     )
 
     expect(result.exit._tag).toBe('Failure')
