@@ -1,6 +1,6 @@
 import { Clock, Context, DateTime, Effect, Layer, Option } from 'effect'
 import { AccessLog } from '../../shared/audit/access-log.ts'
-import { decisionContext } from '../../shared/events/domain-event.ts'
+import { decisionContext } from '../../shared/decision/decision-context.ts'
 import { isId, newId } from '../../shared/ids/ids.ts'
 import type { Id } from '../../shared/ids/ids.types.ts'
 import { ValidationFailed } from '../../shared/problem/problem.ts'

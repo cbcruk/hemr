@@ -1,19 +1,11 @@
 import { Result } from 'effect'
-import type { DecisionContext } from '../../../shared/events/domain-event.ts'
+import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
-import type { Encounter } from '../../clinical/encounters/encounter.ts'
 import { decideVisitStatus } from '../visits/visit.aggregate.ts'
 import type { VisitDecision } from '../visits/visit.aggregate.ts'
 import type { Visit, VisitTransitionInvalid } from '../visits/visit.ts'
-import {
-  acceptSettlement,
-  applicablePayments,
-  checkoutable,
-  newReceipt,
-  selectDues,
-  settle,
-} from './receipt.aggregate.ts'
-import type { NewReceipt, ReceiptIds, ReceiptOptions, SettlementOptions } from './receipt.aggregate.ts'
+import { acceptSettlement, newReceipt, priceCheckout } from './receipt.aggregate.ts'
+import type { CheckoutOptions, NewReceipt, PricingFacts, ReceiptIds, ReceiptOptions } from './receipt.aggregate.ts'
 import { quoteIdOf } from './receipt-charges.ts'
 import { QuoteStale } from './receipt.ts'
 import type {
@@ -21,7 +13,6 @@ import type {
   CheckoutEncounterInvalid,
   CheckoutPaymentInvalid,
   CheckoutRejected,
-  Payment,
   ReceiptAlreadyExists,
   ReceiptRecord,
 } from './receipt.ts'
@@ -32,23 +23,14 @@ import type {
  */
 
 /** 수납 입력입니다. 견적과 같은 선택에 견적 ID와 영수증 선택을 더합니다. */
-export interface CheckoutCommand extends SettlementOptions, ReceiptOptions {
+export interface CheckoutCommand extends CheckoutOptions, ReceiptOptions {
   quoteId: Id<'quote'>
-  /** 수납할 진료입니다. 없으면 이 내원의 철회하지 않은 진료 전부입니다. */
-  encounterIds?: ReadonlyArray<Id<'encounter'>>
-  /** 미리 기록한 외부 승인 결제(`POST /payments`)입니다. 이 환자의 `UNAPPLIED` 결제여야 합니다. */
-  paymentIds?: ReadonlyArray<Id<'payment'>>
 }
 
 /** 수납을 판정할 때 서비스가 미리 읽어 두는 사실입니다. */
-export interface CheckoutFacts {
+export interface CheckoutFacts extends PricingFacts {
   /** 이 내원의 유효한 영수증입니다. 없으면 `null`입니다. */
   activeReceipt: ReceiptRecord | null
-  /** 환자의 진료입니다. */
-  encounters: ReadonlyArray<Encounter>
-  birthDate: string | null
-  /** 요청한 미리 기록한 결제를 ID로 읽은 것입니다. */
-  requestedPayments: ReadonlyArray<Payment>
 }
 
 export type CheckoutRejection =
@@ -72,17 +54,12 @@ export function decideCheckout(
   receiptIds: ReceiptIds,
   context: DecisionContext,
 ): Result.Result<{ visit: VisitDecision; receipt: NewReceipt }, CheckoutRejection> {
-  const open = checkoutable(visit, facts.activeReceipt)
-  if (Result.isFailure(open)) return Result.fail(open.failure)
-  const selected = selectDues(visit, facts.encounters, facts.birthDate, input.encounterIds)
-  if (Result.isFailure(selected)) return Result.fail(selected.failure)
-  const applied = applicablePayments(visit, input.paymentIds, facts.requestedPayments)
-  if (Result.isFailure(applied)) return Result.fail(applied.failure)
-
-  const { ids, dues } = selected.success
+  const priced = priceCheckout(visit, facts.activeReceipt, input, facts)
+  if (Result.isFailure(priced)) return Result.fail(priced.failure)
+  const { ids, dues, applied, settled } = priced.success
   const quoted = quoteIdOf(dues)
   if (quoted !== input.quoteId) return Result.fail(new QuoteStale({ quoteId: quoted }))
-  const settlement = acceptSettlement(settle(dues, applied.success, input))
+  const settlement = acceptSettlement(settled)
   if (Result.isFailure(settlement)) return Result.fail(settlement.failure)
 
   // 수납할 수 있는 내원은 `CHECKOUT`을 늘 받습니다(지난 날짜도 받습니다). 어긋나면 결함입니다. `CHECKOUT`은 진료 내용
@@ -94,7 +71,7 @@ export function decideCheckout(
     visit,
     ids,
     dues,
-    held: applied.success,
+    held: applied,
     payments: input.payments ?? [],
     settlement: settlement.success,
     options: input,

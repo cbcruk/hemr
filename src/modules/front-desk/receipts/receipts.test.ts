@@ -8,6 +8,8 @@ import { CurrentAccess } from '../../identity/auth/access.ts'
 import { testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
+import { VersionMismatch } from '../../../shared/problem/problem.ts'
+import { VisitRepository } from '../visits/visit-repository.ts'
 import { Visits } from '../visits/visits.ts'
 import { Payments } from './payments.ts'
 import { ReceiptRepository } from './receipt-repository.ts'
@@ -18,12 +20,20 @@ const desk = testMember({ role: 'FRONT_DESK' })
 type Services =
   Receipts | Payments | ReceiptRepository | Visits | Patients | EncounterRepository | Outbox | CurrentAccess
 
-const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sqlite') =>
+const run = <A, E>(
+  program: Effect.Effect<A, E, Services>,
+  store: 'memory' | 'sqlite',
+  visitRepository?: Layer.Layer<VisitRepository, never, VisitRepository>,
+) =>
   Effect.runPromise(
     program.pipe(
       Effect.provideService(CurrentAccess, desk.access),
       Effect.provide(
-        Layer.merge(Receipts.layer, Payments.layer).pipe(
+        // 수납이 쓰는 내원 저장소만 `visitRepository`로 바꿀 수 있습니다. 접수는 늘 원래 저장소입니다
+        Layer.merge(
+          visitRepository === undefined ? Receipts.layer : Receipts.layer.pipe(Layer.provide(visitRepository)),
+          Payments.layer,
+        ).pipe(
           Layer.provideMerge(Visits.layer),
           Layer.provideMerge(Patients.layer),
           Layer.provideMerge(desk.seed),
@@ -82,6 +92,44 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
     expect(results.find((each) => each._tag === 'Failure')).toMatchObject({
       failure: { _tag: expect.stringMatching(/^(VisitTransitionInvalid|ReceiptAlreadyExists)$/) },
     })
+  })
+
+  it('판정과 내원 쓰기 사이에 다른 요청이 수납하면 다시 읽어 409로 거부합니다', async () => {
+    // 처음 한 번은 다른 요청이 먼저 내원을 COMPLETED로 바꾼 것처럼 저장소에 쓰고 버전 불일치를 돌려줍니다
+    const interleaved = Layer.effect(
+      VisitRepository,
+      Effect.gen(function* () {
+        const inner = yield* VisitRepository
+        let raced = false
+        return VisitRepository.of({
+          ...inner,
+          save: (visit, options) =>
+            Effect.gen(function* () {
+              if (raced || options.expectedVersion === null) return yield* inner.save(visit, options)
+              raced = true
+              const stored = Option.getOrThrow(yield* inner.findById(visit.tenantId, visit.id))
+              yield* inner.save(
+                { ...stored, status: 'COMPLETED', version: stored.version + 1 },
+                { expectedVersion: stored.version },
+              )
+              return yield* new VersionMismatch({ currentVersion: stored.version + 1 })
+            }),
+        })
+      }),
+    )
+    const result = await run(
+      Effect.gen(function* () {
+        const visit = yield* checkedIn
+        const receipts = yield* Receipts
+        const quote = yield* receipts.quote(visit.id, {})
+        const error = yield* Effect.flip(receipts.checkout(visit.id, { quoteId: quote.quoteId, idempotencyKey: 'k' }))
+        return { error, listed: yield* (yield* ReceiptRepository).listByVisit(visit.tenantId, visit.id) }
+      }),
+      store,
+      interleaved,
+    )
+    expect(result.error).toMatchObject({ _tag: 'VisitTransitionInvalid' })
+    expect(result.listed).toEqual([])
   })
 
   it('refuses an encounter whose coverage no longer matches the visit eligibility', async () => {

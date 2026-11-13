@@ -1,6 +1,6 @@
 import { Result } from 'effect'
-import { eventContext } from '../../../shared/events/domain-event.ts'
-import type { DecisionContext } from '../../../shared/events/domain-event.ts'
+import { eventContext } from '../../../shared/decision/decision-context.ts'
+import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import { testVisit } from '../../front-desk/visits/testing.ts'

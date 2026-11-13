@@ -1,6 +1,6 @@
 import { Result } from 'effect'
 import { describe, expect, it } from 'vitest'
-import type { DecisionContext } from '../../../shared/events/domain-event.ts'
+import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import {

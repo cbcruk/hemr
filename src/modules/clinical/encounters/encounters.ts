@@ -1,6 +1,6 @@
 import { Context, DateTime, Effect, Layer } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { decisionContext, eventContext } from '../../../shared/events/domain-event.ts'
+import { decisionContext, eventContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import type { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
