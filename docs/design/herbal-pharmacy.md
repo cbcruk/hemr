@@ -48,6 +48,9 @@ flowchart LR
 | 수령방법 | `delivery.method`: `PICKUP`, `PARCEL`, `QUICK` |
 | 원외탕전 주문 | `ExternalHerbalOrder` |
 | 견적 | `Quote` |
+| 원외 상태 맞추기 정책 | `external-order-status.policy.ts` |
+| 원진료 변경 표시 정책 | `herbal-source.policy.ts` |
+| 원외 주문 수정 사가 | `external-order-amendment.saga.ts` |
 
 ### 탕전 처방
 
@@ -173,6 +176,18 @@ POST /external-herbal-providers/{provider}/herbs:search   { q }   → GET으로:
   4. 기존 주문 취소 요청 → `CANCEL_PENDING`. 외부 취소가 확인되면 `CANCELED`, 실패가 계속되면 Job이 `PARTIALLY_SUCCEEDED`로 끝나고 "이중 결제 확인 필요" 경고를 띄웁니다. 두 주문은 `replaces`/`replacedBy`로 연결됩니다
 - **결제 금액:** 현행은 결제수단 금액을 서버 결제총액에 맞춰 클라이언트가 조정했습니다. 재설계는 `paymentMethods[]`의 합이 `quote.payable`과 다르면 422입니다
 - 외부 상태 변화는 웹훅 또는 폴링 작업으로 받아 `external_herbal_order.status_changed` 이벤트를 냅니다
+
+## 정책과 사가
+
+용어는 [events.md](events.md#정책과-사가)를 따릅니다.
+
+| 이름 | 종류 | 시작 | 하는 일 |
+|---|---|---|---|
+| 원외 상태 맞추기 | 정책 | `external_herbal_order.status_changed` | 원외 처방의 상태를 주문 상태에 맞춥니다. 원외 처방은 상태를 직접 바꿀 수 없으므로([상태](#상태)) 이 정책이 유일한 경로입니다 |
+| 원진료 변경 표시 | 정책 | `encounter.retracted`, `encounter.amended`(처방 라인 삭제) | 처방의 `sourceStatus`(`encounterRetracted`, `lineRemoved`)를 채웁니다. 처방을 취소하지는 않습니다. 조제는 탕전 담당자가 판단합니다 |
+| 원외 주문 수정 | 사가 | `POST /external-herbal-orders/{id}:amend` | [원외탕전 주문](#원외탕전-주문)의 수정 1–4단계입니다. 결제 실패는 기존 주문 `:release`로 보상하고, 기존 주문 취소가 계속 실패하면 `Job`이 `PARTIALLY_SUCCEEDED`로 끝납니다 |
+
+- 원외 주문 수정은 외부 결제 두 건이 걸려 원자적일 수 없어 사가가 된 첫 사례입니다. 단계·보상을 상태 테이블과 폴링으로 직접 엮게 되면 [D10](review.md#결정-필요)의 다시 볼 조건입니다
 
 ## 이벤트
 

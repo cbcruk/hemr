@@ -151,7 +151,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | 추나 자동 제출 | `encounter.completed` | 심평원 제출 사가 시작 | — | Claims 때 |
 | CRM 연락 작업 | `encounter.completed`, `visit.*`, `appointment.*` | 연락 작업 생성 | — | CRM 때 |
 
-정책은 [events.md](events.md#모듈-간-서버-내부)의 규칙을 따릅니다. 소비자마다 마지막으로 처리한 `seq`를 저장하고, 이벤트 `id`로 중복을 거릅니다. 첫 정책을 붙일 때 이 저장을 만듭니다. 지금 버스 구독자는 로그(`EventLog`) 하나라 아직 없습니다.
+정책과 사가의 정의, 실행기의 규칙(커서, 거부, 결함)은 [events.md](events.md#정책과-사가)에 있습니다. 실행기([policy.ts](../../src/shared/events/policy.ts))와 커서 저장(`policy_cursors`)은 #68에서 만들었고, 아직 등록한 정책은 없습니다. 첫 정책은 #69의 M5입니다.
 
 ## 코드 배치
 
@@ -248,7 +248,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 1. **내원 시범**([#66](https://github.com/cbcruk/hemr/issues/66)): `visit.aggregate.ts`로 옮기고 동작은 바꾸지 않습니다. 이 문서의 규약을 확정합니다
 2. **나머지 애그리거트**([#67](https://github.com/cbcruk/hemr/issues/67)): 묶은 경계 표의 묶음부터 `decide`로 옮깁니다. 동작은 바꾸지 않습니다. 수납·진료·시술·시재·환자를 옮겨 마쳤습니다
-3. **정책 기반**([#68](https://github.com/cbcruk/hemr/issues/68)): 소비자별 `seq` 저장과 정책 실행기를 만듭니다. 첫 정책은 동작이 바뀌지 않는 것으로 고릅니다(진료 후 시술 종료처럼 응답에 실리지 않는 것)
+3. **정책 기반**([#68](https://github.com/cbcruk/hemr/issues/68)): 소비자별 `seq` 저장과 정책 실행기를 만듭니다. 첫 정책은 응답이 바뀌지 않는 것으로 고릅니다(#69의 M5)
 4. **트랜잭션에서 정책으로 옮기기**([#69](https://github.com/cbcruk/hemr/issues/69)): 아래 결정대로 하나씩 옮깁니다. 응답 모양이 바뀌는 것(M1·M2)은 OpenAPI와 도메인 문서를 함께 고칩니다
 5. **시술 애그리거트 넓히기(M4)**([#70](https://github.com/cbcruk/hemr/issues/70))
 
