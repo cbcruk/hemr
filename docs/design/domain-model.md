@@ -173,8 +173,8 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 1. **내원 시범**([#66](https://github.com/cbcruk/hemr/issues/66)): `visit.aggregate.ts`로 옮기고 동작은 바꾸지 않습니다. 이 문서의 규약을 확정합니다
 2. **나머지 애그리거트**([#67](https://github.com/cbcruk/hemr/issues/67)): 묶은 경계 표의 묶음부터 `decide`로 옮깁니다. 동작은 바꾸지 않습니다
 3. **정책 기반**([#68](https://github.com/cbcruk/hemr/issues/68)): 소비자별 `seq` 저장과 정책 실행기를 만듭니다. 첫 정책은 동작이 바뀌지 않는 것으로 고릅니다(진료 후 시술 종료처럼 응답에 실리지 않는 것)
-4. **트랜잭션에서 정책으로 옮기기:** 아래 결정대로 하나씩 옮깁니다. 응답 모양이 바뀌는 것(M1·M2)은 OpenAPI와 도메인 문서를 함께 고칩니다
-5. **시술 애그리거트 넓히기(M4)**
+4. **트랜잭션에서 정책으로 옮기기**([#69](https://github.com/cbcruk/hemr/issues/69)): 아래 결정대로 하나씩 옮깁니다. 응답 모양이 바뀌는 것(M1·M2)은 OpenAPI와 도메인 문서를 함께 고칩니다
+5. **시술 애그리거트 넓히기(M4)**([#70](https://github.com/cbcruk/hemr/issues/70))
 
 ## 결정
 
