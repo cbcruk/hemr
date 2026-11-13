@@ -34,7 +34,7 @@ decide(state, command, context) → { state, events } | 거부
 Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트보다 조금 늦습니다. hemr는 같은 SQLite에서 애그리거트 테이블을 읽어 계산하므로 늦지 않습니다. 접수 화면처럼 방금 쓴 것을 바로 읽어야 하는 곳이 많아 이 방식을 기본으로 둡니다.
 
 - 계산이 무거워지면 그 뷰만 별도 테이블(프로젝션)로 만듭니다. 그때 갱신은 정책이 맡고, 결과적 일관성이 됩니다
-- 시재는 좋은 예입니다. 마감 뒤 현금 원장이 바뀌어 `REOPENED`(`CHANGED_AFTER_CLOSE`)가 되는 것을, 수납·환불이 시재를 고치는 방식으로 하지 않습니다. 마감할 때 남긴 원장 지문과 지금 원장을 읽을 때 비교합니다([cash-drawers.ts](../../src/modules/front-desk/cash-drawers/cash-drawers.ts)). 애그리거트 사이에 쓰기가 생기지 않습니다
+- 시재는 좋은 예입니다. 마감 뒤 현금 원장이 바뀌어 `REOPENED`(`CHANGED_AFTER_CLOSE`)가 되는 것을, 수납·환불이 시재를 고치는 방식으로 하지 않습니다. 마감할 때 남긴 원장 지문과 지금 원장을 읽을 때 비교합니다([cash-drawer.view.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.view.ts)). 애그리거트 사이에 쓰기가 생기지 않습니다
 
 ## 일관성 규칙
 
@@ -216,6 +216,15 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - **판정 문맥은 사용자 대신 이벤트 행위자를 받습니다**(`ProcedureContext`). 서버 타이머(`SYSTEM`)와 진료 완료가 넘긴 행위자도 시술을 바꾸기 때문입니다
 - **판정 시각은 다시 시도할 때마다 새로 잽니다.** 시술 커맨드는 `VersionMismatch`에 처음부터 다시 하므로(서버 타이머와 겹칠 때) 시각도 그 안에서 읽습니다
 - 타이머 계산(`procedure-timer.ts`)은 규칙 문서·픽스처와 짝이라 그대로 두고 판정이 부릅니다
+
+### 시재 묶음에서 정한 것 (#67)
+
+시재와 지출을 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
+
+- [cash-drawer.aggregate.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.aggregate.ts): 열기(`decideOpen`), 마감(`decideClose`), 다시 열기(`decideReopen`), 지출 기록(`decideRecordExpense`)·삭제(`decideRemoveExpense`)
+- [cash-drawer.view.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.view.ts): 저장한 시재와 그날 원장으로 상태·현금 흐름을 계산합니다(`cashDrawerView`). **처음 쓴 뷰 파일입니다.** 시재 상태는 저장하지 않고 읽을 때 계산하므로, 판정은 이 뷰가 계산한 그날 시재(`CashDrawerState`)를 받습니다. 응답도 같은 뷰로 만듭니다
+- 시작 금액·이어받기를 함께 보냈는지(400)는 요청 검증이지만, 열기의 다른 거부보다 먼저 나가야 해서 판정 안에 두었습니다
+- 지출 항목 추가·삭제는 판정할 규칙이 이름 중복(저장소의 유일 제약)뿐이라 옮기지 않았습니다
 
 ## 단계
 
