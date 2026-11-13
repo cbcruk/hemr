@@ -168,6 +168,24 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 규칙 계산 모듈(`docs/reference/rules/`에 규칙 문서가 있는 것)은 이미 순수 함수이므로 `decide`가 부르는 쪽으로 둡니다. 파일 이름은 바꾸지 않습니다.
 
+### 내원 시범에서 정한 것 (#66)
+
+[visit.aggregate.ts](../../src/modules/front-desk/visits/visit.aggregate.ts)에 접수(`decideCheckIn`), 상태 커맨드(`decideVisitStatus`), 취소(`decideCancel`, 묶은 경계)를 두었습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
+
+- **거부는 Effect `Result`로 돌려줍니다.** 실패 쪽은 이미 있는 오류 클래스(`VisitTransitionInvalid` 등)라 오류 코드가 그대로입니다. 서비스는 `yield* Effect.fromResult(decide…(…))`로 받습니다. `Result`는 `Effect.gen` 안에서 바로 `yield*`할 수 없어(4.1.2에서 확인) `fromResult`가 필요합니다
+- **새 ID는 서비스가 만들어 넘깁니다**(`CheckInIds`). 이벤트 ID는 `domainEvent`가 그대로 만듭니다. 그래서 판정 함수는 이벤트 ID만 빼고 결정적이고, 테스트는 이벤트 ID를 빼고 비교합니다
+- **판정에 쓰는 사실은 서비스가 미리 읽어 `…Facts`로 넘깁니다.** 진료 내용·유효한 영수증 여부(`hasClinicalData`), 취소할 때의 진료와 영수증·결제, 접수할 때의 환자·이전 내원·요양기관기호입니다
+- **묶은 경계의 판정 결과는 애그리거트마다 나눠 돌려줍니다**(`CancelDecision`의 `visit`·`retracted`·`voided`). 저장소가 애그리거트마다 따로라, 각 쓰기에 넘길 이전 버전과 이벤트를 함께 담습니다
+- **규칙 모듈은 그대로 둡니다.** 상태 전이표(`visit-status.ts`)는 규칙 문서·픽스처와 짝이라 옮기지 않고 판정 함수가 부릅니다
+- **허용 동작은 아직 만들지 않았습니다.** 내원 응답에 `allowedActions`가 없어 쓰는 곳이 없습니다. 응답에 넣을 때 판정 함수를 커맨드마다 시험해 만듭니다
+- 접수가 빈 초안 진료를 같은 트랜잭션에서 만드는 것은 그대로입니다. M1에서 정책으로 옮깁니다([#69](https://github.com/cbcruk/hemr/issues/69))
+
+좋아진 점: 판정 테스트(`visit.aggregate.test.ts`)가 Layer·저장소 없이 돌아, 내원 하나와 사실만 주고 결과를 봅니다. 서비스는 읽기 → 판정 → 저장으로 줄었습니다. 연쇄 취소에서 무엇을 어떤 순서로 판정하는지(환불이 먼저, 그다음 상태 전이, 그다음 진료 철회)가 함수 하나에 모였습니다.
+
+나빠진 점: 사실을 먼저 읽어야 해서, 취소는 상태 전이로 거부될 때도 진료를 읽습니다(같은 트랜잭션 안의 한 번). 묶은 경계의 판정 함수가 다른 모듈의 판정(`retractEncounter`, `voidReceipt`)을 가져다 써서, 내원 애그리거트 파일이 Clinical·수납을 import합니다. 연쇄 취소가 컨텍스트를 넘는 예외라 생기는 일입니다.
+
+되돌릴 조건: 사실을 미리 읽는 코드가 판정 함수보다 길어지거나, 판정 중에만 알 수 있는 사실이 생겨 미리 읽기가 부자연스러워지면 다시 봅니다.
+
 ## 단계
 
 1. **내원 시범**([#66](https://github.com/cbcruk/hemr/issues/66)): `visit.aggregate.ts`로 옮기고 동작은 바꾸지 않습니다. 이 문서의 규약을 확정합니다
