@@ -72,7 +72,7 @@ export const DEFAULT_POLICY_RUNNER_SETTINGS: PolicyRunnerSettings = { batchSize:
 /**
  * 정책 하나를 한 회차 돌리고 처리한 이벤트 수를 돌려줍니다. 커서 다음 이벤트부터 `seq` 순서로 처리합니다.
  *
- * 이벤트마다 정책의 쓰기와 커서 올리기를 한 트랜잭션에서 합니다. 그래서 SQLite에서는 같은 이벤트를 두 번 처리하지
+ * 이벤트마다 정책의 쓰기와 커서 올리기를 한 트랜잭션에서 합니다. 거부되면 정책의 쓰기는 되돌리고 커서는 올립니다. 그래서 SQLite에서는 같은 이벤트를 두 번 처리하지
  * 않습니다(이벤트 `id`로 따로 거르지 않아도 됩니다). 되돌리지 못하는 메모리 저장소에서는 커서를 올리기 전에 죽으면
  * 다시 처리할 수 있어, 정책은 멱등이어야 합니다. 결함이 나면 그 이벤트의 쓰기를 되돌리고 회차를 멈춥니다. 뒤
  * 이벤트를 먼저 처리하면 같은 리소스의 순서가 뒤바뀌기 때문입니다(릴레이와 같은 이유).
@@ -92,7 +92,8 @@ export const runPolicyOnce = <E extends { readonly _tag: string }, R>(
       const exit = yield* Effect.exit(
         transaction.run(
           Effect.gen(function* () {
-            yield* policy.handle(event).pipe(
+            // 정책의 처리는 안쪽 트랜잭션(savepoint)이라, 거부되면 거부 전에 쓴 것을 되돌리고 커서만 올립니다
+            yield* transaction.run(policy.handle(event)).pipe(
               Effect.catch((rejection) =>
                 Effect.logWarning('policy rejected', {
                   policy: policy.name,
