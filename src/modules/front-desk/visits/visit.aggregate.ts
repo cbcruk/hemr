@@ -18,15 +18,12 @@ import type { NhisEligibility, Visit } from './visit.ts'
 /**
  * 내원 애그리거트입니다 (docs/design/domain-model.md). 커맨드 입력, 거부, 판정 함수(`decide…`)를 둡니다.
  *
- * 판정 함수는 순수 함수입니다. 저장소·권한·시계를 모르고, 서비스가 읽어 둔 사실과 시각은 `VisitContext`·`…Facts`로
+ * 판정 함수는 순수 함수입니다. 저장소·권한·시계를 모르고, 서비스가 읽어 둔 사실과 시각은 `DecisionContext`·`…Facts`로
  * 받습니다. 결과는 다음 상태와 그 상태를 만든 이벤트이거나 거부입니다. 이벤트 ID만은 `domainEvent`가 새로 만들어
  * 같은 입력에도 다릅니다.
  *
  * 상태 전이표는 현행 규칙을 옮긴 규칙 모듈(`visit-status.ts`)에 그대로 두고 여기서 부릅니다.
  */
-
-/** 판정에 쓰는 시각과 행위자입니다. */
-export type VisitContext = DecisionContext
 
 /** 판정 결과입니다. `events`는 `visit`과 같은 트랜잭션에 씁니다. */
 export interface VisitDecision {
@@ -70,7 +67,7 @@ export function decideVisitStatus(
   command: VisitCommand,
   input: VisitStatusInput,
   facts: VisitStatusFacts,
-  context: VisitContext,
+  context: DecisionContext,
 ): Result.Result<VisitDecision, VisitRejection> {
   const options = {
     hasClinicalData: facts.hasClinicalData,
@@ -132,7 +129,7 @@ export function decideCancel(
   visit: Visit,
   input: Pick<VisitStatusInput, 'reason' | 'cascade'>,
   facts: CancelFacts,
-  context: VisitContext,
+  context: DecisionContext,
 ): Result.Result<CancelDecision, VisitRejection | PaymentRefundRequired> {
   const reason = input.reason ?? 'Visit canceled'
 
@@ -212,7 +209,7 @@ export function decideCheckIn(
   input: CheckInInput,
   facts: CheckInFacts,
   ids: CheckInIds,
-  context: VisitContext,
+  context: DecisionContext,
 ): Result.Result<VisitDecision & { visit: Visit & { encounterId: Id<'encounter'> } }, CheckInRejected> {
   const date = context.today
   const flags = {

@@ -85,7 +85,8 @@ export function decideCheckout(
   const settlement = acceptSettlement(settle(dues, applied.success, input))
   if (Result.isFailure(settlement)) return Result.fail(settlement.failure)
 
-  // 수납할 수 있는 내원은 `CHECKOUT`을 늘 받습니다(지난 날짜도 받습니다). 어긋나면 결함입니다
+  // 수납할 수 있는 내원은 `CHECKOUT`을 늘 받습니다(지난 날짜도 받습니다). 어긋나면 결함입니다. `CHECKOUT`은 진료 내용
+  // 사실을 보지 않아, 영수증까지 넓혀 읽지 않고 저장된 `hasClinicalData`를 넘깁니다
   const completed = decideVisitStatus(visit, 'CHECKOUT', {}, { hasClinicalData: visit.hasClinicalData }, context)
   if (Result.isFailure(completed)) throw new Error(`checkout of ${visit.id} was refused: ${completed.failure._tag}`)
 

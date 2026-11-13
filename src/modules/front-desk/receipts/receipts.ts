@@ -112,7 +112,7 @@ export type CorrectError =
 
 /**
  * 수납입니다 (front-desk.md 수납 커맨드, 환불과 정정). 견적(`quote`)·수납(`checkout`)·정정(`correct`)이 같은
- * 계산(`settleCheckout`)을 씁니다.
+ * 계산(`receipt.aggregate.ts`의 `settle`)을 씁니다.
  *
  * 금액은 일반 진료의 처방 금액과 건보·의료급여 진료의 급여 본인부담(`insuredCopay`)입니다. 선수금·과수납금 잔액은
  * 0으로 보고, 제주 지원금·패키지·등급 할인은 없습니다. 그 데이터가 생길 때 결산 입력에 더합니다.
@@ -276,7 +276,7 @@ export class Receipts extends Context.Service<
                 decideCheckout(visit, request, facts, receiptIdsAt(now), context),
               )
               // 내원 쓰기를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 영수증만 남지 않습니다. 같은 트랜잭션에서 방금
-              // 읽은 내원이라 버전이 어긋나면 결함입니다. 영수증
+              // 읽은 내원이라 버전이 어긋나면 결함입니다(SQL에서는 생기지 않고, 끼어들 수 있는 메모리 저장소에서만 500). 영수증
               // 쓰기는 같은 트랜잭션에서 확인한 것(유효한 영수증 없음, 적용할 결제가 UNAPPLIED)이 그대로일 때만
               // 성공합니다. SQL은 트랜잭션이 하나씩 실행되어 그대로이고, 메모리는 그 사이에 다른 요청이 끼어들면 내원만
               // COMPLETED로 남을 수 있습니다

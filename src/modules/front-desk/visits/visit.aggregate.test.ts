@@ -7,8 +7,9 @@ import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import type { Payment, ReceiptRecord } from '../receipts/receipt.ts'
 import { testVisit } from './testing.ts'
 import { eventContext } from '../../../shared/events/domain-event.ts'
+import type { DecisionContext } from '../../../shared/events/domain-event.ts'
 import { decideCancel, decideCheckIn, decideVisitStatus } from './visit.aggregate.ts'
-import type { CheckInFacts, VisitContext } from './visit.aggregate.ts'
+import type { CheckInFacts } from './visit.aggregate.ts'
 import type { Visit } from './visit.ts'
 
 /**
@@ -19,7 +20,7 @@ import type { Visit } from './visit.ts'
 const AT = '2026-11-13T01:00:00.000Z'
 const TODAY = '2026-11-13'
 const USER = 'usr_01JBQ000000000000000000001' as Id<'user'>
-const context: VisitContext = { at: AT, today: TODAY, tenantId: TEST_TENANT.id, userId: USER }
+const context: DecisionContext = { at: AT, today: TODAY, tenantId: TEST_TENANT.id, userId: USER }
 const ENCOUNTER_ID = 'enc_01JBQ000000000000000000001' as Id<'encounter'>
 
 const visit = (overrides: Partial<Visit> = {}) => testVisit({ date: TODAY, encounterId: ENCOUNTER_ID, ...overrides })
