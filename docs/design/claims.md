@@ -30,6 +30,9 @@
 | 의료급여 승인 | `MedicalAidApproval` |
 | 사전 제출 (추나 승인, 첩약 제출) | `HiraPreSubmission` |
 | 청구 프로그램 (DDMD) | 데스크톱 에이전트의 `hira-ddmd` 기능 |
+| 추나 자동 제출 정책 | `chuna-auto-submission.policy.ts` |
+| 청구 전송 사가 | `claim-submission.saga.ts` |
+| 사전 제출 사가 | `hira-pre-submission.saga.ts` |
 
 ## 데스크톱 에이전트
 
@@ -243,6 +246,19 @@ GET/PUT /settings/nhic-certificate        인증서 업로드 (.der/.key + 암�
 
 - `POST /patients/{id}/indemnity-links` → 외부 시스템 환자와 연결
 - 외부 시스템이 조회 완료를 알리면 `indemnity.lookup_completed` 이벤트로 환자 타임라인에 기록
+
+## 정책과 사가
+
+용어는 [events.md](events.md#정책과-사가)를 따릅니다.
+
+| 이름 | 종류 | 시작 | 단계와 보상 |
+|---|---|---|---|
+| 추나 자동 제출 | 정책 | `encounter.completed` | [추나 자동 승인](#심평원-사전-제출) 조건에 맞으면 `HiraPreSubmission`(`QUEUED`)을 만들어 사전 제출 사가를 시작합니다. 판정은 [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts). [domain-model.md](domain-model.md#정책)의 "추나 자동 제출" |
+| 청구 전송 | 사가 | `POST /claims/{id}:submit` | `AgentTask(SUBMIT_CLAIM)` → 에이전트 전송 → `SUBMITTED`. 결과를 모르면(`OUTCOME_UNKNOWN`) 다시 보내지 않고 `RECONCILE` 작업으로 대사한 뒤에만 `FAILED`로 확정해 재전송합니다([데스크톱 에이전트](#데스크톱-에이전트)). 보상은 되돌리기가 아니라 대사입니다. 심평원 전송은 취소할 수 없기 때문입니다 |
+| 사전 제출 | 사가 | `POST /encounters/{id}/hira-pre-submissions`, 추나 자동 제출 | `AgentTask(SUBMIT_CHUNA 등)` → `SUBMITTED` → 승인·반려. 진료 철회나 처방 라인 삭제 뒤에는 `:cancel`이 `CANCEL_PRE_SUBMISSION` 작업으로 취소를 보냅니다 |
+
+- 사가의 진행 상태는 `AgentTask`·`HiraPreSubmission`·`Claim`의 상태이고, 웹에 보이는 진행은 `Job`입니다([conventions.md](conventions.md#비동기-작업))
+- 이 사가들을 상태 테이블과 폴링(`AgentTask` long-poll, `OUTCOME_UNKNOWN` 시간 초과)으로 직접 엮게 되는 것이 [D10](review.md#결정-필요)의 다시 볼 조건입니다. 구현 전에 Claims 하나를 라이브러리로 만들지 먼저 검토합니다
 
 ## 이벤트
 

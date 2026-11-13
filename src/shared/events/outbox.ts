@@ -23,6 +23,11 @@ export class Outbox extends Context.Service<
     append(events: ReadonlyArray<DomainEvent>): Effect.Effect<void>
     /** 아직 내보내지 않은 행을 `seq` 순서로 `limit`개까지 읽습니다. */
     pending(limit: number): Effect.Effect<ReadonlyArray<PendingEvent>>
+    /**
+     * `seq`가 `afterSeq`보다 큰 이벤트를 `seq` 순서로 `limit`개까지 읽습니다. 버스에 냈는지와 상관없습니다. 놓치면 안
+     * 되는 소비자(정책)가 마지막으로 처리한 `seq`부터 읽는 데 씁니다.
+     */
+    after(afterSeq: number, limit: number): Effect.Effect<ReadonlyArray<RecordedEvent>>
     markPublished(seq: number, publishedAt: string): Effect.Effect<void>
     markFailed(seq: number, failure: { error: string; nextAttemptAt: string }): Effect.Effect<void>
   }
@@ -58,6 +63,15 @@ export class Outbox extends Context.Service<
                 .filter((row) => row.publishedAt === null)
                 .slice(0, limit)
                 .map(({ event, attempts, nextAttemptAt }) => ({ event, attempts, nextAttemptAt })),
+            ),
+          ),
+        after: (afterSeq, limit) =>
+          Ref.get(rows).pipe(
+            Effect.map((all) =>
+              all
+                .filter((row) => row.event.seq > afterSeq)
+                .slice(0, limit)
+                .map((row) => row.event),
             ),
           ),
         markPublished: (seq, publishedAt) => update(seq, (row) => ({ ...row, publishedAt })),
@@ -127,6 +141,18 @@ export class Outbox extends Context.Service<
             LIMIT ${limit}
           `.pipe(
             Effect.map((rows) => rows.map(toPending)),
+            Effect.orDie,
+          ),
+        after: (afterSeq, limit) =>
+          sql<Row>`
+            SELECT seq, id, type, time, subject, tenant_id AS tenantId, actor, data, attempts,
+              next_attempt_at AS nextAttemptAt
+            FROM outbox
+            WHERE seq > ${afterSeq}
+            ORDER BY seq
+            LIMIT ${limit}
+          `.pipe(
+            Effect.map((rows) => rows.map((row) => toPending(row).event)),
             Effect.orDie,
           ),
         markPublished: (seq, publishedAt) =>

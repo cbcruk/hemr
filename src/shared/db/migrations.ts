@@ -545,6 +545,17 @@ export const migrations = {
     `
     yield* sql`CREATE INDEX amendment_proposals_encounter ON amendment_proposals (tenant_id, encounter_id, status)`
   }),
+  // 정책(outbox 소비자)마다 마지막으로 처리한 outbox `seq`입니다 (events.md 정책). 처리한 쓰기와 같은 트랜잭션에서 올립니다
+  '0017_policy_cursors': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    yield* sql`
+      CREATE TABLE policy_cursors (
+        policy TEXT PRIMARY KEY,
+        last_seq INTEGER NOT NULL CHECK (last_seq >= 0),
+        updated_at TEXT NOT NULL
+      ) STRICT
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

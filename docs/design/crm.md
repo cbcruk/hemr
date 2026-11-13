@@ -53,6 +53,8 @@ flowchart LR
 | 발신번호 | `SenderNumber` |
 | 수신거부 | 동의 `DENIED` / `WITHDRAWN` |
 | 대체 발송 (알림톡 실패 시 문자) | `fallback` |
+| 환자 투영 갱신 정책 | `patient-projection.policy.ts` |
+| 연락 작업 만들기 정책 | `contact-task.policy.ts` |
 
 ## 연락 자동화 (세 시스템 통합)
 
@@ -281,6 +283,18 @@ POST /follow-up-enrollments:export         → Job
 ## 과금
 
 CRM 발송 요금은 테넌트 과금(`/billing`)에 둡니다. 발송 전 결제수단 확인은 `:send`가 402 `PAYMENT_METHOD_REQUIRED`로 알립니다. 현행 병원명 하드코딩 예외는 테넌트 플래그로 바꿉니다.
+
+## 정책과 사가
+
+용어는 [events.md](events.md#정책과-사가)를 따릅니다. CRM은 이벤트를 받기만 하는 컨텍스트라 모두 정책이고, 사가는 없습니다.
+
+| 이름 | 종류 | 받는 이벤트 | 하는 일 |
+|---|---|---|---|
+| 환자 투영 갱신 | 정책 | `patient.*`, `consent.changed`, `visit.checked_in`, `encounter.completed`, `package_contract.*` | `PatientProjection`을 고칩니다. CRM은 EMR DB를 읽지 않으므로([경계](#경계)) 이것이 CRM이 EMR을 아는 유일한 길입니다 |
+| 연락 작업 만들기 | 정책 | `encounter.completed`, `visit.checked_in`, `appointment.*`, `package_contract.*` | 켜진 `ContactProgram`의 `trigger`에 맞으면 규칙마다 `ContactTask`(`SCHEDULED`)를 만듭니다. 같은 이벤트·규칙에서 두 번 만들지 않게 `source.refId`·`ruleId`로 멱등합니다. [domain-model.md](domain-model.md#정책)의 "CRM 연락 작업" |
+
+- 연락 작업의 발송은 정책이 아니라 예약 커맨드입니다(`scheduledAt`이 되면 서버가 보냄). 발송 실패의 대체 발송(`fallback`)은 메시지 한 건 안의 재시도라 사가로 보지 않습니다
+- CRM을 따로 배포하게 되면 이 두 정책이 outbox에서 CRM으로 넘기는 경계가 됩니다([D10](review.md#결정-필요) 다시 볼 조건의 첫 후보)
 
 ## 이벤트
 

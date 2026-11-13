@@ -12,6 +12,7 @@ import type { Visit } from './modules/front-desk/visits/visit.ts'
 import { sqliteLayer } from './shared/db/migrations.ts'
 import { Transaction } from './shared/db/transaction.ts'
 import { Outbox } from './shared/events/outbox.ts'
+import { PolicyCursor } from './shared/events/policy.ts'
 import { IdempotencyStore } from './shared/http/idempotency.ts'
 import { AccessLog } from './shared/audit/access-log.ts'
 import { PatientRepository } from './modules/patients/patient-repository.ts'
@@ -31,6 +32,7 @@ export const PersistenceMemory = (seed: ReadonlyArray<Visit> = []) =>
     ReceiptRepository.layerMemory,
     CashDrawerRepository.layerMemory,
     IdempotencyStore.layerMemory,
+    PolicyCursor.layerMemory,
     Transaction.layerMemory,
   ).pipe(Layer.provideMerge(Outbox.layerMemory))
 
@@ -52,5 +54,6 @@ export const PersistenceSqlite = (filename: string) =>
     ReceiptRepository.layerSql,
     CashDrawerRepository.layerSql,
     IdempotencyStore.layerSql,
+    PolicyCursor.layerSql,
     Transaction.layerSql,
   ).pipe(Layer.provideMerge(Outbox.layerSql), Layer.provideMerge(sqliteLayer(filename)))

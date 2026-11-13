@@ -140,6 +140,7 @@ GET  /v1/jobs/job_01J...          → { "status": "RUNNING", "progress": 0.4 }
 | `CANCELED` | 취소됨 |
 
 - 끝나면 `job.completed` 이벤트를 보냅니다 ([events.md](events.md)). 클라이언트는 폴링 대신 이벤트를 받습니다
+- 여러 단계에 보상이 있는 작업([사가](events.md#정책과-사가))은 `Job`이 진행 상태를 담습니다. 사가의 단계 하나가 끝날 때마다 `progress`가 오르고, 보상까지 끝난 부분 실패는 `PARTIALLY_SUCCEEDED`입니다. 사가가 아닌 한 번짜리 작업(가져오기, 내보내기)도 `Job`입니다
 - 현행 `async-tasks`, 수신자 추가 후 `receivers/count` 10회 폴링, 외부 예약 확정의 `summary{요청,성공,처리중,실패}`, 전자서명 5초 폴링, 청구 SAM 생성(60초 타임아웃)이 모두 이 형태가 됩니다
 
 ## 감사와 열람 기록
