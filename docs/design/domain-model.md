@@ -196,6 +196,17 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - **판정 문맥은 공유합니다.** 시각·진료일·테넌트·행위자를 담은 `DecisionContext`와 이를 만드는 `decisionContext`, 이벤트 문맥 `eventContext`가 `shared/events/domain-event.ts`에 있습니다
 - **결함은 거부가 아니라 예외입니다.** 앞에서 걸렀는데 안쪽 판정이 거부하는 경우(수납할 수 있는 내원이 `CHECKOUT`을 거부, 정정의 취소가 막힘, 적용한 결제의 영수증이 유효하지 않음)는 `Result`로 돌려주지 않고 던집니다
 
+### 진료 묶음에서 정한 것 (#67)
+
+진료와 정정 제안을 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
+
+- [encounter.aggregate.ts](../../src/modules/clinical/encounters/encounter.aggregate.ts): 초안 저장(`decideUpdate`), 완료(`decideComplete`, 진료·내원 묶음), 정정(`decideAmend`), 철회(`decideRetract`), 고정(`decideLock`)
+- [amendment-proposal.aggregate.ts](../../src/modules/clinical/encounters/amendment-proposal.aggregate.ts): 제안(`decidePropose`), 반영(`decideApply`, 제안·진료 묶음), 버림(`decideDismiss`)
+- **사실 읽기와 진료 쓰기는 두 서비스가 공유합니다**([encounter-facts.ts](../../src/modules/clinical/encounters/encounter-facts.ts)). 정정 제안 서비스가 진료 서비스(`Encounters.amend`)를 부르지 않고 판정을 직접 묶습니다. 진료 완료도 내원 서비스(`Visits.apply`)가 아니라 내원 판정과 저장소를 씁니다
+- **완료 뒤 시술 완료는 서비스에 남겼습니다.** 판정은 `finishProcedures`로 알리기만 하고, 서비스가 `Procedures.finishRunning`을 부릅니다. 시술 애그리거트(M4, #70)와 정책(M2, #69)에서 다시 봅니다
+- **권한이 판정 사이에 끼는 커맨드는 판정을 나눕니다.** 제안 반영은 대기·낡음(`applicable`)을 처방 권한보다 먼저 거부해야 해서, 서비스가 `applicable` → 권한 → `decideApply` 순서로 부릅니다. `decideApply`도 `applicable`을 다시 봐 혼자서 완전합니다
+- 초안 저장도 수납 여부(`billedBy`)를 늘 읽습니다. 예전에는 처방을 바꿀 때만 읽었습니다. 같은 트랜잭션 안의 한 번이라 그대로 두고, 저장이 잦아 문제가 되면 #74와 같이 봅니다
+
 ## 단계
 
 1. **내원 시범**([#66](https://github.com/cbcruk/hemr/issues/66)): `visit.aggregate.ts`로 옮기고 동작은 바꾸지 않습니다. 이 문서의 규약을 확정합니다

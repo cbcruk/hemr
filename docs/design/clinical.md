@@ -158,7 +158,7 @@ If-Match: "8"
 
 ### 완료 구현 결정
 
-구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `complete`, 검증은 [encounter-completion.ts](../../src/modules/clinical/encounters/encounter-completion.ts)의 `judgeCompletion`입니다 (#24).
+구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `complete`, 판정은 [encounter.aggregate.ts](../../src/modules/clinical/encounters/encounter.aggregate.ts)의 `decideComplete`, 검증은 [encounter-completion.ts](../../src/modules/clinical/encounters/encounter-completion.ts)의 `judgeCompletion`입니다 (#24).
 
 - **범위:** `POST /encounters/{id}:complete`가 초안을 검증하고, 진료를 `COMPLETED`로 저장하고, 내원을 `nextVisitStatus`로 옮깁니다. 위 [완료 커맨드](#완료-커맨드)의 1·5·6입니다
   - 미룸: 2(금액 확정은 라인 단가가 이미 고정이라 할 일이 없고, 패키지 사용은 패키지가 생길 때), 3(탕전), 4(추나 자동 승인과 `hiraSubmissions[]`, 심평원 제출이 생길 때), 초진 기록 자동 고정(#25). 5의 치료실 시술 완료는 #26에서 더했습니다([치료실 구현 결정](#치료실-구현-결정))
@@ -168,7 +168,7 @@ If-Match: "8"
 - **주상병은 정확히 하나여야 합니다.** 저장은 상병이 없으면 경고하지 않지만, 완료는 상병이 없어도 `PRIMARY_DIAGNOSIS_MISSING`입니다. 일반(`SELF_PAY`) 진료도 같습니다. 진료기록에 상병은 늘 있어야 하기 때문입니다. 되돌릴 조건: 상병 없이 끝내는 진료(상담만 등)가 필요하면 진료 종류나 보험구분으로 예외를 둡니다
 - **첩약 시범사업 라인은 늘 막힙니다.** 처방 라인에 아직 심평원 승인 상태가 없어 승인 전으로 봅니다. 시범사업 표시도 없어 보험구분 전용 처방으로도 막힙니다. 심평원 제출이 생기면 라인의 승인 상태를 씁니다
 - **진찰료 중복은 완료한 같은 날 진료와 비교하고(취소한 내원의 완료 진료도 셉니다. 연쇄 취소가 진료를 철회하게 되면(#25) 빠집니다) `acknowledge: ["DUPLICATE_CONSULTATION_FEE"]`로 넘깁니다.** 초안끼리는 비교하지 않아, 먼저 완료한 진료는 통과하고 뒤 진료가 확인을 받습니다. 날짜는 병원 시간대(`Asia/Seoul`)로 셉니다. 수납이 아직 없어 모두 수납 전(`paid: false`)입니다. 넘긴 위반은 `encounter.completed`의 `acknowledged`에 남깁니다. 다른 코드는 넘길 수 없어 400입니다
-- **내원은 `Visits.apply`로 옮깁니다.** `nextVisitStatus`(기본 `IN_TREATMENT`)로 가는 내원 커맨드(`:start-treatment`·`:return-to-waiting`·`:send-to-checkout`)를 같은 트랜잭션에서 실행해 `visit.status_changed`가 함께 나갑니다. 내원 커맨드 권한(`visit:update`)은 따로 보지 않습니다. 진료를 완료할 수 있는 한의사가 진료 흐름을 넘기는 일이기 때문입니다
+- **내원은 내원 판정(`decideVisitStatus`)으로 옮깁니다.** `nextVisitStatus`(기본 `IN_TREATMENT`)로 가는 내원 커맨드(`:start-treatment`·`:return-to-waiting`·`:send-to-checkout`)를 같은 트랜잭션에서 판정·저장해 `visit.status_changed`가 함께 나갑니다. 내원 커맨드 권한(`visit:update`)은 따로 보지 않습니다. 진료를 완료할 수 있는 한의사가 진료 흐름을 넘기는 일이기 때문입니다
   - 내원을 그대로 두는 경우: 이미 그 상태, 수납까지 끝난 내원(`COMPLETED`), 지난 날짜의 내원(진료 흐름 커맨드가 막힘), `nextVisitStatus`를 고르지 않았는데 데스크가 이미 수납 대기(`AWAITING_PAYMENT`)로 보낸 내원. 전날 진료를 오늘 마무리하거나 환자를 보낸 뒤에 기록을 끝내도 완료가 막히거나 내원이 되돌아가지 않게 하려는 것입니다. 수납 대기에서 옮기려면 `nextVisitStatus`를 보냅니다
   - **읽기·판정·쓰기를 모두 한 트랜잭션에서 합니다.** SQLite는 트랜잭션을 하나씩 실행하므로, 완료가 진료·내원·같은 날 진료를 읽은 뒤 데스크의 내원 커맨드나 다른 진료의 완료가 끼어들지 못합니다. 그래서 함께 들어온 `:start-treatment`나 취소가 500이 아니라 각각 내원 그대로 두기·409가 되고, 같은 날 두 진료를 동시에 완료해도 뒤 진료가 진찰료 중복을 봅니다. 되돌릴 조건: 동시에 쓰는 DB(PostgreSQL 등)로 옮기면 내원 행을 잠그거나(`SELECT … FOR UPDATE`) 직렬화 격리 수준을 씁니다
   - 진료를 먼저 쓰고 내원을 옮깁니다. 진료 쓰기는 버전 비교로 실패할 수 있어, 되돌리지 못하는 메모리 저장소에서도 내원만 옮겨지지 않습니다. 같은 트랜잭션에서 방금 읽은 내원이라 내원 커맨드는 늘 통과합니다. 요청 중 자정이 지나는 것처럼 그래도 실패하면 결함(500)이고 진료도 되돌립니다
@@ -182,7 +182,7 @@ If-Match: "8"
 
 ### 정정·철회·판·고정 구현 결정
 
-구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `amend`·`retract`·`setLocked`·`revisions`·`revision`, 철회는 [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)입니다 (#25).
+구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `amend`·`retract`·`setLocked`·`revisions`·`revision`, 판정은 [encounter.aggregate.ts](../../src/modules/clinical/encounters/encounter.aggregate.ts)의 `decideAmend`·`decideRetract`·`decideLock`, 철회한 진료는 [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)입니다 (#25).
 
 - **범위:** `:amend`, `:retract`, `GET /encounters/{id}/versions`·`/versions/{n}`, `:lock`·`:unlock`, 내원 연쇄 취소의 진료 철회
   - 정정 제안(`AmendmentProposal`)은 #30에서 열었습니다([정정 제안 구현 결정](#정정-제안-구현-결정)). 초진 기록 자동 고정(`encounter-policy.autoLockInitialRecord`)은 병원 정책 설정이 생길 때, 수납·청구한 진료의 철회 409는 그 모듈이 생길 때, 판의 `source` 중 `CLAIM_AUTOFIX`·`AI_ASSISTED`는 그 기능이 생길 때 더합니다. 서명(판에 붙음)과 추가기재·수정 접속기록 저장소도 서명·감사 기능과 함께 붙입니다
@@ -205,7 +205,7 @@ If-Match: "8"
 
 ### 정정 제안 구현 결정
 
-구현은 [amendment-proposals.ts](../../src/modules/clinical/encounters/amendment-proposals.ts)의 `AmendmentProposals`입니다 (#30).
+구현은 [amendment-proposals.ts](../../src/modules/clinical/encounters/amendment-proposals.ts)의 `AmendmentProposals`, 판정은 [amendment-proposal.aggregate.ts](../../src/modules/clinical/encounters/amendment-proposal.aggregate.ts)입니다 (#30, #67).
 
 ```
 POST /encounters/{id}/amendment-proposals   { reason, changes }   → 201          encounter.amendment_proposal:create
@@ -217,7 +217,7 @@ POST /amendment-proposals/{id}:dismiss      { reason }                          
 
 - **만드는 쪽은 면허 없는 사용자의 정정 요청부터 엽니다.** 데스크·실장이 진료기록의 잘못(상병 누락, 처방 오기)을 발견하면 바꿀 내용을 제안으로 남기고 의사가 반영합니다. 새 권한 `encounter.amendment_proposal:create`를 데스크 프리셋에 넣었습니다. 치료사는 갖지 않습니다
   - 미룸: 청구 자동수정(`source: CLAIM_AUTOFIX`, claims.md)과 보험구분 변경(`:change-coverage`). 그 기능이 생길 때 `source`를 넓혀 같은 제안을 만듭니다. 지금 `source`는 `USER`뿐입니다. 자동수정의 이슈 코드는 `reason`이 아니라 `source`와 함께 둘 별도 필드로 받습니다
-- **반영은 정정(`Encounters.amend`)을 그대로 부릅니다.** 검증(적용 규칙, 완료 검증 422, `acknowledge`), 판 보존(`AMENDMENT`, 사유는 제안 사유), 상태·고정·수납 409, 처방 라인 권한(`prescription:write`·`prescription:write_prn`)이 정정과 같습니다. `encounter.amended`에 `proposalId`를 더합니다. 정정이 실패하면 제안은 `PENDING`으로 남습니다(같은 트랜잭션). 응답의 `prescriptionLineRefs`는 제안의 `clientRef`와 반영할 때 만든 처방 라인 ID의 대응입니다
+- **반영은 정정 판정(`decideAmend`)을 그대로 부릅니다(`decideApply`).** 검증(적용 규칙, 완료 검증 422, `acknowledge`), 판 보존(`AMENDMENT`, 사유는 제안 사유), 상태·고정·수납 409, 처방 라인 권한(`prescription:write`·`prescription:write_prn`)이 정정과 같습니다. `encounter.amended`에 `proposalId`를 더합니다. 정정이 실패하면 제안은 `PENDING`으로 남습니다(같은 트랜잭션). 응답의 `prescriptionLineRefs`는 제안의 `clientRef`와 반영할 때 만든 처방 라인 ID의 대응입니다
   - 정정이 업무 규칙으로 실패할 수 있어 진료를 먼저 쓰고 제안을 뒤에 씁니다. SQL은 한 트랜잭션이라 함께 되돌립니다. 되돌리지 못하는 메모리 저장소에서는 같은 제안의 반영과 버림이 겹치면 정정만 남고 반영이 500으로 끝날 수 있습니다. 메모리 저장소는 테스트용이라 받아들였습니다
 - **제안은 만든 때의 판(`baseRevision`) 위에서만 반영합니다.** 그 뒤 진료가 정정되면 409 `AMENDMENT_PROPOSAL_STALE`이고 목록에 `stale: true`로 보입니다. 제안의 `changes`는 본문을 통째로 바꾸거나 상병·처방을 ID로 고치므로, 새 판 위에 적용하면 그 사이 정정을 조용히 덮을 수 있기 때문입니다. 낡은 제안은 버리고 새로 제안합니다
   - 대안: 지금 판에 그대로 적용하기. 의사가 고친 본문을 옛 본문으로 되돌릴 수 있어 버렸습니다. 되돌릴 조건: 필드별로 겹치지 않는 제안을 합칠 수 있게 되면(예: 상병만 바꾼 제안) 겹치지 않을 때만 반영합니다
@@ -238,7 +238,7 @@ POST /amendment-proposals/{id}:dismiss      { reason }                          
 
 ### 진료 구현 결정
 
-구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `get`·`listForPatient`·`update`, 변경 적용은 [encounter-changes.ts](../../src/modules/clinical/encounters/encounter-changes.ts)입니다 (#22).
+구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `get`·`listForPatient`·`update`, 판정은 [encounter.aggregate.ts](../../src/modules/clinical/encounters/encounter.aggregate.ts)의 `decideUpdate`, 변경 적용은 [encounter-changes.ts](../../src/modules/clinical/encounters/encounter-changes.ts)입니다 (#22).
 
 - **범위:** 접수가 빈 초안 진료를 만들고, 진료 하나(`GET /encounters/{id}`)와 환자의 진료 목록(`GET /patients/{id}/encounters`)을 열고, 초안의 본문·상병을 저장합니다(`PATCH /encounters/{id}`)
   - 미룸: 내원 없는 진료(`POST /encounters`), 활력징후, 서명, `allowedActions`, 목록의 `from`·`to`·`type`·`cursor`, `clinical-summary`, 상병 마스터 검색, 진료 조회의 열람 기록(`access_logs`, conventions.md 감사와 열람 기록). 열람 기록은 환자 조회(patients.md)와 같이 미루고, 진료기록 서명·정정과 함께 붙입니다
