@@ -83,10 +83,6 @@ export class Patients extends Context.Service<
       const accessLog = yield* AccessLog
 
       const now = Clock.currentTimeMillis.pipe(Effect.map((millis) => new Date(millis).toISOString()))
-      const context = (access: CurrentAccess['Service']) => ({
-        tenantId: access.tenantId,
-        actor: { kind: 'USER' as const, id: access.userId },
-      })
 
       const find = (access: CurrentAccess['Service'], id: Id<'patient'>) =>
         repository
