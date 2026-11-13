@@ -18,11 +18,11 @@ import { applicable, decideApply, decideDismiss, decidePropose } from './amendme
 import type { ProposalWrite, ProposeCommand } from './amendment-proposal.aggregate.ts'
 import { AmendmentProposalRepository } from './amendment-proposal-repository.ts'
 import type { Acknowledgeable } from './encounter-completion.ts'
-import { encounterFacts, requirePrescriptionPermissions } from './encounter-facts.ts'
+import { encounterFacts, NEW_IDS, requirePrescriptionPermissions } from './encounter-facts.ts'
 import { EncounterRepository } from './encounter-repository.ts'
 import type { Encounter, EncounterChangeInvalid, EncounterNotEditable, EncounterNotFound } from './encounter.ts'
 import type { PrescriptionLineRef } from '../prescriptions/prescription-line-changes.ts'
-import { type AmendEncounterError, NEW_IDS } from './encounters.ts'
+import type { AmendEncounterError } from './encounters.ts'
 
 export type ProposeInput = ProposeCommand
 

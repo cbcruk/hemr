@@ -1,7 +1,6 @@
 import { Context, DateTime, Effect, Layer } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
 import { decisionContext, eventContext } from '../../../shared/events/domain-event.ts'
-import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import type { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
@@ -13,10 +12,10 @@ import { Procedures } from '../treatment-room/procedures.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
 import type { PrescriptionLineRef } from '../prescriptions/prescription-line-changes.ts'
-import type { EncounterChanges, NewIds } from './encounter-changes.ts'
+import type { EncounterChanges } from './encounter-changes.ts'
 import { decideAmend, decideComplete, decideLock, decideRetract, decideUpdate } from './encounter.aggregate.ts'
 import type { AmendCommand, CompleteCommand } from './encounter.aggregate.ts'
-import { encounterFacts, requirePrescriptionPermissions } from './encounter-facts.ts'
+import { encounterFacts, NEW_IDS, requirePrescriptionPermissions } from './encounter-facts.ts'
 import {
   EncounterRevisionNotFound,
   type EncounterBilled,
@@ -73,12 +72,6 @@ export type RetractEncounterError =
   EncounterNotFound | EncounterNotEditable | EncounterLocked | EncounterBilled | VersionMismatch
 
 export type LockEncounterError = EncounterNotFound | EncounterNotEditable | VersionMismatch
-
-/** 새 상병·처방 라인 ID입니다. */
-export const NEW_IDS: NewIds = {
-  diagnosis: () => newId('diagnosis'),
-  prescriptionLine: () => newId('prescriptionLine'),
-}
 
 export type UpdateEncounterError =
   | EncounterNotFound

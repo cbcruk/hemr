@@ -1,4 +1,5 @@
 import { Array as Arr, Effect, Option } from 'effect'
+import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { requirePermissions } from '../../identity/auth/access.ts'
 import type { Permission } from '../../identity/permissions.ts'
@@ -7,7 +8,7 @@ import type { VisitRepository } from '../../front-desk/visits/visit-repository.t
 import { EncounterNotFound } from './encounter.ts'
 import type { Encounter } from './encounter.ts'
 import type { EncounterWrite } from './encounter.aggregate.ts'
-import type { EncounterChanges } from './encounter-changes.ts'
+import type { EncounterChanges, NewIds } from './encounter-changes.ts'
 import type { EncounterRepository } from './encounter-repository.ts'
 
 /**
@@ -57,6 +58,12 @@ export function encounterFacts(deps: {
     })
 
   return { find, visitOf, billedBy, othersOf, write }
+}
+
+/** 판정에 넘기는 새 상병·처방 라인 ID입니다. */
+export const NEW_IDS: NewIds = {
+  diagnosis: () => newId('diagnosis'),
+  prescriptionLine: () => newId('prescriptionLine'),
 }
 
 /** 변경에 처방 라인이 있을 때 더 필요한 권한입니다. 빠진 권한을 한 번에 모두 알립니다. */
