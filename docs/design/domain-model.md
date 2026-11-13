@@ -182,9 +182,19 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 좋아진 점: 판정 테스트(`visit.aggregate.test.ts`)가 Layer·저장소 없이 돌아, 내원 하나와 사실만 주고 결과를 봅니다. 서비스는 읽기 → 판정 → 저장으로 줄었습니다. 연쇄 취소에서 무엇을 어떤 순서로 판정하는지(환불이 먼저, 그다음 상태 전이, 그다음 진료 철회)가 함수 하나에 모였습니다.
 
-나빠진 점: 사실을 먼저 읽어야 해서, 취소는 상태 전이로 거부될 때도 진료를 읽습니다(같은 트랜잭션 안의 한 번). 묶은 경계의 판정 함수가 다른 모듈의 판정(`retractEncounter`, `voidReceipt`)을 가져다 써서, 내원 애그리거트 파일이 Clinical·수납을 import합니다. 연쇄 취소가 컨텍스트를 넘는 예외라 생기는 일입니다.
+나빠진 점: 사실을 먼저 읽어야 해서, 취소는 상태 전이로 거부될 때도 진료를 읽습니다(같은 트랜잭션 안의 한 번). 묶은 경계의 판정 함수가 다른 모듈의 판정(`retractEncounter`, 영수증의 `decideVoid`)을 가져다 써서, 내원 애그리거트 파일이 Clinical·수납을 import합니다. 연쇄 취소가 컨텍스트를 넘는 예외라 생기는 일입니다.
 
 되돌릴 조건: 사실을 미리 읽는 코드가 판정 함수보다 길어지거나, 판정 중에만 알 수 있는 사실이 생겨 미리 읽기가 부자연스러워지면 다시 봅니다.
+
+### 수납 묶음에서 정한 것 (#67)
+
+영수증·결제·수납을 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
+
+- [receipt.aggregate.ts](../../src/modules/front-desk/receipts/receipt.aggregate.ts): 수납 취소(`decideVoid`)·정정(`decideCorrection`, 영수증·결제 묶음)과, 견적·수납·정정이 같이 쓰는 계산(`checkoutable`, `selectDues`, `applicablePayments`, `settle`, `newReceipt`)
+- [payment.aggregate.ts](../../src/modules/front-desk/receipts/payment.aggregate.ts): 결제 기록(`decideRecordPayment`)·환불(`decideRefund`, 결제·영수증 묶음)
+- [checkout.aggregate.ts](../../src/modules/front-desk/receipts/checkout.aggregate.ts): 수납(`decideCheckout`, 영수증·결제·내원 묶음). 내원 전이는 `decideVisitStatus`를 부릅니다
+- **판정 문맥은 공유합니다.** 시각·진료일·테넌트·행위자를 담은 `DecisionContext`와 이를 만드는 `decisionContext`, 이벤트 문맥 `eventContext`가 `shared/events/domain-event.ts`에 있습니다
+- **결함은 거부가 아니라 예외입니다.** 앞에서 걸렀는데 안쪽 판정이 거부하는 경우(수납할 수 있는 내원이 `CHECKOUT`을 거부, 정정의 취소가 막힘, 적용한 결제의 영수증이 유효하지 않음)는 `Result`로 돌려주지 않고 던집니다
 
 ## 단계
 

@@ -13,8 +13,9 @@ import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
 import { ReceiptRepository } from '../receipts/receipt-repository.ts'
 import { PaymentRefundRequired, recordOf } from '../receipts/receipt.ts'
-import { decideCancel, decideCheckIn, decideVisitStatus, eventContext } from './visit.aggregate.ts'
-import type { CheckInInput, VisitContext, VisitStatusInput } from './visit.aggregate.ts'
+import { decisionContext, eventContext } from '../../../shared/events/domain-event.ts'
+import { decideCancel, decideCheckIn, decideVisitStatus } from './visit.aggregate.ts'
+import type { CheckInInput, VisitStatusInput } from './visit.aggregate.ts'
 import type { VisitCommand } from './visit-status.types.ts'
 import {
   CheckInRejected,
@@ -166,7 +167,7 @@ export class Visits extends Context.Service<
             return yield* new VersionMismatch({ currentVersion: visit.version })
           }
 
-          const context = visitContext(access, yield* DateTime.now)
+          const context = decisionContext(access, yield* DateTime.now)
           const facts = { hasClinicalData: yield* hasClinicalData(visit) }
 
           if (command !== 'CANCEL') {
@@ -202,10 +203,10 @@ export class Visits extends Context.Service<
           if (decided.voided !== null) {
             // 영수증 쓰기는 진료 철회처럼 맨 뒤라, 판정과 쓰기 사이에 다른 요청이 영수증을 바꾸면 SQL은 모두 되돌리고
             // 되돌리지 못하는 메모리 저장소는 내원만 취소된 채 남을 수 있습니다
-            const { receipt, expectedVersion, payments, event } = decided.voided
+            const { receipt, expectedVersion, voided, event } = decided.voided
             yield* receipts.commit({
               updateReceipts: [{ receipt, expectedVersion }],
-              updatePayments: payments.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
+              updatePayments: voided.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
               events: [event],
             })
           }
@@ -228,7 +229,7 @@ export class Visits extends Context.Service<
         if (input.initialStatus === 'IN_TREATMENT') yield* requirePermissions('visit:update')
         const patient = yield* patients.get(input.patientId)
         const now = yield* DateTime.now
-        const context = visitContext(access, now)
+        const context = decisionContext(access, now)
         const tenant = yield* identity.findTenant(access.tenantId)
         const facts = {
           patient,
@@ -279,14 +280,4 @@ export class Visits extends Context.Service<
       return Visits.of({ apply, checkIn, get, list })
     }),
   )
-}
-
-/** 판정 함수에 넘기는 시각과 행위자입니다. */
-function visitContext(access: CurrentAccess['Service'], now: DateTime.Utc): VisitContext {
-  return {
-    at: DateTime.formatIso(now),
-    today: clinicDate(DateTime.toEpochMillis(now)),
-    tenantId: access.tenantId,
-    userId: access.userId,
-  }
 }

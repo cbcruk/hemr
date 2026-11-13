@@ -1,6 +1,6 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { domainEvent } from '../../../shared/events/domain-event.ts'
+import { decisionContext } from '../../../shared/events/domain-event.ts'
 import { idempotent, IdempotencyKeyReused, IdempotencyStore } from '../../../shared/http/idempotency.ts'
 import { isId, newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
@@ -10,36 +10,24 @@ import { PatientRepository } from '../../patients/patient-repository.ts'
 import { PatientNotFound } from '../../patients/patient.ts'
 import { VisitRepository } from '../visits/visit-repository.ts'
 import { VisitNotFound } from '../visits/visit.ts'
-import { refundPayment } from './receipt-adjustments.ts'
-import { clinicDate } from '../../../shared/time/clinic-date.ts'
+import { decideRecordPayment, decideRefund } from './payment.aggregate.ts'
+import type { RecordPaymentCommand, RefundCommand } from './payment.aggregate.ts'
 import { ReceiptRepository } from './receipt-repository.ts'
 import {
-  type ExternalPaymentMethod,
   Payment,
   PaymentNotFound,
   PaymentNotRefundable,
   PaymentVisitMismatch,
   recordOf,
-  type RefundMethod,
   RefundRejected,
-  type SplitAmount,
 } from './receipt.ts'
 
 /** 밖에서 승인된 결제 하나입니다. */
-export interface RecordPaymentInput {
-  patientId: Id<'patient'>
-  visitId?: Id<'visit'>
-  method: ExternalPaymentMethod
-  amount: typeof SplitAmount.Type
-  processorRef: string
+export interface RecordPaymentInput extends RecordPaymentCommand {
   idempotencyKey: string
 }
 
-export interface RefundInput {
-  amount: typeof SplitAmount.Type
-  refundMethod: RefundMethod
-  reason: string
-  writeOff?: boolean
+export interface RefundInput extends RefundCommand {
   idempotencyKey: string
 }
 
@@ -108,7 +96,8 @@ export class Payments extends Context.Service<
 
       const record = Effect.fn('Payments.record')(function* (input: RecordPaymentInput) {
         const access = yield* CurrentAccess
-        const at = DateTime.formatIso(yield* DateTime.now)
+        const context = decisionContext(access, yield* DateTime.now)
+        const { at } = context
         const { idempotencyKey, ...request } = input
         return yield* transaction.run(
           idempotent(
@@ -124,40 +113,13 @@ export class Payments extends Context.Service<
               if (Option.isNone(yield* patients.findById(access.tenantId, input.patientId))) {
                 return yield* new PatientNotFound({})
               }
-              if (input.visitId !== undefined) {
-                const visit = yield* visits.findById(access.tenantId, input.visitId)
-                if (Option.isNone(visit)) return yield* new VisitNotFound({})
-                if (visit.value.patientId !== input.patientId) return yield* new PaymentVisitMismatch({})
-              }
-              const payment: Payment = {
-                id: newId('payment'),
-                tenantId: access.tenantId,
-                patientId: input.patientId,
-                visitId: input.visitId ?? null,
-                receiptId: null,
-                method: input.method,
-                prepaidKind: null,
-                amount: input.amount,
-                processorRef: input.processorRef,
-                status: 'UNAPPLIED',
-                refunds: [],
-                recordedBy: access.userId,
-                createdAt: at,
-                updatedAt: at,
-                version: 1,
-              }
-              const event = domainEvent(
-                'payment.recorded',
-                payment.id,
-                at,
-                {
-                  paymentId: payment.id,
-                  patientId: payment.patientId,
-                  visitId: payment.visitId,
-                  method: payment.method,
-                  amount: payment.amount,
-                },
-                { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+              const visit =
+                input.visitId === undefined
+                  ? null
+                  : Option.getOrNull(yield* visits.findById(access.tenantId, input.visitId))
+              if (input.visitId !== undefined && visit === null) return yield* new VisitNotFound({})
+              const { payment, event } = yield* Effect.fromResult(
+                decideRecordPayment(request, visit, newId('payment'), context),
               )
               yield* repository.commit({ insertPayments: [payment], events: [event] })
               return payment
@@ -196,8 +158,8 @@ export class Payments extends Context.Service<
 
       const refund = Effect.fn('Payments.refund')(function* (id: Id<'payment'>, input: RefundInput) {
         const access = yield* CurrentAccess
-        const now = yield* DateTime.now
-        const at = DateTime.formatIso(now)
+        const context = decisionContext(access, yield* DateTime.now)
+        const { at } = context
         const { idempotencyKey, ...request } = input
         return yield* transaction.run(
           idempotent(
@@ -211,72 +173,20 @@ export class Payments extends Context.Service<
             },
             Effect.gen(function* () {
               const payment = yield* findPayment(access.tenantId, id)
-              if (payment.status === 'REFUNDED' || payment.status === 'VOIDED') {
-                return yield* new PaymentNotRefundable({ paymentStatus: payment.status })
-              }
-              // 적용한 결제면 영수증의 받은 금액이 줄어 결산을 다시 판정합니다. 적용한 결제는 늘 유효한 영수증에
-              // 있습니다(영수증을 취소하면 결제도 취소되거나 정정한 영수증으로 옮겨 갑니다). 어긋나면 결함입니다
+              // 영수증은 지우지 않으므로 적용한 결제의 영수증은 늘 있습니다
               const receipt =
                 payment.receiptId === null
                   ? null
-                  : Option.getOrUndefined(yield* repository.findById(access.tenantId, payment.receiptId))
-              if (receipt !== null && receipt?.status !== 'ACTIVE') {
-                return yield* Effect.die(new Error(`payment ${id} is applied to a receipt that is not active`))
-              }
-              const decision = refundPayment(
-                payment,
-                {
-                  amount: input.amount,
-                  method: input.refundMethod,
-                  reason: input.reason,
-                  writeOff: input.writeOff ?? false,
-                  at,
-                  by: access.userId,
-                },
-                receipt?.settlement ?? null,
-              )
-              if (!decision.ok) {
-                return yield* new RefundRejected({
-                  errors: decision.errors,
-                  allowedMethods: decision.allowedMethods,
-                  refundable: decision.refundable,
-                })
-              }
-              const updateReceipts =
-                receipt === null || decision.settlement === null
-                  ? []
-                  : [
-                      {
-                        receipt: {
-                          ...recordOf(receipt),
-                          settlement: decision.settlement,
-                          updatedAt: at,
-                          version: receipt.version + 1,
-                        },
-                        expectedVersion: receipt.version,
-                      },
-                    ]
-              const event = domainEvent(
-                'payment.refunded',
-                id,
-                at,
-                {
-                  paymentId: id,
-                  receiptId: payment.receiptId,
-                  visitId: payment.visitId,
-                  patientId: payment.patientId,
-                  // 돌려준 날입니다. 시재가 이 날의 환불로 셉니다
-                  date: clinicDate(DateTime.toEpochMillis(now)),
-                  amount: decision.refund.amount,
-                  method: decision.refund.method,
-                  writtenOff: decision.refund.writtenOff,
-                },
-                { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
-              )
+                  : recordOf(
+                      yield* repository
+                        .findById(access.tenantId, payment.receiptId)
+                        .pipe(Effect.map(Option.getOrThrow), Effect.orDie),
+                    )
+              const decision = yield* Effect.fromResult(decideRefund(payment, receipt, request, context))
               yield* repository.commit({
-                updateReceipts,
-                updatePayments: [{ payment: decision.payment, expectedVersion: payment.version }],
-                events: [event],
+                updateReceipts: decision.receipt === null ? [] : [decision.receipt],
+                updatePayments: [{ payment: decision.payment, expectedVersion: decision.expectedVersion }],
+                events: [decision.event],
               })
               return decision.payment
             }),

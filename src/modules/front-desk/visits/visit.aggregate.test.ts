@@ -6,7 +6,8 @@ import type { Encounter } from '../../clinical/encounters/encounter.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import type { Payment, ReceiptRecord } from '../receipts/receipt.ts'
 import { testVisit } from './testing.ts'
-import { decideCancel, decideCheckIn, decideVisitStatus, eventContext } from './visit.aggregate.ts'
+import { eventContext } from '../../../shared/events/domain-event.ts'
+import { decideCancel, decideCheckIn, decideVisitStatus } from './visit.aggregate.ts'
 import type { CheckInFacts, VisitContext } from './visit.aggregate.ts'
 import type { Visit } from './visit.ts'
 
@@ -104,8 +105,11 @@ describe('decideVisitStatus', () => {
 })
 
 describe('decideCancel', () => {
+  // 영수증의 내원·환자는 `visit()`과 같습니다
   const RECEIPT = {
     id: 'rcp_01JBQ000000000000000000001',
+    visitId: visit().id,
+    patientId: visit().patientId,
     date: TODAY,
     status: 'ACTIVE',
     voided: null,
@@ -176,7 +180,7 @@ describe('decideCancel', () => {
     expect(then.voided).toMatchObject({
       receipt: { status: 'VOIDED' },
       expectedVersion: 4,
-      payments: [{ id: cash.id, status: 'VOIDED' }],
+      voided: [{ id: cash.id, status: 'VOIDED' }],
       event: {
         type: 'receipt.voided',
         data: {
