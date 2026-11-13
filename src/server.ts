@@ -15,6 +15,8 @@ import { PatientCrypto } from './modules/patients/patient-crypto.ts'
 import { PersistenceSqlite } from './persistence.ts'
 import { EventBus } from './shared/events/event-bus.ts'
 import { OutboxRelay } from './shared/events/outbox-relay.ts'
+import { policyWorker } from './shared/events/policy.ts'
+import { retractCanceledDraft } from './modules/clinical/encounters/encounter-retraction.policy.ts'
 
 const port = Number(process.env['PORT'] ?? 3000)
 /** SQLite 파일 경로입니다. `:memory:`면 재시작할 때마다 비어 있습니다. */
@@ -87,6 +89,9 @@ const Events = OutboxRelay.polling().pipe(
   Layer.provideMerge(EventBus.layerInProcess),
 )
 
+/** 등록한 정책을 1초마다 돌립니다(events.md 정책과 사가). 정책마다 outbox 커서를 따로 둡니다. */
+const Policies = policyWorker([retractCanceledDraft])
+
 /** 진행 중인 시술의 타이머 만료를 1초마다 판정합니다. 클라이언트가 없어도 서버가 `TIMER_ELAPSED`로 바꿉니다. */
 const TimerSweep = ProcedureTimerSweep().pipe(Layer.provide(Procedures.layer))
 
@@ -94,6 +99,7 @@ HttpRouter.serve(AppLive).pipe(
   Layer.provide(DevSeed),
   Layer.provide(TimerSweep),
   Layer.provide(Events),
+  Layer.provide(Policies),
   Layer.provide(NodeHttpServer.layer(createServer, { port })),
   Layer.provide(AuthConfig.layerFromEnv),
   Layer.provide(PatientCrypto.layerFromEnv),

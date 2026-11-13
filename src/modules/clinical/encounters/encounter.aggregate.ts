@@ -410,6 +410,27 @@ export function decideRetract(
 }
 
 /**
+ * 취소한 내원의 빈 초안 철회를 판정합니다(정책 `retractCanceledDraft`, M5). 연쇄가 아닌 취소는 내용 없는 내원만
+ * 받고, 취소한 내원의 진료는 저장·완료할 수 없어 초안은 그 뒤에도 비어 있습니다. 이미 철회했으면(연쇄 취소, 같은
+ * 이벤트를 다시 받음) `null`입니다. 초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`이고 정책은 기록만 합니다.
+ */
+export function decideRetractCanceledDraft(
+  current: Encounter,
+  reason: string,
+  context: DecisionContext,
+): Result.Result<EncounterWrite | null, EncounterNotEditable> {
+  if (current.status === 'ENTERED_IN_ERROR') return Result.succeed(null)
+  if (current.status !== 'DRAFT') return Result.fail(new EncounterNotEditable({ currentStatus: current.status }))
+  const retracted = retractEncounter(current, {
+    reason,
+    at: context.at,
+    by: context.userId,
+    tenantId: context.tenantId,
+  })
+  return Result.succeed({ ...retracted, expectedVersion: current.version, revision: null })
+}
+
+/**
  * 완료·정정한 진료의 고정·풀기를 판정합니다. 그 밖의 상태는 409 `ENCOUNTER_NOT_EDITABLE`입니다. 이미 그 상태면
  * `null`이고 버전을 올리지 않습니다. `encounter.locked`·`encounter.unlocked`를 냅니다.
  */

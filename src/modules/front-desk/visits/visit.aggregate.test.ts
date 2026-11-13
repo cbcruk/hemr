@@ -126,12 +126,31 @@ describe('decideCancel', () => {
   } as unknown as Payment
   const card = { ...cash, id: 'pay_01JBQ000000000000000000002', method: 'CARD' } as unknown as Payment
 
-  it('진료 내용이 없는 내원을 취소하면 빈 초안 진료를 같은 사유로 철회합니다', () => {
+  it('연쇄가 아닌 취소는 빈 초안을 철회하지 않고 정책에 맡깁니다', () => {
     const given = visit({ status: 'IN_TREATMENT' })
     const encounter = emptyDraft(given)
 
     const then = success(
       decideCancel(given, { reason: '환자 요청' }, { ...noData, encounter, activeReceipt: null }, context),
+    )
+
+    expect(then.visit).toMatchObject({ status: 'CANCELED', statusReason: '환자 요청' })
+    expect(then.events.map((each) => each.type)).toEqual(['visit.status_changed'])
+    expect(then.retracted).toBeNull()
+    expect(then.voided).toBeNull()
+  })
+
+  it('연쇄 취소는 진료를 같은 사유로 함께 철회합니다', () => {
+    const given = visit({ status: 'IN_TREATMENT' })
+    const encounter = emptyDraft(given)
+
+    const then = success(
+      decideCancel(
+        given,
+        { reason: '환자 요청', cascade: true },
+        { ...noData, encounter, activeReceipt: null },
+        context,
+      ),
     )
 
     expect(then.visit).toMatchObject({ status: 'CANCELED', statusReason: '환자 요청' })
@@ -146,12 +165,12 @@ describe('decideCancel', () => {
     expect(then.voided).toBeNull()
   })
 
-  it('이미 철회한 진료는 다시 철회하지 않습니다', () => {
+  it('이미 철회한 진료는 연쇄 취소도 다시 철회하지 않습니다', () => {
     const given = visit({ status: 'WAITING' })
     const encounter: Encounter = { ...emptyDraft(given), status: 'ENTERED_IN_ERROR' }
 
     const then = success(
-      decideCancel(given, { reason: '취소' }, { ...noData, encounter, activeReceipt: null }, context),
+      decideCancel(given, { reason: '취소', cascade: true }, { ...noData, encounter, activeReceipt: null }, context),
     )
 
     expect(then.retracted).toBeNull()

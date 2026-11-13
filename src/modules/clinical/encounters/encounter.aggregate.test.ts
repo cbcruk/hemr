@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
-import { decideAmend, decideComplete, decideLock, decideRetract, decideUpdate } from './encounter.aggregate.ts'
+import {
+  decideAmend,
+  decideComplete,
+  decideLock,
+  decideRetract,
+  decideRetractCanceledDraft,
+  decideUpdate,
+} from './encounter.aggregate.ts'
 import type { CompletionFacts } from './encounter.aggregate.ts'
 import { failure, PRIMARY, success, TEST_CONTEXT, testCompleted, testDraft, testIds, testVisitOf } from './testing.ts'
 
@@ -270,6 +277,33 @@ describe('decideRetract', () => {
     expect(failure(decideRetract(testCompleted(), input, { billedBy: RECEIPT }, TEST_CONTEXT))).toMatchObject({
       _tag: 'EncounterBilled',
       receiptId: RECEIPT,
+    })
+  })
+})
+
+describe('decideRetractCanceledDraft', () => {
+  it('취소한 내원의 초안을 취소 사유로 철회합니다', () => {
+    const given = testDraft()
+
+    const then = success(decideRetractCanceledDraft(given, '환자 요청', TEST_CONTEXT))
+
+    expect(then).toMatchObject({
+      encounter: { status: 'ENTERED_IN_ERROR', retraction: { reason: '환자 요청', retractedBy: TEST_CONTEXT.userId } },
+      expectedVersion: given.version,
+      event: { type: 'encounter.retracted', data: { from: 'DRAFT' } },
+    })
+  })
+
+  it('이미 철회한 진료는 쓰지 않습니다', () => {
+    expect(
+      success(decideRetractCanceledDraft(testDraft({ status: 'ENTERED_IN_ERROR' }), '취소', TEST_CONTEXT)),
+    ).toBeNull()
+  })
+
+  it('초안이 아닌 진료는 철회하지 않습니다', () => {
+    expect(failure(decideRetractCanceledDraft(testCompleted(), '취소', TEST_CONTEXT))).toMatchObject({
+      _tag: 'EncounterNotEditable',
+      currentStatus: 'COMPLETED',
     })
   })
 })

@@ -105,7 +105,7 @@ export function decideVisitStatus(
 
 /** 취소를 판정할 때 서비스가 미리 읽어 두는 사실입니다. */
 export interface CancelFacts extends VisitStatusFacts {
-  /** 내원의 진료입니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 `null`입니다. */
+  /** 내원의 진료입니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 `null`입니다. 연쇄 취소만 씁니다. */
   encounter: Encounter | null
   /** 유효한 영수증과 그 결제입니다. 연쇄 취소일 때만 읽고, 없으면 `null`입니다. */
   activeReceipt: { receipt: ReceiptRecord; payments: ReadonlyArray<Payment> } | null
@@ -113,7 +113,7 @@ export interface CancelFacts extends VisitStatusFacts {
 
 /** 취소 판정 결과입니다. 세 애그리거트를 한 트랜잭션에 씁니다. */
 export interface CancelDecision extends VisitDecision {
-  /** 철회한 진료입니다. 철회할 진료가 없으면 `null`입니다. */
+  /** 연쇄 취소로 철회한 진료입니다. 연쇄가 아니거나 철회할 진료가 없으면 `null`입니다. */
   retracted: { encounter: Encounter; expectedVersion: number; event: DomainEvent } | null
   /** 취소한 영수증과 결제입니다. 연쇄 취소이고 유효한 영수증이 있을 때만 있습니다. */
   voided: VoidDecision | null
@@ -124,8 +124,8 @@ export interface CancelDecision extends VisitDecision {
  *
  * - 연쇄 취소면 유효한 영수증도 취소합니다(`decideVoid`). 밖에서 취소할 결제가 남았으면 내원 상태를 보기 전에 409
  *   `PAYMENT_REFUND_REQUIRED`입니다. 돈 기록이 남은 채 내원만 취소되면 시재가 취소한 내원의 돈을 세기 때문입니다
- * - 취소한 내원의 진료는 철회합니다. 연쇄가 아니면 여기까지 온 진료는 내용이 없는 진료입니다. 이미 철회한 진료는
- *   그대로 둡니다
+ * - 연쇄 취소면 진료도 철회합니다. 이미 철회한 진료는 그대로 둡니다. 연쇄가 아닌 취소의 빈 초안은 Clinical의 정책
+ *   (`retractCanceledDraft`, M5)이 `visit.status_changed`를 받아 철회합니다
  */
 export function decideCancel(
   visit: Visit,
@@ -152,7 +152,7 @@ export function decideCancel(
 
   const encounter = facts.encounter
   const retracted =
-    encounter !== null && encounter.status !== 'ENTERED_IN_ERROR'
+    input.cascade === true && encounter !== null && encounter.status !== 'ENTERED_IN_ERROR'
       ? (() => {
           const result = retractEncounter(encounter, {
             reason,

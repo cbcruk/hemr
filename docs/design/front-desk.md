@@ -310,7 +310,7 @@ POST /visits/{id}:cancel?dryRun=true
 }
 ```
 
-- **권한:** `visit:cancel`, `receipt:void`, `encounter:retract`를 모두 가진 사용자만 `cascade: true`를 쓸 수 있습니다. `encounter:retract`는 면허 행위이므로 사실상 의사입니다. 내용이 없는 `DRAFT` 진료(접수 때 자동 생성된 빈 진료)는 연쇄가 아니어도 함께 철회됩니다
+- **권한:** `visit:cancel`, `receipt:void`, `encounter:retract`를 모두 가진 사용자만 `cascade: true`를 쓸 수 있습니다. `encounter:retract`는 면허 행위이므로 사실상 의사입니다. 내용이 없는 `DRAFT` 진료(접수 때 자동 생성된 빈 진료)는 연쇄가 아니어도 철회됩니다. 연쇄가 아닌 취소는 내원만 쓰고, Clinical의 정책이 `visit.status_changed`(`CANCELED`)를 받아 1초쯤 뒤에 철회합니다(결정 M5, [domain-model.md](domain-model.md#정책)). 그 사이에도 취소한 내원의 진료는 고칠 수 없습니다(409 `ENCOUNTER_VISIT_CANCELED`)
 - **한 트랜잭션에서 하는 일:** 진료 `ENTERED_IN_ERROR`, 영수증 `VOIDED`, 패키지 사용·선수금 차감 취소(잔액 복원), 치료실 시술 취소, 미조제 탕전 처방(`DRAFT`·`READY`) 취소, 집계 중이거나 전송 전(`AGGREGATING`·`READY`)인 청구에서 제외, 내원 `CANCELED`, 예약은 `ARRIVED`에서 `BOOKED`로 되돌리지 않고 그대로 둡니다
 - **돈:** 현금·계좌이체 결제는 본문 `refunds[]`로 환불을 함께 기록합니다. 카드·간편결제처럼 외부 취소가 필요한 결제는 먼저 [환불](#환불과-정정)을 끝내야 하며, 남아 있으면 `blockers`에 `PAYMENT_REFUND_REQUIRED`가 나옵니다
 - **막는 경우 (`blockers`, 실제 요청이면 409):**
