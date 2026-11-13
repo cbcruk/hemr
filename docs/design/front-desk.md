@@ -595,7 +595,7 @@ GET/POST/DELETE /settings/expense-categories
 
 ### 시재와 지출 구현 결정
 
-구현은 [cash-drawers.ts](../../src/modules/front-desk/cash-drawers/cash-drawers.ts)의 `CashDrawers`, 현금 원장은 [cash-ledger.ts](../../src/modules/front-desk/cash-drawers/cash-ledger.ts), 계산은 이미 포팅한 [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts)입니다 (#37).
+구현은 [cash-drawers.ts](../../src/modules/front-desk/cash-drawers/cash-drawers.ts)의 `CashDrawers`, 판정은 [cash-drawer.aggregate.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.aggregate.ts), 상태 계산은 [cash-drawer.view.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.view.ts)(#67), 현금 원장은 [cash-ledger.ts](../../src/modules/front-desk/cash-drawers/cash-ledger.ts), 계산은 이미 포팅한 [cash-drawer.ts](../../src/modules/front-desk/cash-drawers/cash-drawer.ts)입니다 (#37).
 
 ```
 GET    /cash-drawers/{date}                                                        cash_drawer:read
