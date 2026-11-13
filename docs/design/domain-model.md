@@ -92,7 +92,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | 수납 `visits:checkout` | **묶음: Receipt + Payment + PrepaidAccount + Visit** | 패키지 판매분의 계약 생성 | 미구현 | 정책 `receipt.created` → 계약 생성 |
 | | | 처방 라인 금액 확정 | 견적(`quoteId`)으로 검증 | 묶음에 넣지 않음. 견적이 낡으면 409 |
 | 수납 취소·정정, 환불 | **묶음: Receipt + Payment + PrepaidAccount** | 시재 원장 변경 | 읽을 때 계산 | 뷰 |
-| 내원 취소(연쇄 아님) | **Visit** | 내용 없는 진료 초안 철회 | 같은 트랜잭션 | 정책 `visit.status_changed(CANCELED)` → 진료 철회 (M5) |
+| 내원 취소(연쇄 아님) | **Visit** | 내용 없는 진료 초안 철회 | 정책 (M5) | 정책 `visit.status_changed(CANCELED)` → 진료 철회 (M5) |
 | 내원 연쇄 취소 | **묶음(컨텍스트를 넘는 예외)** | 진료 철회, 수납 취소, 패키지·선수금 복원, 시술·탕전 취소, 청구 제외 | 같은 트랜잭션(일부 미구현) | 묶음 유지([D3](review.md#결정-필요)) |
 | 진료 완료 `encounters:complete` | **묶음: Encounter + PackageContract** | 내원을 `nextVisitStatus`로 이동 | 같은 트랜잭션 | 정책 `encounter.completed` → 내원 이동 (M2) |
 | | | 진행 중 시술 종료 | 같은 트랜잭션 | 정책 `encounter.completed` → 시술 종료 |
@@ -143,7 +143,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 |---|---|---|---|---|
 | 진료 초안 만들기 | `visit.checked_in` | 진료 초안 생성 | 기록만 합니다. 의사가 차트를 열 때 만듭니다 | 옮길 것 (M1) |
 | 예약 도착 | `visit.checked_in` (`appointmentId` 있음) | 예약 도착 | 기록만 합니다(이미 취소된 예약 등) | 예약 구현 때 |
-| 빈 초안 철회 | `visit.status_changed` (`CANCELED`) | 진료 철회 | 기록만 합니다 | 옮길 것 (M5) |
+| 빈 초안 철회 | `visit.status_changed` (`CANCELED`) | 진료 철회 | 기록만 합니다 | 옮김 (M5, [encounter-retraction.policy.ts](../../src/modules/clinical/encounters/encounter-retraction.policy.ts)) |
 | 진료 후 내원 이동 | `encounter.completed` | 내원 진료 흐름 커맨드 | 기록만 합니다. 내원 상태는 데스크가 옮깁니다 | 옮길 것 (M2) |
 | 진료 후 시술 종료 | `encounter.completed` (`WAITING`·`AWAITING_PAYMENT`) | 시술 일괄 완료 | 기록만 합니다 | 옮길 것 |
 | 보험구분 정정 제안 | `visit.coverage_changed` | 정정 제안 생성 | — | 구현 때 |
@@ -151,7 +151,11 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | 추나 자동 제출 | `encounter.completed` | 심평원 제출 사가 시작 | — | Claims 때 |
 | CRM 연락 작업 | `encounter.completed`, `visit.*`, `appointment.*` | 연락 작업 생성 | — | CRM 때 |
 
-정책과 사가의 정의, 실행기의 규칙(커서, 거부, 결함)은 [events.md](events.md#정책과-사가)에 있습니다. 실행기([policy.ts](../../src/shared/events/policy.ts))와 커서 저장(`policy_cursors`)은 #68에서 만들었고, 아직 등록한 정책은 없습니다. 첫 정책은 #69의 M5입니다.
+정책과 사가의 정의, 실행기의 규칙(커서, 거부, 결함)은 [events.md](events.md#정책과-사가)에 있습니다. 실행기([policy.ts](../../src/shared/events/policy.ts))와 커서 저장(`policy_cursors`)은 #68에서 만들었고, 정책은 `server.ts`의 `policyWorker`에 등록합니다. 첫 정책은 M5(빈 초안 철회, #69)입니다.
+
+- **정책의 행위자는 받은 이벤트의 행위자입니다.** 빈 초안 철회의 `retractedBy`와 `encounter.retracted`의 `actor`는 내원을 취소한 사용자입니다. 철회가 그 취소에 따른 일이고, 예전에 같은 트랜잭션에서 하던 기록과 같습니다
+- **정책이 돌기 전의 틈은 받는 쪽 애그리거트가 막습니다.** 취소한 내원의 진료는 철회 정책이 돌기 전에도 저장·완료가 409 `ENCOUNTER_VISIT_CANCELED`입니다. 그래서 정책이 철회하는 초안은 취소할 때처럼 비어 있습니다
+- `correlationId`는 아직 이벤트 봉투에 없어 이어받지 않습니다. 연쇄 취소의 감사 로그와 함께 봉투에 더합니다
 
 ## 코드 배치
 

@@ -251,23 +251,20 @@ describe('encounters HTTP', () => {
     expect(await json(cancelCharted)).toMatchObject({ code: 'VISIT_HAS_CLINICAL_DATA' })
   })
 
-  it('treats an emptied editor note as no content and retracts the empty draft with the visit', async () => {
+  it('비운 편집기 노트는 내용 없음으로 봐 연쇄 없이 취소되고, 취소한 내원의 진료는 고칠 수 없습니다', async () => {
     const send = app()
     const { visit, encounterId } = await checkedIn(send)
     await send('PATCH', `/encounters/${encounterId}`, { ifMatch: '"1"', body: { note: { body: '<p><br></p>' } } })
     const canceled = await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
-    // 취소가 진료를 철회해 버전이 3입니다
+    // 빈 초안의 철회는 정책이 나중에 합니다(M5). 그 전에도 취소한 내원의 진료는 고칠 수 없습니다
     const late = await send('PATCH', `/encounters/${encounterId}`, {
-      ifMatch: '"3"',
+      ifMatch: '"2"',
       body: { note: { body: '<p>요통</p>' } },
     })
 
     expect(canceled.status).toBe(200)
     expect(late.status).toBe(409)
-    expect(await json(late)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'ENTERED_IN_ERROR' })
-    expect((await json(await send('GET', `/encounters/${encounterId}`)))['retraction']).toMatchObject({
-      reason: '취소',
-    })
+    expect(await json(late)).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
   })
 })
 
@@ -584,15 +581,14 @@ describe('encounter completion HTTP', () => {
     expect((await json(await send('GET', `/encounters/${encounterId}`)))['status']).toBe('DRAFT')
   })
 
-  it('refuses to complete the encounter of a canceled visit', async () => {
+  it('취소한 내원의 진료는 철회 정책이 돌기 전에도 완료할 수 없습니다', async () => {
     const send = app()
     const { visit, encounterId } = await checkedIn(send)
     await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
-    const completed = await send('POST', `/encounters/${encounterId}:complete`, { ifMatch: '"2"', body: {} })
+    const completed = await send('POST', `/encounters/${encounterId}:complete`, { ifMatch: '"1"', body: {} })
 
-    // 취소가 빈 진료를 함께 철회했습니다
     expect(completed.status).toBe(409)
-    expect(await json(completed)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'ENTERED_IN_ERROR' })
+    expect(await json(completed)).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
   })
 })
 
