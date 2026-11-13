@@ -24,7 +24,7 @@ API 문서는 [`docs/reference/openapi.json`](docs/reference/openapi.json)입니
 
 ## 시작하기
 
-Node.js 22.16 이상(내장 `node:sqlite`의 `backup`을 씁니다)과 pnpm 12가 필요합니다. 데이터베이스 서버는 필요 없습니다.
+Node.js 24.22 이상(내장 `node:sqlite`를 씁니다. 버전은 `.nvmrc`)과 pnpm 12가 필요합니다. 데이터베이스 서버는 필요 없습니다.
 
 ```sh
 pnpm install
