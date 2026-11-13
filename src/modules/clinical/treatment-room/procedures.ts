@@ -1,6 +1,5 @@
 import { Context, DateTime, Duration, Effect, Layer, Option, Schedule } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { domainEvent } from '../../../shared/events/domain-event.ts'
 import type { DomainEvent } from '../../../shared/events/domain-event.ts'
 import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
@@ -10,35 +9,33 @@ import { VisitNotFound } from '../../front-desk/visits/visit.ts'
 import type { Visit } from '../../front-desk/visits/visit.ts'
 import { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
+import { DEFAULT_PROCEDURE_TIMER_SETTINGS } from './procedure-timer.ts'
 import {
-  DEFAULT_PROCEDURE_TIMER_SETTINGS,
-  elapseDueTimers,
-  setProcedureDuration,
-  startProcedures,
-  timerEndsAt,
-} from './procedure-timer.ts'
-import type { ProcedureTimer } from './procedure-timer.ts'
-import {
-  MAX_PROCEDURES_PER_VISIT,
+  decideAdd,
+  decideComplete,
+  decideElapse,
+  decideFinishRunning,
+  decideRemove,
+  decideReopen,
+  decideReorder,
+  decideRestartTimer,
+  decideSetDuration,
+  decideStart,
+  decideStartAll,
+} from './procedure.aggregate.ts'
+import type { AddProcedureCommand, ProcedureChanges, ProcedureContext } from './procedure.aggregate.ts'
+import { ProcedureNotFound } from './procedure.ts'
+import type {
+  Procedure,
   ProcedureDurationRejected,
   ProcedureLimitExceeded,
-  ProcedureNotFound,
   ProcedureOrderInvalid,
   ProcedureTransitionInvalid,
   ProcedureVisitClosed,
 } from './procedure.ts'
-import type { Procedure } from './procedure.ts'
 import { ProcedureRepository } from './procedure-repository.ts'
-import type { ProcedureWrite } from './procedure-repository.ts'
 
-export interface AddProcedureInput {
-  name: string
-  /** 없으면 설정의 기본 시간(`defaultItemSeconds`)입니다. */
-  durationSeconds?: number
-  /** 없으면 `STAFF`입니다. */
-  assignee?: Procedure['assignee']
-  sourcePrescriptionLineId?: Id<'prescriptionLine'>
-}
+export type AddProcedureInput = AddProcedureCommand
 
 /** 치료실 보드의 내원 하나입니다. */
 export interface BoardEntry {
@@ -54,7 +51,8 @@ type Actor = Required<Pick<DomainEvent, 'tenantId' | 'actor'>>
 
 /**
  * 치료실 시술입니다 (clinical.md 치료실). 모든 작업은 현재 사용자가 고른 병원 안에서 하고, 다른 병원의 시술·내원은
- * 404입니다. 판정은 `procedure-timer.ts`가 하고, 이 서비스는 읽기·판정·쓰기를 한 트랜잭션에서 합니다.
+ * 404입니다. 판정은 `procedure.aggregate.ts`(타이머 계산은 `procedure-timer.ts`)가 하고, 이 서비스는 읽기·판정·쓰기를
+ * 한 트랜잭션에서 합니다.
  *
  * 치료실 커맨드는 `If-Match`를 받지 않습니다. 한 화면을 여러 치료사가 빠르게 누르는 곳이라, 같은 시술을 두 번 시작하면
  * 뒤 요청이 상태 전이로 거절(409)되는 것으로 충분합니다.
@@ -141,12 +139,14 @@ export class Procedures extends Context.Service<
       const transaction = yield* Transaction
       const settings = DEFAULT_PROCEDURE_TIMER_SETTINGS
 
-      const nowMs = DateTime.now.pipe(Effect.map(DateTime.toEpochMillis))
-
       const userActor = (access: CurrentAccess['Service']): Actor => ({
         tenantId: access.tenantId,
         actor: { kind: 'USER', id: access.userId },
       })
+
+      /** 판정 시각입니다. 다시 시도할 때 새로 잽니다. */
+      const contextOf = (event: Actor) =>
+        DateTime.now.pipe(Effect.map((now): ProcedureContext => ({ at: DateTime.formatIso(now), event })))
 
       const findVisit = (tenantId: Id<'tenant'>, id: Id<'visit'>) =>
         visits
@@ -170,72 +170,13 @@ export class Procedures extends Context.Service<
           Effect.catchTag('VisitNotFound', (error) => Effect.die(error)),
         )
 
-      /** 시술을 진행할 수 있는 내원인지입니다. 취소했거나 수납까지 끝난 내원은 닫혔습니다. */
-      const requireOpen = (visit: Visit) =>
-        visit.status === 'CANCELED' || visit.status === 'COMPLETED'
-          ? Effect.fail(new ProcedureVisitClosed({}))
-          : Effect.void
-
       const listOf = (tenantId: Id<'tenant'>, visitId: Id<'visit'>) => repository.listByVisits(tenantId, [visitId])
 
-      const timerOf = (procedure: Procedure): ProcedureTimer => ({
-        procedureId: procedure.id,
-        status: procedure.status,
-        durationSeconds: procedure.durationSeconds,
-        startedAt: procedure.startedAt,
-        timerEndsAt: procedure.timerEndsAt,
-        completedAt: procedure.completedAt,
-      })
-
-      /**
-       * 판정 결과(`timers`)가 바꾼 시술만 새 버전으로 저장하고 시술마다 `procedure.updated`를 냅니다. 바뀐 시술을
-       * 돌려줍니다.
-       */
-      const persist = (
-        current: ReadonlyArray<Procedure>,
-        timers: ReadonlyArray<ProcedureTimer>,
-        at: string,
-        actor: Actor,
-      ) =>
-        Effect.gen(function* () {
-          const byId = new Map(timers.map((each) => [each.procedureId, each]))
-          const changed: Procedure[] = []
-          for (const procedure of current) {
-            const timer = byId.get(procedure.id)
-            if (timer === undefined || JSON.stringify(timerOf(procedure)) === JSON.stringify(timer)) continue
-            const { procedureId: _, ...fields } = timer
-            changed.push({ ...procedure, ...fields, updatedAt: at, version: procedure.version + 1 })
-          }
-          yield* save(changed, current, at, actor)
-          return changed
-        })
-
-      const save = (changed: ReadonlyArray<Procedure>, current: ReadonlyArray<Procedure>, at: string, actor: Actor) => {
-        if (changed.length === 0) return Effect.void
-        const versions = new Map(current.map((each) => [each.id, each.version]))
-        const writes: ProcedureWrite[] = changed.map((procedure) => ({
-          procedure,
-          expectedVersion: versions.get(procedure.id) ?? null,
-        }))
-        return repository.saveAll(
-          writes,
-          changed.map((each) => updated(each, at, actor)),
-        )
-      }
-
-      const updated = (procedure: Procedure, at: string, actor: Actor) =>
-        domainEvent(
-          'procedure.updated',
-          procedure.id,
-          at,
-          {
-            procedureId: procedure.id,
-            visitId: procedure.visitId,
-            patientId: procedure.patientId,
-            status: procedure.status,
-          },
-          actor,
-        )
+      /** 판정한 쓰기를 저장합니다. 바뀐 것이 없으면 쓰지 않습니다. 바뀐 시술을 돌려줍니다. */
+      const save = (changes: ProcedureChanges) =>
+        changes.writes.length === 0
+          ? Effect.succeed(changes.changed)
+          : repository.saveAll(changes.writes, changes.events).pipe(Effect.as(changes.changed))
 
       /**
        * 한 트랜잭션에서 실행합니다. SQLite는 트랜잭션을 하나씩 실행해 버전이 어긋나지 않지만, 메모리 저장소나 서버
@@ -255,7 +196,7 @@ export class Procedures extends Context.Service<
 
       const board = Effect.fn('Procedures.board')(function* (date: string | undefined) {
         const access = yield* CurrentAccess
-        const day = date ?? clinicDate(yield* nowMs)
+        const day = date ?? clinicDate(DateTime.toEpochMillis(yield* DateTime.now))
         const listed = (yield* visits.list(access.tenantId, { date: day })).filter((each) => each.status !== 'CANCELED')
         const procedures = yield* repository.listByVisits(
           access.tenantId,
@@ -269,37 +210,13 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const visit = yield* findVisit(access.tenantId, visitId)
-            yield* requireOpen(visit)
             const existing = yield* listOf(access.tenantId, visit.id)
-            if (existing.length >= MAX_PROCEDURES_PER_VISIT) return yield* new ProcedureLimitExceeded({})
-            const at = DateTime.formatIso(yield* DateTime.now)
-            const procedure: Procedure = {
-              id: newId('procedure'),
-              tenantId: access.tenantId,
-              visitId: visit.id,
-              patientId: visit.patientId,
-              name: input.name,
-              sourcePrescriptionLineId: input.sourcePrescriptionLineId ?? null,
-              order: existing.reduce((last, each) => Math.max(last, each.order + 1), 0),
-              assignee: input.assignee ?? 'STAFF',
-              durationSeconds: input.durationSeconds ?? settings.defaultItemSeconds,
-              status: 'PENDING',
-              startedAt: null,
-              timerEndsAt: null,
-              completedAt: null,
-              createdAt: at,
-              updatedAt: at,
-              version: 1,
-            }
-            const event = domainEvent(
-              'procedure.created',
-              procedure.id,
-              at,
-              { procedureId: procedure.id, visitId: visit.id, patientId: visit.patientId, status: procedure.status },
-              userActor(access),
+            const context = yield* contextOf(userActor(access))
+            const decided = yield* Effect.fromResult(
+              decideAdd(visit, existing, input, newId('procedure'), settings, context),
             )
-            yield* repository.saveAll([{ procedure, expectedVersion: null }], [event])
-            return procedure
+            const [added] = yield* save(decided)
+            return added!
           }),
         )
       })
@@ -309,23 +226,10 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const current = yield* findProcedure(access.tenantId, id)
-            yield* requireOpen(yield* visitOf(current))
-            const now = yield* nowMs
-            const result = setProcedureDuration(timerOf(current), durationSeconds, now)
-            if (!result.ok) {
-              // 정수·하한은 엔드포인트 스키마가 먼저 막습니다
-              if (result.error === 'PROCEDURE_DURATION_INVALID') return yield* Effect.die(result.error)
-              // 완료한 시술은 다른 상태 커맨드처럼 409로 거절합니다 (rule-decisions.md `PROCEDURE_ALREADY_DONE`)
-              if (result.error === 'PROCEDURE_ALREADY_DONE') {
-                return yield* new ProcedureTransitionInvalid({ currentStatus: current.status })
-              }
-              return yield* new ProcedureDurationRejected({ reason: result.error })
-            }
-            const [changed] = yield* persist(
-              [current],
-              [result.procedure],
-              new Date(now).toISOString(),
-              userActor(access),
+            const visit = yield* visitOf(current)
+            const context = yield* contextOf(userActor(access))
+            const [changed] = yield* save(
+              yield* Effect.fromResult(decideSetDuration(current, visit, durationSeconds, context)),
             )
             return changed ?? current
           }),
@@ -337,31 +241,12 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const current = yield* findProcedure(access.tenantId, id)
-            if (current.status !== 'PENDING') {
-              return yield* new ProcedureTransitionInvalid({ currentStatus: current.status })
-            }
-            const at = DateTime.formatIso(yield* DateTime.now)
-            const event = domainEvent(
-              'procedure.removed',
-              current.id,
-              at,
-              { procedureId: current.id, visitId: current.visitId, patientId: current.patientId },
-              userActor(access),
-            )
+            const context = yield* contextOf(userActor(access))
+            const event = yield* Effect.fromResult(decideRemove(current, context))
             yield* repository.remove(current, [event])
           }),
         )
       })
-
-      /** 내원의 시술 중 `targetIds`를 시작합니다. 대상이 모두 진행 중이면 `null`입니다. */
-      const startIn = (access: CurrentAccess['Service'], visit: Visit, targetIds: ReadonlyArray<string>) =>
-        Effect.gen(function* () {
-          const current = yield* listOf(access.tenantId, visit.id)
-          const now = yield* nowMs
-          const result = startProcedures(current.map(timerOf), targetIds, now, settings)
-          if (!result.changed) return null
-          return yield* persist(current, result.procedures, new Date(now).toISOString(), userActor(access))
-        })
 
       const start = Effect.fn('Procedures.start')(function* (id: Id<'procedure'>) {
         const access = yield* CurrentAccess
@@ -369,10 +254,9 @@ export class Procedures extends Context.Service<
           Effect.gen(function* () {
             const procedure = yield* findProcedure(access.tenantId, id)
             const visit = yield* visitOf(procedure)
-            yield* requireOpen(visit)
-            const changed = yield* startIn(access, visit, [procedure.id])
-            if (changed === null) return yield* new ProcedureTransitionInvalid({ currentStatus: 'RUNNING' })
-            return changed
+            const current = yield* listOf(access.tenantId, visit.id)
+            const context = yield* contextOf(userActor(access))
+            return yield* save(yield* Effect.fromResult(decideStart(procedure, visit, current, settings, context)))
           }),
         )
       })
@@ -382,41 +266,21 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const visit = yield* findVisit(access.tenantId, visitId)
-            yield* requireOpen(visit)
             const current = yield* listOf(access.tenantId, visit.id)
-            const targets = current.filter((each) => each.status !== 'DONE').map((each) => each.id)
-            if (targets.length === 0) return []
-            return (yield* startIn(access, visit, targets)) ?? []
+            const context = yield* contextOf(userActor(access))
+            return yield* save(yield* Effect.fromResult(decideStartAll(visit, current, settings, context)))
           }),
         )
       })
-
-      /** 진행 중·만료 시술을 완료로 바꿉니다. 판정 전에 서버 시계로 만료를 다시 봅니다. */
-      const finish = (current: ReadonlyArray<Procedure>, targets: ReadonlySet<string>, now: number) => {
-        const at = new Date(now).toISOString()
-        return elapseDueTimers(current.map(timerOf), now).procedures.map((timer): ProcedureTimer =>
-          targets.has(timer.procedureId) && (timer.status === 'RUNNING' || timer.status === 'TIMER_ELAPSED')
-            ? { ...timer, status: 'DONE', completedAt: at }
-            : timer,
-        )
-      }
 
       const complete = Effect.fn('Procedures.complete')(function* (id: Id<'procedure'>) {
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
             const procedure = yield* findProcedure(access.tenantId, id)
-            if (procedure.status !== 'RUNNING' && procedure.status !== 'TIMER_ELAPSED') {
-              return yield* new ProcedureTransitionInvalid({ currentStatus: procedure.status })
-            }
-            const now = yield* nowMs
-            const changed = yield* persist(
-              [procedure],
-              finish([procedure], new Set([procedure.id]), now),
-              new Date(now).toISOString(),
-              userActor(access),
-            )
-            return changed[0] ?? procedure
+            const context = yield* contextOf(userActor(access))
+            const [changed] = yield* save(yield* Effect.fromResult(decideComplete(procedure, context)))
+            return changed ?? procedure
           }),
         )
       })
@@ -424,13 +288,7 @@ export class Procedures extends Context.Service<
       const finishIn = (visit: Visit, actor: Actor) =>
         Effect.gen(function* () {
           const current = yield* listOf(visit.tenantId, visit.id)
-          const now = yield* nowMs
-          return yield* persist(
-            current,
-            finish(current, new Set(current.map((each) => each.id)), now),
-            new Date(now).toISOString(),
-            actor,
-          )
+          return yield* save(decideFinishRunning(current, yield* contextOf(actor)))
         })
 
       const completeAll = Effect.fn('Procedures.completeAll')(function* (visitId: Id<'visit'>) {
@@ -448,19 +306,9 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const procedure = yield* findProcedure(access.tenantId, id)
-            yield* requireOpen(yield* visitOf(procedure))
-            if (procedure.status !== 'RUNNING' && procedure.status !== 'TIMER_ELAPSED') {
-              return yield* new ProcedureTransitionInvalid({ currentStatus: procedure.status })
-            }
-            const now = yield* nowMs
-            const at = new Date(now).toISOString()
-            const timer: ProcedureTimer = {
-              ...timerOf(procedure),
-              status: 'RUNNING',
-              startedAt: at,
-              timerEndsAt: timerEndsAt(at, procedure.durationSeconds),
-            }
-            const [changed] = yield* persist([procedure], [timer], at, userActor(access))
+            const visit = yield* visitOf(procedure)
+            const context = yield* contextOf(userActor(access))
+            const [changed] = yield* save(yield* Effect.fromResult(decideRestartTimer(procedure, visit, context)))
             return changed ?? procedure
           }),
         )
@@ -471,23 +319,9 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const procedure = yield* findProcedure(access.tenantId, id)
-            yield* requireOpen(yield* visitOf(procedure))
-            if (procedure.status !== 'DONE') {
-              return yield* new ProcedureTransitionInvalid({ currentStatus: procedure.status })
-            }
-            const timer: ProcedureTimer = {
-              ...timerOf(procedure),
-              status: 'PENDING',
-              startedAt: null,
-              timerEndsAt: null,
-              completedAt: null,
-            }
-            const [changed] = yield* persist(
-              [procedure],
-              [timer],
-              DateTime.formatIso(yield* DateTime.now),
-              userActor(access),
-            )
+            const visit = yield* visitOf(procedure)
+            const context = yield* contextOf(userActor(access))
+            const [changed] = yield* save(yield* Effect.fromResult(decideReopen(procedure, visit, context)))
             return changed ?? procedure
           }),
         )
@@ -502,27 +336,10 @@ export class Procedures extends Context.Service<
           Effect.gen(function* () {
             const visit = yield* findVisit(access.tenantId, visitId)
             const current = yield* listOf(access.tenantId, visit.id)
-            const known = new Set<string>(current.map((each) => each.id))
-            if (
-              ids.length !== current.length ||
-              new Set(ids).size !== ids.length ||
-              !ids.every((id) => known.has(id))
-            ) {
-              return yield* new ProcedureOrderInvalid({})
-            }
-            const at = DateTime.formatIso(yield* DateTime.now)
-            const position = new Map<string, number>(ids.map((id, index) => [id, index]))
-            const changed = current
-              .filter((each) => each.order !== position.get(each.id))
-              .map((each) => ({
-                ...each,
-                order: position.get(each.id) ?? each.order,
-                updatedAt: at,
-                version: each.version + 1,
-              }))
-            yield* save(changed, current, at, userActor(access))
-            const byId = new Map(changed.map((each) => [each.id, each]))
-            return current.map((each) => byId.get(each.id) ?? each).sort((a, b) => a.order - b.order)
+            const context = yield* contextOf(userActor(access))
+            const decided = yield* Effect.fromResult(decideReorder(current, ids, context))
+            yield* save(decided)
+            return decided.ordered
           }),
         )
       })
@@ -532,14 +349,15 @@ export class Procedures extends Context.Service<
 
       const sweep = (now: number) =>
         Effect.gen(function* () {
-          const due = yield* repository.listDue(new Date(now).toISOString())
+          const at = new Date(now).toISOString()
+          const due = yield* repository.listDue(at)
           let count = 0
           for (const procedure of due) {
-            const [timer] = elapseDueTimers([timerOf(procedure)], now).procedures
-            if (timer?.status !== 'TIMER_ELAPSED') continue
-            const actor: Actor = { tenantId: procedure.tenantId, actor: { kind: 'SYSTEM', id: 'procedure-timer' } }
+            const event: Actor = { tenantId: procedure.tenantId, actor: { kind: 'SYSTEM', id: 'procedure-timer' } }
+            const decided = decideElapse(procedure, { at, event })
+            if (decided === null) continue
             // 다른 요청이 먼저 바꿨으면 그 요청이 만료도 판정했으므로 건너뜁니다
-            const saved = yield* persist([procedure], [timer], new Date(now).toISOString(), actor).pipe(
+            const saved = yield* save(decided).pipe(
               Effect.as(true),
               Effect.catchTag('VersionMismatch', () => Effect.succeed(false)),
             )

@@ -207,6 +207,16 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - **권한이 판정 사이에 끼는 커맨드는 판정을 나눕니다.** 제안 반영은 대기·낡음(`applicable`)을 처방 권한보다 먼저 거부해야 해서, 서비스가 `applicable` → 권한 → `decideApply` 순서로 부릅니다. `decideApply`도 `applicable`을 다시 봐 혼자서 완전합니다
 - 초안 저장도 수납 여부(`billedBy`)를 늘 읽습니다. 예전에는 처방을 바꿀 때만 읽었습니다. 같은 트랜잭션 안의 한 번이라 그대로 두고, 저장이 잦아 문제가 되면 #74와 같이 봅니다
 
+### 시술 묶음에서 정한 것 (#67)
+
+치료실 시술을 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
+
+- [procedure.aggregate.ts](../../src/modules/clinical/treatment-room/procedure.aggregate.ts): 커맨드마다 판정(`decideAdd`, `decideSetDuration`, `decideRemove`, `decideStart`, `decideStartAll`, `decideComplete`, `decideFinishRunning`, `decideRestartTimer`, `decideReopen`, `decideReorder`)과 서버 타이머의 만료(`decideElapse`)
+- **판정은 내원의 시술 목록을 받습니다.** 시작이 같은 내원의 만료 시술을 함께 완료하는 것처럼 커맨드 하나가 여러 시술을 바꾸기 때문입니다. 내원 단위 애그리거트(치료 세션)로 묶는 일은 M4([#70](https://github.com/cbcruk/hemr/issues/70))에서 합니다
+- **판정 문맥은 사용자 대신 이벤트 행위자를 받습니다**(`ProcedureContext`). 서버 타이머(`SYSTEM`)와 진료 완료가 넘긴 행위자도 시술을 바꾸기 때문입니다
+- **판정 시각은 다시 시도할 때마다 새로 잽니다.** 시술 커맨드는 `VersionMismatch`에 처음부터 다시 하므로(서버 타이머와 겹칠 때) 시각도 그 안에서 읽습니다
+- 타이머 계산(`procedure-timer.ts`)은 규칙 문서·픽스처와 짝이라 그대로 두고 판정이 부릅니다
+
 ## 단계
 
 1. **내원 시범**([#66](https://github.com/cbcruk/hemr/issues/66)): `visit.aggregate.ts`로 옮기고 동작은 바꾸지 않습니다. 이 문서의 규약을 확정합니다

@@ -378,7 +378,7 @@ GET  /needle-removals?date=
 
 ### 치료실 구현 결정
 
-구현은 [procedures.ts](../../src/modules/clinical/treatment-room/procedures.ts)의 `Procedures`, 저장은 [procedure-repository.ts](../../src/modules/clinical/treatment-room/procedure-repository.ts), 판정은 이미 포팅한 [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts)입니다 (#26).
+구현은 [procedures.ts](../../src/modules/clinical/treatment-room/procedures.ts)의 `Procedures`, 저장은 [procedure-repository.ts](../../src/modules/clinical/treatment-room/procedure-repository.ts), 판정은 [procedure.aggregate.ts](../../src/modules/clinical/treatment-room/procedure.aggregate.ts)(#67), 타이머 계산은 이미 포팅한 [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts)입니다 (#26).
 
 - **범위:** 위 목록에서 보드, 시술 더하기·시간 변경·삭제, 시술 하나의 `:start`·`:complete`·`:restart-timer`·`:reopen`, 내원의 `:start-all`·`:complete-all`·`:reorder`, 서버 타이머 만료, 진료 완료가 내원을 대기·수납으로 보낼 때 진행 중인 시술 완료(위 [완료 커맨드](#완료-커맨드) 5)
   - 미룸: 치료실·베드 배정(`roomId`·`bedNumber`, `visit.bed_changed`)과 보드의 `rooms[].beds[]`는 치료실 설정(`treatment-rooms`)이 생길 때, 치료세트(`procedureSetId`·`setInstanceId`)는 `procedure-sets` 설정이 생길 때, 발침 기록(`needle-removals`)과 `:finish-treatment`는 그 화면 흐름을 옮길 때, 이벤트로 보드 갱신(푸시)은 실시간 전달 계층이 생길 때 엽니다. 처방 라인에서 시술을 자동으로 만드는 일(현행 `seed_from_chart`)도 미룹니다. 지금은 `sourcePrescriptionLineId`를 참조로 받기만 하고 진료에 그 라인이 있는지 보지 않습니다
