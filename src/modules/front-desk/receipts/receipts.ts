@@ -1,68 +1,58 @@
 import { Context, DateTime, Effect, Layer, Option, Schema } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { domainEvent } from '../../../shared/events/domain-event.ts'
+import { decisionContext } from '../../../shared/events/domain-event.ts'
 import { idempotent, IdempotencyKeyReused, IdempotencyStore } from '../../../shared/http/idempotency.ts'
 import { isId, newId, newIds } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { ValidationFailed } from '../../../shared/problem/problem.ts'
-import { ageOn } from '../../../shared/time/calendar.ts'
-import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import { PatientRepository } from '../../patients/patient-repository.ts'
 import { VisitRepository } from '../visits/visit-repository.ts'
 import { Visit, VisitNotFound, VisitTransitionInvalid } from '../visits/visit.ts'
-import { Visits } from '../visits/visits.ts'
-import { normalizedPayments, settleCheckout } from './checkout-settlement.ts'
-import type { CheckoutPayment, EncounterDue, OverpaidCreditTarget, PaymentMethod } from './checkout-settlement.types.ts'
-import { refundableOf, toReceiptPayment, voidReceipt } from './receipt-adjustments.ts'
-import { type CopayBasis, copayBasis } from './insured-copay.ts'
-import { chargesOf, encounterDue, quoteIdOf } from './receipt-charges.ts'
+import { decideCheckout } from './checkout.aggregate.ts'
+import type { CheckoutCommand } from './checkout.aggregate.ts'
+import { toReceiptPayment } from './receipt-adjustments.ts'
+import {
+  applicablePayments,
+  checkoutable,
+  decideCorrection,
+  decideVoid,
+  selectDues,
+  settle,
+} from './receipt.aggregate.ts'
+import type { CorrectionInput, ReceiptIds, SettlementOptions } from './receipt.aggregate.ts'
+import { chargesOf, quoteIdOf } from './receipt-charges.ts'
 import { ReceiptRepository } from './receipt-repository.ts'
 import {
-  byRecorded,
   CheckoutCoverageUnsupported,
   CheckoutEncounterInvalid,
   CheckoutPaymentInvalid,
   CheckoutRejected,
-  ExternalPaymentMethod,
-  type Payment,
   PaymentRefundRequired,
   QuoteStale,
   Receipt,
   ReceiptAlreadyExists,
   type ReceiptCharges,
   ReceiptNotFound,
-  type ReceiptRecord,
   ReceiptVoided,
   recordOf,
 } from './receipt.ts'
 
 /** 견적과 수납이 같이 받는 입력입니다. */
-export interface CheckoutOptions {
+export interface CheckoutOptions extends SettlementOptions {
   /** 수납할 진료입니다. 없으면 이 내원의 철회하지 않은 진료 전부입니다. */
   encounterIds?: ReadonlyArray<Id<'encounter'>>
   /** 미리 기록한 외부 승인 결제(`POST /payments`)입니다. 이 환자의 `UNAPPLIED` 결제여야 합니다. */
   paymentIds?: ReadonlyArray<Id<'payment'>>
-  /** 서버 안에서 끝나는 결제(현금·계좌이체·선수금)입니다. */
-  payments?: ReadonlyArray<CheckoutPayment>
-  useOverpaidCredit?: OverpaidCreditTarget | null
-  writeOffRemainder?: boolean
-  acknowledge?: ReadonlyArray<'OUTSTANDING'>
 }
 
-export interface CheckoutInput extends CheckoutOptions {
-  quoteId: Id<'quote'>
-  excludeFromTaxDeduction?: boolean
-  memo?: string
+export interface CheckoutInput extends CheckoutCommand {
   idempotencyKey: string
 }
 
 /** 정정 입력입니다. 진료는 앞 영수증의 진료 그대로이고, 결제와 결산 선택을 다시 받습니다. */
-export interface CorrectInput extends Omit<CheckoutOptions, 'encounterIds'> {
-  reason: string
-  excludeFromTaxDeduction?: boolean
-  memo?: string
+export interface CorrectInput extends CorrectionInput {
   idempotencyKey: string
 }
 
@@ -119,9 +109,6 @@ export type CorrectError =
   | CheckoutPaymentInvalid
   | CheckoutRejected
   | IdempotencyKeyReused
-
-/** 밖에서 승인되는 결제 수단입니다. 수납 요청의 `payments`로 보내면 `PAYMENT_METHOD_NOT_ALLOWED`입니다. */
-const EXTERNAL_METHODS: ReadonlySet<PaymentMethod> = new Set(ExternalPaymentMethod.literals)
 
 /**
  * 수납입니다 (front-desk.md 수납 커맨드, 환불과 정정). 견적(`quote`)·수납(`checkout`)·정정(`correct`)이 같은
@@ -185,7 +172,6 @@ export class Receipts extends Context.Service<
     Effect.gen(function* () {
       const repository = yield* ReceiptRepository
       const visits = yield* VisitRepository
-      const visitCommands = yield* Visits
       const encounters = yield* EncounterRepository
       const patients = yield* PatientRepository
       const transaction = yield* Transaction
@@ -207,235 +193,46 @@ export class Receipts extends Context.Service<
             ),
           )
 
-      /**
-       * 수납할 수 있는 내원인지입니다. 이미 수납했거나 취소한 내원, 다시 열었지만 유효한 영수증이 남은 내원은 금액을
-       * 보기 전에 거절합니다. 그런 내원의 견적은 받을 수 없는 금액을 보여 주기 때문입니다.
-       */
-      const requireCheckoutable = (visit: Visit) =>
-        Effect.gen(function* () {
-          if (visit.status === 'COMPLETED' || visit.status === 'CANCELED') {
-            return yield* new VisitTransitionInvalid({ currentStatus: visit.status, command: 'CHECKOUT' })
-          }
-          const existing = (yield* repository.listByVisit(visit.tenantId, visit.id)).find(
-            (each) => each.status === 'ACTIVE',
-          )
-          if (existing !== undefined) return yield* new ReceiptAlreadyExists({ receiptId: existing.id })
-        })
+      /** 이 내원의 유효한 영수증입니다. */
+      const activeReceiptOf = (visit: Visit) =>
+        repository
+          .listByVisit(visit.tenantId, visit.id)
+          .pipe(Effect.map((listed) => listed.find((each) => each.status === 'ACTIVE') ?? null))
 
-      /** 이 내원의 진료 중 고른 것의 받을 금액입니다. 고르지 않으면 철회하지 않은 진료 전부입니다. */
-      const duesOf = (visit: Visit, encounterIds: ReadonlyArray<Id<'encounter'>> | undefined) =>
+      /** 금액을 정하는 데 읽는 것: 환자의 진료, 생년월일, 요청한 미리 기록한 결제입니다. */
+      const pricingFacts = (visit: Visit, paymentIds: ReadonlyArray<Id<'payment'>> | undefined) =>
         Effect.gen(function* () {
-          const all = (yield* encounters.listByPatient(visit.tenantId, visit.patientId)).filter(
-            (each) => each.visitId === visit.id && each.status !== 'ENTERED_IN_ERROR',
-          )
-          const byId = new Map(all.map((each) => [each.id as string, each]))
-          const ids = encounterIds === undefined ? all.map((each) => each.id) : [...new Set(encounterIds)]
-          const invalid = ids.filter((id) => !byId.has(id))
-          if (invalid.length > 0) return yield* new CheckoutEncounterInvalid({ encounterIds: invalid })
-
-          // 급여 본인부담은 내원의 자격과 진료일 기준 만 나이로 계산합니다. 보험구분을 바꾼 진료는 접수 때 받은 자격과
-          // 맞지 않아 계산하지 않습니다
           const patient = Option.getOrUndefined(yield* patients.findById(visit.tenantId, visit.patientId))
-          const age = patient?.birthDate == null ? null : ageOn(patient.birthDate, visit.date)
-          const dues: EncounterDue[] = []
-          const unsupported: Array<Id<'encounter'>> = []
-          for (const id of ids) {
-            const encounter = byId.get(id)!
-            const basis: CopayBasis =
-              encounter.coverage === visit.coverage
-                ? copayBasis({ ...visit, benefitFlags: encounter.benefitFlags })
-                : { kind: 'UNSUPPORTED' }
-            const due = encounterDue(encounter, { basis, age })
-            if (due === null) unsupported.push(id)
-            else dues.push(due)
-          }
-          if (unsupported.length > 0) return yield* new CheckoutCoverageUnsupported({ encounterIds: unsupported })
-          return { ids: ids as Array<Id<'encounter'>>, dues }
-        })
-
-      /** 미리 기록한 결제는 이 환자의 결제이고 아직 적용하지 않았으며, 내원을 정했다면 이 내원이어야 합니다. */
-      const applicable = (visit: Visit, paymentIds: ReadonlyArray<Id<'payment'>> | undefined) =>
-        Effect.gen(function* () {
-          const ids = [...new Set(paymentIds ?? [])]
-          const found = new Map(
-            (yield* repository.listPayments(visit.tenantId, ids)).map((each) => [each.id as string, each]),
-          )
-          const notApplicable = ids.filter((id) => {
-            const payment = found.get(id)
-            return (
-              payment === undefined ||
-              payment.status !== 'UNAPPLIED' ||
-              payment.patientId !== visit.patientId ||
-              (payment.visitId !== null && payment.visitId !== visit.id)
-            )
-          })
-          if (notApplicable.length > 0) return yield* new CheckoutPaymentInvalid({ paymentIds: notApplicable })
-          return ids.map((id) => found.get(id)!)
-        })
-
-      /**
-       * 결산입니다. 이미 받은 결제(`held`, 미리 기록했거나 정정으로 옮긴 결제)는 환불하고 남은 금액으로, 요청의
-       * 결제(`payments`)와 함께 넣습니다.
-       */
-      const settle = (
-        dues: ReadonlyArray<EncounterDue>,
-        held: ReadonlyArray<Payment>,
-        input: Omit<CheckoutOptions, 'encounterIds' | 'paymentIds'>,
-      ) => {
-        const payments = input.payments ?? []
-        const settlement = settleCheckout({
-          encounters: dues,
-          payments: [...held.map((each) => ({ method: each.method, amount: refundableOf(each) })), ...payments],
-          overpaidCreditBalance: 0,
-          useOverpaidCredit: input.useOverpaidCredit ?? null,
-          prepaidBalances: { CASH_LIKE: 0, CARD_LIKE: 0 },
-          writeOffRemainder: input.writeOffRemainder ?? false,
-          acknowledge: input.acknowledge ?? [],
-        })
-        const errors = settlement.errors.includes('PAYMENT_METHOD_NOT_ALLOWED')
-          ? settlement.errors
-          : normalizedPayments(payments).some((each) => EXTERNAL_METHODS.has(each.method))
-            ? ['PAYMENT_METHOD_NOT_ALLOWED' as const, ...settlement.errors]
-            : settlement.errors
-        return { settlement, errors }
-      }
-
-      /** 고른 진료의 받을 금액과 결산입니다. */
-      const prepare = (visit: Visit, input: CheckoutOptions) =>
-        Effect.gen(function* () {
-          const { ids, dues } = yield* duesOf(visit, input.encounterIds)
-          const applied = (yield* applicable(visit, input.paymentIds)).sort(byRecorded)
-          const { settlement, errors } = settle(dues, applied, input)
           return {
-            ids,
-            applied,
-            dues,
-            quoteId: quoteIdOf(dues),
-            charges: chargesOf(dues),
-            settlement,
-            errors,
+            encounters: yield* encounters.listByPatient(visit.tenantId, visit.patientId),
+            birthDate: patient?.birthDate ?? null,
+            requestedPayments: yield* repository.listPayments(visit.tenantId, [...new Set(paymentIds ?? [])]),
           }
         })
 
-      /**
-       * 새 영수증과 그 결제입니다. 이미 받은 결제(`held`)는 이 영수증으로 옮기고(미리 기록한 결제는 `CAPTURED`로),
-       * 요청의 0원 아닌 결제는 새로 만듭니다. 요청의 결제는 같은 시각이라 ID 순으로 읽히므로 요청 순서대로 커지는 ID를
-       * 줍니다.
-       */
-      const buildReceipt = (input: {
-        access: CurrentAccess['Service']
-        now: DateTime.Utc
-        visit: Visit
-        ids: ReadonlyArray<Id<'encounter'>>
-        dues: ReadonlyArray<EncounterDue>
-        held: ReadonlyArray<Payment>
-        payments: ReadonlyArray<CheckoutPayment>
-        settlement: ReturnType<typeof settle>['settlement']
-        options: { excludeFromTaxDeduction?: boolean; memo?: string }
-        correctionOf: Id<'receipt'> | null
-        id?: Id<'receipt'>
-      }) => {
-        const at = DateTime.formatIso(input.now)
-        const millis = DateTime.toEpochMillis(input.now)
-        const id = input.id ?? newId('receipt', millis)
-        const received = input.payments.filter((each) => each.amount.taxable + each.amount.taxExempt !== 0)
-        const freshIds = newIds('payment', received.length, millis)
-        const held = input.held.map((each): Payment => ({
-          ...each,
-          receiptId: id,
-          visitId: each.visitId ?? input.visit.id,
-          status: each.status === 'UNAPPLIED' ? 'CAPTURED' : each.status,
-          updatedAt: at,
-          version: each.version + 1,
-        }))
-        const fresh = received.map((each, index): Payment => ({
-          id: freshIds[index]!,
-          tenantId: input.access.tenantId,
-          patientId: input.visit.patientId,
-          visitId: input.visit.id,
-          receiptId: id,
-          method: each.method,
-          prepaidKind: each.prepaidKind ?? null,
-          amount: each.amount,
-          processorRef: null,
-          status: 'CAPTURED',
-          refunds: [],
-          recordedBy: input.access.userId,
-          createdAt: at,
-          updatedAt: at,
-          version: 1,
-        }))
-        const { settlement } = input
-        const record: ReceiptRecord = {
-          id,
-          tenantId: input.access.tenantId,
-          visitId: input.visit.id,
-          patientId: input.visit.patientId,
-          date: clinicDate(millis),
-          cashierId: input.access.userId,
-          memo: input.options.memo ?? '',
-          encounterIds: input.ids,
-          quoteId: quoteIdOf(input.dues),
-          charges: chargesOf(input.dues),
-          settlement: {
-            due: settlement.due,
-            received: settlement.received,
-            result: settlement.result,
-            outstanding: settlement.outstanding,
-            overpaid: settlement.overpaid,
-            writtenOff: settlement.writtenOff,
-            acknowledged: settlement.acknowledged,
-          },
-          flags: { excludeFromTaxDeduction: input.options.excludeFromTaxDeduction ?? false },
-          status: 'ACTIVE',
-          voided: null,
-          correctionOf: input.correctionOf,
-          createdAt: at,
-          updatedAt: at,
-          version: 1,
-        }
-        const receipt: Receipt = { ...record, payments: [...held, ...fresh].sort(byRecorded).map(toReceiptPayment) }
-        const event = domainEvent(
-          'receipt.created',
-          id,
-          at,
-          {
-            receiptId: id,
-            visitId: input.visit.id,
-            patientId: input.visit.patientId,
-            date: record.date,
-            total: record.charges.total,
-            result: settlement.result,
-            acknowledged: settlement.acknowledged,
-            paymentIds: receipt.payments.map((each) => each.id),
-            correctionOf: input.correctionOf,
-          },
-          { tenantId: input.access.tenantId, actor: { kind: 'USER', id: input.access.userId } },
-        )
-        return {
-          receipt,
-          event,
-          changes: {
-            insertReceipts: [record],
-            updatePayments: input.held.map((each, index) => ({ payment: held[index]!, expectedVersion: each.version })),
-            insertPayments: fresh,
-          },
-        }
+      /** 새 영수증의 ID입니다. 결제 ID는 같은 시각이라 ID 순으로 읽히므로 요청 순서대로 커지는 ID를 줍니다. */
+      const receiptIdsAt = (now: DateTime.Utc): ReceiptIds => {
+        const millis = DateTime.toEpochMillis(now)
+        return { receiptId: newId('receipt', millis), paymentIds: (count) => newIds('payment', count, millis) }
       }
 
       const quote = Effect.fn('Receipts.quote')(function* (visitId: Id<'visit'>, input: CheckoutOptions) {
         const access = yield* CurrentAccess
         const visit = yield* findVisit(access.tenantId, visitId)
-        yield* requireCheckoutable(visit)
-        const prepared = yield* prepare(visit, input)
-        const { settlement } = prepared
+        yield* Effect.fromResult(checkoutable(visit, yield* activeReceiptOf(visit)))
+        const facts = yield* pricingFacts(visit, input.paymentIds)
+        const { dues } = yield* Effect.fromResult(
+          selectDues(visit, facts.encounters, facts.birthDate, input.encounterIds),
+        )
+        const applied = yield* Effect.fromResult(applicablePayments(visit, input.paymentIds, facts.requestedPayments))
+        const { settlement, errors } = settle(dues, applied, input)
         return {
-          quoteId: prepared.quoteId,
-          encounters: prepared.dues.map((each) => ({
+          quoteId: quoteIdOf(dues),
+          encounters: dues.map((each) => ({
             encounterId: each.encounterId as Id<'encounter'>,
             due: each.due,
           })),
-          charges: prepared.charges,
+          charges: chargesOf(dues),
           settlement: {
             due: settlement.due,
             effectiveDue: settlement.effectiveDue,
@@ -449,7 +246,7 @@ export class Receipts extends Context.Service<
             jejuSubsidy: settlement.jejuSubsidy,
             overpaidCreditApplied: settlement.overpaidCreditApplied,
           },
-          errors: prepared.errors,
+          errors,
           warnings: settlement.warnings,
         }
       })
@@ -457,6 +254,7 @@ export class Receipts extends Context.Service<
       const checkout = Effect.fn('Receipts.checkout')(function* (visitId: Id<'visit'>, input: CheckoutInput) {
         const access = yield* CurrentAccess
         const now = yield* DateTime.now
+        const context = decisionContext(access, now)
         const { idempotencyKey, ...request } = input
         return yield* transaction.run(
           idempotent(
@@ -470,34 +268,24 @@ export class Receipts extends Context.Service<
             },
             Effect.gen(function* () {
               const visit = yield* findVisit(access.tenantId, visitId)
-              yield* requireCheckoutable(visit)
-              const prepared = yield* prepare(visit, input)
-              if (prepared.quoteId !== input.quoteId) return yield* new QuoteStale({ quoteId: prepared.quoteId })
-              const { settlement } = prepared
-              if (prepared.errors.length > 0 || settlement.warnings.length > 0) {
-                return yield* new CheckoutRejected({ errors: prepared.errors, warnings: settlement.warnings })
+              const facts = {
+                activeReceipt: yield* activeReceiptOf(visit),
+                ...(yield* pricingFacts(visit, input.paymentIds)),
               }
-              const built = buildReceipt({
-                access,
-                now,
-                visit,
-                ids: prepared.ids,
-                dues: prepared.dues,
-                held: prepared.applied,
-                payments: input.payments ?? [],
-                settlement,
-                options: input,
-                correctionOf: null,
-              })
-              // 실패할 수 있는 내원 전이를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 영수증만 남지 않습니다. 같은
-              // 트랜잭션에서 방금 읽은 내원이라 전이는 늘 됩니다. 영수증 쓰기는 같은 트랜잭션에서 확인한 것(유효한
-              // 영수증 없음, 적용할 결제가 UNAPPLIED)이 그대로일 때만 성공합니다. SQL은 트랜잭션이 하나씩 실행되어
-              // 그대로이고, 메모리는 그 사이에 다른 요청이 끼어들면 내원만 COMPLETED로 남을 수 있습니다
-              const completed = yield* visitCommands
-                .apply(visit.id, 'CHECKOUT')
-                .pipe(Effect.catchIf((error) => error._tag !== 'VisitTransitionInvalid', Effect.die))
-              yield* repository.commit({ ...built.changes, events: [built.event] })
-              return { receipt: built.receipt, visit: completed }
+              const decided = yield* Effect.fromResult(
+                decideCheckout(visit, request, facts, receiptIdsAt(now), context),
+              )
+              // 내원 쓰기를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 영수증만 남지 않습니다. 같은 트랜잭션에서 방금
+              // 읽은 내원이라 버전이 어긋나면 결함입니다. 영수증
+              // 쓰기는 같은 트랜잭션에서 확인한 것(유효한 영수증 없음, 적용할 결제가 UNAPPLIED)이 그대로일 때만
+              // 성공합니다. SQL은 트랜잭션이 하나씩 실행되어 그대로이고, 메모리는 그 사이에 다른 요청이 끼어들면 내원만
+              // COMPLETED로 남을 수 있습니다
+              yield* visits
+                .save(decided.visit.visit, { expectedVersion: visit.version, events: decided.visit.events })
+                .pipe(Effect.orDie)
+              const { receipt } = decided
+              yield* repository.commit({ ...receipt.changes, events: [receipt.event] })
+              return { receipt: receipt.receipt, visit: decided.visit.visit }
             }),
           ).pipe(Effect.provideService(IdempotencyStore, idempotency)),
         )
@@ -533,34 +321,16 @@ export class Receipts extends Context.Service<
 
       const voidOne = Effect.fn('Receipts.void')(function* (id: Id<'receipt'>, reason: string) {
         const access = yield* CurrentAccess
-        const at = DateTime.formatIso(yield* DateTime.now)
+        const context = decisionContext(access, yield* DateTime.now)
         return yield* transaction.run(
           Effect.gen(function* () {
             const receipt = yield* findReceipt(access.tenantId, id)
-            if (receipt.status === 'VOIDED') return yield* new ReceiptVoided({})
             const payments = yield* repository.paymentsOf(access.tenantId, id)
-            const decision = voidReceipt(recordOf(receipt), payments, { reason, at, by: access.userId })
-            if (!decision.ok) {
-              return yield* new PaymentRefundRequired({ receiptId: id, paymentIds: decision.paymentIds })
-            }
-            const event = domainEvent(
-              'receipt.voided',
-              id,
-              at,
-              {
-                receiptId: id,
-                visitId: receipt.visitId,
-                patientId: receipt.patientId,
-                date: receipt.date,
-                reason,
-                correctedBy: null,
-              },
-              { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
-            )
+            const decision = yield* Effect.fromResult(decideVoid(recordOf(receipt), payments, { reason }, context))
             yield* repository.commit({
-              updateReceipts: [{ receipt: decision.receipt, expectedVersion: receipt.version }],
+              updateReceipts: [{ receipt: decision.receipt, expectedVersion: decision.expectedVersion }],
               updatePayments: decision.voided.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
-              events: [event],
+              events: [decision.event],
             })
             const voided = new Map(decision.voided.map((each) => [each.id as string, each]))
             return {
@@ -574,7 +344,8 @@ export class Receipts extends Context.Service<
       const correct = Effect.fn('Receipts.correct')(function* (id: Id<'receipt'>, input: CorrectInput) {
         const access = yield* CurrentAccess
         const now = yield* DateTime.now
-        const at = DateTime.formatIso(now)
+        const context = decisionContext(access, now)
+        const { at } = context
         const { idempotencyKey, ...request } = input
         return yield* transaction.run(
           idempotent(
@@ -588,67 +359,27 @@ export class Receipts extends Context.Service<
             },
             Effect.gen(function* () {
               const receipt = yield* findReceipt(access.tenantId, id)
-              if (receipt.status === 'VOIDED') return yield* new ReceiptVoided({})
               // 내원은 지우지 않으므로 영수증의 내원은 늘 있습니다
               const visit = yield* findVisit(access.tenantId, receipt.visitId).pipe(Effect.orDie)
-              const { ids, dues } = yield* duesOf(visit, receipt.encounterIds)
-              const applied = yield* applicable(visit, input.paymentIds)
-              const newReceiptId = newId('receipt', DateTime.toEpochMillis(now))
-              const decision = voidReceipt(recordOf(receipt), yield* repository.paymentsOf(access.tenantId, id), {
-                reason: input.reason,
-                at,
-                by: access.userId,
-                correctedBy: newReceiptId,
-              })
-              // 정정은 밖에서 취소할 결제를 옮기므로 막히지 않습니다
-              if (!decision.ok) return yield* Effect.die(new Error('correction cannot be blocked by refunds'))
-              const held = [...decision.carried, ...applied].sort(byRecorded)
-              const { settlement, errors } = settle(dues, held, input)
-              if (errors.length > 0 || settlement.warnings.length > 0) {
-                return yield* new CheckoutRejected({ errors, warnings: settlement.warnings })
-              }
-              const built = buildReceipt({
-                access,
-                now,
+              const facts = {
+                payments: yield* repository.paymentsOf(access.tenantId, id),
                 visit,
-                ids,
-                dues,
-                held,
-                payments: input.payments ?? [],
-                settlement,
-                // 고치지 않은 메모·소득공제 제외는 앞 영수증 것을 이어받습니다. 결제만 바꾸는 정정이 연말정산 표시를 되돌리지 않게 합니다
-                options: {
-                  memo: input.memo ?? receipt.memo,
-                  excludeFromTaxDeduction: input.excludeFromTaxDeduction ?? receipt.flags.excludeFromTaxDeduction,
-                },
-                correctionOf: id,
-                id: newReceiptId,
-              })
-              const voidedEvent = domainEvent(
-                'receipt.voided',
-                id,
-                at,
-                {
-                  receiptId: id,
-                  visitId: receipt.visitId,
-                  patientId: receipt.patientId,
-                  date: receipt.date,
-                  reason: input.reason,
-                  correctedBy: newReceiptId,
-                },
-                { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+                ...(yield* pricingFacts(visit, input.paymentIds)),
+              }
+              const { voided, created } = yield* Effect.fromResult(
+                decideCorrection(recordOf(receipt), request, facts, receiptIdsAt(now), context),
               )
               yield* repository.commit({
-                updateReceipts: [{ receipt: decision.receipt, expectedVersion: receipt.version }],
-                insertReceipts: built.changes.insertReceipts,
+                updateReceipts: [{ receipt: voided.receipt, expectedVersion: voided.expectedVersion }],
+                insertReceipts: created.changes.insertReceipts,
                 updatePayments: [
-                  ...decision.voided.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
-                  ...built.changes.updatePayments,
+                  ...voided.voided.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
+                  ...created.changes.updatePayments,
                 ],
-                insertPayments: built.changes.insertPayments,
-                events: [voidedEvent, built.event],
+                insertPayments: created.changes.insertPayments,
+                events: [voided.event, created.event],
               })
-              return built.receipt
+              return created.receipt
             }),
           ).pipe(Effect.provideService(IdempotencyStore, idempotency)),
         )

@@ -1,10 +1,11 @@
 import { Result } from 'effect'
-import { domainEvent } from '../../../shared/events/domain-event.ts'
-import type { DomainEvent } from '../../../shared/events/domain-event.ts'
+import { domainEvent, eventContext } from '../../../shared/events/domain-event.ts'
+import type { DecisionContext, DomainEvent } from '../../../shared/events/domain-event.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import type { Encounter } from '../../clinical/encounters/encounter.ts'
 import { retractEncounter } from '../../clinical/encounters/encounter-retraction.ts'
-import { voidReceipt } from '../receipts/receipt-adjustments.ts'
+import { decideVoid } from '../receipts/receipt.aggregate.ts'
+import type { VoidDecision } from '../receipts/receipt.aggregate.ts'
 import { PaymentRefundRequired } from '../receipts/receipt.ts'
 import type { Payment, ReceiptRecord } from '../receipts/receipt.ts'
 import { validateCheckIn } from './check-in-validation.ts'
@@ -25,14 +26,7 @@ import type { NhisEligibility, Visit } from './visit.ts'
  */
 
 /** 판정에 쓰는 시각과 행위자입니다. */
-export interface VisitContext {
-  /** 커맨드를 처리하는 시각입니다. ISO 8601입니다. */
-  at: string
-  /** 병원 시간대의 오늘입니다. 접수일과 지난 날짜 판정에 씁니다. */
-  today: string
-  tenantId: Id<'tenant'>
-  userId: Id<'user'>
-}
+export type VisitContext = DecisionContext
 
 /** 판정 결과입니다. `events`는 `visit`과 같은 트랜잭션에 씁니다. */
 export interface VisitDecision {
@@ -123,18 +117,13 @@ export interface CancelDecision extends VisitDecision {
   /** 철회한 진료입니다. 철회할 진료가 없으면 `null`입니다. */
   retracted: { encounter: Encounter; expectedVersion: number; event: DomainEvent } | null
   /** 취소한 영수증과 결제입니다. 연쇄 취소이고 유효한 영수증이 있을 때만 있습니다. */
-  voided: {
-    receipt: ReceiptRecord
-    expectedVersion: number
-    payments: Payment[]
-    event: DomainEvent
-  } | null
+  voided: VoidDecision | null
 }
 
 /**
  * 내원 취소를 판정합니다. 내원·진료·영수증을 한 트랜잭션에 묶는 경계입니다(domain-model.md 묶은 경계, D3).
  *
- * - 연쇄 취소면 유효한 영수증도 취소합니다(`voidReceipt`). 밖에서 취소할 결제가 남았으면 내원 상태를 보기 전에 409
+ * - 연쇄 취소면 유효한 영수증도 취소합니다(`decideVoid`). 밖에서 취소할 결제가 남았으면 내원 상태를 보기 전에 409
  *   `PAYMENT_REFUND_REQUIRED`입니다. 돈 기록이 남은 채 내원만 취소되면 시재가 취소한 내원의 돈을 세기 때문입니다
  * - 취소한 내원의 진료는 철회합니다. 연쇄가 아니면 여기까지 온 진료는 내용이 없는 진료입니다. 이미 철회한 진료는
  *   그대로 둡니다
@@ -150,29 +139,13 @@ export function decideCancel(
   let voided: CancelDecision['voided'] = null
   if (input.cascade === true && facts.activeReceipt !== null) {
     const { receipt, payments } = facts.activeReceipt
-    const decision = voidReceipt(receipt, payments, { reason, at: context.at, by: context.userId })
-    if (!decision.ok) {
-      return Result.fail(new PaymentRefundRequired({ receiptId: receipt.id, paymentIds: decision.paymentIds }))
+    const decision = decideVoid(receipt, payments, { reason }, context)
+    if (Result.isFailure(decision)) {
+      // 유효한 영수증만 받으므로 이미 취소한 영수증은 오지 않습니다
+      if (decision.failure._tag === 'ReceiptVoided') throw new Error(`receipt ${receipt.id} is already voided`)
+      return Result.fail(decision.failure)
     }
-    voided = {
-      receipt: decision.receipt,
-      expectedVersion: receipt.version,
-      payments: decision.voided,
-      event: domainEvent(
-        'receipt.voided',
-        receipt.id,
-        context.at,
-        {
-          receiptId: receipt.id,
-          visitId: visit.id,
-          patientId: visit.patientId,
-          date: receipt.date,
-          reason,
-          correctedBy: null,
-        },
-        eventContext(context),
-      ),
-    }
+    voided = decision.success
   }
 
   const canceled = decideVisitStatus(visit, 'CANCEL', input, facts, context)
@@ -310,11 +283,6 @@ export function decideCheckIn(
     eventContext(context),
   )
   return Result.succeed({ visit, events: [event] })
-}
-
-/** 이벤트에 적는 병원과 행위자입니다. */
-export function eventContext(context: VisitContext): Required<Pick<DomainEvent, 'tenantId' | 'actor'>> {
-  return { tenantId: context.tenantId, actor: { kind: 'USER', id: context.userId } }
 }
 
 /** 저장할 자격 결과입니다. 빠진 코드는 `null`, 예외 여부는 `false`로 채웁니다. */
