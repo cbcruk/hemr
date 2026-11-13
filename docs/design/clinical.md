@@ -119,7 +119,7 @@ If-Match: "7"
 POST /encounters/enc_...:complete
 If-Match: "8"
 { "nextVisitStatus": "AWAITING_PAYMENT", "acknowledge": [] }
-→ 200 { encounter, visit, hiraSubmissions[] }
+→ 200 { encounter, hiraSubmissions[] }
 ```
 
 한 트랜잭션에서 하는 일:
@@ -128,8 +128,10 @@ If-Match: "8"
 2. 처방 라인 금액 확정(price lock), 패키지 사용 생성. 이미 수납에서 확정됐으면 건너뜁니다 ([patients.md](patients.md#패키지-계약))
 3. 탕전이 필요한 한약 처방은 탕전 미등록 목록에 나타납니다. 탕전 처방은 현행처럼 탕전 담당자가 등록합니다 ([herbal-pharmacy.md](herbal-pharmacy.md#엔드포인트))
 4. 추나 자동 승인 대상이면 심평원 제출 작업 생성 (`hiraSubmissions[]`, 상태 `QUEUED`). 외부 호출은 트랜잭션 밖에서 데스크톱 에이전트가 처리합니다. 판정은 [chuna-auto-submission.ts](../../src/modules/clinical/chuna/chuna-auto-submission.ts) ([결정](rule-decisions.md#chuna-auto-approval))
-5. 내원 상태를 `nextVisitStatus`로 이동. 기본값은 현행과 같이 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`이나 `AWAITING_PAYMENT`로 보낼 때만 진행 중인 치료실 시술을 종료합니다 (현행 `치료완료` 호출 조건). 내원이 이미 그 상태여도 종료합니다
-6. 이벤트 `encounter.completed`
+5. (정책, M2) 내원 상태를 `nextVisitStatus`로 이동. 기본값은 현행과 같이 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`이나 `AWAITING_PAYMENT`로 보낼 때만 진행 중인 치료실 시술을 종료합니다 (현행 `치료완료` 호출 조건). 내원이 이미 그 상태여도 종료합니다
+6. 이벤트 `encounter.completed` (`nextVisitStatus` 포함)
+
+5와 진행 중 시술 종료는 [domain-model.md](domain-model.md#정책)의 결정(M2)대로 트랜잭션 밖에서 `encounter.completed`를 받는 정책이 맡습니다. 내원이 이미 취소됐으면 이동만 빠지고 진료 완료는 그대로입니다. 지금 구현은 아직 같은 트랜잭션에서 옮기고 응답에 `visit`을 싣습니다
 
 현행은 1–5를 클라이언트가 순서대로 불렀고, 4의 서버 반영 실패는 무시했습니다 ("다음 저장 시 반영됨").
 
