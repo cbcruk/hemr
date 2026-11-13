@@ -66,6 +66,24 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
     ])
   })
 
+  it('같은 내원을 동시에 두 번 수납하면 하나만 받고 다른 하나는 결함이 아닌 409로 거부합니다', async () => {
+    const results = await run(
+      Effect.gen(function* () {
+        const visit = yield* checkedIn
+        const receipts = yield* Receipts
+        const quote = yield* receipts.quote(visit.id, {})
+        const attempt = (key: string) =>
+          Effect.result(receipts.checkout(visit.id, { quoteId: quote.quoteId, idempotencyKey: key }))
+        return yield* Effect.all([attempt('a'), attempt('b')], { concurrency: 'unbounded' })
+      }),
+      store,
+    )
+    expect(results.filter((each) => each._tag === 'Success')).toHaveLength(1)
+    expect(results.find((each) => each._tag === 'Failure')).toMatchObject({
+      failure: { _tag: expect.stringMatching(/^(VisitTransitionInvalid|ReceiptAlreadyExists)$/) },
+    })
+  })
+
   it('refuses an encounter whose coverage no longer matches the visit eligibility', async () => {
     const error = await run(
       Effect.gen(function* () {

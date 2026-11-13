@@ -69,7 +69,7 @@ export class Visits extends Context.Service<
      * 정해지므로 여기서 `visit:cancel`·`receipt:void`·`encounter:retract`를 모두 확인합니다(D3). 내원을 읽기 전에
      * 확인해, 권한이 없으면 내원 상태와 상관없이 403 `PERMISSION_DENIED`입니다. 취소는 같은 트랜잭션에서 내원의 진료를
      * 철회합니다(`encounter.retracted`, 사유는 취소 사유). 연쇄가 아니면 내용이 없는 진료만 여기까지 오고, 연쇄 취소는
-     * 고정한 진료도 철회합니다. 연쇄 취소는 유효한 영수증도 취소합니다(`voidReceipt`, `receipt.voided`). 카드·간편결제처럼
+     * 고정한 진료도 철회합니다. 연쇄 취소는 유효한 영수증도 취소합니다(`decideVoid`, `receipt.voided`). 카드·간편결제처럼
      * 밖에서 취소할 결제가 남았으면 409 `PAYMENT_REFUND_REQUIRED`이고 먼저 환불합니다. 담당 환자 범위(`scope: OWN`)는
      * 담당 관계가 생길 때 확인합니다.
      *
