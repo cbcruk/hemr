@@ -1,25 +1,21 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { domainEvent } from '../../../shared/events/domain-event.ts'
 import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
 import { draftEncounter, hasClinicalContent } from '../../clinical/encounters/encounter-draft.ts'
-import { retractEncounter } from '../../clinical/encounters/encounter-retraction.ts'
 import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
 import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
-import { voidReceipt } from '../receipts/receipt-adjustments.ts'
 import { ReceiptRepository } from '../receipts/receipt-repository.ts'
 import { PaymentRefundRequired, recordOf } from '../receipts/receipt.ts'
-import { validateCheckIn } from './check-in-validation.ts'
-import type { AutoInsuranceGuarantee, NhisEligibility as EligibilityInput } from './check-in-validation.types.ts'
-import { transitionVisit } from './visit-status.ts'
-import type { VisitCommand, VisitStatus, VisitTransitionErrorCode } from './visit-status.types.ts'
+import { decideCancel, decideCheckIn, decideVisitStatus, eventContext } from './visit.aggregate.ts'
+import type { CheckInInput, VisitContext, VisitStatusInput } from './visit.aggregate.ts'
+import type { VisitCommand } from './visit-status.types.ts'
 import {
   CheckInRejected,
   VisitAlreadyExists,
@@ -28,45 +24,17 @@ import {
   VisitNotFound,
   VisitTransitionInvalid,
 } from './visit.ts'
-import type { NhisEligibility, Visit } from './visit.ts'
+import type { Visit } from './visit.ts'
 import { VisitRepository } from './visit-repository.ts'
 import type { VisitListQuery } from './visit-repository.ts'
 
-/**
- * 접수 요청입니다 (front-desk.md 접수 커맨드). 진료일은 받지 않고 병원 시간대의 오늘로 서버가 정합니다.
- *
- * 자격 조회·자보 지급보증은 그 모듈이 생기기 전까지 조회 ID(`eligibilityLookupId`·`autoInsuranceCaseId`) 대신 결과를
- * 본문으로 받습니다.
- */
-export interface CheckInInput {
-  /** 엣지가 만든 내원 ID입니다(offline.md). 없으면 서버가 만듭니다. 같은 ID가 이미 있으면 409입니다. */
-  id?: Id<'visit'>
-  patientId: Id<'patient'>
-  coverage: Visit['coverage']
-  eligibility?: EligibilityInput | null
-  autoInsurance?: AutoInsuranceGuarantee | null
-  benefitFlags?: Partial<Visit['benefitFlags']>
-  /** 직원이 고른 본인부담여부입니다. */
-  copayCode?: string | null
-  /** 직원이 고른 선택의료기관 기호입니다. */
-  selectedInstitutionCode?: string | null
-  /** 이번 접수에서 본인확인을 했는지입니다. */
-  identityVerified?: boolean
-  /** 접수 뒤 상태입니다. 바로 진료실로 들어가면 `IN_TREATMENT`입니다. */
-  initialStatus?: 'WAITING' | 'IN_TREATMENT'
-}
+export type { CheckInInput } from './visit.aggregate.ts'
 
 /** 접수가 실패할 수 있는 오류입니다. */
 export type CheckInError = PatientNotFound | CheckInRejected | VisitAlreadyExists | PermissionDenied
 
 /** 상태 커맨드에 커맨드 외로 함께 보내는 입력입니다. */
-export interface VisitCommandInput {
-  /** 내원을 다시 열거나 취소한 사유입니다. */
-  reason?: string
-  /** 취소할 때 진료·수납 기록도 함께 무효로 할지 여부입니다. */
-  cascade?: boolean
-  /** `:reopen` 다음에 이어서 옮길 상태입니다. 두 전이를 한 번에 저장합니다. */
-  then?: 'WAITING' | 'IN_TREATMENT'
+export interface VisitCommandInput extends VisitStatusInput {
   /** `If-Match`로 받은 버전입니다. 없으면 버전을 검사하지 않습니다. */
   expectedVersion?: number
 }
@@ -80,12 +48,6 @@ export type VisitCommandError =
   | VisitDatePast
   | VersionMismatch
   | PermissionDenied
-
-/** `:reopen {then}`의 목표 상태로 가는 커맨드입니다. */
-const THEN_COMMANDS: Record<NonNullable<VisitCommandInput['then']>, VisitCommand> = {
-  WAITING: 'RETURN_TO_WAITING',
-  IN_TREATMENT: 'START_TREATMENT',
-}
 
 /** 접수 데스크의 내원 작업입니다. */
 export class Visits extends Context.Service<
@@ -204,105 +166,50 @@ export class Visits extends Context.Service<
             return yield* new VersionMismatch({ currentVersion: visit.version })
           }
 
-          const now = yield* DateTime.now
+          const context = visitContext(access, yield* DateTime.now)
+          const facts = { hasClinicalData: yield* hasClinicalData(visit) }
 
-          // 연쇄 취소는 유효한 영수증도 취소합니다. 돈 기록이 남은 채 내원만 취소되면 시재가 취소한 내원의 돈을 셉니다.
-          // 막힐 수 있는 판정을 저장 전에 합니다. 영수증 쓰기는 진료 철회처럼 맨 뒤라, 그 사이 다른 요청이 영수증을
-          // 바꾸면 SQL은 모두 되돌리고 되돌리지 못하는 메모리 저장소는 내원만 취소된 채 남을 수 있습니다
-          const voiding =
-            command === 'CANCEL' && input.cascade === true
-              ? yield* Effect.gen(function* () {
-                  const active = (yield* receipts.listByVisit(visit.tenantId, visit.id)).find(
-                    (each) => each.status === 'ACTIVE',
-                  )
-                  if (active === undefined) return null
-                  const record = recordOf(active)
-                  const decision = voidReceipt(record, yield* receipts.paymentsOf(visit.tenantId, active.id), {
-                    reason: input.reason ?? 'Visit canceled',
-                    at: DateTime.formatIso(now),
-                    by: access.userId,
-                  })
-                  if (!decision.ok) {
-                    return yield* new PaymentRefundRequired({ receiptId: active.id, paymentIds: decision.paymentIds })
-                  }
-                  return { before: record, decision }
-                })
-              : null
-
-          const options = {
-            hasClinicalData: yield* hasClinicalData(visit),
-            isPastDate: visit.date < clinicDate(DateTime.toEpochMillis(now)),
-            ...(input.cascade === undefined ? {} : { cascade: input.cascade }),
-          }
-          const steps =
-            command === 'REOPEN' && input.then !== undefined ? [command, THEN_COMMANDS[input.then]] : [command]
-
-          // 중간 단계가 실패하면 아무것도 저장하지 않습니다.
-          let status = visit.status
-          for (const step of steps) {
-            const result = transitionVisit(status, step, options)
-            if (!result.ok) return yield* toError(result.code, visit, status, step)
-            status = result.to
+          if (command !== 'CANCEL') {
+            const decided = yield* Effect.fromResult(decideVisitStatus(visit, command, input, facts, context))
+            // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
+            yield* repository.save(decided.visit, { expectedVersion: visit.version, events: decided.events })
+            return decided.visit
           }
 
-          const { statusReason: _, ...rest } = visit
-          const next: Visit = {
-            ...rest,
-            status,
-            statusChangedAt: DateTime.formatIso(now),
-            version: visit.version + 1,
-            ...(input.reason === undefined ? {} : { statusReason: input.reason }),
-          }
-          const event = domainEvent(
-            'visit.status_changed',
-            visit.id,
-            next.statusChangedAt,
-            { visitId: visit.id, patientId: visit.patientId, from: visit.status, to: status },
-            { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
+          const encounter =
+            visit.encounterId === null
+              ? null
+              : Option.getOrNull(yield* encounters.findById(access.tenantId, visit.encounterId))
+          const active =
+            input.cascade === true
+              ? (yield* receipts.listByVisit(visit.tenantId, visit.id)).find((each) => each.status === 'ACTIVE')
+              : undefined
+          const activeReceipt =
+            active === undefined
+              ? null
+              : { receipt: recordOf(active), payments: yield* receipts.paymentsOf(visit.tenantId, active.id) }
+          const decided = yield* Effect.fromResult(
+            decideCancel(visit, input, { ...facts, encounter, activeReceipt }, context),
           )
-          // 읽은 뒤 다른 요청이 먼저 저장했으면 저장소가 `VersionMismatch`로 거절합니다
-          yield* repository.save(next, { expectedVersion: visit.version, events: [event] })
-          // 취소한 내원의 진료는 철회합니다. 연쇄가 아니면 여기까지 온 진료는 내용이 없는 진료입니다
-          if (status === 'CANCELED' && visit.encounterId !== null) {
-            const encounter = yield* encounters.findById(access.tenantId, visit.encounterId)
-            if (Option.isSome(encounter) && encounter.value.status !== 'ENTERED_IN_ERROR') {
-              const retracted = retractEncounter(encounter.value, {
-                reason: input.reason ?? 'Visit canceled',
-                at: next.statusChangedAt,
-                by: access.userId,
-                tenantId: access.tenantId,
-              })
-              // 같은 트랜잭션에서 방금 읽은 진료라 버전이 어긋나지 않습니다. 어긋나면 결함이고 SQL 저장소는 취소도
-              // 되돌립니다. 되돌리지 못하는 메모리 저장소(테스트·개발용)에서는 내원만 취소된 채 남을 수 있습니다
-              yield* encounters
-                .save(retracted.encounter, { expectedVersion: encounter.value.version, events: [retracted.event] })
-                .pipe(Effect.orDie)
-            }
+
+          yield* repository.save(decided.visit, { expectedVersion: visit.version, events: decided.events })
+          if (decided.retracted !== null) {
+            const { encounter, expectedVersion, event } = decided.retracted
+            // 같은 트랜잭션에서 방금 읽은 진료라 버전이 어긋나지 않습니다. 어긋나면 결함이고 SQL 저장소는 취소도
+            // 되돌립니다. 되돌리지 못하는 메모리 저장소(테스트·개발용)에서는 내원만 취소된 채 남을 수 있습니다
+            yield* encounters.save(encounter, { expectedVersion, events: [event] }).pipe(Effect.orDie)
           }
-          if (voiding !== null) {
-            const { before, decision } = voiding
+          if (decided.voided !== null) {
+            // 영수증 쓰기는 진료 철회처럼 맨 뒤라, 판정과 쓰기 사이에 다른 요청이 영수증을 바꾸면 SQL은 모두 되돌리고
+            // 되돌리지 못하는 메모리 저장소는 내원만 취소된 채 남을 수 있습니다
+            const { receipt, expectedVersion, payments, event } = decided.voided
             yield* receipts.commit({
-              updateReceipts: [{ receipt: decision.receipt, expectedVersion: before.version }],
-              updatePayments: decision.voided.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
-              events: [
-                domainEvent(
-                  'receipt.voided',
-                  before.id,
-                  next.statusChangedAt,
-                  {
-                    receiptId: before.id,
-                    visitId: visit.id,
-                    patientId: visit.patientId,
-                    date: before.date,
-                    reason: input.reason ?? 'Visit canceled',
-                    correctedBy: null,
-                  },
-                  { tenantId: access.tenantId, actor: { kind: 'USER', id: access.userId } },
-                ),
-              ],
+              updateReceipts: [{ receipt, expectedVersion }],
+              updatePayments: payments.map((each) => ({ payment: each, expectedVersion: each.version - 1 })),
+              events: [event],
             })
           }
-          return next
+          return decided.visit
         })
 
       const apply = (id: Id<'visit'>, command: VisitCommand, input: VisitCommandInput = {}) =>
@@ -321,89 +228,28 @@ export class Visits extends Context.Service<
         if (input.initialStatus === 'IN_TREATMENT') yield* requirePermissions('visit:update')
         const patient = yield* patients.get(input.patientId)
         const now = yield* DateTime.now
-        const date = clinicDate(DateTime.toEpochMillis(now))
-        const history = yield* repository.historyOf(access.tenantId, patient.id)
+        const context = visitContext(access, now)
         const tenant = yield* identity.findTenant(access.tenantId)
-        const flags = {
-          fullSelfPay: input.benefitFlags?.fullSelfPay ?? false,
-          pregnant: input.benefitFlags?.pregnant ?? false,
-        }
-        const firstVisitDate = patient.firstVisitDate ?? history.firstVisitDate
-        // 현행 화면은 고르지 않으면 `없음`을 보냈습니다. 공백·`없음`은 고르지 않은 것으로 저장합니다
-        const chosen = input.copayCode?.trim() ?? ''
-        const copayCode = chosen === '' || chosen === '없음' ? null : chosen
-
-        const validation = validateCheckIn({
-          coverage: input.coverage,
-          date,
-          fullSelfPay: flags.fullSelfPay,
-          eligibility: input.eligibility ?? null,
+        const facts = {
+          patient,
+          history: yield* repository.historyOf(access.tenantId, patient.id),
           clinicInstitutionCode: Option.match(tenant, {
             onNone: () => null,
             onSome: (each) => each.hiraInstitutionCode,
           }),
-          chosenCopayCode: copayCode,
-          chosenInstitutionCode: input.selectedInstitutionCode ?? null,
-          patient: {
-            birthDate: patient.birthDate,
-            firstVisitDate,
-            lastIdentityVerifiedOn: history.lastIdentityVerifiedOn,
-            pregnant: flags.pregnant,
-          },
-          identityVerified: input.identityVerified ?? false,
-          autoInsurance: input.autoInsurance ?? null,
-        })
-        if (validation.errors.length > 0) return yield* new CheckInRejected({ errors: validation.errors })
-
-        const national = input.coverage === 'NHIS' || input.coverage === 'MEDICAL_AID'
-        const checkedInAt = DateTime.formatIso(now)
-        const encounterId = newId('encounter', DateTime.toEpochMillis(now))
-        const visit: Visit & { encounterId: Id<'encounter'> } = {
-          id: input.id ?? newId('visit'),
-          tenantId: access.tenantId,
-          patientId: patient.id,
-          date,
-          checkedInAt,
-          coverage: input.coverage,
-          isFirstVisit: firstVisitDate === null,
-          eligibility: {
-            status: national ? 'VERIFIED' : 'NOT_REQUIRED',
-            // 건보·의료급여가 아니면 자격 결과를 남기지 않습니다. 판정에 쓰지 않은 값이기 때문입니다
-            nhis: national ? storedEligibility(input.eligibility) : null,
-            identityVerified: input.identityVerified ?? false,
-            benefitRestricted: validation.benefitRestricted,
-            copayCode: national ? copayCode : null,
-            selectedInstitutionCode: national ? validation.selectedInstitutionCode : null,
-          },
-          benefitFlags: flags,
-          encounterId,
-          status: input.initialStatus ?? 'WAITING',
-          statusChangedAt: checkedInAt,
-          hasClinicalData: false,
-          version: 1,
         }
-        const context = { tenantId: access.tenantId, actor: { kind: 'USER' as const, id: access.userId } }
-        const event = domainEvent(
-          'visit.checked_in',
-          visit.id,
-          checkedInAt,
-          {
-            visitId: visit.id,
-            patientId: visit.patientId,
-            date,
-            coverage: visit.coverage,
-            isFirstVisit: visit.isFirstVisit,
-            status: visit.status,
-          },
-          context,
-        )
-        const draft = draftEncounter(visit, context)
+        const ids = {
+          visitId: input.id ?? newId('visit'),
+          encounterId: newId('encounter', DateTime.toEpochMillis(now)),
+        }
+        const { visit, events } = yield* Effect.fromResult(decideCheckIn(input, facts, ids, context))
+        const draft = draftEncounter(visit, eventContext(context))
         yield* transaction.run(
           Effect.gen(function* () {
             // 같은 ID가 이미 있으면 저장소가 `VersionMismatch`로 거절합니다. 새로 만드는 것이라 412가 아니라 409입니다.
             // 실패할 수 있는 내원을 먼저 써, 되돌리지 못하는 메모리 저장소에서도 진료만 남지 않습니다
             yield* repository
-              .save(visit, { expectedVersion: null, events: [event] })
+              .save(visit, { expectedVersion: null, events })
               .pipe(Effect.catchTag('VersionMismatch', () => Effect.fail(new VisitAlreadyExists({}))))
             // 진료 ID는 서버가 방금 만들어 겹치지 않습니다. 겹치면 결함입니다
             yield* encounters.save(draft.encounter, { expectedVersion: null, events: [draft.event] }).pipe(Effect.orDie)
@@ -435,30 +281,12 @@ export class Visits extends Context.Service<
   )
 }
 
-/** 저장할 자격 결과입니다. 빠진 코드는 `null`, 예외 여부는 `false`로 채웁니다. */
-function storedEligibility(input: EligibilityInput | null | undefined): NhisEligibility | null {
-  if (input === undefined || input === null) return null
+/** 판정 함수에 넘기는 시각과 행위자입니다. */
+function visitContext(access: CurrentAccess['Service'], now: DateTime.Utc): VisitContext {
   return {
-    qualificationCode: input.qualificationCode,
-    benefitRestrictionCode: input.benefitRestrictionCode ?? null,
-    copayCode: input.copayCode ?? null,
-    selectedInstitutionCodes: input.selectedInstitutionCodes,
-    identityExempt: input.identityExempt ?? false,
-  }
-}
-
-function toError(
-  code: VisitTransitionErrorCode,
-  visit: Visit,
-  currentStatus: VisitStatus,
-  command: VisitCommand,
-): VisitTransitionInvalid | VisitHasClinicalData | VisitDatePast {
-  switch (code) {
-    case 'VISIT_TRANSITION_INVALID':
-      return new VisitTransitionInvalid({ currentStatus, command })
-    case 'VISIT_HAS_CLINICAL_DATA':
-      return new VisitHasClinicalData({ currentStatus })
-    case 'VISIT_DATE_PAST':
-      return new VisitDatePast({ date: visit.date })
+    at: DateTime.formatIso(now),
+    today: clinicDate(DateTime.toEpochMillis(now)),
+    tenantId: access.tenantId,
+    userId: access.userId,
   }
 }

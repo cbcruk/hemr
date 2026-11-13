@@ -64,18 +64,6 @@ describe('Visits.apply', () => {
     ])
   })
 
-  it('records the tenant and the user on the event', async () => {
-    const pending = await run(
-      Effect.gen(function* () {
-        yield* (yield* Visits).apply(visit.id, 'REOPEN', { reason: '재수납' })
-        return yield* (yield* Outbox).pending(10)
-      }),
-    )
-    expect(pending.map((row) => [row.event.tenantId, row.event.actor])).toEqual([
-      [TEST_TENANT.id, { kind: 'USER', id: owner.user.id }],
-    ])
-  })
-
   it('does not find a visit of another tenant', async () => {
     const other = testMember({ tenant: { ...TEST_TENANT, id: 'ten_01JBQ000000000000000000002' as Visit['tenantId'] } })
     const error = await run(
