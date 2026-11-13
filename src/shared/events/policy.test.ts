@@ -125,4 +125,31 @@ describe('정책 실행기 (sqlite)', () => {
     expect(result.types).toEqual(['test.happened'])
     expect(result.cursor).toBe(0)
   })
+
+  it('거부된 이벤트의 정책 쓰기는 되돌리고 커서는 올립니다', async () => {
+    const result = await run(
+      Effect.gen(function* () {
+        const outbox = yield* Outbox
+        yield* outbox.append(happened(['refuse']))
+        // 정책이 이벤트를 쓰고 나서 받는 쪽이 거부합니다
+        const writesThenRefuses: Policy<Refused, never> = {
+          name: 'test-policy',
+          handle: (event) =>
+            event.type === 'test.happened'
+              ? outbox
+                  .append([domainEvent('test.reacted', event.subject, event.time, {})])
+                  .pipe(Effect.andThen(Effect.fail(new Refused())))
+              : Effect.void,
+        }
+        const handled = yield* runPolicyOnce(writesThenRefuses)
+        return {
+          handled,
+          types: (yield* outbox.after(0, 10)).map((event) => event.type),
+          cursor: yield* (yield* PolicyCursor).get('test-policy'),
+        }
+      }),
+      'sqlite',
+    )
+    expect(result).toEqual({ handled: 1, types: ['test.happened'], cursor: 1 })
+  })
 })
