@@ -1,6 +1,6 @@
 import { Context, DateTime, Effect, Layer, Option, Schema } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { decisionContext } from '../../../shared/events/domain-event.ts'
+import { decisionContext } from '../../../shared/decision/decision-context.ts'
 import { idempotent, IdempotencyKeyReused, IdempotencyStore } from '../../../shared/http/idempotency.ts'
 import { isId, newId, newIds } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
@@ -13,15 +13,8 @@ import { Visit, VisitNotFound, VisitTransitionInvalid } from '../visits/visit.ts
 import { decideCheckout } from './checkout.aggregate.ts'
 import type { CheckoutCommand } from './checkout.aggregate.ts'
 import { toReceiptPayment } from './receipt-adjustments.ts'
-import {
-  applicablePayments,
-  checkoutable,
-  decideCorrection,
-  decideVoid,
-  selectDues,
-  settle,
-} from './receipt.aggregate.ts'
-import type { CorrectionInput, ReceiptIds, SettlementOptions } from './receipt.aggregate.ts'
+import { checkoutable, decideCorrection, decideVoid, priceCheckout, voidable } from './receipt.aggregate.ts'
+import type { CheckoutOptions, CorrectionInput, ReceiptIds } from './receipt.aggregate.ts'
 import { chargesOf, quoteIdOf } from './receipt-charges.ts'
 import { ReceiptRepository } from './receipt-repository.ts'
 import {
@@ -39,13 +32,7 @@ import {
   recordOf,
 } from './receipt.ts'
 
-/** 견적과 수납이 같이 받는 입력입니다. */
-export interface CheckoutOptions extends SettlementOptions {
-  /** 수납할 진료입니다. 없으면 이 내원의 철회하지 않은 진료 전부입니다. */
-  encounterIds?: ReadonlyArray<Id<'encounter'>>
-  /** 미리 기록한 외부 승인 결제(`POST /payments`)입니다. 이 환자의 `UNAPPLIED` 결제여야 합니다. */
-  paymentIds?: ReadonlyArray<Id<'payment'>>
-}
+export type { CheckoutOptions }
 
 export interface CheckoutInput extends CheckoutCommand {
   idempotencyKey: string
@@ -219,13 +206,12 @@ export class Receipts extends Context.Service<
       const quote = Effect.fn('Receipts.quote')(function* (visitId: Id<'visit'>, input: CheckoutOptions) {
         const access = yield* CurrentAccess
         const visit = yield* findVisit(access.tenantId, visitId)
-        yield* Effect.fromResult(checkoutable(visit, yield* activeReceiptOf(visit)))
+        const activeReceipt = yield* activeReceiptOf(visit)
+        // 거부할 요청이면 진료·결제를 읽지 않습니다. `priceCheckout`이 다시 봅니다
+        yield* Effect.fromResult(checkoutable(visit, activeReceipt))
         const facts = yield* pricingFacts(visit, input.paymentIds)
-        const { dues } = yield* Effect.fromResult(
-          selectDues(visit, facts.encounters, facts.birthDate, input.encounterIds),
-        )
-        const applied = yield* Effect.fromResult(applicablePayments(visit, input.paymentIds, facts.requestedPayments))
-        const { settlement, errors } = settle(dues, applied, input)
+        const { dues, settled } = yield* Effect.fromResult(priceCheckout(visit, activeReceipt, input, facts))
+        const { settlement, errors } = settled
         return {
           quoteId: quoteIdOf(dues),
           encounters: dues.map((each) => ({
@@ -266,27 +252,28 @@ export class Receipts extends Context.Service<
               now: DateTime.formatIso(now),
               schema: CheckedOut,
             },
+            // 판정과 내원 쓰기 사이에 다른 요청이 내원을 바꾸면(끼어들 수 있는 메모리 저장소에서만 생깁니다) 처음부터
+            // 다시 읽고 판정해, 이미 수납한 내원은 409로 거부합니다. 세 번 넘게 어긋나면 결함입니다
             Effect.gen(function* () {
               const visit = yield* findVisit(access.tenantId, visitId)
-              const facts = {
-                activeReceipt: yield* activeReceiptOf(visit),
-                ...(yield* pricingFacts(visit, input.paymentIds)),
-              }
+              const activeReceipt = yield* activeReceiptOf(visit)
+              yield* Effect.fromResult(checkoutable(visit, activeReceipt))
+              const facts = { activeReceipt, ...(yield* pricingFacts(visit, input.paymentIds)) }
               const decided = yield* Effect.fromResult(
                 decideCheckout(visit, request, facts, receiptIdsAt(now), context),
               )
-              // 내원 쓰기를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 영수증만 남지 않습니다. 같은 트랜잭션에서 방금
-              // 읽은 내원이라 버전이 어긋나면 결함입니다(SQL에서는 생기지 않고, 끼어들 수 있는 메모리 저장소에서만 500). 영수증
-              // 쓰기는 같은 트랜잭션에서 확인한 것(유효한 영수증 없음, 적용할 결제가 UNAPPLIED)이 그대로일 때만
-              // 성공합니다. SQL은 트랜잭션이 하나씩 실행되어 그대로이고, 메모리는 그 사이에 다른 요청이 끼어들면 내원만
-              // COMPLETED로 남을 수 있습니다
-              yield* visits
-                .save(decided.visit.visit, { expectedVersion: visit.version, events: decided.visit.events })
-                .pipe(Effect.orDie)
+              // 내원 쓰기를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 영수증만 남지 않습니다. 영수증 쓰기는 같은
+              // 트랜잭션에서 확인한 것(유효한 영수증 없음, 적용할 결제가 UNAPPLIED)이 그대로일 때만 성공합니다. SQL은
+              // 트랜잭션이 하나씩 실행되어 그대로이고, 메모리는 그 사이에 다른 요청이 끼어들면 내원만 COMPLETED로 남을 수
+              // 있습니다
+              yield* visits.save(decided.visit.visit, { expectedVersion: visit.version, events: decided.visit.events })
               const { receipt } = decided
               yield* repository.commit({ ...receipt.changes, events: [receipt.event] })
               return { receipt: receipt.receipt, visit: decided.visit.visit }
-            }),
+            }).pipe(
+              Effect.retry({ while: (error) => error._tag === 'VersionMismatch', times: 3 }),
+              Effect.catchTag('VersionMismatch', Effect.die),
+            ),
           ).pipe(Effect.provideService(IdempotencyStore, idempotency)),
         )
       })
@@ -325,6 +312,7 @@ export class Receipts extends Context.Service<
         return yield* transaction.run(
           Effect.gen(function* () {
             const receipt = yield* findReceipt(access.tenantId, id)
+            yield* Effect.fromResult(voidable(recordOf(receipt)))
             const payments = yield* repository.paymentsOf(access.tenantId, id)
             const decision = yield* Effect.fromResult(decideVoid(recordOf(receipt), payments, { reason }, context))
             yield* repository.commit({
@@ -359,6 +347,7 @@ export class Receipts extends Context.Service<
             },
             Effect.gen(function* () {
               const receipt = yield* findReceipt(access.tenantId, id)
+              yield* Effect.fromResult(voidable(recordOf(receipt)))
               // 내원은 지우지 않으므로 영수증의 내원은 늘 있습니다
               const visit = yield* findVisit(access.tenantId, receipt.visitId).pipe(Effect.orDie)
               const facts = {

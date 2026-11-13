@@ -1,6 +1,6 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { decisionContext } from '../../../shared/events/domain-event.ts'
+import { decisionContext } from '../../../shared/decision/decision-context.ts'
 import { idempotent, IdempotencyKeyReused, IdempotencyStore } from '../../../shared/http/idempotency.ts'
 import { isId, newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'

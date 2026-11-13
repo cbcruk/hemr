@@ -429,7 +429,7 @@ Idempotency-Key: ...
 - **수납 요청의 `payments`는 서버 안에서 끝나는 결제만 받습니다(현금·계좌이체·선수금).** 카드·간편결제·지역화폐·제로페이는 단말 승인 뒤 `POST /payments`로 먼저 남기고 `paymentIds`로 적용하는 설계라([외부 승인 결제 구현 결정](#외부-승인-결제-구현-결정)), 여기로 보내면 `PAYMENT_METHOD_NOT_ALLOWED`입니다. 서버가 만드는 수단(제주 지원금·과수납금·패키지)도 같습니다. 선수금은 잔액이 아직 0이라 늘 `PREPAID_BALANCE_INSUFFICIENT`입니다. 0원 결제는 수단과 상관없이 받지만 기록하지 않습니다
 - **`Idempotency-Key`는 필수입니다(conventions.md).** 병원별 키 하나에 처음 성공 응답을 24시간 남기고([idempotency.ts](../../src/shared/http/idempotency.ts)), 같은 요청이면 그 응답을 그대로, 커맨드나 내원·본문이 다르면 422 `IDEMPOTENCY_KEY_REUSED`입니다. 지문(fingerprint)은 커맨드 이름(`visits.checkout`)과 내원 ID·본문의 해시입니다. 기간이 지난 키는 같은 키가 다시 올 때 덮어쓰고, 지난 키를 지우는 작업은 미룹니다(행이 늘어 문제가 되면 `created_at` 인덱스와 정리 작업을 더합니다). 실패한 요청은 남기지 않아 고쳐서 같은 키로 다시 보낼 수 있습니다. 응답 기록은 수납과 같은 트랜잭션입니다
   - 대안: 실패 응답도 남기기(Stripe 방식). 미수 확인처럼 사용자가 고쳐 다시 보내는 422가 많은 커맨드라 새 키를 강요하게 되어 버렸습니다
-- **한 트랜잭션에서 읽기·판정·쓰기를 합니다.** 판정은 순수 함수 `decideCheckout`([checkout.aggregate.ts](../../src/modules/front-desk/receipts/checkout.aggregate.ts))이 하고, 내원 `CHECKOUT` 전이(`decideVisitStatus`, `visit.status_changed`)를 먼저 저장한 뒤 영수증과 `receipt.created`를 씁니다. 전이 권한(`visit:update`)은 따로 보지 않습니다. 이미 수납했거나 취소한 내원은 금액을 보기 전에 409 `VISIT_TRANSITION_INVALID`입니다
+- **한 트랜잭션에서 읽기·판정·쓰기를 합니다.** 판정은 순수 함수 `decideCheckout`([checkout.aggregate.ts](../../src/modules/front-desk/receipts/checkout.aggregate.ts))이 하고, 내원 `CHECKOUT` 전이(`decideVisitStatus`, `visit.status_changed`)를 먼저 저장한 뒤 영수증과 `receipt.created`를 씁니다. 전이 권한(`visit:update`)은 따로 보지 않습니다. 이미 수납했거나 취소한 내원은 금액을 보기 전에(진료·결제를 읽기 전에) 409 `VISIT_TRANSITION_INVALID`입니다. 판정과 내원 쓰기 사이에 다른 요청이 내원을 바꿔 버전이 어긋나면(끼어들 수 있는 메모리 저장소에서만 생깁니다) 처음부터 3번까지 다시 읽고 판정해, 그 사이 수납한 내원은 409가 됩니다. 그래도 어긋나면 결함입니다(#74)
 - **내원 하나에 유효한 영수증은 하나입니다.** DB 부분 유일 인덱스로도 막습니다. 수납 뒤 `:reopen`한 내원을 다시 수납하면 409 `RECEIPT_ALREADY_EXISTS { receiptId }`입니다. 추가 처방을 받으려면 영수증을 취소한 뒤 처방을 고치고 다시 수납합니다. 내원 취소의 진료 내용 판정은 유효한 영수증도 기록으로 봐, 연쇄가 아닌 취소는 409 `VISIT_HAS_CLINICAL_DATA`입니다
   - 연쇄 취소는 유효한 영수증도 취소합니다(#35, [환불과 정정 구현 결정](#환불과-정정-구현-결정)). 영수증을 남긴 채 내원만 취소하면 시재·일자 현황이 취소한 내원의 돈을 세기 때문입니다
 - **수납일은 수납한 날(병원 시간대)입니다.** 내원일이 아닙니다. 시재가 현금이 오간 날로 세기 때문입니다
@@ -548,7 +548,7 @@ POST /payments/{id}:refund    { amount, refundMethod, reason, writeOff? }    Ide
   - 서버 안에서 받은 결제(현금·계좌이체)는 `VOIDED`가 됩니다. 일부 환불했으면 남은 금액만 받지 않은 것입니다(시재는 #37에서 이 규칙으로 셉니다)
   - 카드·간편결제처럼 밖에서 취소해야 하는 결제가 남았으면 409 `PAYMENT_REFUND_REQUIRED { receiptId, paymentIds }`입니다. 단말 취소 없이 기록만 지우면 돈 기록이 실제와 어긋나므로 먼저 `:refund`합니다. 연쇄 취소도 같은 오류입니다
   - 내원 상태는 바꾸지 않습니다. 취소한 영수증은 처방을 잠그지 않으므로(`ENCOUNTER_BILLED`는 유효한 영수증만 봄) 처방을 고친 뒤 `:reopen`하고 다시 수납합니다
-  - `If-Match`는 받지 않습니다. 이미 취소한 영수증은 409 `RECEIPT_VOIDED`라 두 번 취소되지 않고, 취소 판정은 같은 트랜잭션에서 다시 읽은 결제로 하기 때문입니다
+  - `If-Match`는 받지 않습니다. 이미 취소한 영수증은 결제를 읽기 전에 409 `RECEIPT_VOIDED`라 두 번 취소되지 않고(정정도 같습니다), 취소 판정은 같은 트랜잭션에서 다시 읽은 결제로 하기 때문입니다
   - 이벤트: `receipt.voided { receiptId, visitId, patientId, date, reason, correctedBy }`. `date`는 취소한 영수증의 수납일입니다
 - **정정(`:correct`)은 같은 진료를 결제만 바꿔 다시 수납합니다.** 한 트랜잭션에서 앞 영수증을 취소(`correctedBy`)하고 새 영수증(`correctionOf`)을 만듭니다. 현행 "결제그룹이 있으면 삭제 후 재수납" 안내를 대신합니다
   - 밖에서 취소해야 하는 결제(환불하고 남은 것)는 환불하지 않고 새 영수증으로 옮깁니다. 단말을 다시 거치지 않고 현금·계좌이체 쪽만 고치는 것이 정정의 쓰임이기 때문입니다. 결산에는 환불하고 남은 금액으로 들어갑니다

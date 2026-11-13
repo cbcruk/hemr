@@ -1,6 +1,6 @@
 import { Context, DateTime, Effect, Layer, Option } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { decisionContext } from '../../../shared/events/domain-event.ts'
+import { decisionContext } from '../../../shared/decision/decision-context.ts'
 import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { ReceiptRepository } from '../../front-desk/receipts/receipt-repository.ts'

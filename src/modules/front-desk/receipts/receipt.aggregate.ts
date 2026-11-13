@@ -1,6 +1,8 @@
 import { Result } from 'effect'
-import { domainEvent, eventContext } from '../../../shared/events/domain-event.ts'
-import type { DecisionContext, DomainEvent } from '../../../shared/events/domain-event.ts'
+import { domainEvent } from '../../../shared/events/domain-event.ts'
+import { eventContext } from '../../../shared/decision/decision-context.ts'
+import type { DomainEvent } from '../../../shared/events/domain-event.ts'
+import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { ageOn } from '../../../shared/time/calendar.ts'
 import type { Encounter } from '../../clinical/encounters/encounter.ts'
@@ -169,6 +171,56 @@ export function acceptSettlement(
   return Result.succeed(settlement)
 }
 
+/** 견적과 수납이 같이 받는 입력입니다. */
+export interface CheckoutOptions extends SettlementOptions {
+  /** 수납할 진료입니다. 없으면 이 내원의 철회하지 않은 진료 전부입니다. */
+  encounterIds?: ReadonlyArray<Id<'encounter'>>
+  /** 미리 기록한 외부 승인 결제(`POST /payments`)입니다. 이 환자의 `UNAPPLIED` 결제여야 합니다. */
+  paymentIds?: ReadonlyArray<Id<'payment'>>
+}
+
+/** 견적·수납·정정이 금액을 정하는 데 서비스가 미리 읽어 두는 사실입니다. */
+export interface PricingFacts {
+  /** 환자의 진료입니다. */
+  encounters: ReadonlyArray<Encounter>
+  birthDate: string | null
+  /** 요청한 미리 기록한 결제를 ID로 읽은 것입니다. */
+  requestedPayments: ReadonlyArray<Payment>
+}
+
+/**
+ * 견적과 수납의 계산입니다. 둘이 같은 순서로 거부하도록 한 곳에 둡니다: 수납할 수 있는 내원(`checkoutable`) → 진료
+ * (`selectDues`) → 미리 기록한 결제(`applicablePayments`) → 결산(`settle`). 결산의 오류·경고는 거부하지 않고 돌려줍니다.
+ * 견적은 그대로 보여 주고, 수납은 `acceptSettlement`로 거부합니다.
+ */
+export function priceCheckout(
+  visit: Visit,
+  activeReceipt: ReceiptRecord | null,
+  input: CheckoutOptions,
+  facts: PricingFacts,
+): Result.Result<
+  {
+    ids: Array<Id<'encounter'>>
+    dues: EncounterDue[]
+    applied: Payment[]
+    settled: ReturnType<typeof settle>
+  },
+  | VisitTransitionInvalid
+  | ReceiptAlreadyExists
+  | CheckoutEncounterInvalid
+  | CheckoutCoverageUnsupported
+  | CheckoutPaymentInvalid
+> {
+  const open = checkoutable(visit, activeReceipt)
+  if (Result.isFailure(open)) return Result.fail(open.failure)
+  const selected = selectDues(visit, facts.encounters, facts.birthDate, input.encounterIds)
+  if (Result.isFailure(selected)) return Result.fail(selected.failure)
+  const applied = applicablePayments(visit, input.paymentIds, facts.requestedPayments)
+  if (Result.isFailure(applied)) return Result.fail(applied.failure)
+  const { ids, dues } = selected.success
+  return Result.succeed({ ids, dues, applied: applied.success, settled: settle(dues, applied.success, input) })
+}
+
 /** 새 영수증을 쓰는 데 필요한 것입니다. `receipt`는 응답에 줄 결제까지 담은 모양입니다. */
 export interface NewReceipt {
   receipt: Receipt
@@ -295,6 +347,14 @@ export interface VoidDecision {
 }
 
 /**
+ * 취소·정정할 수 있는 영수증인지입니다. 이미 취소한 영수증은 409 `RECEIPT_VOIDED`입니다. 서비스는 결제·내원·금액
+ * 사실을 읽기 전에 이것부터 봅니다(판정 함수도 다시 봅니다).
+ */
+export function voidable(receipt: ReceiptRecord): Result.Result<void, ReceiptVoided> {
+  return receipt.status === 'VOIDED' ? Result.fail(new ReceiptVoided({})) : Result.void
+}
+
+/**
  * 수납 취소를 판정합니다. 서버 안에서 받은 결제(현금·계좌이체)는 받지 않은 것으로 `VOIDED`가 됩니다. 밖에서
  * 취소해야 하는 결제(카드·간편결제)가 남았으면, 단순 취소는 409 `PAYMENT_REFUND_REQUIRED`이고 정정(`correctedBy`)은
  * 그 결제를 새 영수증으로 옮깁니다. 이미 취소한 영수증은 409 `RECEIPT_VOIDED`입니다. `receipt.voided`를 냅니다.
@@ -307,7 +367,8 @@ export function decideVoid(
   input: { reason: string; correctedBy?: Id<'receipt'> },
   context: DecisionContext,
 ): Result.Result<VoidDecision, ReceiptVoided | PaymentRefundRequired> {
-  if (receipt.status === 'VOIDED') return Result.fail(new ReceiptVoided({}))
+  const open = voidable(receipt)
+  if (Result.isFailure(open)) return Result.fail(open.failure)
   const decision = voidReceipt(receipt, payments, {
     reason: input.reason,
     at: context.at,
@@ -377,7 +438,8 @@ export function decideCorrection(
   { voided: VoidDecision; created: NewReceipt },
   ReceiptVoided | CheckoutEncounterInvalid | CheckoutCoverageUnsupported | CheckoutPaymentInvalid | CheckoutRejected
 > {
-  if (receipt.status === 'VOIDED') return Result.fail(new ReceiptVoided({}))
+  const open = voidable(receipt)
+  if (Result.isFailure(open)) return Result.fail(open.failure)
   const selected = selectDues(facts.visit, facts.encounters, facts.birthDate, receipt.encounterIds)
   if (Result.isFailure(selected)) return Result.fail(selected.failure)
   const applied = applicablePayments(facts.visit, input.paymentIds, facts.requestedPayments)

@@ -190,10 +190,12 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 영수증·결제·수납을 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
 
-- [receipt.aggregate.ts](../../src/modules/front-desk/receipts/receipt.aggregate.ts): 수납 취소(`decideVoid`)·정정(`decideCorrection`, 영수증·결제 묶음)과, 견적·수납·정정이 같이 쓰는 계산(`checkoutable`, `selectDues`, `applicablePayments`, `settle`, `newReceipt`)
+- [receipt.aggregate.ts](../../src/modules/front-desk/receipts/receipt.aggregate.ts): 수납 취소(`decideVoid`)·정정(`decideCorrection`, 영수증·결제 묶음)과, 견적·수납·정정이 같이 쓰는 계산(`checkoutable`, `selectDues`, `applicablePayments`, `settle`, `priceCheckout`, `voidable`, `newReceipt`)
 - [payment.aggregate.ts](../../src/modules/front-desk/receipts/payment.aggregate.ts): 결제 기록(`decideRecordPayment`)·환불(`decideRefund`, 결제·영수증 묶음)
 - [checkout.aggregate.ts](../../src/modules/front-desk/receipts/checkout.aggregate.ts): 수납(`decideCheckout`, 영수증·결제·내원 묶음). 내원 전이는 `decideVisitStatus`를 부릅니다
-- **판정 문맥은 공유합니다.** 시각·진료일·테넌트·행위자를 담은 `DecisionContext`와 이를 만드는 `decisionContext`, 이벤트 문맥 `eventContext`가 `shared/events/domain-event.ts`에 있습니다
+- **판정 문맥은 공유합니다.** 시각·진료일·테넌트·행위자를 담은 `DecisionContext`와 이를 만드는 `decisionContext`, 이벤트 문맥 `eventContext`가 [decision-context.ts](../../src/shared/decision/decision-context.ts)에 있습니다. 이벤트 봉투(`shared/events/domain-event.ts`)가 시계·진료일 코드를 끌어오지 않게 나눴습니다(#74)
+- **견적과 수납은 같은 계산을 부릅니다(#74).** `priceCheckout`이 `checkoutable` → `selectDues` → `applicablePayments` → `settle` 순서를 한 곳에 둡니다. 견적은 결산의 오류·경고를 그대로 보여 주고, `decideCheckout`은 견적 ID와 `acceptSettlement`로 더 거부합니다. 거부를 더하거나 순서를 바꾸면 두 응답이 같이 바뀝니다
+- **싼 상태 확인을 사실 읽기보다 먼저 합니다(#74).** 서비스는 판정 함수가 맨 먼저 보는 상태 거부(수납: `checkoutable`, 취소·정정: `voidable`)를 진료·결제·환자를 읽기 전에 부르고, 판정 함수도 같은 확인을 다시 해 혼자서 완전합니다. 제안 반영의 `applicable`과 같은 방식입니다. 다른 묶음(진료 초안의 `billedBy`, 시술·시재의 사전 확인)은 읽기가 문제가 될 때 같은 방식으로 나눕니다
 - **결함은 거부가 아니라 예외입니다.** 앞에서 걸렀는데 안쪽 판정이 거부하는 경우(수납할 수 있는 내원이 `CHECKOUT`을 거부, 정정의 취소가 막힘, 적용한 결제의 영수증이 유효하지 않음)는 `Result`로 돌려주지 않고 던집니다
 
 ### 진료 묶음에서 정한 것 (#67)

@@ -1,6 +1,6 @@
 import { Result } from 'effect'
-import { eventContext } from '../../../shared/events/domain-event.ts'
-import type { DecisionContext } from '../../../shared/events/domain-event.ts'
+import { eventContext } from '../../../shared/decision/decision-context.ts'
+import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { draftEncounter } from '../../clinical/encounters/encounter-draft.ts'
 import type { Encounter } from '../../clinical/encounters/encounter.ts'
