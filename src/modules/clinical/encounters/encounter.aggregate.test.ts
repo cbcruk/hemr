@@ -110,63 +110,25 @@ describe('decideUpdate', () => {
 describe('decideComplete', () => {
   const charted = () => testDraft({ diagnoses: [PRIMARY], version: 2 })
 
-  it('완료하면 1판을 남기고 진료 중인 내원을 그대로 두며 치료실로 보낼 때는 시술을 끝내지 않습니다', () => {
+  it('완료하면 1판을 남기고, 고르지 않은 다음 내원 상태는 null로 이벤트에 싣습니다', () => {
     const given = charted()
 
     const then = success(decideComplete(given, { expectedVersion: 2 }, facts(), TEST_CONTEXT))
 
-    expect(then.write.encounter).toMatchObject({ status: 'COMPLETED', completedAt: TEST_CONTEXT.at, revision: 1 })
-    expect(then.write.revision).toMatchObject({ revision: 1, source: 'COMPLETION', reason: null })
-    expect(then.write.event).toMatchObject({ type: 'encounter.completed', data: { acknowledged: [] } })
-    expect(then.moved).toBeNull()
-    expect(then.finishProcedures).toBe(false)
+    expect(then.encounter).toMatchObject({ status: 'COMPLETED', completedAt: TEST_CONTEXT.at, revision: 1 })
+    expect(then.revision).toMatchObject({ revision: 1, source: 'COMPLETION', reason: null })
+    expect(then.event).toMatchObject({
+      type: 'encounter.completed',
+      data: { acknowledged: [], nextVisitStatus: null },
+    })
   })
 
-  it('대기 내원은 치료실로 옮깁니다', () => {
-    const then = success(
-      decideComplete(
-        charted(),
-        { expectedVersion: 2 },
-        facts({ visit: testVisitOf({ status: 'WAITING' }) }),
-        TEST_CONTEXT,
-      ),
-    )
-
-    expect(then.moved?.visit.status).toBe('IN_TREATMENT')
-    expect(then.visit?.status).toBe('IN_TREATMENT')
-  })
-
-  it('수납으로 보내면 내원을 옮기고 진행 중인 시술을 끝내라고 알립니다', () => {
+  it('고른 다음 내원 상태를 이벤트에 실어 내원 정책에 맡깁니다', () => {
     const then = success(
       decideComplete(charted(), { expectedVersion: 2, nextVisitStatus: 'AWAITING_PAYMENT' }, facts(), TEST_CONTEXT),
     )
 
-    expect(then.moved?.events.map((each) => each.data)).toMatchObject([
-      { from: 'IN_TREATMENT', to: 'AWAITING_PAYMENT' },
-    ])
-    expect(then.finishProcedures).toBe(true)
-  })
-
-  it('데스크가 이미 수납으로 보낸 내원은 따로 고르지 않으면 되돌리지 않습니다', () => {
-    const then = success(
-      decideComplete(
-        charted(),
-        { expectedVersion: 2 },
-        facts({ visit: testVisitOf({ status: 'AWAITING_PAYMENT' }) }),
-        TEST_CONTEXT,
-      ),
-    )
-
-    expect(then.moved).toBeNull()
-    expect(then.visit?.status).toBe('AWAITING_PAYMENT')
-  })
-
-  it('지난 날짜의 내원은 옮기지 않습니다', () => {
-    const past = testVisitOf({ status: 'WAITING', date: '2026-11-12' })
-
-    expect(
-      success(decideComplete(charted(), { expectedVersion: 2 }, facts({ visit: past }), TEST_CONTEXT)).moved,
-    ).toBeNull()
+    expect(then.event.data).toMatchObject({ nextVisitStatus: 'AWAITING_PAYMENT' })
   })
 
   it('주상병이 없으면 위반을 모두 담아 거부합니다', () => {

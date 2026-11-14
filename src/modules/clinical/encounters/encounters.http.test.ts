@@ -464,7 +464,7 @@ async function charted(send: ReturnType<typeof app>, encounterId: string) {
 }
 
 describe.each(['memory', 'sqlite'] as const)('encounter completion HTTP (%s)', (store) => {
-  it('completes the draft, sends the visit to the treatment room and refuses later edits', async () => {
+  it('완료하면 진료만 돌려주고 뒤 수정을 막습니다. 내원은 정책이 뒤따라 옮깁니다', async () => {
     const send = app(store)
     const { visit, encounterId } = await checkedIn(send)
     await charted(send, encounterId)
@@ -481,8 +481,9 @@ describe.each(['memory', 'sqlite'] as const)('encounter completion HTTP (%s)', (
       doctorId: doctor.user.id,
       version: 3,
     })
-    expect(body['visit']).toMatchObject({ id: visit.id, status: 'IN_TREATMENT', version: 2 })
-    expect((await json(await send('GET', `/visits/${visit.id}`, { as: desk })))['status']).toBe('IN_TREATMENT')
+    expect(Object.keys(body)).toEqual(['encounter'])
+    // 정책이 돌기 전이라 내원은 접수 상태 그대로입니다(결정 M2)
+    expect((await json(await send('GET', `/visits/${visit.id}`, { as: desk })))['status']).toBe('WAITING')
     expect(edit.status).toBe(409)
     expect(await json(edit)).toMatchObject({ code: 'ENCOUNTER_NOT_EDITABLE', currentStatus: 'COMPLETED' })
     expect(again.status).toBe(409)
@@ -543,25 +544,6 @@ describe('encounter completion HTTP (sqlite)', () => {
 })
 
 describe('encounter completion HTTP', () => {
-  it('sends the visit where nextVisitStatus says, and leaves it alone when it is already there', async () => {
-    const send = app()
-    const checkout = await checkedIn(send)
-    const waiting = await checkedIn(send)
-    await charted(send, checkout.encounterId)
-    await charted(send, waiting.encounterId)
-    const toCheckout = await send('POST', `/encounters/${checkout.encounterId}:complete`, {
-      ifMatch: '"2"',
-      body: { nextVisitStatus: 'AWAITING_PAYMENT' },
-    })
-    const stay = await send('POST', `/encounters/${waiting.encounterId}:complete`, {
-      ifMatch: '"2"',
-      body: { nextVisitStatus: 'WAITING' },
-    })
-
-    expect((await json(toCheckout))['visit']).toMatchObject({ status: 'AWAITING_PAYMENT', version: 2 })
-    expect((await json(stay))['visit']).toMatchObject({ status: 'WAITING', version: 1 })
-  })
-
   it('needs If-Match, the current version and encounter:write, and takes only known acknowledgements', async () => {
     const send = app()
     const { encounterId } = await checkedIn(send)
@@ -602,27 +584,6 @@ describe('encounter completion HTTP', () => {
 
     expect(opened.status).toBe(404)
     expect(await json(opened)).toMatchObject({ code: 'ENCOUNTER_NOT_FOUND' })
-  })
-})
-
-describe('encounter completion and the visit flow', () => {
-  it('leaves a visit at checkout alone unless asked', async () => {
-    const send = app()
-    const atCheckout = await checkedIn(send)
-    const moved = await checkedIn(send)
-    for (const each of [atCheckout, moved]) {
-      await charted(send, each.encounterId)
-      await send('POST', `/visits/${each.visit.id}:send-to-checkout`, { as: desk })
-    }
-
-    const stay = await send('POST', `/encounters/${atCheckout.encounterId}:complete`, { ifMatch: '"2"', body: {} })
-    const back = await send('POST', `/encounters/${moved.encounterId}:complete`, {
-      ifMatch: '"2"',
-      body: { nextVisitStatus: 'IN_TREATMENT' },
-    })
-
-    expect((await json(stay))['visit']).toMatchObject({ status: 'AWAITING_PAYMENT', version: 2 })
-    expect((await json(back))['visit']).toMatchObject({ status: 'IN_TREATMENT', version: 3 })
   })
 })
 

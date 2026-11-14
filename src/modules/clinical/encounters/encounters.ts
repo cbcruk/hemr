@@ -1,14 +1,12 @@
 import { Context, DateTime, Effect, Layer } from 'effect'
 import { Transaction } from '../../../shared/db/transaction.ts'
-import { decisionContext, eventContext } from '../../../shared/decision/decision-context.ts'
+import { decisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import type { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
-import type { Visit } from '../../front-desk/visits/visit.ts'
 import { ReceiptRepository } from '../../front-desk/receipts/receipt-repository.ts'
 import { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
-import { Procedures } from '../treatment-room/procedures.ts'
 import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
 import type { PrescriptionLineRef } from '../prescriptions/prescription-line-changes.ts'
@@ -40,10 +38,9 @@ export interface SavedEncounter {
 
 export type CompleteEncounterInput = CompleteCommand
 
-/** 완료한 진료와 그 내원입니다. 내원 없는 진료는 `visit`이 `null`입니다. */
+/** 완료한 진료입니다. 내원 이동·시술 종료는 정책이 뒤따라 하므로 싣지 않습니다(결정 M2). */
 export interface CompletedEncounter {
   encounter: Encounter
-  visit: Visit | null
 }
 
 export type CompleteEncounterError =
@@ -162,12 +159,9 @@ export class Encounters extends Context.Service<
      * 초안 진료를 완료합니다 (clinical.md 완료 커맨드). 버전·상태·취소한 내원은 `update`와 같이 412·409입니다. 완료
      * 검증(`judgeCompletion`)이 막으면 422 `ENCOUNTER_COMPLETION_REJECTED`로 모든 이유를 돌려줍니다.
      *
-     * 통과하면 한 트랜잭션에서 진료를 `COMPLETED`로 저장하고 `encounter.completed`를 내고, 내원을 `nextVisitStatus`로
-     * 옮깁니다(`decideVisitStatus`, `visit.status_changed`). 내원이 이미 그 상태이거나, 진료가 끝난 상태(`COMPLETED`)이거나,
-     * 지난 날짜의 내원이면 내원은 그대로 둡니다. `nextVisitStatus`를 고르지 않았으면 수납 대기(`AWAITING_PAYMENT`)인
-     * 내원도 그대로 둡니다. 대기·수납을 골랐고 내원이 그 상태가 되었거나 이미 그 상태면 그 내원의 진행 중·만료 시술을
-     * 완료합니다 (`Procedures.finishRunning`). 읽기와 판정도 같은 트랜잭션 안에서 합니다. 진료의가 비어 있으면 완료한 사용자로
-     * 채웁니다.
+     * 통과하면 진료를 `COMPLETED`로 저장하고 `encounter.completed`(`nextVisitStatus` 포함)를 냅니다. 읽기·판정·쓰기는
+     * 한 트랜잭션입니다. 내원 이동(`moveVisitAfterEncounter`)과 시술 종료(`finishProceduresAfterEncounter`)는 그 이벤트를
+     * 받는 정책이 합니다(결정 M2). 진료의가 비어 있으면 완료한 사용자로 채웁니다.
      */
     complete(
       id: Id<'encounter'>,
@@ -182,7 +176,6 @@ export class Encounters extends Context.Service<
       const patients = yield* Patients
       const visits = yield* VisitRepository
       const receipts = yield* ReceiptRepository
-      const procedures = yield* Procedures
       const transaction = yield* Transaction
       const facts = encounterFacts({ encounters: repository, visits, receipts })
       const { find, write } = facts
@@ -298,18 +291,9 @@ export class Encounters extends Context.Service<
             const current = yield* find(access.tenantId, id)
             const known = { visit: yield* facts.visitOf(current), others: yield* facts.othersOf(current) }
             const decided = yield* Effect.fromResult(decideComplete(current, input, known, context))
-            // 실패할 수 있는 진료 쓰기(버전 비교)를 먼저 해, 되돌리지 못하는 메모리 저장소에서도 내원만 옮겨지지 않습니다
-            yield* write(decided.write)
-            if (decided.moved !== null && known.visit !== null) {
-              // 같은 트랜잭션에서 방금 읽은 내원이라 버전이 어긋나면 결함이고 진료도 되돌립니다
-              yield* visits
-                .save(decided.moved.visit, { expectedVersion: known.visit.version, events: decided.moved.events })
-                .pipe(Effect.orDie)
-            }
-            if (decided.finishProcedures && decided.visit !== null) {
-              yield* procedures.finishRunning(decided.visit, eventContext(context))
-            }
-            return { encounter: decided.write.encounter, visit: decided.visit }
+            // 내원 이동과 시술 종료는 `encounter.completed`를 받는 정책이 합니다(결정 M2)
+            yield* write(decided)
+            return { encounter: decided.encounter }
           }),
         )
       })

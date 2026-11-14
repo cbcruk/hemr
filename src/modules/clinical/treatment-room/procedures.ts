@@ -119,8 +119,8 @@ export class Procedures extends Context.Service<
     ): Effect.Effect<ReadonlyArray<Procedure>, VisitNotFound | ProcedureOrderInvalid, CurrentAccess>
 
     /**
-     * 내원의 진행 중·만료 시술을 완료합니다. 진료 완료가 내원을 대기·수납으로 보낼 때 같은 트랜잭션에서 부릅니다
-     * (clinical.md 완료 커맨드 5). 권한은 부르는 쪽이 확인합니다.
+     * 내원의 진행 중·만료 시술을 완료합니다. 진료 완료가 내원을 대기·수납으로 보낼 때 정책
+     * (`finishProceduresAfterEncounter`)이 부릅니다 (clinical.md 완료 커맨드 5). 권한은 부르는 쪽이 확인합니다.
      */
     finishRunning(visit: Visit, actor: Actor): Effect.Effect<ReadonlyArray<Procedure>>
 

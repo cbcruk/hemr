@@ -94,8 +94,8 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | 수납 취소·정정, 환불 | **묶음: Receipt + Payment + PrepaidAccount** | 시재 원장 변경 | 읽을 때 계산 | 뷰 |
 | 내원 취소(연쇄 아님) | **Visit** | 내용 없는 진료 초안 철회 | 정책 (M5) | 정책 `visit.status_changed(CANCELED)` → 진료 철회 (M5) |
 | 내원 연쇄 취소 | **묶음(컨텍스트를 넘는 예외)** | 진료 철회, 수납 취소, 패키지·선수금 복원, 시술·탕전 취소, 청구 제외 | 같은 트랜잭션(일부 미구현) | 묶음 유지([D3](review.md#결정-필요)) |
-| 진료 완료 `encounters:complete` | **묶음: Encounter + PackageContract** | 내원을 `nextVisitStatus`로 이동 | 같은 트랜잭션 | 정책 `encounter.completed` → 내원 이동 (M2) |
-| | | 진행 중 시술 종료 | 같은 트랜잭션 | 정책 `encounter.completed` → 시술 종료 |
+| 진료 완료 `encounters:complete` | **묶음: Encounter + PackageContract** | 내원을 `nextVisitStatus`로 이동 | 정책 (M2) | 정책 `encounter.completed` → 내원 이동 (M2) |
+| | | 진행 중 시술 종료 | 정책 (M2) | 정책 `encounter.completed` → 시술 종료 |
 | | | 추나 심평원 제출 작업 | 미구현 | 정책 → 사가(`Job`) |
 | 정정 제안 반영 | **묶음: AmendmentProposal + Encounter** | | 같은 트랜잭션 | 그대로 |
 | 시술 커맨드 | **TreatmentSession** (M4, 지금은 Procedure) | | | |
@@ -144,8 +144,8 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | 진료 초안 만들기 | `visit.checked_in` | 진료 초안 생성 | 기록만 합니다. 의사가 차트를 열 때 만듭니다 | 옮김 (M1, [encounter-draft.policy.ts](../../src/modules/clinical/encounters/encounter-draft.policy.ts)) |
 | 예약 도착 | `visit.checked_in` (`appointmentId` 있음) | 예약 도착 | 기록만 합니다(이미 취소된 예약 등) | 예약 구현 때 |
 | 빈 초안 철회 | `visit.status_changed` (`CANCELED`) | 진료 철회 | 기록만 합니다 | 옮김 (M5, [encounter-retraction.policy.ts](../../src/modules/clinical/encounters/encounter-retraction.policy.ts)) |
-| 진료 후 내원 이동 | `encounter.completed` | 내원 진료 흐름 커맨드 | 기록만 합니다. 내원 상태는 데스크가 옮깁니다 | 옮길 것 (M2) |
-| 진료 후 시술 종료 | `encounter.completed` (`WAITING`·`AWAITING_PAYMENT`) | 시술 일괄 완료 | 기록만 합니다 | 옮길 것 |
+| 진료 후 내원 이동 | `encounter.completed` | 내원 진료 흐름 커맨드 | 기록만 합니다. 내원 상태는 데스크가 옮깁니다 | 옮김 (M2, [visit-after-encounter.policy.ts](../../src/modules/front-desk/visits/visit-after-encounter.policy.ts)) |
+| 진료 후 시술 종료 | `encounter.completed` (`WAITING`·`AWAITING_PAYMENT`) | 시술 일괄 완료 | 기록만 합니다 | 옮김 (M2, [procedure-finish.policy.ts](../../src/modules/clinical/treatment-room/procedure-finish.policy.ts)) |
 | 보험구분 정정 제안 | `visit.coverage_changed` | 정정 제안 생성 | — | 구현 때 |
 | 패키지 계약 생성 | `receipt.created` (패키지 판매분 있음) | 계약 생성 | 실패를 남기고 재시도합니다. 돈은 이미 받았습니다 | 구현 때 |
 | 추나 자동 제출 | `encounter.completed` | 심평원 제출 사가 시작 | — | Claims 때 |
@@ -156,6 +156,8 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - **정책의 행위자는 받은 이벤트의 행위자입니다.** 빈 초안 철회의 `retractedBy`와 `encounter.retracted`의 `actor`는 내원을 취소한 사용자입니다. 철회가 그 취소에 따른 일이고, 예전에 같은 트랜잭션에서 하던 기록과 같습니다
 - **정책이 돌기 전의 틈은 받는 쪽 애그리거트가 막습니다.** 취소한 내원의 진료는 철회 정책이 돌기 전에도 저장·완료가 409 `ENCOUNTER_VISIT_CANCELED`입니다. 그래서 정책이 철회하는 초안은 취소할 때처럼 비어 있습니다
 - **정책보다 먼저 연 요청은 그 자리에서 정책과 같은 일을 합니다(M1).** 접수는 진료 ID만 정해 내원에 담고, 진료를 찾는 곳(`encounterFacts.find`)은 진료가 아직 없으면 그 ID의 내원으로 초안을 만듭니다(`createDraft`). 초안은 내원에서만 정해져 누가 언제 만들어도 같고, 늦게 온 쪽은 이미 있는 진료를 씁니다. 만든 사람은 정책이면 접수한 사용자, 먼저 연 요청이면 그 사용자입니다. 정책이 돌기 전에 취소한 내원의 진료는 만들지 않아 404입니다
+- **한 이벤트를 여러 정책이 따로 받습니다(M2).** `encounter.completed`는 Front Desk의 내원 이동과 치료실의 시술 종료가 따로 받습니다. 정책끼리 순서가 없어, 시술 종료는 내원이 실제로 옮겨졌는지가 아니라 이벤트의 `nextVisitStatus`(대기·수납)로 정합니다. 그래서 내원을 옮기지 않는 경우(수납 완료, 지난 날짜)에도 대기·수납을 골랐으면 시술을 끝냅니다. 예전에는 옮겨졌거나 이미 그 상태일 때만 끝냈습니다
+- **진료 판정은 내원 판정을 부르지 않습니다(M2).** 내원 이동 판정이 내원 판정(`decideVisitAfterEncounter`)으로 옮겨, 진료 판정은 내원 쪽에서 `NextVisitStatus` 형만 가져옵니다
 - `correlationId`는 아직 이벤트 봉투에 없어 이어받지 않습니다. 연쇄 취소의 감사 로그와 함께 봉투에 더합니다
 
 ## 코드 배치
@@ -210,7 +212,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - [encounter.aggregate.ts](../../src/modules/clinical/encounters/encounter.aggregate.ts): 초안 저장(`decideUpdate`), 완료(`decideComplete`, 진료·내원 묶음), 정정(`decideAmend`), 철회(`decideRetract`), 고정(`decideLock`)
 - [amendment-proposal.aggregate.ts](../../src/modules/clinical/encounters/amendment-proposal.aggregate.ts): 제안(`decidePropose`), 반영(`decideApply`, 제안·진료 묶음), 버림(`decideDismiss`)
 - **사실 읽기와 진료 쓰기는 두 서비스가 공유합니다**([encounter-facts.ts](../../src/modules/clinical/encounters/encounter-facts.ts)). 정정 제안 서비스가 진료 서비스(`Encounters.amend`)를 부르지 않고 판정을 직접 묶습니다. 진료 완료도 내원 서비스(`Visits.apply`)가 아니라 내원 판정과 저장소를 씁니다
-- **완료 뒤 시술 완료는 서비스에 남겼습니다.** 판정은 `finishProcedures`로 알리기만 하고, 서비스가 `Procedures.finishRunning`을 부릅니다. 시술 애그리거트(M4, #70)와 정책(M2, #69)에서 다시 봅니다
+- **완료 뒤 시술 완료는 서비스에 남겼습니다.** 판정은 `finishProcedures`로 알리기만 하고, 서비스가 `Procedures.finishRunning`을 불렀습니다. M2(#69)에서 정책으로 옮겨 진료 완료가 내원·시술을 모두 쓰지 않습니다
 - **권한이 판정 사이에 끼는 커맨드는 판정을 나눕니다.** 제안 반영은 대기·낡음(`applicable`)을 처방 권한보다 먼저 거부해야 해서, 서비스가 `applicable` → 권한 → `decideApply` 순서로 부릅니다. `decideApply`도 `applicable`을 다시 봐 혼자서 완전합니다
 - 초안 저장도 수납 여부(`billedBy`)를 늘 읽습니다. 예전에는 처방을 바꿀 때만 읽었습니다. 같은 트랜잭션 안의 한 번이라 그대로 두고, 저장이 잦아 문제가 되면 #74와 같이 봅니다
 

@@ -122,7 +122,7 @@ If-Match: "8"
 → 200 { encounter, hiraSubmissions[] }
 ```
 
-한 트랜잭션에서 하는 일:
+한 트랜잭션에서 하는 일(5는 정책):
 
 1. 완료 검증 (아래 규칙). 막히면 422와 `violations[]`
 2. 처방 라인 금액 확정(price lock), 패키지 사용 생성. 이미 수납에서 확정됐으면 건너뜁니다 ([patients.md](patients.md#패키지-계약))
@@ -131,7 +131,7 @@ If-Match: "8"
 5. (정책, M2) 내원 상태를 `nextVisitStatus`로 이동. 기본값은 현행과 같이 `IN_TREATMENT`(치료실로 보냄)입니다. `WAITING`이나 `AWAITING_PAYMENT`로 보낼 때만 진행 중인 치료실 시술을 종료합니다 (현행 `치료완료` 호출 조건). 내원이 이미 그 상태여도 종료합니다
 6. 이벤트 `encounter.completed` (`nextVisitStatus` 포함)
 
-5와 진행 중 시술 종료는 [domain-model.md](domain-model.md#정책)의 결정(M2)대로 트랜잭션 밖에서 `encounter.completed`를 받는 정책이 맡습니다. 내원이 이미 취소됐으면 이동만 빠지고 진료 완료는 그대로입니다. 지금 구현은 아직 같은 트랜잭션에서 옮기고 응답에 `visit`을 싣습니다
+5와 진행 중 시술 종료는 [domain-model.md](domain-model.md#정책)의 결정(M2)대로 트랜잭션 밖에서 `encounter.completed`를 받는 정책이 맡습니다. 내원이 이미 취소됐으면 이동만 빠지고 진료 완료는 그대로입니다
 
 현행은 1–5를 클라이언트가 순서대로 불렀고, 4의 서버 반영 실패는 무시했습니다 ("다음 저장 시 반영됨").
 
@@ -168,15 +168,16 @@ If-Match: "8"
 - **주상병은 정확히 하나여야 합니다.** 저장은 상병이 없으면 경고하지 않지만, 완료는 상병이 없어도 `PRIMARY_DIAGNOSIS_MISSING`입니다. 일반(`SELF_PAY`) 진료도 같습니다. 진료기록에 상병은 늘 있어야 하기 때문입니다. 되돌릴 조건: 상병 없이 끝내는 진료(상담만 등)가 필요하면 진료 종류나 보험구분으로 예외를 둡니다
 - **첩약 시범사업 라인은 늘 막힙니다.** 처방 라인에 아직 심평원 승인 상태가 없어 승인 전으로 봅니다. 시범사업 표시도 없어 보험구분 전용 처방으로도 막힙니다. 심평원 제출이 생기면 라인의 승인 상태를 씁니다
 - **진찰료 중복은 완료한 같은 날 진료와 비교하고(취소한 내원의 완료 진료도 셉니다. 연쇄 취소가 진료를 철회하게 되면(#25) 빠집니다) `acknowledge: ["DUPLICATE_CONSULTATION_FEE"]`로 넘깁니다.** 초안끼리는 비교하지 않아, 먼저 완료한 진료는 통과하고 뒤 진료가 확인을 받습니다. 날짜는 병원 시간대(`Asia/Seoul`)로 셉니다. 수납이 아직 없어 모두 수납 전(`paid: false`)입니다. 넘긴 위반은 `encounter.completed`의 `acknowledged`에 남깁니다. 다른 코드는 넘길 수 없어 400입니다
-- **내원은 내원 판정(`decideVisitStatus`)으로 옮깁니다.** `nextVisitStatus`(기본 `IN_TREATMENT`)로 가는 내원 커맨드(`:start-treatment`·`:return-to-waiting`·`:send-to-checkout`)를 같은 트랜잭션에서 판정·저장해 `visit.status_changed`가 함께 나갑니다. 내원 커맨드 권한(`visit:update`)은 따로 보지 않습니다. 진료를 완료할 수 있는 한의사가 진료 흐름을 넘기는 일이기 때문입니다
-  - 내원을 그대로 두는 경우: 이미 그 상태, 수납까지 끝난 내원(`COMPLETED`), 지난 날짜의 내원(진료 흐름 커맨드가 막힘), `nextVisitStatus`를 고르지 않았는데 데스크가 이미 수납 대기(`AWAITING_PAYMENT`)로 보낸 내원. 전날 진료를 오늘 마무리하거나 환자를 보낸 뒤에 기록을 끝내도 완료가 막히거나 내원이 되돌아가지 않게 하려는 것입니다. 수납 대기에서 옮기려면 `nextVisitStatus`를 보냅니다
-  - **읽기·판정·쓰기를 모두 한 트랜잭션에서 합니다.** SQLite는 트랜잭션을 하나씩 실행하므로, 완료가 진료·내원·같은 날 진료를 읽은 뒤 데스크의 내원 커맨드나 다른 진료의 완료가 끼어들지 못합니다. 그래서 함께 들어온 `:start-treatment`나 취소가 500이 아니라 각각 내원 그대로 두기·409가 되고, 같은 날 두 진료를 동시에 완료해도 뒤 진료가 진찰료 중복을 봅니다. 되돌릴 조건: 동시에 쓰는 DB(PostgreSQL 등)로 옮기면 내원 행을 잠그거나(`SELECT … FOR UPDATE`) 직렬화 격리 수준을 씁니다
-  - 진료를 먼저 쓰고 내원을 옮깁니다. 진료 쓰기는 버전 비교로 실패할 수 있어, 되돌리지 못하는 메모리 저장소에서도 내원만 옮겨지지 않습니다. 같은 트랜잭션에서 방금 읽은 내원이라 내원 커맨드는 늘 통과합니다. 요청 중 자정이 지나는 것처럼 그래도 실패하면 결함(500)이고 진료도 되돌립니다
+- **내원은 Front Desk의 정책이 옮깁니다(결정 M2, #69).** 완료는 `encounter.completed`에 `nextVisitStatus`(고르지 않았으면 `null`)를 싣고, 정책 `moveVisitAfterEncounter`가 받아 내원 판정(`decideVisitAfterEncounter`)으로 `nextVisitStatus`(기본 `IN_TREATMENT`)에 가는 내원 커맨드(`:start-treatment`·`:return-to-waiting`·`:send-to-checkout`)를 판정·저장합니다. 옮긴 사람은 완료한 한의사이고, 내원 커맨드 권한(`visit:update`)은 따로 보지 않습니다. 진료를 완료할 수 있는 한의사가 진료 흐름을 넘기는 일이기 때문입니다. 처음(#24)에는 같은 트랜잭션에서 옮기고 응답에 실었습니다
+  - 내원을 그대로 두는 경우: 이미 그 상태, 수납까지 끝난 내원(`COMPLETED`), 그 사이 취소한 내원, 지난 날짜의 내원(진료 흐름 커맨드가 막힘), `nextVisitStatus`를 고르지 않았는데 데스크가 이미 수납 대기(`AWAITING_PAYMENT`)로 보낸 내원. 전날 진료를 오늘 마무리하거나 환자를 보낸 뒤에 기록을 끝내도 완료가 막히거나 내원이 되돌아가지 않게 하려는 것입니다. 수납 대기에서 옮기려면 `nextVisitStatus`를 보냅니다
+  - **완료의 읽기·판정·쓰기는 한 트랜잭션입니다.** SQLite는 트랜잭션을 하나씩 실행하므로, 완료가 진료·내원·같은 날 진료를 읽은 뒤 데스크의 취소나 다른 진료의 완료가 끼어들지 못합니다. 그래서 같은 날 두 진료를 동시에 완료해도 뒤 진료가 진찰료 중복을 보고, 먼저 취소된 내원의 진료는 409입니다. 내원 이동은 정책이 그때의 내원을 다시 읽어 판정하므로, 그 사이 데스크가 옮긴 내원은 그 상태를 기준으로 합니다. 되돌릴 조건: 동시에 쓰는 DB(PostgreSQL 등)로 옮기면 내원 행을 잠그거나(`SELECT … FOR UPDATE`) 직렬화 격리 수준을 씁니다
+  - 정책의 내원 저장이 버전 비교로 어긋나면 결함으로 멈추고, 실행기가 다음 회차에 다시 읽어 판정합니다. 진료 완료는 되돌리지 않습니다
+  - **진행 중 시술 종료도 정책입니다.** 치료실의 `finishProceduresAfterEncounter`가 `nextVisitStatus`가 대기·수납이면 그 내원의 진행 중·만료 시술을 완료합니다. 내원 이동 정책과 따로 돌아 내원이 실제로 옮겨졌는지는 보지 않으므로, 수납 완료·지난 날짜라 내원을 옮기지 않아도 대기·수납을 골랐으면 끝냅니다. 취소한 내원은 지나칩니다
 - **같은 날 진료는 환자의 진료 전체에서 고릅니다.** 진료가 아주 많은 환자에서 느려지면 날짜로 좁혀 읽습니다
 - **진료 쪽 검사는 `update`와 같습니다.** `If-Match` 필수(빠지면 400, 어긋나면 412), 초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`, 취소한 내원이면 409 `ENCOUNTER_VISIT_CANCELED`, 권한은 `encounter:write`(면허)입니다
-- **응답은 `{ encounter, visit }`입니다.** 내원 없는 진료는 `visit: null`입니다. `ETag`는 진료 버전입니다. `hiraSubmissions[]`는 심평원 제출이 생길 때 더합니다
+- **응답은 `{ encounter }`입니다(M2).** 내원은 정책이 뒤따라 옮기므로 싣지 않습니다. 화면은 `visit.status_changed`로 내원을 갱신합니다. `ETag`는 진료 버전입니다. `hiraSubmissions[]`는 심평원 제출이 생길 때 더합니다
 - **진료의가 비어 있으면 완료한 사용자로 채웁니다.** `completedAt`은 처음 완료한 시각이고, 정정(#25)해도 바꾸지 않습니다
-- **이벤트:** `encounter.completed { encounterId, visitId, patientId, doctorId, acknowledged }`, 그리고 내원을 옮겼으면 `visit.status_changed`
+- **이벤트:** `encounter.completed { encounterId, visitId, patientId, doctorId, acknowledged, nextVisitStatus }`. 정책이 내원을 옮기면 `visit.status_changed`, 시술을 끝내면 `procedure.updated`가 뒤따릅니다
 - **저장:** 마이그레이션 `0009_encounter_completion`이 `encounters`에 `completed_at`을 더합니다
 - **모듈:** 진료가 내원 커맨드(`Visits`)를 쓰고 접수가 빈 진료를 만들어 서로를 부르므로, 접수가 쓰는 `draftEncounter`·`hasClinicalContent`를 [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)로 옮겨 import 순환을 없앴습니다. M1부터 접수는 진료를 만들지 않아 `draftEncounter`는 진료 판정으로 옮겼고, 내원 취소가 쓰는 `hasClinicalContent`만 남았습니다
 
@@ -394,7 +395,7 @@ GET  /needle-removals?date=
 - **오류 이름:** [procedure-timer 결정](rule-decisions.md#procedure-timer)의 `PROCEDURE_DURATION_TOO_SHORT`는 422 `PROCEDURE_DURATION_REJECTED`의 `reason`으로, `PROCEDURE_ALREADY_DONE`(409)은 다른 상태 커맨드와 같은 409 `PROCEDURE_TRANSITION_INVALID { currentStatus: DONE }`로 냅니다. 정수가 아니거나 1 미만인 시간(`PROCEDURE_DURATION_INVALID`)은 요청 스키마가 400으로 먼저 막습니다(1–86400초)
 - **닫힌 내원:** 취소했거나 수납까지 끝난(`COMPLETED`) 내원에는 시술을 더하거나 시작·시간 변경·타이머 재시작·되돌리기를 할 수 없습니다(409 `PROCEDURE_VISIT_CLOSED`). 완료·모두 완료·삭제·순서 변경은 정리용이라 받습니다
   - 미룸: 내원 연쇄 취소의 시술 취소(front-desk.md 연쇄 취소). 시술에 취소 상태가 없어, 지금은 취소한 내원의 시술을 그대로 두고 보드에서 빼고 진행 커맨드를 막습니다. 취소할 때 진행 중이던 시술은 서버 타이머가 만료로 바꾸고 그 뒤로 보드에 보이지 않아 `TIMER_ELAPSED`로 남습니다. 시술 수가 청구와 이어질 때 취소 상태를 더하고 내원 취소가 함께 정리합니다
-- **진료 완료가 `nextVisitStatus`로 대기(`WAITING`)나 수납 대기(`AWAITING_PAYMENT`)를 고르고 내원이 그 상태가 되면(옮겼거나, 데스크가 먼저 그 상태로 보냈거나) 같은 트랜잭션에서 그 내원의 진행 중·만료 시술을 완료합니다(`finishRunning`).** 대기 시술은 그대로 둡니다. 치료실로 보내거나(`IN_TREATMENT`) 내원이 다른 상태로 남는 경우(수납까지 끝남 등)에는 건드리지 않습니다. 권한은 진료 완료 권한으로 충분하다고 봤습니다(`procedure:write`를 따로 보지 않음)
+- **진료 완료가 `nextVisitStatus`로 대기(`WAITING`)나 수납 대기(`AWAITING_PAYMENT`)를 고르면 정책(`finishProceduresAfterEncounter`, 결정 M2)이 그 내원의 진행 중·만료 시술을 완료합니다(`finishRunning`).** 대기 시술은 그대로 둡니다. 치료실로 보내거나(`IN_TREATMENT`) 고르지 않았거나 내원을 취소했으면 건드리지 않습니다. 처음에는 같은 트랜잭션에서, 내원이 그 상태가 되었을 때만 완료했습니다. 지금은 내원 이동 정책과 따로 돌아 수납까지 끝난 내원이라도 대기·수납을 골랐으면 완료합니다. 권한은 진료 완료 권한으로 충분하다고 봤습니다(`procedure:write`를 따로 보지 않음)
 - **입력 한도:** 이름은 1–100자이고 공백만은 안 됩니다(400). 내원 하나의 시술은 100개까지입니다(422 `PROCEDURE_LIMIT_EXCEEDED`). 순서 변경이 모든 시술 ID를 한 번에 받는 상한과 같습니다
 - **삭제는 대기 시술만 합니다.** 시작한 시술은 기록이라 지우지 않고 완료나 되돌리기로 정리합니다. 순서 변경은 내원의 시술 ID를 빠짐없이 한 번씩 보내야 합니다(422 `PROCEDURE_ORDER_INVALID`). 시술 하나의 `PATCH`로 `order`를 바꾸지는 않습니다. 순서는 내원 전체가 한 번에 바뀌어야 겹치지 않기 때문입니다
 - **권한:** 조회는 `procedure:read`(데스크·치료사·의사), 바꾸기는 `procedure:write`(치료사·의사). 면허는 보지 않습니다. 보드는 내원 전체(보험구분·자격 등)를 함께 주므로 `visit:read`도 봅니다

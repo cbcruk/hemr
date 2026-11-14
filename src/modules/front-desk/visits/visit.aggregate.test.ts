@@ -8,7 +8,7 @@ import type { Payment, ReceiptRecord } from '../receipts/receipt.ts'
 import { testVisit } from './testing.ts'
 import { eventContext } from '../../../shared/decision/decision-context.ts'
 import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
-import { decideCancel, decideCheckIn, decideVisitStatus } from './visit.aggregate.ts'
+import { decideCancel, decideCheckIn, decideVisitAfterEncounter, decideVisitStatus } from './visit.aggregate.ts'
 import type { CheckInFacts } from './visit.aggregate.ts'
 import type { Visit } from './visit.ts'
 
@@ -285,5 +285,36 @@ describe('decideCheckIn', () => {
 
     expect(then).toMatchObject({ code: 'CHECK_IN_REJECTED' })
     expect(then.errors).toContain('NHIS_NOT_ELIGIBLE')
+  })
+})
+
+describe('decideVisitAfterEncounter', () => {
+  it('고르지 않으면 대기 내원을 치료실로 옮깁니다', () => {
+    const then = success(decideVisitAfterEncounter(visit({ status: 'WAITING' }), null, context))
+
+    expect(then?.visit).toMatchObject({ status: 'IN_TREATMENT', version: 2 })
+    expect(then?.events.map((each) => each.data)).toMatchObject([{ from: 'WAITING', to: 'IN_TREATMENT' }])
+  })
+
+  it('수납으로 보내면 진료 중인 내원을 수납 대기로 옮깁니다', () => {
+    const then = success(decideVisitAfterEncounter(visit({ status: 'IN_TREATMENT' }), 'AWAITING_PAYMENT', context))
+
+    expect(then?.visit.status).toBe('AWAITING_PAYMENT')
+  })
+
+  it('이미 그 상태, 수납 완료, 취소, 지난 날짜의 내원은 그대로 둡니다', () => {
+    expect(success(decideVisitAfterEncounter(visit({ status: 'IN_TREATMENT' }), null, context))).toBeNull()
+    expect(success(decideVisitAfterEncounter(visit({ status: 'COMPLETED' }), 'WAITING', context))).toBeNull()
+    expect(success(decideVisitAfterEncounter(visit({ status: 'CANCELED' }), 'WAITING', context))).toBeNull()
+    expect(
+      success(decideVisitAfterEncounter(visit({ status: 'WAITING', date: '2026-11-12' }), null, context)),
+    ).toBeNull()
+  })
+
+  it('데스크가 이미 수납으로 보낸 내원은 따로 고르지 않으면 되돌리지 않고, 고르면 옮깁니다', () => {
+    const atCheckout = visit({ status: 'AWAITING_PAYMENT' })
+
+    expect(success(decideVisitAfterEncounter(atCheckout, null, context))).toBeNull()
+    expect(success(decideVisitAfterEncounter(atCheckout, 'IN_TREATMENT', context))?.visit.status).toBe('IN_TREATMENT')
   })
 })

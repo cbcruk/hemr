@@ -5,7 +5,6 @@ import { Access } from '../../identity/auth/access.ts'
 import { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { Authorization } from '../../identity/auth/authorization.ts'
 import { PatientId, PatientNotFound } from '../../patients/patient.ts'
-import { Visit } from '../../front-desk/visits/visit.ts'
 import {
   Encounter,
   EncounterBilled,
@@ -128,10 +127,9 @@ export class EncountersApi extends HttpApiGroup.make('encounters')
       headers,
       payload: CompletePayload,
       success: withETag(
-        Schema.Struct({
-          encounter: Encounter,
-          visit: Schema.NullOr(Visit).annotate({ description: '완료 뒤의 내원입니다. 내원 없는 진료는 `null`입니다.' }),
-        }).annotate({ description: '완료한 진료와 내원입니다.' }),
+        Schema.Struct({ encounter: Encounter }).annotate({
+          description: '완료한 진료입니다. 내원 이동과 시술 종료는 `encounter.completed`를 받는 정책이 뒤따라 합니다.',
+        }),
       ),
       error: [
         EncounterNotFound,

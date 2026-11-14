@@ -103,6 +103,51 @@ export function decideVisitStatus(
   return Result.succeed({ visit: next, events: [event] })
 }
 
+/** 진료 완료 뒤 내원을 보낼 수 있는 상태입니다(clinical.md 완료 커맨드 5). */
+export type NextVisitStatus = 'WAITING' | 'IN_TREATMENT' | 'AWAITING_PAYMENT'
+
+/** 내원을 `nextVisitStatus`로 보내는 내원 커맨드입니다. */
+const NEXT_VISIT_COMMANDS: Record<NextVisitStatus, VisitCommand> = {
+  WAITING: 'RETURN_TO_WAITING',
+  IN_TREATMENT: 'START_TREATMENT',
+  AWAITING_PAYMENT: 'SEND_TO_CHECKOUT',
+}
+
+/**
+ * 진료 완료 뒤 내원 이동을 판정합니다(정책 `moveVisitAfterEncounter`, 결정 M2). `nextVisitStatus`(고르지 않았으면
+ * `null`, 그러면 `IN_TREATMENT`)로 가는 진료 흐름 커맨드를 판정합니다. 옮기지 않으면 `null`입니다.
+ *
+ * 그대로 두는 경우: 이미 그 상태, 수납까지 끝난 내원(`COMPLETED`), 취소한 내원, 지난 날짜의 내원, 고르지 않았는데
+ * 데스크가 이미 수납 대기(`AWAITING_PAYMENT`)로 보낸 내원. 걸러 낸 내원은 이 전이를 늘 받으므로, 거부되면 결함입니다.
+ */
+export function decideVisitAfterEncounter(
+  visit: Visit,
+  nextVisitStatus: NextVisitStatus | null,
+  context: DecisionContext,
+): Result.Result<VisitDecision | null> {
+  const target = nextVisitStatus ?? 'IN_TREATMENT'
+  const stays =
+    visit.status === target ||
+    visit.status === 'COMPLETED' ||
+    visit.status === 'CANCELED' ||
+    // 데스크가 이미 수납으로 보낸 내원은 따로 고르지 않으면 치료실로 되돌리지 않습니다
+    (visit.status === 'AWAITING_PAYMENT' && nextVisitStatus === null) ||
+    visit.date < context.today
+  if (stays) return Result.succeed(null)
+  // 이 전이들은 진료 내용 사실을 보지 않습니다
+  const decided = decideVisitStatus(
+    visit,
+    NEXT_VISIT_COMMANDS[target],
+    {},
+    { hasClinicalData: visit.hasClinicalData },
+    context,
+  )
+  if (Result.isFailure(decided)) {
+    throw new Error(`moving visit ${visit.id} after completion was refused: ${decided.failure._tag}`)
+  }
+  return Result.succeed(decided.success)
+}
+
 /** 사유 없이 취소한 내원의 사유입니다. 취소에 따른 진료 철회의 사유도 됩니다. */
 export const DEFAULT_CANCEL_REASON = 'Visit canceled'
 
