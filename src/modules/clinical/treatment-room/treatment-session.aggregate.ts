@@ -16,13 +16,23 @@ import {
 import type { Procedure } from './procedure.ts'
 
 /**
- * 시술 애그리거트입니다 (docs/design/domain-model.md, clinical.md 치료실). 시술 커맨드와 서버 타이머의 만료를
- * 판정합니다. 타이머 계산은 규칙 모듈(`procedure-timer.ts`)이 하고, 여기서는 상태·내원 조건을 보고 바뀐 시술과
- * 이벤트를 만듭니다. 판정 함수는 순수 함수이고, 서비스가 읽어 둔 시술·내원과 시각을 받습니다.
+ * 치료 세션 애그리거트입니다 (docs/design/domain-model.md, clinical.md 치료실, 결정 M4). 내원 하나의 시술 묶음이고 키는
+ * `visitId`입니다. 시술 커맨드와 서버 타이머의 만료를 판정합니다. 타이머 계산은 규칙 모듈(`procedure-timer.ts`)이
+ * 하고, 여기서는 상태·내원 조건을 보고 바뀐 시술과 이벤트를 만듭니다. 판정 함수는 순수 함수이고, 서비스가 읽어 둔
+ * 세션의 시술·내원과 시각을 받습니다.
  *
- * 시작·완료처럼 같은 내원의 다른 시술을 함께 바꾸는 커맨드가 있어, 판정은 내원의 시술 목록을 받습니다. 내원 단위
- * 애그리거트(치료 세션)로 묶는 일은 M4(#70)에서 합니다.
+ * 시작이 같은 내원의 만료 시술을 함께 완료하고, 순서·개수 상한이 내원의 시술 전체에 걸려 있어 버전은 세션에 하나만
+ * 둡니다. 저장소가 쓰기마다 세션 버전을 한 번 비교합니다.
  */
+
+/** 내원 하나의 시술 묶음입니다. `version`은 세션을 쓴 횟수이고, 아직 쓴 적이 없으면 0입니다. */
+export interface TreatmentSession {
+  tenantId: Id<'tenant'>
+  visitId: Id<'visit'>
+  version: number
+  /** `order` 순서입니다. */
+  procedures: ReadonlyArray<Procedure>
+}
 
 /** 판정 시각과 이벤트를 남길 행위자입니다. 서버 타이머는 `SYSTEM`입니다. */
 export interface ProcedureContext {
@@ -30,14 +40,18 @@ export interface ProcedureContext {
   event: Required<Pick<DomainEvent, 'tenantId' | 'actor'>>
 }
 
-/** 바뀐 시술과 그 쓰기·이벤트입니다. 한 트랜잭션에 씁니다. 바뀐 것이 없으면 모두 비어 있습니다. */
-export interface ProcedureChanges {
+/** 세션에서 바뀌거나 더한 시술, 지운 시술, 이벤트입니다. 한 트랜잭션에 씁니다. 바뀐 것이 없으면 모두 비어 있습니다. */
+export interface TreatmentSessionChanges {
   changed: ReadonlyArray<Procedure>
-  writes: ReadonlyArray<{ procedure: Procedure; expectedVersion: number | null }>
+  removed: ReadonlyArray<Id<'procedure'>>
   events: ReadonlyArray<DomainEvent>
 }
 
-const NO_CHANGES: ProcedureChanges = { changed: [], writes: [], events: [] }
+const NO_CHANGES: TreatmentSessionChanges = { changed: [], removed: [], events: [] }
+
+/** 바뀐 것이 없는지입니다. 서비스는 이때 세션을 쓰지 않습니다. */
+export const isUnchanged = (changes: TreatmentSessionChanges) =>
+  changes.changed.length === 0 && changes.removed.length === 0
 
 const procedureEvent = (type: string, procedure: Procedure, context: ProcedureContext) =>
   domainEvent(
@@ -48,14 +62,9 @@ const procedureEvent = (type: string, procedure: Procedure, context: ProcedureCo
     context.event,
   )
 
-/** 바꾼 시술을 새 버전으로 쓰고 시술마다 `procedure.updated`를 냅니다. `expectedVersion`은 읽은 버전입니다. */
-function updates(changed: ReadonlyArray<Procedure>, current: ReadonlyArray<Procedure>, context: ProcedureContext) {
-  const versions = new Map(current.map((each) => [each.id, each.version]))
-  return {
-    changed,
-    writes: changed.map((procedure) => ({ procedure, expectedVersion: versions.get(procedure.id) ?? null })),
-    events: changed.map((each) => procedureEvent('procedure.updated', each, context)),
-  }
+/** 바꾼 시술마다 `procedure.updated`를 냅니다. */
+function updates(changed: ReadonlyArray<Procedure>, context: ProcedureContext): TreatmentSessionChanges {
+  return { changed, removed: [], events: changed.map((each) => procedureEvent('procedure.updated', each, context)) }
 }
 
 const timerOf = (procedure: Procedure): ProcedureTimer => ({
@@ -72,7 +81,7 @@ function applyTimers(
   current: ReadonlyArray<Procedure>,
   timers: ReadonlyArray<ProcedureTimer>,
   context: ProcedureContext,
-): ProcedureChanges {
+): TreatmentSessionChanges {
   const byId = new Map(timers.map((each) => [each.procedureId, each]))
   const changed: Procedure[] = []
   for (const procedure of current) {
@@ -81,7 +90,7 @@ function applyTimers(
     const { procedureId: _, ...fields } = timer
     changed.push({ ...procedure, ...fields, updatedAt: context.at, version: procedure.version + 1 })
   }
-  return updates(changed, current, context)
+  return updates(changed, context)
 }
 
 /** 시술을 진행할 수 있는 내원인지입니다. 취소했거나 수납까지 끝난 내원은 닫혔습니다(409 `PROCEDURE_VISIT_CLOSED`). */
@@ -115,7 +124,7 @@ export function decideAdd(
   procedureId: Id<'procedure'>,
   settings: Pick<ProcedureTimerSettings, 'defaultItemSeconds'>,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureVisitClosed | ProcedureLimitExceeded> {
+): Result.Result<TreatmentSessionChanges, ProcedureVisitClosed | ProcedureLimitExceeded> {
   const opened = open(visit)
   if (Result.isFailure(opened)) return Result.fail(opened.failure)
   if (existing.length >= MAX_PROCEDURES_PER_VISIT) return Result.fail(new ProcedureLimitExceeded({}))
@@ -139,7 +148,7 @@ export function decideAdd(
   }
   return Result.succeed({
     changed: [procedure],
-    writes: [{ procedure, expectedVersion: null }],
+    removed: [],
     events: [procedureEvent('procedure.created', procedure, context)],
   })
 }
@@ -155,7 +164,10 @@ export function decideSetDuration(
   visit: Visit,
   durationSeconds: number,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureVisitClosed | ProcedureTransitionInvalid | ProcedureDurationRejected> {
+): Result.Result<
+  TreatmentSessionChanges,
+  ProcedureVisitClosed | ProcedureTransitionInvalid | ProcedureDurationRejected
+> {
   const opened = open(visit)
   if (Result.isFailure(opened)) return Result.fail(opened.failure)
   const result = setProcedureDuration(timerOf(procedure), durationSeconds, Date.parse(context.at))
@@ -171,17 +183,21 @@ export function decideSetDuration(
 export function decideRemove(
   procedure: Procedure,
   context: ProcedureContext,
-): Result.Result<DomainEvent, ProcedureTransitionInvalid> {
+): Result.Result<TreatmentSessionChanges, ProcedureTransitionInvalid> {
   if (procedure.status !== 'PENDING') return invalid(procedure)
-  return Result.succeed(
-    domainEvent(
-      'procedure.removed',
-      procedure.id,
-      context.at,
-      { procedureId: procedure.id, visitId: procedure.visitId, patientId: procedure.patientId },
-      context.event,
-    ),
-  )
+  return Result.succeed({
+    changed: [],
+    removed: [procedure.id],
+    events: [
+      domainEvent(
+        'procedure.removed',
+        procedure.id,
+        context.at,
+        { procedureId: procedure.id, visitId: procedure.visitId, patientId: procedure.patientId },
+        context.event,
+      ),
+    ],
+  })
 }
 
 /**
@@ -194,7 +210,7 @@ export function decideStart(
   current: ReadonlyArray<Procedure>,
   settings: Pick<ProcedureTimerSettings, 'autoCompleteElapsedOnNextStart'>,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureVisitClosed | ProcedureTransitionInvalid> {
+): Result.Result<TreatmentSessionChanges, ProcedureVisitClosed | ProcedureTransitionInvalid> {
   const opened = open(visit)
   if (Result.isFailure(opened)) return Result.fail(opened.failure)
   const result = startProcedures(current.map(timerOf), [procedure.id], Date.parse(context.at), settings)
@@ -208,7 +224,7 @@ export function decideStartAll(
   current: ReadonlyArray<Procedure>,
   settings: Pick<ProcedureTimerSettings, 'autoCompleteElapsedOnNextStart'>,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureVisitClosed> {
+): Result.Result<TreatmentSessionChanges, ProcedureVisitClosed> {
   const opened = open(visit)
   if (Result.isFailure(opened)) return Result.fail(opened.failure)
   const targets = current.filter((each) => each.status !== 'DONE').map((each) => each.id)
@@ -232,7 +248,7 @@ function finish(current: ReadonlyArray<Procedure>, targets: ReadonlySet<string>,
 export function decideComplete(
   procedure: Procedure,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureTransitionInvalid> {
+): Result.Result<TreatmentSessionChanges, ProcedureTransitionInvalid> {
   if (procedure.status !== 'RUNNING' && procedure.status !== 'TIMER_ELAPSED') return invalid(procedure)
   return Result.succeed(finish([procedure], new Set([procedure.id]), context))
 }
@@ -241,7 +257,10 @@ export function decideComplete(
  * 내원의 진행 중·만료 시술을 모두 완료합니다. 대기 시술은 그대로 둡니다. `:complete-all`과, 진료 완료가 내원을
  * 대기·수납으로 보낼 때(clinical.md 완료 커맨드 5) 씁니다. 거부하지 않습니다.
  */
-export function decideFinishRunning(current: ReadonlyArray<Procedure>, context: ProcedureContext): ProcedureChanges {
+export function decideFinishRunning(
+  current: ReadonlyArray<Procedure>,
+  context: ProcedureContext,
+): TreatmentSessionChanges {
   return finish(current, new Set(current.map((each) => each.id)), context)
 }
 
@@ -250,7 +269,7 @@ export function decideRestartTimer(
   procedure: Procedure,
   visit: Visit,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureVisitClosed | ProcedureTransitionInvalid> {
+): Result.Result<TreatmentSessionChanges, ProcedureVisitClosed | ProcedureTransitionInvalid> {
   const opened = open(visit)
   if (Result.isFailure(opened)) return Result.fail(opened.failure)
   if (procedure.status !== 'RUNNING' && procedure.status !== 'TIMER_ELAPSED') return invalid(procedure)
@@ -268,7 +287,7 @@ export function decideReopen(
   procedure: Procedure,
   visit: Visit,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges, ProcedureVisitClosed | ProcedureTransitionInvalid> {
+): Result.Result<TreatmentSessionChanges, ProcedureVisitClosed | ProcedureTransitionInvalid> {
   const opened = open(visit)
   if (Result.isFailure(opened)) return Result.fail(opened.failure)
   if (procedure.status !== 'DONE') return invalid(procedure)
@@ -290,7 +309,7 @@ export function decideReorder(
   current: ReadonlyArray<Procedure>,
   ids: ReadonlyArray<Id<'procedure'>>,
   context: ProcedureContext,
-): Result.Result<ProcedureChanges & { ordered: ReadonlyArray<Procedure> }, ProcedureOrderInvalid> {
+): Result.Result<TreatmentSessionChanges & { ordered: ReadonlyArray<Procedure> }, ProcedureOrderInvalid> {
   const known = new Set<string>(current.map((each) => each.id))
   if (ids.length !== current.length || new Set(ids).size !== ids.length || !ids.every((id) => known.has(id))) {
     return Result.fail(new ProcedureOrderInvalid({}))
@@ -306,14 +325,20 @@ export function decideReorder(
     }))
   const byId = new Map(changed.map((each) => [each.id, each]))
   return Result.succeed({
-    ...updates(changed, current, context),
+    ...updates(changed, context),
     ordered: current.map((each) => byId.get(each.id) ?? each).sort((a, b) => a.order - b.order),
   })
 }
 
-/** 서버 타이머가 시술 하나의 만료를 판정합니다. 아직 끝나지 않았으면 `null`입니다. */
-export function decideElapse(procedure: Procedure, context: ProcedureContext): ProcedureChanges | null {
-  const [timer] = elapseDueTimers([timerOf(procedure)], Date.parse(context.at)).procedures
-  if (timer?.status !== 'TIMER_ELAPSED') return null
-  return applyTimers([procedure], [timer], context)
+/**
+ * 서버 타이머가 세션의 만료를 판정합니다. 타이머가 끝난 진행 중 시술을 모두 `TIMER_ELAPSED`로 바꿉니다. 끝난 시술이
+ * 없으면 `null`입니다.
+ */
+export function decideElapse(
+  current: ReadonlyArray<Procedure>,
+  context: ProcedureContext,
+): TreatmentSessionChanges | null {
+  const result = elapseDueTimers(current.map(timerOf), Date.parse(context.at))
+  if (result.elapsedIds.length === 0) return null
+  return applyTimers(current, result.procedures, context)
 }

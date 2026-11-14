@@ -6,6 +6,7 @@ import { Outbox } from '../../../shared/events/outbox.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import type { Procedure } from './procedure.ts'
 import { ProcedureRepository } from './procedure-repository.ts'
+import type { TreatmentSessionWrite } from './procedure-repository.ts'
 
 const OTHER_TENANT = 'ten_01JBQ000000000000000000002' as Procedure['tenantId']
 const VISIT_1 = 'vis_01JBQ000000000000000000001' as Procedure['visitId']
@@ -55,9 +56,29 @@ const run = <A, E>(
   program: Effect.Effect<A, E, ProcedureRepository | Outbox>,
 ) => Effect.runPromise(program.pipe(Effect.provide(layer)))
 
+const AT = '2026-11-06T01:00:00.000Z'
+
+/** 세션에 쓸 것입니다. 기본은 첫 내원의 세션에 바뀐 시술 없이 씁니다. */
+const write = (overrides: Partial<TreatmentSessionWrite> = {}): TreatmentSessionWrite => ({
+  tenantId: TEST_TENANT.id,
+  visitId: VISIT_1,
+  expectedVersion: 0,
+  at: AT,
+  procedures: [],
+  removed: [],
+  ...overrides,
+})
+
+/** 시술을 그 세션의 지금 버전으로 씁니다. */
 const insert = (...procedures: Procedure[]) =>
   Effect.gen(function* () {
-    yield* (yield* ProcedureRepository).saveAll(procedures.map((each) => ({ procedure: each, expectedVersion: null })))
+    const repository = yield* ProcedureRepository
+    for (const each of procedures) {
+      const session = yield* repository.findSession(each.tenantId, each.visitId)
+      yield* repository.saveSession(
+        write({ tenantId: each.tenantId, visitId: each.visitId, expectedVersion: session.version, procedures: [each] }),
+      )
+    }
   })
 
 /** 메모리와 SQLite 구현이 같은 계약을 지키는지 봅니다. */
@@ -65,76 +86,113 @@ describe.each([
   ['memory', () => PersistenceMemory()],
   ['sqlite', () => PersistenceSqlite(':memory:')],
 ] as const)('ProcedureRepository (%s)', (_, layer) => {
-  it('inserts, updates with the expected version and writes the events with them', async () => {
+  it('세션 버전을 비교해 올리고 시술과 이벤트를 함께 씁니다', async () => {
     const first = procedure(1)
-    const next = running(1, '2026-11-06T01:00:00.000Z', 600, { updatedAt: '2026-11-06T01:00:00.000Z', version: 2 })
+    const next = running(1, AT, 600, { updatedAt: AT, version: 2 })
     const result = await run(
       layer(),
       Effect.gen(function* () {
         const repository = yield* ProcedureRepository
-        yield* repository.saveAll([{ procedure: first, expectedVersion: null }], [event(first)])
-        yield* repository.saveAll([{ procedure: next, expectedVersion: 1 }], [event(next)])
+        const empty = yield* repository.findSession(TEST_TENANT.id, VISIT_1)
+        yield* repository.saveSession(write({ procedures: [first] }), [event(first)])
+        yield* repository.saveSession(write({ expectedVersion: 1, procedures: [next] }), [event(next)])
         return {
+          empty,
+          session: yield* repository.findSession(TEST_TENANT.id, VISIT_1),
           found: yield* repository.findById(TEST_TENANT.id, first.id),
           pending: (yield* (yield* Outbox).pending(10)).length,
         }
       }),
     )
+    expect(result.empty).toEqual({ tenantId: TEST_TENANT.id, visitId: VISIT_1, version: 0, procedures: [] })
+    expect(result.session).toEqual({ tenantId: TEST_TENANT.id, visitId: VISIT_1, version: 2, procedures: [next] })
     expect(result.found).toEqual(Option.some(next))
     expect(result.pending).toBe(2)
   })
 
-  it('writes nothing when any version does not match', async () => {
+  it('세션 버전이 어긋나면 아무것도 쓰지 않습니다', async () => {
     const result = await run(
       layer(),
       Effect.gen(function* () {
         const repository = yield* ProcedureRepository
         yield* insert(procedure(1), procedure(2))
-        const exit = yield* Effect.exit(
-          repository.saveAll(
-            [
-              { procedure: procedure(1, { name: '바뀜', version: 2 }), expectedVersion: 1 },
-              { procedure: procedure(2, { name: '바뀜', version: 3 }), expectedVersion: 2 },
-            ],
+        const stale = yield* Effect.exit(
+          repository.saveSession(
+            write({
+              expectedVersion: 1,
+              procedures: [procedure(1, { name: '바뀜', version: 2 })],
+              removed: [procedure(2).id],
+            }),
             [event(procedure(1))],
           ),
         )
-        const duplicate = yield* Effect.exit(insert(procedure(1)))
+        const fresh = yield* Effect.exit(repository.saveSession(write({ procedures: [procedure(3)] })))
         return {
-          exit,
-          duplicate,
-          names: (yield* repository.listByVisits(TEST_TENANT.id, [VISIT_1])).map((each) => each.name),
+          stale,
+          fresh,
+          session: yield* repository.findSession(TEST_TENANT.id, VISIT_1),
           pending: (yield* (yield* Outbox).pending(10)).length,
         }
       }),
     )
-    expect(result.exit).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 1 }))
-    expect(result.duplicate).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 1 }))
-    expect(result.names).toEqual(['시술 1', '시술 2'])
+    expect(result.stale).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 2 }))
+    expect(result.fresh).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 2 }))
+    expect(result.session.version).toBe(2)
+    expect(result.session.procedures.map((each) => each.name)).toEqual(['시술 1', '시술 2'])
     expect(result.pending).toBe(0)
   })
 
-  it('hides and refuses procedures of another tenant', async () => {
+  it('세션 안의 시술을 지웁니다', async () => {
+    const result = await run(
+      layer(),
+      Effect.gen(function* () {
+        const repository = yield* ProcedureRepository
+        yield* insert(procedure(1), procedure(2))
+        yield* repository.saveSession(write({ expectedVersion: 2, removed: [procedure(1).id] }), [event(procedure(1))])
+        return {
+          session: yield* repository.findSession(TEST_TENANT.id, VISIT_1),
+          pending: (yield* (yield* Outbox).pending(10)).length,
+        }
+      }),
+    )
+    expect(result.session).toMatchObject({ version: 3, procedures: [{ id: procedure(2).id }] })
+    expect(result.pending).toBe(1)
+  })
+
+  it('다른 병원의 세션과 시술은 보이지 않고, 지우지도 않습니다', async () => {
     const result = await run(
       layer(),
       Effect.gen(function* () {
         const repository = yield* ProcedureRepository
         yield* insert(procedure(1))
-        const foreign = procedure(1, { tenantId: OTHER_TENANT, version: 2 })
+        yield* repository.saveSession(write({ tenantId: OTHER_TENANT, removed: [procedure(1).id] }))
         return {
           found: yield* repository.findById(OTHER_TENANT, procedure(1).id),
+          session: yield* repository.findSession(OTHER_TENANT, VISIT_1),
           listed: yield* repository.listByVisits(OTHER_TENANT, [VISIT_1]),
-          update: yield* Effect.exit(repository.saveAll([{ procedure: foreign, expectedVersion: 1 }])),
-          remove: yield* Effect.exit(repository.remove({ ...foreign, version: 1 })),
           kept: yield* repository.findById(TEST_TENANT.id, procedure(1).id),
         }
       }),
     )
     expect(result.found).toEqual(Option.none())
+    expect(result.session).toMatchObject({ version: 1, procedures: [] })
     expect(result.listed).toEqual([])
-    expect(result.update).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 0 }))
-    expect(result.remove).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 0 }))
     expect(result.kept).toEqual(Option.some(procedure(1)))
+  })
+
+  it('다른 세션의 시술 ID를 쓰면 결함입니다', async () => {
+    const exit = await run(
+      layer(),
+      Effect.gen(function* () {
+        yield* insert(procedure(1))
+        return yield* Effect.exit(
+          (yield* ProcedureRepository).saveSession(
+            write({ visitId: VISIT_2, procedures: [procedure(1, { visitId: VISIT_2 })] }),
+          ),
+        )
+      }),
+    )
+    expect(Exit.isFailure(exit) && exit.cause.reasons.some((reason) => reason._tag === 'Die')).toBe(true)
   })
 
   it('lists procedures by visit and order', async () => {
@@ -175,25 +233,5 @@ describe.each([
       }),
     )
     expect(due.map((each) => each.id)).toEqual([procedure(3).id, procedure(1).id])
-  })
-
-  it('removes a procedure of the expected version only', async () => {
-    const result = await run(
-      layer(),
-      Effect.gen(function* () {
-        const repository = yield* ProcedureRepository
-        yield* insert(procedure(1))
-        const stale = yield* Effect.exit(repository.remove({ ...procedure(1), version: 2 }))
-        yield* repository.remove(procedure(1), [event(procedure(1))])
-        return {
-          stale,
-          found: yield* repository.findById(TEST_TENANT.id, procedure(1).id),
-          pending: (yield* (yield* Outbox).pending(10)).length,
-        }
-      }),
-    )
-    expect(result.stale).toMatchObject(Exit.fail({ _tag: 'VersionMismatch', currentVersion: 1 }))
-    expect(result.found).toEqual(Option.none())
-    expect(result.pending).toBe(1)
   })
 })

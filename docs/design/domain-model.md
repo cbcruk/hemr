@@ -76,7 +76,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | AmendmentProposal | `proposalId` | `PENDING`일 때만 반영·버림 | 제안, 반영(묶음), 버림 |
 | TreatmentSession | `visitId` | 같은 베드의 만료 시술은 다음 시술을 시작할 때 함께 완료(정책 설정). 순서가 내원 안에서 겹치지 않음 | 시술 더하기·지우기·순서 바꾸기, 시작, 완료, 타이머 다시 시작, 일괄 시작·완료, 타이머 만료(예약 커맨드) |
 
-**시술은 내원 단위로 묶습니다([M4](#결정)).** 지금은 시술(`Procedure`) 하나가 애그리거트이고 버전도 시술마다 있습니다. 하지만 일괄 시작·완료, 순서 바꾸기, 만료 시술 자동 완료는 모두 한 내원의 시술 여럿을 함께 봅니다. 불변식이 내원 단위이므로 애그리거트도 내원 단위입니다. 대가로 두 직원이 한 환자의 다른 시술을 동시에 누르면 한쪽이 버전 충돌을 받습니다.
+**시술은 내원 단위로 묶습니다([M4](#결정)).** 일괄 시작·완료, 순서 바꾸기, 만료 시술 자동 완료는 모두 한 내원의 시술 여럿을 함께 봅니다. 불변식이 내원 단위이므로 애그리거트도 내원 단위이고, 버전은 세션에 하나입니다(#70). 대가로 두 직원이 한 환자의 다른 시술을 동시에 누르면 한쪽이 버전 충돌을 받습니다. 치료실 커맨드는 `If-Match`를 받지 않아 서버가 다시 읽어 다시 판정하고, 충돌은 로그로 셉니다 (clinical.md 치료실 구현 결정).
 
 ## 커맨드와 영향
 
@@ -98,7 +98,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 | | | 진행 중 시술 종료 | 정책 (M2) | 정책 `encounter.completed` → 시술 종료 |
 | | | 추나 심평원 제출 작업 | 미구현 | 정책 → 사가(`Job`) |
 | 정정 제안 반영 | **묶음: AmendmentProposal + Encounter** | | 같은 트랜잭션 | 그대로 |
-| 시술 커맨드 | **TreatmentSession** (M4, 지금은 Procedure) | | | |
+| 시술 커맨드 | **TreatmentSession** (M4) | | | |
 | 시재 개시·마감·다시 열기 | **CashDrawer** | | | |
 | 지출 기록·삭제 | **Expense** | 그날 시재가 열렸는지 읽음 | | 읽기만 하므로 묶지 않음 |
 
@@ -220,8 +220,8 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 치료실 시술을 옮겼습니다. 동작·오류 코드·이벤트·`openapi.json`은 바뀌지 않았습니다.
 
-- [procedure.aggregate.ts](../../src/modules/clinical/treatment-room/procedure.aggregate.ts): 커맨드마다 판정(`decideAdd`, `decideSetDuration`, `decideRemove`, `decideStart`, `decideStartAll`, `decideComplete`, `decideFinishRunning`, `decideRestartTimer`, `decideReopen`, `decideReorder`)과 서버 타이머의 만료(`decideElapse`)
-- **판정은 내원의 시술 목록을 받습니다.** 시작이 같은 내원의 만료 시술을 함께 완료하는 것처럼 커맨드 하나가 여러 시술을 바꾸기 때문입니다. 내원 단위 애그리거트(치료 세션)로 묶는 일은 M4([#70](https://github.com/cbcruk/hemr/issues/70))에서 합니다
+- [treatment-session.aggregate.ts](../../src/modules/clinical/treatment-room/treatment-session.aggregate.ts)(M4에서 `procedure.aggregate.ts`를 옮겼습니다): 커맨드마다 판정(`decideAdd`, `decideSetDuration`, `decideRemove`, `decideStart`, `decideStartAll`, `decideComplete`, `decideFinishRunning`, `decideRestartTimer`, `decideReopen`, `decideReorder`)과 서버 타이머의 만료(`decideElapse`)
+- **판정은 내원의 시술 목록을 받습니다.** 시작이 같은 내원의 만료 시술을 함께 완료하는 것처럼 커맨드 하나가 여러 시술을 바꾸기 때문입니다. M4([#70](https://github.com/cbcruk/hemr/issues/70))에서 이 목록을 치료 세션(`TreatmentSession`)으로 묶고 버전을 세션에 하나 두었습니다. 판정은 바뀐 시술·지운 시술·이벤트(`TreatmentSessionChanges`)를 돌려주고, 서비스가 읽은 세션 버전으로 저장합니다. 서버 타이머의 만료도 세션마다 한 번 판정합니다
 - **판정 문맥은 사용자 대신 이벤트 행위자를 받습니다**(`ProcedureContext`). 서버 타이머(`SYSTEM`)와 진료 완료가 넘긴 행위자도 시술을 바꾸기 때문입니다
 - **판정 시각은 다시 시도할 때마다 새로 잽니다.** 시술 커맨드는 `VersionMismatch`에 처음부터 다시 하므로(서버 타이머와 겹칠 때) 시각도 그 안에서 읽습니다
 - 타이머 계산(`procedure-timer.ts`)은 규칙 문서·픽스처와 짝이라 그대로 두고 판정이 부릅니다
@@ -256,7 +256,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 2. **나머지 애그리거트**([#67](https://github.com/cbcruk/hemr/issues/67)): 묶은 경계 표의 묶음부터 `decide`로 옮깁니다. 동작은 바꾸지 않습니다. 수납·진료·시술·시재·환자를 옮겨 마쳤습니다
 3. **정책 기반**([#68](https://github.com/cbcruk/hemr/issues/68)): 소비자별 `seq` 저장과 정책 실행기를 만듭니다. 첫 정책은 응답이 바뀌지 않는 것으로 고릅니다(#69의 M5)
 4. **트랜잭션에서 정책으로 옮기기**([#69](https://github.com/cbcruk/hemr/issues/69)): 아래 결정대로 하나씩 옮깁니다. 응답 모양이 바뀌는 것(M1·M2)은 OpenAPI와 도메인 문서를 함께 고칩니다
-5. **시술 애그리거트 넓히기(M4)**([#70](https://github.com/cbcruk/hemr/issues/70))
+5. **시술 애그리거트 넓히기(M4)**([#70](https://github.com/cbcruk/hemr/issues/70)): 버전을 내원의 치료 세션에 하나 두었습니다. HTTP 계약은 바뀌지 않았습니다
 
 ## 결정
 

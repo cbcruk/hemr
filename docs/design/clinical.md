@@ -384,16 +384,20 @@ GET  /needle-removals?date=
 
 ### 치료실 구현 결정
 
-구현은 [procedures.ts](../../src/modules/clinical/treatment-room/procedures.ts)의 `Procedures`, 저장은 [procedure-repository.ts](../../src/modules/clinical/treatment-room/procedure-repository.ts), 판정은 [procedure.aggregate.ts](../../src/modules/clinical/treatment-room/procedure.aggregate.ts)(#67), 타이머 계산은 이미 포팅한 [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts)입니다 (#26).
+구현은 [procedures.ts](../../src/modules/clinical/treatment-room/procedures.ts)의 `Procedures`, 저장은 [procedure-repository.ts](../../src/modules/clinical/treatment-room/procedure-repository.ts), 판정은 치료 세션 애그리거트 [treatment-session.aggregate.ts](../../src/modules/clinical/treatment-room/treatment-session.aggregate.ts)(#67, M4 #70), 타이머 계산은 이미 포팅한 [procedure-timer.ts](../../src/modules/clinical/treatment-room/procedure-timer.ts)입니다 (#26).
 
 - **범위:** 위 목록에서 보드, 시술 더하기·시간 변경·삭제, 시술 하나의 `:start`·`:complete`·`:restart-timer`·`:reopen`, 내원의 `:start-all`·`:complete-all`·`:reorder`, 서버 타이머 만료, 진료 완료가 내원을 대기·수납으로 보낼 때 진행 중인 시술 완료(위 [완료 커맨드](#완료-커맨드) 5)
   - 미룸: 치료실·베드 배정(`roomId`·`bedNumber`, `visit.bed_changed`)과 보드의 `rooms[].beds[]`는 치료실 설정(`treatment-rooms`)이 생길 때, 치료세트(`procedureSetId`·`setInstanceId`)는 `procedure-sets` 설정이 생길 때, 발침 기록(`needle-removals`)과 `:finish-treatment`는 그 화면 흐름을 옮길 때, 이벤트로 보드 갱신(푸시)은 실시간 전달 계층이 생길 때 엽니다. 처방 라인에서 시술을 자동으로 만드는 일(현행 `seed_from_chart`)도 미룹니다. 지금은 `sourcePrescriptionLineId`를 참조로 받기만 하고 진료에 그 라인이 있는지 보지 않습니다
 - **내원 하나를 베드 하나로 봅니다.** 베드 배정이 없어 `startProcedures`의 "같은 베드"는 같은 내원입니다. 보드는 `{ serverTime, items: [{ visit, procedures }] }`이고 그날 취소하지 않은 내원을 접수 순서로 줍니다. 베드가 생기면 `items`를 치료실·베드로 묶습니다
 - **타이머 정책은 기본값(`DEFAULT_PROCEDURE_TIMER_SETTINGS`)입니다.** 새 시술 300초, 다음 시술을 시작하면 만료 시술 자동 완료. `procedure-timers` 설정이 생기면 병원 값으로 바꿉니다
-- **서버 타이머:** `ProcedureTimerSweep`이 1초마다 모든 병원의 끝난 진행 중 시술(`listDue`)을 `TIMER_ELAPSED`로 바꾸고 `procedure.updated`(행위자 `SYSTEM`)를 냅니다. 시술마다 버전을 비교해 쓰고, 그 사이 사용자가 먼저 바꿨으면 건너뜁니다(그 커맨드가 만료도 판정합니다). 실패하면 로그만 남기고 계속합니다. 커맨드도 판정 전에 끝난 타이머를 만료로 보므로, 1초 지연이 상태를 틀리게 만들지 않습니다
+- **서버 타이머:** `ProcedureTimerSweep`이 1초마다 모든 병원의 끝난 진행 중 시술(`listDue`)을 `TIMER_ELAPSED`로 바꾸고 `procedure.updated`(행위자 `SYSTEM`)를 냅니다. 끝난 시술을 내원(치료 세션)별로 묶어 세션마다 한 번 판정하고 세션 버전을 비교해 씁니다. 그 사이 사용자가 먼저 바꿨으면 그 세션은 건너뜁니다(그 커맨드가 만료도 판정합니다). 실패하면 로그만 남기고 계속합니다. 커맨드도 판정 전에 끝난 타이머를 만료로 보므로, 1초 지연이 상태를 틀리게 만들지 않습니다
   - 대안: 시술마다 `timerEndsAt`에 맞춘 지연 작업. 서버가 재시작하면 다시 걸어야 하고 시술 시간이 바뀔 때마다 취소해야 해 버렸습니다. 되돌릴 조건: 서버를 여러 대 띄우면 한 대만 훑도록 잠금(리더)을 두거나 작업 큐로 옮깁니다
 - **응답:** 시술 하나의 커맨드는 그 시술을, `:start`와 내원 단위 커맨드는 `{ items }`로 바뀐 시술 모두를 줍니다. `:start`는 같은 내원의 만료 시술을 함께 완료하므로 바뀐 시술이 여럿입니다 ([conventions.md](conventions.md) "커맨드 응답은 바뀐 주 리소스"의 예외)
 - **시술 커맨드는 `If-Match`를 받지 않습니다.** 여러 치료사가 한 보드를 빠르게 누르는 화면이라, 같은 시술을 두 번 시작하면 뒤 요청이 상태 전이로 거절(409 `PROCEDURE_TRANSITION_INVALID`, `currentStatus`)되는 것으로 충분합니다. 서비스가 읽기·판정·쓰기를 한 트랜잭션에서 하고, 저장소의 버전 비교가 어긋나면(메모리 저장소, 타이머와 겹침) 처음부터 3번까지 다시 합니다. 그래도 어긋나면 결함입니다. 되돌릴 조건: 시간 변경처럼 값을 덮어쓰는 커맨드에서 덮어쓰기가 문제가 되면 그 커맨드만 `If-Match`를 받습니다
+- **버전은 치료 세션(내원) 하나에 둡니다(결정 M4, #70).** 시작이 같은 내원의 만료 시술을 함께 완료하고, 순서와 개수 상한이 내원의 시술 전체에 걸려 있기 때문입니다. `treatment_sessions(tenant_id, visit_id, version)`을 쓰기마다 한 번 비교하고 올립니다(마이그레이션 `0019`, 행이 없으면 버전 0). 그래서 두 치료사가 같은 내원에 동시에 시술을 더해도 순서가 겹치지 않고, 뒤 요청은 세션을 다시 읽어 판정합니다
+  - HTTP 계약은 그대로입니다. 시술 커맨드는 처음부터 `If-Match`를 받지 않아 비교 대상이 바뀌어도 클라이언트가 보낼 것이 없습니다. 시술의 `version` 필드는 그 시술이 바뀐 횟수로 남기고 비교하지 않습니다
+  - 세션 버전이 어긋나면 `treatment session conflict` 경고 로그(`tenantId`, `visitId`, `expectedVersion`, `currentVersion`, 행위자 종류)를 남깁니다. 다시 시도해 사용자에게는 409가 가지 않으므로, 충돌이 잦은지는 이 로그로 셉니다
+  - 되돌릴 조건: 같은 내원의 다른 시술을 동시에 눌러 생기는 충돌이 잦아 다시 시도가 3번을 넘기면(결함 로그) 시술 단위 버전으로 돌아가고, 순서·개수 불변식은 다른 방법(예: 순서 유일 제약)으로 지킵니다
 - **오류 이름:** [procedure-timer 결정](rule-decisions.md#procedure-timer)의 `PROCEDURE_DURATION_TOO_SHORT`는 422 `PROCEDURE_DURATION_REJECTED`의 `reason`으로, `PROCEDURE_ALREADY_DONE`(409)은 다른 상태 커맨드와 같은 409 `PROCEDURE_TRANSITION_INVALID { currentStatus: DONE }`로 냅니다. 정수가 아니거나 1 미만인 시간(`PROCEDURE_DURATION_INVALID`)은 요청 스키마가 400으로 먼저 막습니다(1–86400초)
 - **닫힌 내원:** 취소했거나 수납까지 끝난(`COMPLETED`) 내원에는 시술을 더하거나 시작·시간 변경·타이머 재시작·되돌리기를 할 수 없습니다(409 `PROCEDURE_VISIT_CLOSED`). 완료·모두 완료·삭제·순서 변경은 정리용이라 받습니다
   - 미룸: 내원 연쇄 취소의 시술 취소(front-desk.md 연쇄 취소). 시술에 취소 상태가 없어, 지금은 취소한 내원의 시술을 그대로 두고 보드에서 빼고 진행 커맨드를 막습니다. 취소할 때 진행 중이던 시술은 서버 타이머가 만료로 바꾸고 그 뒤로 보드에 보이지 않아 `TIMER_ELAPSED`로 남습니다. 시술 수가 청구와 이어질 때 취소 상태를 더하고 내원 취소가 함께 정리합니다
