@@ -103,6 +103,9 @@ export function decideVisitStatus(
   return Result.succeed({ visit: next, events: [event] })
 }
 
+/** 사유 없이 취소한 내원의 사유입니다. 취소에 따른 진료 철회의 사유도 됩니다. */
+export const DEFAULT_CANCEL_REASON = 'Visit canceled'
+
 /** 취소를 판정할 때 서비스가 미리 읽어 두는 사실입니다. */
 export interface CancelFacts extends VisitStatusFacts {
   /** 내원의 진료입니다. 진료가 없는 내원(마이그레이션 `0007` 전 접수)은 `null`입니다. 연쇄 취소만 씁니다. */
@@ -133,7 +136,7 @@ export function decideCancel(
   facts: CancelFacts,
   context: DecisionContext,
 ): Result.Result<CancelDecision, VisitRejection | PaymentRefundRequired> {
-  const reason = input.reason ?? 'Visit canceled'
+  const reason = input.reason ?? DEFAULT_CANCEL_REASON
 
   let voided: CancelDecision['voided'] = null
   if (input.cascade === true && facts.activeReceipt !== null) {

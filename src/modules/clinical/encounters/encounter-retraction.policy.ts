@@ -3,6 +3,7 @@ import { decisionContext } from '../../../shared/decision/decision-context.ts'
 import type { RecordedEvent } from '../../../shared/events/domain-event.ts'
 import type { Policy } from '../../../shared/events/policy.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
+import { DEFAULT_CANCEL_REASON } from '../../front-desk/visits/visit.aggregate.ts'
 import { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { decideRetractCanceledDraft } from './encounter.aggregate.ts'
 import { EncounterRepository } from './encounter-repository.ts'
@@ -34,7 +35,7 @@ export const retractCanceledDraft: Policy<EncounterNotEditable, VisitRepository 
       if (encounter === null) return
       const context = decisionContext({ tenantId, userId }, yield* DateTime.now)
       const decided = yield* Effect.fromResult(
-        decideRetractCanceledDraft(encounter, visit.statusReason ?? 'Visit canceled', context),
+        decideRetractCanceledDraft(encounter, visit.statusReason ?? DEFAULT_CANCEL_REASON, context),
       )
       if (decided === null) return
       // 같은 트랜잭션에서 방금 읽은 진료라 버전이 어긋나면 결함입니다. 실행기가 되돌리고 다음 회차에 다시 합니다
