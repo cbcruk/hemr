@@ -28,6 +28,10 @@ decide(state, command, context) → { state, events } | 거부
 - **`evolve`(이벤트 → 상태)는 두지 않습니다.** hemr는 상태를 저장합니다. 이벤트는 화면이 반응할 최소 필드만 담고, 민감 정보는 넣지 않습니다. 그래서 이벤트로 상태를 다시 만들 수 없습니다
   - 이 선택으로 잃는 것은 이력에서 상태를 다시 만들거나 새 정보를 끌어내는 능력입니다. "왜 이 상태인가"에 대한 답은 진료기록 판·정정 이력과 지우지 않는 outbox 행이 맡습니다
   - 되돌릴 조건: 이력에서 새 정보를 끌어내야 하는 애그리거트가 생기면 [D10](review.md#결정-필요)의 다시 볼 조건에 해당합니다
+- **판정 테스트(`*.aggregate.test.ts`)는 given / when / then입니다.** given은 지금 상태와 미리 읽은 사실이고(`evolve`가 없어 지난 이벤트가 아닙니다), when은 판정 함수 호출, then은 다음 상태와 이벤트 또는 거부입니다. 도우미는 [shared/decision/testing.ts](../../src/shared/decision/testing.ts)에 있습니다(#86)
+  - `success(result)`: 받아들인 결과를 꺼냅니다. 거부했으면 테스트가 실패합니다
+  - `rejected(result, { _tag, ...fields })`: 거부를 오류 태그와 도메인 필드 **전부**로 비교합니다(`toEqual`). 태그만 보면 `currentStatus`·위반 목록처럼 클라이언트가 받는 값이 틀려도 모릅니다. 문제 상세(`code`·`type`·`status`·`title`)는 태그로 정해져 뺍니다
+  - `withoutIds(events)`: 판정마다 새로 만드는 이벤트 ID를 빼고 비교합니다
 
 ### 뷰는 읽을 때 계산합니다
 

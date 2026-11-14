@@ -1,8 +1,9 @@
+import { rejected, success } from '../../../shared/decision/testing.ts'
 import { describe, expect, it } from 'vitest'
 import { testVisit } from '../visits/testing.ts'
 import { decideCorrection, decideVoid } from './receipt.aggregate.ts'
 import type { CorrectionFacts } from './receipt.aggregate.ts'
-import { failure, success, TEST_CONTEXT, TEST_RECEIPT_IDS, testEncounter, testPayment, testReceipt } from './testing.ts'
+import { TEST_CONTEXT, TEST_RECEIPT_IDS, testEncounter, testPayment, testReceipt } from './testing.ts'
 
 /**
  * 수납 취소·정정 판정 함수의 테스트입니다. given(영수증과 그 결제) / when(커맨드) / then(취소한 영수증·결제와 새
@@ -44,9 +45,11 @@ describe('decideVoid', () => {
   })
 
   it('밖에서 취소해야 하는 카드 결제가 남았으면 그 결제를 담아 거부합니다', () => {
-    const then = failure(decideVoid(receipt, [card], { reason: '잘못 수납' }, TEST_CONTEXT))
-
-    expect(then).toMatchObject({ _tag: 'PaymentRefundRequired', receiptId: receipt.id, paymentIds: [card.id] })
+    rejected(decideVoid(receipt, [card], { reason: '잘못 수납' }, TEST_CONTEXT), {
+      _tag: 'PaymentRefundRequired',
+      receiptId: receipt.id,
+      paymentIds: [card.id],
+    })
   })
 
   it('카드 결제를 이미 전액 환불했으면 취소합니다', () => {
@@ -61,7 +64,7 @@ describe('decideVoid', () => {
   it('이미 취소한 영수증은 거부합니다', () => {
     const voided = success(decideVoid(receipt, [], { reason: '잘못 수납' }, TEST_CONTEXT)).receipt
 
-    expect(failure(decideVoid(voided, [], { reason: '다시' }, TEST_CONTEXT))._tag).toBe('ReceiptVoided')
+    rejected(decideVoid(voided, [], { reason: '다시' }, TEST_CONTEXT), { _tag: 'ReceiptVoided' })
   })
 })
 
@@ -115,7 +118,7 @@ describe('decideCorrection', () => {
   })
 
   it('정정한 결제로 결산이 막히면 앞 영수증을 취소하지 않고 거부합니다', () => {
-    const then = failure(
+    rejected(
       decideCorrection(
         receipt,
         { reason: '정정' },
@@ -123,16 +126,15 @@ describe('decideCorrection', () => {
         TEST_RECEIPT_IDS,
         TEST_CONTEXT,
       ),
+      { _tag: 'CheckoutRejected', errors: [], warnings: ['OUTSTANDING'] },
     )
-
-    expect(then).toMatchObject({ _tag: 'CheckoutRejected', warnings: ['OUTSTANDING'] })
   })
 
   it('이미 취소한 영수증은 거부합니다', () => {
     const voided = { ...receipt, status: 'VOIDED' as const }
 
-    expect(failure(decideCorrection(voided, { reason: '정정' }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT))._tag).toBe(
-      'ReceiptVoided',
-    )
+    rejected(decideCorrection(voided, { reason: '정정' }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT), {
+      _tag: 'ReceiptVoided',
+    })
   })
 })

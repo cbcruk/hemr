@@ -1,4 +1,3 @@
-import { Result } from 'effect'
 import { eventContext } from '../../../shared/decision/decision-context.ts'
 import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
@@ -105,16 +104,4 @@ export function testEncounter(amount: number, overrides: Partial<Encounter> = {}
           },
         ]
   return { ...encounter, prescriptionLines, ...overrides }
-}
-
-/** 판정이 받아들였으면 결과를, 거부했으면 테스트를 실패시킵니다. */
-export function success<A, E>(result: Result.Result<A, E>): A {
-  if (Result.isFailure(result)) throw new Error(`거부되었습니다: ${String(result.failure)}`)
-  return result.success
-}
-
-/** 판정이 거부했으면 그 오류를, 받아들였으면 테스트를 실패시킵니다. */
-export function failure<A, E>(result: Result.Result<A, E>): E {
-  if (Result.isSuccess(result)) throw new Error('거부되지 않았습니다')
-  return result.failure
 }

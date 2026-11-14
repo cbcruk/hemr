@@ -1,4 +1,5 @@
 import { Result } from 'effect'
+import { rejected, success } from '../../shared/decision/testing.ts'
 import { describe, expect, it, vi } from 'vitest'
 import type { DecisionContext } from '../../shared/decision/decision-context.ts'
 import type { Id } from '../../shared/ids/ids.types.ts'
@@ -50,16 +51,6 @@ const stored = (overrides: Partial<PatientRecord> = {}): PatientRecord => ({
   ...overrides,
 })
 
-const success = <A, E>(result: Result.Result<A, E>): A => {
-  if (Result.isFailure(result)) throw new Error(`거부되었습니다: ${String(result.failure)}`)
-  return result.success
-}
-
-const failure = <A, E>(result: Result.Result<A, E>): E => {
-  if (Result.isSuccess(result)) throw new Error('거부되지 않았습니다')
-  return result.failure
-}
-
 describe('decideRegister', () => {
   it('이름의 공백을 지우고 비어 있는 생년월일·성별을 번호에서 채우며, 채번한 차트 번호로 생성 이벤트를 냅니다', () => {
     const then = success(
@@ -86,30 +77,28 @@ describe('decideRegister', () => {
   })
 
   it('대표 연락처가 둘이거나 생년월일이 번호와 다르면 위반을 모두 담아 400입니다', () => {
-    const then = failure(
+    rejected(
       decideRegister(
         { name: '홍길동', birthDate: '1991-01-01', contacts: [mobile(true), mobile(true)] },
         PATIENT,
         { digits: DIGITS, sealed: sealedOf('idx-1') },
         context,
       ),
+      {
+        _tag: 'ValidationFailed',
+        violations: [
+          { field: 'contacts', code: 'MULTIPLE_PRIMARY' },
+          { field: 'birthDate', code: 'RRN_MISMATCH' },
+        ],
+      },
     )
-
-    expect(then).toMatchObject({
-      _tag: 'ValidationFailed',
-      violations: [
-        { field: 'contacts', code: 'MULTIPLE_PRIMARY' },
-        { field: 'birthDate', code: 'RRN_MISMATCH' },
-      ],
-    })
   })
 
   it('없는 날짜는 번호와 비교하기 전에 거부합니다', () => {
-    expect(
-      failure(
-        decideRegister({ name: '홍길동', birthDate: '2026-02-30' }, PATIENT, { digits: null, sealed: NO_RRN }, context),
-      ),
-    ).toMatchObject({ violations: [{ field: 'birthDate', code: 'INVALID_VALUE' }] })
+    rejected(
+      decideRegister({ name: '홍길동', birthDate: '2026-02-30' }, PATIENT, { digits: null, sealed: NO_RRN }, context),
+      { _tag: 'ValidationFailed', violations: [{ field: 'birthDate', code: 'INVALID_VALUE' }] },
+    )
   })
 })
 
@@ -155,17 +144,21 @@ describe('decideUpdate', () => {
   it('생년월일만 바꿔도 지금 번호와 맞는지 봅니다', () => {
     const open = vi.fn(() => DIGITS)
 
-    expect(failure(decideUpdate(stored(), { birthDate: '1991-01-01' }, 2, null, open, context))).toMatchObject({
+    rejected(decideUpdate(stored(), { birthDate: '1991-01-01' }, 2, null, open, context), {
+      _tag: 'ValidationFailed',
       violations: [{ field: 'birthDate', code: 'RRN_MISMATCH' }],
     })
     expect(open).toHaveBeenCalledOnce()
   })
 
   it('버전이 다르면 지금 버전을 담아 거부합니다', () => {
-    expect(failure(decideUpdate(stored(), { name: '홍길순' }, 1, null, () => DIGITS, context))).toMatchObject({
-      _tag: 'VersionMismatch',
-      currentVersion: 2,
-    })
+    rejected(
+      decideUpdate(stored(), { name: '홍길순' }, 1, null, () => DIGITS, context),
+      {
+        _tag: 'VersionMismatch',
+        currentVersion: 2,
+      },
+    )
   })
 })
 
@@ -192,9 +185,7 @@ describe('decideRecordConsent', () => {
   it('080으로 거부한 목적은 직원이 동의로 되돌리지 못하고, 사이에 다른 기록을 끼워도 풀리지 않습니다', () => {
     const history = [consent('PATIENT_080', 'DENIED'), consent('DESK', 'UNDECIDED')]
 
-    expect(
-      failure(decideRecordConsent(PATIENT, history, { purpose: 'MARKETING', status: 'GRANTED' }, context)),
-    ).toMatchObject({
+    rejected(decideRecordConsent(PATIENT, history, { purpose: 'MARKETING', status: 'GRANTED' }, context), {
       _tag: 'ConsentLockedByPatient',
       purpose: 'MARKETING',
     })
