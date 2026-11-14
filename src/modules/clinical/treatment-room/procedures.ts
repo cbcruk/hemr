@@ -397,8 +397,9 @@ export class Procedures extends Context.Service<
         )
       })
 
+      /** 세션 버전은 같은 내원의 어떤 쓰기와도 겹치므로, 다른 커맨드처럼 다시 읽어 다시 합니다. */
       const finishRunning = (visit: Visit, actor: Actor) =>
-        finishIn(visit, actor).pipe(Effect.catchTag('VersionMismatch', (error) => Effect.die(error)))
+        command<ReadonlyArray<Procedure>, never, never>(finishIn(visit, actor))
 
       /** 만료할 시술을 세션별로 묶어, 세션마다 한 번 판정하고 씁니다. */
       const sweep = (now: number) =>
