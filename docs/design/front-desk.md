@@ -197,7 +197,7 @@ Visit
 ├─ status, statusChangedAt
 ├─ bed?: { roomId, bedNumber }
 ├─ handoffNote?
-├─ encounterId (생성 시 함께 생성)
+├─ encounterId (접수가 ID를 정하고, 진료 초안은 정책이 만듦)
 └─ derived (목록 응답): encounterStatus, hasReceipt, balance{outstanding, overpaid}, prepaidBalance, activePackages, memoCount
 ```
 
@@ -243,7 +243,7 @@ Idempotency-Key: ...
 2. 제주 지원 스냅샷 생성. 현행은 접수 후 별도 호출이었습니다
 3. 이벤트 `visit.checked_in`
 
-신환 등록과 자격조회 결과에 따른 환자 갱신(건보증번호 등)은 접수 전에 환자 API로 따로 보냅니다(M3). 진료 초안 생성과 예약 `ARRIVED`는 `visit.checked_in`을 받는 정책이 맡습니다(M1). 경계와 정책은 [domain-model.md](domain-model.md#커맨드와-영향)에 있습니다. 지금 구현은 아직 진료 초안을 같은 트랜잭션에서 만들고 응답에 싣습니다
+신환 등록과 자격조회 결과에 따른 환자 갱신(건보증번호 등)은 접수 전에 환자 API로 따로 보냅니다(M3). 진료 초안 생성과 예약 `ARRIVED`는 `visit.checked_in`을 받는 정책이 맡습니다(M1). 경계와 정책은 [domain-model.md](domain-model.md#커맨드와-영향)에 있습니다.
 
 서버 검증 (현행 클라이언트 규칙):
 

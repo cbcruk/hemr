@@ -1,7 +1,7 @@
 import { Result } from 'effect'
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
-import { draftEncounter } from '../../clinical/encounters/encounter-draft.ts'
+import { draftEncounter } from '../../clinical/encounters/encounter.aggregate.ts'
 import type { Encounter } from '../../clinical/encounters/encounter.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import type { Payment, ReceiptRecord } from '../receipts/receipt.ts'

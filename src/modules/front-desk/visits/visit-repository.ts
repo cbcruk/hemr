@@ -44,6 +44,8 @@ export class VisitRepository extends Context.Service<
   VisitRepository,
   {
     findById(tenantId: Id<'tenant'>, id: Id<'visit'>): Effect.Effect<Option.Option<Visit>>
+    /** 그 진료 ID를 가진 내원입니다. 진료 초안이 아직 없을 때 만들 내원을 찾는 데 씁니다(결정 M1). */
+    findByEncounterId(tenantId: Id<'tenant'>, encounterId: Id<'encounter'>): Effect.Effect<Option.Option<Visit>>
     /** 그 병원·진료일의 내원입니다. 접수 시각, ID 순서입니다. */
     list(tenantId: Id<'tenant'>, query: VisitListQuery): Effect.Effect<ReadonlyArray<Visit>>
     historyOf(tenantId: Id<'tenant'>, patientId: Id<'patient'>): Effect.Effect<VisitHistory>
@@ -63,6 +65,14 @@ export class VisitRepository extends Context.Service<
             Ref.get(store).pipe(
               Effect.map((visits) =>
                 Option.filter(Option.fromNullishOr(visits.get(id)), (each) => each.tenantId === tenantId),
+              ),
+            ),
+          findByEncounterId: (tenantId, encounterId) =>
+            Ref.get(store).pipe(
+              Effect.map((visits) =>
+                Option.fromNullishOr(
+                  [...visits.values()].find((each) => each.tenantId === tenantId && each.encounterId === encounterId),
+                ),
               ),
             ),
           list: (tenantId, query) =>
@@ -192,6 +202,11 @@ export class VisitRepository extends Context.Service<
       return VisitRepository.of({
         findById: (tenantId, id) =>
           sql<Row>`SELECT ${columns} FROM visits WHERE id = ${id} AND tenant_id = ${tenantId}`.pipe(
+            Effect.map((rows) => Option.map(Option.fromNullishOr(rows[0]), toVisit)),
+            Effect.orDie,
+          ),
+        findByEncounterId: (tenantId, encounterId) =>
+          sql<Row>`SELECT ${columns} FROM visits WHERE tenant_id = ${tenantId} AND encounter_id = ${encounterId}`.pipe(
             Effect.map((rows) => Option.map(Option.fromNullishOr(rows[0]), toVisit)),
             Effect.orDie,
           ),

@@ -556,6 +556,11 @@ export const migrations = {
       ) STRICT
     `
   }),
+  // 진료 초안을 정책보다 먼저 열 때 진료 ID로 내원을 찾습니다(결정 M1)
+  '0018_visit_encounter_index': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    yield* sql`CREATE INDEX visits_encounter ON visits (tenant_id, encounter_id)`
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */

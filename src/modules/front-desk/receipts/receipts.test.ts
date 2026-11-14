@@ -1,6 +1,10 @@
 import { Effect, Exit, Layer, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import type { Transaction } from '../../../shared/db/transaction.ts'
+import { runPolicyOnce } from '../../../shared/events/policy.ts'
+import type { PolicyCursor } from '../../../shared/events/policy.ts'
+import { createVisitDraft } from '../../clinical/encounters/encounter-draft.policy.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
@@ -18,7 +22,17 @@ import { Receipts } from './receipts.ts'
 const desk = testMember({ role: 'FRONT_DESK' })
 
 type Services =
-  Receipts | Payments | ReceiptRepository | Visits | Patients | EncounterRepository | Outbox | CurrentAccess
+  | Receipts
+  | Payments
+  | ReceiptRepository
+  | Visits
+  | Patients
+  | EncounterRepository
+  | Outbox
+  | PolicyCursor
+  | Transaction
+  | VisitRepository
+  | CurrentAccess
 
 const run = <A, E>(
   program: Effect.Effect<A, E, Services>,
@@ -46,7 +60,10 @@ const run = <A, E>(
 
 const checkedIn = Effect.gen(function* () {
   const patient = yield* (yield* Patients).register({ name: '홍길동' })
-  return yield* (yield* Visits).checkIn({ patientId: patient.id, coverage: 'SELF_PAY' })
+  const visit = yield* (yield* Visits).checkIn({ patientId: patient.id, coverage: 'SELF_PAY' })
+  // 진료 초안은 접수 정책이 만듭니다(결정 M1)
+  yield* runPolicyOnce(createVisitDraft)
+  return visit
 })
 
 describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
@@ -177,6 +194,7 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
           eligibility: { qualificationCode: '1', selectedInstitutionCodes: [] },
           identityVerified: true,
         })
+        yield* runPolicyOnce(createVisitDraft)
         const encounters = yield* EncounterRepository
         const encounterId = visit.encounterId as Id<'encounter'>
         const encounter = Option.getOrThrow(yield* encounters.findById(visit.tenantId, encounterId))
@@ -230,6 +248,7 @@ describe.each(['memory', 'sqlite'] as const)('Receipts (%s)', (store) => {
           eligibility: { qualificationCode: '1', selectedInstitutionCodes: [] },
           identityVerified: true,
         })
+        yield* runPolicyOnce(createVisitDraft)
         const encounters = yield* EncounterRepository
         const encounter = Option.getOrThrow(
           yield* encounters.findById(visit.tenantId, visit.encounterId as Id<'encounter'>),

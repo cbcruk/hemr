@@ -410,6 +410,59 @@ export function decideRetract(
 }
 
 /**
+ * 접수한 내원의 빈 진료와 `encounter.created` 이벤트입니다. 판정은 `decideDraft`가 합니다. 보험구분·표시는 내원에서
+ * 복사하고, 진료 기준 시각은 접수 시각입니다. 그래서 언제 만들어도 같은 진료입니다.
+ */
+export function draftEncounter(
+  visit: Visit & { encounterId: Id<'encounter'> },
+  context: Required<Pick<DomainEvent, 'tenantId' | 'actor'>>,
+): { encounter: Encounter; event: DomainEvent } {
+  const encounter: Encounter = {
+    id: visit.encounterId,
+    tenantId: visit.tenantId,
+    patientId: visit.patientId,
+    visitId: visit.id,
+    doctorId: null,
+    encounterType: 'OFFICE',
+    coverage: visit.coverage,
+    serviceAt: visit.checkedInAt,
+    note: { body: '' },
+    diagnoses: [],
+    prescriptionLines: [],
+    benefitFlags: visit.benefitFlags,
+    status: 'DRAFT',
+    completedAt: null,
+    revision: 0,
+    locked: false,
+    retraction: null,
+    createdAt: visit.checkedInAt,
+    updatedAt: visit.checkedInAt,
+    version: 1,
+  }
+  const event = domainEvent(
+    'encounter.created',
+    encounter.id,
+    encounter.createdAt,
+    { encounterId: encounter.id, visitId: visit.id, patientId: visit.patientId },
+    context,
+  )
+  return { encounter, event }
+}
+
+/**
+ * 접수한 내원의 빈 진료 초안을 판정합니다(결정 M1). 접수는 진료 ID만 정해 내원에 담고, 정책(`createVisitDraft`)이나
+ * 정책보다 먼저 그 진료를 연 요청이 이것으로 만듭니다. 누가 만들어도 같은 초안입니다. 취소한 내원은 만들지 않습니다
+ * (`null`). `encounter.created`를 냅니다.
+ */
+export function decideDraft(
+  visit: Visit & { encounterId: Id<'encounter'> },
+  context: DecisionContext,
+): Result.Result<{ encounter: Encounter; event: DomainEvent } | null> {
+  if (visit.status === 'CANCELED') return Result.succeed(null)
+  return Result.succeed(draftEncounter(visit, eventContext(context)))
+}
+
+/**
  * 취소한 내원의 빈 초안 철회를 판정합니다(정책 `retractCanceledDraft`, M5). 연쇄가 아닌 취소는 내용 없는 내원만
  * 받고, 취소한 내원의 진료는 저장·완료할 수 없어 초안은 그 뒤에도 비어 있습니다. 이미 철회했으면(연쇄 취소, 같은
  * 이벤트를 다시 받음) `null`입니다. 초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`이고 정책은 기록만 합니다.

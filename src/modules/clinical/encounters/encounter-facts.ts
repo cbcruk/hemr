@@ -1,12 +1,16 @@
-import { Array as Arr, Effect, Option } from 'effect'
+import { Array as Arr, DateTime, Effect, Option, Result } from 'effect'
+import { decisionContext } from '../../../shared/decision/decision-context.ts'
+import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
-import { requirePermissions } from '../../identity/auth/access.ts'
+import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
 import type { Permission } from '../../identity/permissions.ts'
 import type { ReceiptRepository } from '../../front-desk/receipts/receipt-repository.ts'
 import type { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
+import type { Visit } from '../../front-desk/visits/visit.ts'
 import { EncounterNotFound } from './encounter.ts'
 import type { Encounter } from './encounter.ts'
+import { decideDraft } from './encounter.aggregate.ts'
 import type { EncounterWrite } from './encounter.aggregate.ts'
 import type { EncounterChanges, NewIds } from './encounter-changes.ts'
 import type { EncounterRepository } from './encounter-repository.ts'
@@ -15,17 +19,53 @@ import type { EncounterRepository } from './encounter-repository.ts'
  * 진료 판정(`encounter.aggregate.ts`)에 넘길 사실을 읽고 판정한 쓰기를 저장합니다. 진료 서비스와 정정 제안 서비스가 같이
  * 씁니다. 모두 같은 트랜잭션 안에서 부릅니다.
  */
+/**
+ * 내원의 진료 초안을 만들어 저장하고 돌려줍니다(결정 M1). 정책과, 정책보다 먼저 그 진료를 연 요청이 같이 씁니다. 이미
+ * 있으면(다른 쪽이 먼저 만듦) 저장된 진료를 돌려줍니다. 취소한 내원이면 `null`입니다.
+ */
+export function createDraft(
+  encounters: EncounterRepository['Service'],
+  visit: Visit & { encounterId: Id<'encounter'> },
+  context: DecisionContext,
+): Effect.Effect<Encounter | null> {
+  return Effect.gen(function* () {
+    const existing = yield* encounters.findById(visit.tenantId, visit.encounterId)
+    if (Option.isSome(existing)) return existing.value
+    const decided = Result.getOrThrow(decideDraft(visit, context))
+    if (decided === null) return null
+    // 읽은 뒤 다른 쪽이 먼저 만들었으면 저장소가 `VersionMismatch`로 거절하고, 그 진료를 다시 읽습니다
+    return yield* encounters.save(decided.encounter, { expectedVersion: null, events: [decided.event] }).pipe(
+      Effect.as(decided.encounter),
+      Effect.catchTag('VersionMismatch', () =>
+        encounters.findById(visit.tenantId, visit.encounterId).pipe(Effect.map(Option.getOrThrow)),
+      ),
+    )
+  })
+}
+
 export function encounterFacts(deps: {
   encounters: EncounterRepository['Service']
   visits: VisitRepository['Service']
   receipts: ReceiptRepository['Service']
 }) {
+  /**
+   * 진료입니다. 접수 정책이 아직 초안을 만들지 않았으면(결정 M1) 그 진료 ID의 내원으로 지금 만듭니다. 만든 사람은 이
+   * 요청의 사용자입니다. 내원이 없거나 취소됐으면 404입니다.
+   */
   const find = (tenantId: Id<'tenant'>, id: Id<'encounter'>) =>
-    deps.encounters
-      .findById(tenantId, id)
-      .pipe(
-        Effect.flatMap(Option.match({ onNone: () => Effect.fail(new EncounterNotFound({})), onSome: Effect.succeed })),
+    Effect.gen(function* () {
+      const found = yield* deps.encounters.findById(tenantId, id)
+      if (Option.isSome(found)) return found.value
+      const visit = Option.getOrNull(yield* deps.visits.findByEncounterId(tenantId, id))
+      if (visit === null || visit.encounterId === null) return yield* new EncounterNotFound({})
+      const access = yield* CurrentAccess
+      const created = yield* createDraft(
+        deps.encounters,
+        { ...visit, encounterId: visit.encounterId },
+        decisionContext(access, yield* DateTime.now),
       )
+      return created ?? (yield* new EncounterNotFound({}))
+    })
 
   /** 진료의 내원입니다. 내원 없는 진료는 `null`입니다. */
   const visitOf = (encounter: Encounter) =>
