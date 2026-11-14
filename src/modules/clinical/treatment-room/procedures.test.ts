@@ -5,6 +5,7 @@ import type { Transaction } from '../../../shared/db/transaction.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import { runPolicyOnce } from '../../../shared/events/policy.ts'
 import type { PolicyCursor } from '../../../shared/events/policy.ts'
+import { newId } from '../../../shared/ids/ids.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import type { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { Visits } from '../../front-desk/visits/visits.ts'
@@ -14,12 +15,22 @@ import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
 import { Encounters } from '../encounters/encounters.ts'
 import { finishProceduresAfterEncounter } from './procedure-finish.policy.ts'
+import { ProcedureRepository } from './procedure-repository.ts'
 import { ProcedureTimerSweep, Procedures } from './procedures.ts'
 
 const doctor = testMember({ role: 'OWNER_DOCTOR' })
 
 type Services =
-  Procedures | Encounters | Visits | Patients | Outbox | PolicyCursor | Transaction | VisitRepository | CurrentAccess
+  | Procedures
+  | ProcedureRepository
+  | Encounters
+  | Visits
+  | Patients
+  | Outbox
+  | PolicyCursor
+  | Transaction
+  | VisitRepository
+  | CurrentAccess
 
 const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sqlite', sweep = false) =>
   Effect.runPromise(
@@ -316,6 +327,25 @@ describe.each(['memory', 'sqlite'] as const)('Procedures (%s)', (store) => {
     ])
   })
 
+  it('서버 타이머는 한 내원에서 끝난 시술을 세션 쓰기 한 번에 만료합니다', async () => {
+    const result = await run(
+      Effect.gen(function* () {
+        const visit = yield* checkedIn
+        const procedures = yield* Procedures
+        yield* procedures.add(visit.id, { name: '침', durationSeconds: 60 })
+        yield* procedures.add(visit.id, { name: '부항', durationSeconds: 60 })
+        yield* procedures.add(visit.id, { name: '뜸', durationSeconds: 600 })
+        const started = yield* procedures.startAll(visit.id)
+        const count = yield* procedures.sweep(Date.parse(started[0]!.timerEndsAt!))
+        const session = yield* (yield* ProcedureRepository).findSession(doctor.access.tenantId, visit.id)
+        return { count, version: session.version, statuses: session.procedures.map((each) => each.status) }
+      }),
+      store,
+    )
+    // 더하기 세 번, 모두 시작 한 번, 만료 한 번입니다
+    expect(result).toEqual({ count: 2, version: 5, statuses: ['TIMER_ELAPSED', 'TIMER_ELAPSED', 'RUNNING'] })
+  })
+
   it('refuses more procedures than the per-visit limit', async () => {
     const result = await run(
       Effect.gen(function* () {
@@ -345,5 +375,58 @@ describe('ProcedureTimerSweep', () => {
       true,
     )
     expect(status).toBe('TIMER_ELAPSED')
+  })
+})
+
+describe('치료 세션 동시성', () => {
+  /** 처음 `부항`을 저장하기 직전에 다른 치료사가 같은 내원에 `침`을 먼저 더합니다. */
+  const interleaved = Layer.effect(
+    ProcedureRepository,
+    Effect.gen(function* () {
+      const inner = yield* ProcedureRepository
+      let interfered = false
+      return ProcedureRepository.of({
+        ...inner,
+        saveSession: (write, events) =>
+          Effect.gen(function* () {
+            const mine = write.procedures[0]
+            if (!interfered && mine?.name === '부항') {
+              interfered = true
+              yield* inner.saveSession({
+                ...write,
+                procedures: [{ ...mine, id: newId('procedure'), name: '침' }],
+              })
+            }
+            return yield* inner.saveSession(write, events)
+          }),
+      })
+    }),
+  )
+
+  it('같은 내원을 먼저 쓴 요청이 있으면 세션을 다시 읽어 순서를 이어 붙입니다', async () => {
+    const listed = await Effect.runPromise(
+      Effect.gen(function* () {
+        const visit = yield* checkedIn
+        const procedures = yield* Procedures
+        yield* procedures.add(visit.id, { name: '부항' })
+        return yield* procedures.listForVisit(visit.id)
+      }).pipe(
+        Effect.provideService(CurrentAccess, doctor.access),
+        Effect.provide(
+          Procedures.layer.pipe(
+            Layer.provide(interleaved),
+            Layer.provideMerge(Visits.layer),
+            Layer.provideMerge(Patients.layer),
+            Layer.provideMerge(doctor.seed),
+            Layer.provideMerge(PersistenceMemory()),
+            Layer.provideMerge(TestPatientCrypto),
+          ),
+        ),
+      ),
+    )
+    expect(listed.map((each) => [each.name, each.order])).toEqual([
+      ['침', 0],
+      ['부항', 1],
+    ])
   })
 })

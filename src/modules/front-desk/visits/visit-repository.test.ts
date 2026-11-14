@@ -258,6 +258,7 @@ describe('VisitRepository (sqlite) transaction', () => {
       'amendment_proposals',
       'policy_cursors',
       'visit_encounter_index',
+      'treatment_sessions',
     ])
   })
 
@@ -291,6 +292,7 @@ describe('VisitRepository (sqlite) transaction', () => {
         'amendment_proposals',
         'policy_cursors',
         'visit_encounter_index',
+        'treatment_sessions',
       ])
     } finally {
       rmSync(dir, { recursive: true, force: true })

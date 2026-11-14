@@ -16,8 +16,8 @@ import {
   decideSetDuration,
   decideStart,
   decideStartAll,
-} from './procedure.aggregate.ts'
-import type { ProcedureContext } from './procedure.aggregate.ts'
+} from './treatment-session.aggregate.ts'
+import type { ProcedureContext } from './treatment-session.aggregate.ts'
 import { MAX_PROCEDURES_PER_VISIT } from './procedure.ts'
 import type { Procedure } from './procedure.ts'
 
@@ -90,7 +90,7 @@ describe('decideAdd', () => {
     expect(then.changed).toMatchObject([
       { id: NEW_ID, order: 2, status: 'PENDING', assignee: 'STAFF', durationSeconds: 300, version: 1 },
     ])
-    expect(then.writes).toMatchObject([{ expectedVersion: null }])
+    expect(then.removed).toEqual([])
     expect(then.events).toMatchObject([{ type: 'procedure.created', subject: NEW_ID, data: { status: 'PENDING' } }])
   })
 
@@ -146,7 +146,7 @@ describe('decideStart', () => {
         (each) => each.id,
       ),
     ).toEqual([procedure(1).id])
-    expect(success(decideStartAll(visit, [done], DEFAULT_PROCEDURE_TIMER_SETTINGS, context)).writes).toEqual([])
+    expect(success(decideStartAll(visit, [done], DEFAULT_PROCEDURE_TIMER_SETTINGS, context)).changed).toEqual([])
   })
 })
 
@@ -217,7 +217,7 @@ describe('decideReorder', () => {
     const then = success(decideReorder(given, [given[0]!.id, given[2]!.id, given[1]!.id], context))
 
     expect(then.ordered.map((each) => each.id)).toEqual([given[0]!.id, given[2]!.id, given[1]!.id])
-    expect(then.writes.map((each) => each.procedure.id)).toEqual([given[1]!.id, given[2]!.id])
+    expect(then.changed.map((each) => each.id)).toEqual([given[1]!.id, given[2]!.id])
   })
 
   it('시술을 빠뜨리거나 두 번 보내면 거부합니다', () => {
@@ -230,7 +230,11 @@ describe('decideReorder', () => {
 
 describe('decideRemove', () => {
   it('대기 시술만 지우고 삭제 이벤트를 냅니다', () => {
-    expect(success(decideRemove(procedure(1), context))).toMatchObject({ type: 'procedure.removed' })
+    expect(success(decideRemove(procedure(1), context))).toMatchObject({
+      changed: [],
+      removed: [procedure(1).id],
+      events: [{ type: 'procedure.removed' }],
+    })
     expect(failure(decideRemove(running(1, 60), context))._tag).toBe('ProcedureTransitionInvalid')
   })
 })
@@ -241,16 +245,16 @@ describe('decideElapse', () => {
     event: { tenantId: TEST_TENANT.id, actor: { kind: 'SYSTEM', id: 'procedure-timer' } },
   }
 
-  it('종료 시각이 지난 진행 중 시술을 만료로 바꾸고 서버 타이머의 이벤트를 냅니다', () => {
-    const then = decideElapse(running(1, 600), system)
+  it('세션에서 종료 시각이 지난 진행 중 시술만 만료로 바꾸고 서버 타이머의 이벤트를 냅니다', () => {
+    const then = decideElapse([running(1, 600), running(2, 599), procedure(3)], system)
 
-    expect(then?.changed).toMatchObject([{ status: 'TIMER_ELAPSED' }])
+    expect(then?.changed).toMatchObject([{ id: running(1, 600).id, status: 'TIMER_ELAPSED' }])
     expect(then?.events).toMatchObject([
       { type: 'procedure.updated', actor: { kind: 'SYSTEM', id: 'procedure-timer' } },
     ])
   })
 
   it('아직 끝나지 않은 시술은 그대로 둡니다', () => {
-    expect(decideElapse(running(1, 599), system)).toBeNull()
+    expect(decideElapse([running(1, 599), procedure(2)], system)).toBeNull()
   })
 })

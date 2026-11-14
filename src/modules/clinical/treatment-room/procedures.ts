@@ -22,8 +22,14 @@ import {
   decideSetDuration,
   decideStart,
   decideStartAll,
-} from './procedure.aggregate.ts'
-import type { AddProcedureCommand, ProcedureChanges, ProcedureContext } from './procedure.aggregate.ts'
+  isUnchanged,
+} from './treatment-session.aggregate.ts'
+import type {
+  AddProcedureCommand,
+  ProcedureContext,
+  TreatmentSession,
+  TreatmentSessionChanges,
+} from './treatment-session.aggregate.ts'
 import { ProcedureNotFound } from './procedure.ts'
 import type {
   Procedure,
@@ -51,8 +57,8 @@ type Actor = Required<Pick<DomainEvent, 'tenantId' | 'actor'>>
 
 /**
  * 치료실 시술입니다 (clinical.md 치료실). 모든 작업은 현재 사용자가 고른 병원 안에서 하고, 다른 병원의 시술·내원은
- * 404입니다. 판정은 `procedure.aggregate.ts`(타이머 계산은 `procedure-timer.ts`)가 하고, 이 서비스는 읽기·판정·쓰기를
- * 한 트랜잭션에서 합니다.
+ * 404입니다. 판정은 치료 세션 애그리거트(`treatment-session.aggregate.ts`, 타이머 계산은 `procedure-timer.ts`)가 하고,
+ * 이 서비스는 내원의 세션 읽기·판정·쓰기를 한 트랜잭션에서 합니다. 세션 버전이 어긋나면 로그를 남기고 다시 합니다.
  *
  * 치료실 커맨드는 `If-Match`를 받지 않습니다. 한 화면을 여러 치료사가 빠르게 누르는 곳이라, 같은 시술을 두 번 시작하면
  * 뒤 요청이 상태 전이로 거절(409)되는 것으로 충분합니다.
@@ -170,13 +176,49 @@ export class Procedures extends Context.Service<
           Effect.catchTag('VisitNotFound', (error) => Effect.die(error)),
         )
 
-      const listOf = (tenantId: Id<'tenant'>, visitId: Id<'visit'>) => repository.listByVisits(tenantId, [visitId])
+      const sessionOf = (tenantId: Id<'tenant'>, visitId: Id<'visit'>) => repository.findSession(tenantId, visitId)
 
-      /** 판정한 쓰기를 저장합니다. 바뀐 것이 없으면 쓰지 않습니다. 바뀐 시술을 돌려줍니다. */
-      const save = (changes: ProcedureChanges) =>
-        changes.writes.length === 0
+      /** 시술과 그 세션입니다. 시술은 세션에서 읽은 것이라 세션 버전과 맞습니다. */
+      const procedureInSession = (tenantId: Id<'tenant'>, id: Id<'procedure'>) =>
+        Effect.gen(function* () {
+          const found = yield* findProcedure(tenantId, id)
+          const session = yield* sessionOf(tenantId, found.visitId)
+          const procedure = session.procedures.find((each) => each.id === id)
+          if (procedure === undefined) return yield* new ProcedureNotFound({})
+          return { procedure, session }
+        })
+
+      /**
+       * 판정한 바뀜을 세션 버전을 비교해 저장합니다. 바뀐 것이 없으면 쓰지 않습니다. 바뀐 시술을 돌려줍니다. 어긋나면
+       * 충돌을 셀 수 있게 내원과 함께 로그를 남깁니다(결정 M4의 되돌릴 조건).
+       */
+      const save = (session: TreatmentSession, changes: TreatmentSessionChanges, context: ProcedureContext) =>
+        isUnchanged(changes)
           ? Effect.succeed(changes.changed)
-          : repository.saveAll(changes.writes, changes.events).pipe(Effect.as(changes.changed))
+          : repository
+              .saveSession(
+                {
+                  tenantId: session.tenantId,
+                  visitId: session.visitId,
+                  expectedVersion: session.version,
+                  at: context.at,
+                  procedures: changes.changed,
+                  removed: changes.removed,
+                },
+                changes.events,
+              )
+              .pipe(
+                Effect.tapError((error) =>
+                  Effect.logWarning('treatment session conflict', {
+                    tenantId: session.tenantId,
+                    visitId: session.visitId,
+                    expectedVersion: session.version,
+                    currentVersion: error.currentVersion,
+                    actor: context.event.actor.kind,
+                  }),
+                ),
+                Effect.as(changes.changed),
+              )
 
       /**
        * 한 트랜잭션에서 실행합니다. SQLite는 트랜잭션을 하나씩 실행해 버전이 어긋나지 않지만, 메모리 저장소나 서버
@@ -191,7 +233,7 @@ export class Procedures extends Context.Service<
       const listForVisit = Effect.fn('Procedures.listForVisit')(function* (visitId: Id<'visit'>) {
         const access = yield* CurrentAccess
         const visit = yield* findVisit(access.tenantId, visitId)
-        return yield* listOf(access.tenantId, visit.id)
+        return (yield* sessionOf(access.tenantId, visit.id)).procedures
       })
 
       const board = Effect.fn('Procedures.board')(function* (date: string | undefined) {
@@ -210,12 +252,12 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const visit = yield* findVisit(access.tenantId, visitId)
-            const existing = yield* listOf(access.tenantId, visit.id)
+            const session = yield* sessionOf(access.tenantId, visit.id)
             const context = yield* contextOf(userActor(access))
             const decided = yield* Effect.fromResult(
-              decideAdd(visit, existing, input, newId('procedure'), settings, context),
+              decideAdd(visit, session.procedures, input, newId('procedure'), settings, context),
             )
-            const [added] = yield* save(decided)
+            const [added] = yield* save(session, decided, context)
             return added!
           }),
         )
@@ -225,13 +267,12 @@ export class Procedures extends Context.Service<
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
-            const current = yield* findProcedure(access.tenantId, id)
-            const visit = yield* visitOf(current)
+            const { procedure, session } = yield* procedureInSession(access.tenantId, id)
+            const visit = yield* visitOf(procedure)
             const context = yield* contextOf(userActor(access))
-            const [changed] = yield* save(
-              yield* Effect.fromResult(decideSetDuration(current, visit, durationSeconds, context)),
-            )
-            return changed ?? current
+            const decided = yield* Effect.fromResult(decideSetDuration(procedure, visit, durationSeconds, context))
+            const [changed] = yield* save(session, decided, context)
+            return changed ?? procedure
           }),
         )
       })
@@ -240,10 +281,9 @@ export class Procedures extends Context.Service<
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
-            const current = yield* findProcedure(access.tenantId, id)
+            const { procedure, session } = yield* procedureInSession(access.tenantId, id)
             const context = yield* contextOf(userActor(access))
-            const event = yield* Effect.fromResult(decideRemove(current, context))
-            yield* repository.remove(current, [event])
+            yield* save(session, yield* Effect.fromResult(decideRemove(procedure, context)), context)
           }),
         )
       })
@@ -252,11 +292,13 @@ export class Procedures extends Context.Service<
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
-            const procedure = yield* findProcedure(access.tenantId, id)
+            const { procedure, session } = yield* procedureInSession(access.tenantId, id)
             const visit = yield* visitOf(procedure)
-            const current = yield* listOf(access.tenantId, visit.id)
             const context = yield* contextOf(userActor(access))
-            return yield* save(yield* Effect.fromResult(decideStart(procedure, visit, current, settings, context)))
+            const decided = yield* Effect.fromResult(
+              decideStart(procedure, visit, session.procedures, settings, context),
+            )
+            return yield* save(session, decided, context)
           }),
         )
       })
@@ -266,9 +308,10 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const visit = yield* findVisit(access.tenantId, visitId)
-            const current = yield* listOf(access.tenantId, visit.id)
+            const session = yield* sessionOf(access.tenantId, visit.id)
             const context = yield* contextOf(userActor(access))
-            return yield* save(yield* Effect.fromResult(decideStartAll(visit, current, settings, context)))
+            const decided = yield* Effect.fromResult(decideStartAll(visit, session.procedures, settings, context))
+            return yield* save(session, decided, context)
           }),
         )
       })
@@ -277,9 +320,13 @@ export class Procedures extends Context.Service<
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
-            const procedure = yield* findProcedure(access.tenantId, id)
+            const { procedure, session } = yield* procedureInSession(access.tenantId, id)
             const context = yield* contextOf(userActor(access))
-            const [changed] = yield* save(yield* Effect.fromResult(decideComplete(procedure, context)))
+            const [changed] = yield* save(
+              session,
+              yield* Effect.fromResult(decideComplete(procedure, context)),
+              context,
+            )
             return changed ?? procedure
           }),
         )
@@ -287,8 +334,9 @@ export class Procedures extends Context.Service<
 
       const finishIn = (visit: Visit, actor: Actor) =>
         Effect.gen(function* () {
-          const current = yield* listOf(visit.tenantId, visit.id)
-          return yield* save(decideFinishRunning(current, yield* contextOf(actor)))
+          const session = yield* sessionOf(visit.tenantId, visit.id)
+          const context = yield* contextOf(actor)
+          return yield* save(session, decideFinishRunning(session.procedures, context), context)
         })
 
       const completeAll = Effect.fn('Procedures.completeAll')(function* (visitId: Id<'visit'>) {
@@ -305,10 +353,11 @@ export class Procedures extends Context.Service<
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
-            const procedure = yield* findProcedure(access.tenantId, id)
+            const { procedure, session } = yield* procedureInSession(access.tenantId, id)
             const visit = yield* visitOf(procedure)
             const context = yield* contextOf(userActor(access))
-            const [changed] = yield* save(yield* Effect.fromResult(decideRestartTimer(procedure, visit, context)))
+            const decided = yield* Effect.fromResult(decideRestartTimer(procedure, visit, context))
+            const [changed] = yield* save(session, decided, context)
             return changed ?? procedure
           }),
         )
@@ -318,10 +367,14 @@ export class Procedures extends Context.Service<
         const access = yield* CurrentAccess
         return yield* command(
           Effect.gen(function* () {
-            const procedure = yield* findProcedure(access.tenantId, id)
+            const { procedure, session } = yield* procedureInSession(access.tenantId, id)
             const visit = yield* visitOf(procedure)
             const context = yield* contextOf(userActor(access))
-            const [changed] = yield* save(yield* Effect.fromResult(decideReopen(procedure, visit, context)))
+            const [changed] = yield* save(
+              session,
+              yield* Effect.fromResult(decideReopen(procedure, visit, context)),
+              context,
+            )
             return changed ?? procedure
           }),
         )
@@ -335,10 +388,10 @@ export class Procedures extends Context.Service<
         return yield* command(
           Effect.gen(function* () {
             const visit = yield* findVisit(access.tenantId, visitId)
-            const current = yield* listOf(access.tenantId, visit.id)
+            const session = yield* sessionOf(access.tenantId, visit.id)
             const context = yield* contextOf(userActor(access))
-            const decided = yield* Effect.fromResult(decideReorder(current, ids, context))
-            yield* save(decided)
+            const decided = yield* Effect.fromResult(decideReorder(session.procedures, ids, context))
+            yield* save(session, decided, context)
             return decided.ordered
           }),
         )
@@ -347,21 +400,28 @@ export class Procedures extends Context.Service<
       const finishRunning = (visit: Visit, actor: Actor) =>
         finishIn(visit, actor).pipe(Effect.catchTag('VersionMismatch', (error) => Effect.die(error)))
 
+      /** 만료할 시술을 세션별로 묶어, 세션마다 한 번 판정하고 씁니다. */
       const sweep = (now: number) =>
         Effect.gen(function* () {
           const at = new Date(now).toISOString()
           const due = yield* repository.listDue(at)
+          const sessions = new Map<string, Pick<Procedure, 'tenantId' | 'visitId'>>()
+          for (const procedure of due) sessions.set(`${procedure.tenantId}/${procedure.visitId}`, procedure)
           let count = 0
-          for (const procedure of due) {
-            const event: Actor = { tenantId: procedure.tenantId, actor: { kind: 'SYSTEM', id: 'procedure-timer' } }
-            const decided = decideElapse(procedure, { at, event })
+          for (const { tenantId, visitId } of sessions.values()) {
+            const session = yield* sessionOf(tenantId, visitId)
+            const context: ProcedureContext = {
+              at,
+              event: { tenantId, actor: { kind: 'SYSTEM', id: 'procedure-timer' } },
+            }
+            const decided = decideElapse(session.procedures, context)
             if (decided === null) continue
             // 다른 요청이 먼저 바꿨으면 그 요청이 만료도 판정했으므로 건너뜁니다
-            const saved = yield* save(decided).pipe(
-              Effect.as(true),
-              Effect.catchTag('VersionMismatch', () => Effect.succeed(false)),
+            const saved = yield* save(session, decided, context).pipe(
+              Effect.as(decided.changed.length),
+              Effect.catchTag('VersionMismatch', () => Effect.succeed(0)),
             )
-            if (saved) count++
+            count += saved
           }
           return count
         })

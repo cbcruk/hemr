@@ -561,6 +561,20 @@ export const migrations = {
     const sql = yield* SqlClient.SqlClient
     yield* sql`CREATE INDEX visits_encounter ON visits (tenant_id, encounter_id)`
   }),
+  // 치료 세션(내원 하나의 시술 묶음)의 버전입니다(결정 M4). 시술 쓰기마다 한 번 비교하고 올립니다. 행이 없으면 버전 0이라
+  // 지금 있는 시술은 채우지 않습니다
+  '0019_treatment_sessions': Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient
+    yield* sql`
+      CREATE TABLE treatment_sessions (
+        tenant_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (tenant_id, visit_id)
+      ) STRICT
+    `
+  }),
 }
 
 /** 마이그레이션을 적용하는 Layer입니다. 앱 Layer보다 먼저 만들어집니다. */
