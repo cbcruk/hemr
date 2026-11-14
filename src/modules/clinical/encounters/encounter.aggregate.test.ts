@@ -3,6 +3,7 @@ import type { Id } from '../../../shared/ids/ids.types.ts'
 import {
   decideAmend,
   decideComplete,
+  decideDraft,
   decideLock,
   decideRetract,
   decideRetractCanceledDraft,
@@ -278,6 +279,34 @@ describe('decideRetract', () => {
       _tag: 'EncounterBilled',
       receiptId: RECEIPT,
     })
+  })
+})
+
+describe('decideDraft', () => {
+  it('내원의 진료 ID로 보험구분·표시·접수 시각을 복사한 빈 초안을 만듭니다', () => {
+    const given = testVisitOf({ coverage: 'NHIS' })
+
+    const then = success(decideDraft({ ...given, encounterId: given.encounterId as Id<'encounter'> }, TEST_CONTEXT))
+
+    expect(then).toMatchObject({
+      encounter: {
+        id: given.encounterId,
+        visitId: given.id,
+        coverage: 'NHIS',
+        serviceAt: given.checkedInAt,
+        status: 'DRAFT',
+        version: 1,
+      },
+      event: { type: 'encounter.created', actor: { kind: 'USER', id: TEST_CONTEXT.userId } },
+    })
+  })
+
+  it('취소한 내원은 초안을 만들지 않습니다', () => {
+    const given = testVisitOf({ status: 'CANCELED' })
+
+    expect(
+      success(decideDraft({ ...given, encounterId: given.encounterId as Id<'encounter'> }, TEST_CONTEXT)),
+    ).toBeNull()
   })
 })
 

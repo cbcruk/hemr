@@ -84,7 +84,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 | 커맨드 | 바꾸는 경계 | 그 밖의 영향 | 지금 | 이 설계 |
 |---|---|---|---|---|
-| 접수 `visits:check-in` | **Visit** | 빈 진료 초안 생성 | 같은 트랜잭션 | 정책 `visit.checked_in` → 진료 초안 생성 (M1) |
+| 접수 `visits:check-in` | **Visit** | 빈 진료 초안 생성 | 정책 (M1) | 정책 `visit.checked_in` → 진료 초안 생성 (M1) |
 | | | 예약 `ARRIVED` | 미구현 | 정책 `visit.checked_in` → 예약 도착 |
 | | | 신환 생성·자격 정보 갱신 | 미구현 | 접수 전에 환자 등록·수정 요청을 따로 보냄 (M3) |
 | 진료 흐름 `:start-treatment` 등 | **Visit** | 베드 배정은 내원 속성 | | |
@@ -141,7 +141,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 | 정책 | 받는 이벤트 | 보내는 커맨드 | 받는 쪽이 거부하면 | 상태 |
 |---|---|---|---|---|
-| 진료 초안 만들기 | `visit.checked_in` | 진료 초안 생성 | 기록만 합니다. 의사가 차트를 열 때 만듭니다 | 옮길 것 (M1) |
+| 진료 초안 만들기 | `visit.checked_in` | 진료 초안 생성 | 기록만 합니다. 의사가 차트를 열 때 만듭니다 | 옮김 (M1, [encounter-draft.policy.ts](../../src/modules/clinical/encounters/encounter-draft.policy.ts)) |
 | 예약 도착 | `visit.checked_in` (`appointmentId` 있음) | 예약 도착 | 기록만 합니다(이미 취소된 예약 등) | 예약 구현 때 |
 | 빈 초안 철회 | `visit.status_changed` (`CANCELED`) | 진료 철회 | 기록만 합니다 | 옮김 (M5, [encounter-retraction.policy.ts](../../src/modules/clinical/encounters/encounter-retraction.policy.ts)) |
 | 진료 후 내원 이동 | `encounter.completed` | 내원 진료 흐름 커맨드 | 기록만 합니다. 내원 상태는 데스크가 옮깁니다 | 옮길 것 (M2) |
@@ -155,6 +155,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 - **정책의 행위자는 받은 이벤트의 행위자입니다.** 빈 초안 철회의 `retractedBy`와 `encounter.retracted`의 `actor`는 내원을 취소한 사용자입니다. 철회가 그 취소에 따른 일이고, 예전에 같은 트랜잭션에서 하던 기록과 같습니다
 - **정책이 돌기 전의 틈은 받는 쪽 애그리거트가 막습니다.** 취소한 내원의 진료는 철회 정책이 돌기 전에도 저장·완료가 409 `ENCOUNTER_VISIT_CANCELED`입니다. 그래서 정책이 철회하는 초안은 취소할 때처럼 비어 있습니다
+- **정책보다 먼저 연 요청은 그 자리에서 정책과 같은 일을 합니다(M1).** 접수는 진료 ID만 정해 내원에 담고, 진료를 찾는 곳(`encounterFacts.find`)은 진료가 아직 없으면 그 ID의 내원으로 초안을 만듭니다(`createDraft`). 초안은 내원에서만 정해져 누가 언제 만들어도 같고, 늦게 온 쪽은 이미 있는 진료를 씁니다. 만든 사람은 정책이면 접수한 사용자, 먼저 연 요청이면 그 사용자입니다. 정책이 돌기 전에 취소한 내원의 진료는 만들지 않아 404입니다
 - `correlationId`는 아직 이벤트 봉투에 없어 이어받지 않습니다. 연쇄 취소의 감사 로그와 함께 봉투에 더합니다
 
 ## 코드 배치
@@ -182,7 +183,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 - **묶은 경계의 판정 결과는 애그리거트마다 나눠 돌려줍니다**(`CancelDecision`의 `visit`·`retracted`·`voided`). 저장소가 애그리거트마다 따로라, 각 쓰기에 넘길 이전 버전과 이벤트를 함께 담습니다
 - **규칙 모듈은 그대로 둡니다.** 상태 전이표(`visit-status.ts`)는 규칙 문서·픽스처와 짝이라 옮기지 않고 판정 함수가 부릅니다
 - **허용 동작은 아직 만들지 않았습니다.** 내원 응답에 `allowedActions`가 없어 쓰는 곳이 없습니다. 응답에 넣을 때 판정 함수를 커맨드마다 시험해 만듭니다
-- 접수가 빈 초안 진료를 같은 트랜잭션에서 만드는 것은 그대로입니다. M1에서 정책으로 옮깁니다([#69](https://github.com/cbcruk/hemr/issues/69))
+- 접수가 빈 초안 진료를 같은 트랜잭션에서 만드는 것은 그대로였고, M1([#69](https://github.com/cbcruk/hemr/issues/69))에서 정책으로 옮겼습니다
 
 좋아진 점: 판정 테스트(`visit.aggregate.test.ts`)가 Layer·저장소 없이 돌아, 내원 하나와 사실만 주고 결과를 봅니다. 서비스는 읽기 → 판정 → 저장으로 줄었습니다. 연쇄 취소에서 무엇을 어떤 순서로 판정하는지(환불이 먼저, 그다음 상태 전이, 그다음 진료 철회)가 함수 하나에 모였습니다.
 
@@ -244,7 +245,7 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 
 - **완료 검증 같은 규칙 계산은 판정이 직접 부릅니다.** 서비스가 결과를 `context`로 넘기지 않습니다. 규칙 모듈이 순수 함수라 판정이 순수함을 잃지 않고, 무엇을 어떤 순서로 보는지가 판정 한 곳에 남습니다
 - **서비스에서 `domainEvent(`를 직접 부르는 곳은 없습니다.** 판정 파일 밖에서 이벤트를 만드는 곳은 둘이 남았습니다. 진료 애그리거트의 일부지만 내원 판정이 import하므로, 진료 판정 파일로 옮기면 진료 판정 ↔ 내원 판정이 서로를 import합니다
-  - [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)(`draftEncounter`): 접수가 빈 진료를 만듭니다. M1([#69](https://github.com/cbcruk/hemr/issues/69))에서 정책으로 옮기면 내원이 import하지 않게 되므로 그때 진료 판정으로 모읍니다
+  - `draftEncounter`는 M1([#69](https://github.com/cbcruk/hemr/issues/69))에서 접수가 import하지 않게 되어 진료 판정(`decideDraft`)으로 옮겼습니다
   - [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)(`retractEncounter`): 진료 철회(`decideRetract`)와 내원 연쇄 취소(`decideCancel`)가 같이 씁니다. 연쇄 취소가 컨텍스트를 넘는 예외라 남습니다
 - `conventions.md`에는 판정 함수 절이 없습니다. 규약은 이 문서(코드 배치와 위 절들)와 `CLAUDE.md`에 있습니다
 

@@ -12,6 +12,7 @@ import { CurrentAccess } from '../../identity/auth/access.ts'
 import { testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
+import { createVisitDraft } from './encounter-draft.policy.ts'
 import { retractCanceledDraft } from './encounter-retraction.policy.ts'
 import { EncounterRepository } from './encounter-repository.ts'
 
@@ -39,6 +40,7 @@ const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sq
 const checkedIn = Effect.gen(function* () {
   const patient = yield* (yield* Patients).register({ name: '홍길동' })
   const visit = yield* (yield* Visits).checkIn({ patientId: patient.id, coverage: 'SELF_PAY' })
+  yield* runPolicyOnce(createVisitDraft)
   return { visit, encounterId: visit.encounterId as Id<'encounter'> }
 })
 

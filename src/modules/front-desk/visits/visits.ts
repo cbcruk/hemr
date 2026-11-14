@@ -5,7 +5,7 @@ import type { Id } from '../../../shared/ids/ids.types.ts'
 import { VersionMismatch } from '../../../shared/problem/problem.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
-import { draftEncounter, hasClinicalContent } from '../../clinical/encounters/encounter-draft.ts'
+import { hasClinicalContent } from '../../clinical/encounters/encounter-draft.ts'
 import { CurrentAccess, requirePermissions } from '../../identity/auth/access.ts'
 import type { PermissionDenied } from '../../identity/auth/auth-errors.ts'
 import { IdentityRepository } from '../../identity/identity-repository.ts'
@@ -13,7 +13,7 @@ import type { PatientNotFound } from '../../patients/patient.ts'
 import { Patients } from '../../patients/patients.ts'
 import { ReceiptRepository } from '../receipts/receipt-repository.ts'
 import { PaymentRefundRequired, recordOf } from '../receipts/receipt.ts'
-import { decisionContext, eventContext } from '../../../shared/decision/decision-context.ts'
+import { decisionContext } from '../../../shared/decision/decision-context.ts'
 import { decideCancel, decideCheckIn, decideVisitStatus } from './visit.aggregate.ts'
 import type { CheckInInput, VisitStatusInput } from './visit.aggregate.ts'
 import type { VisitCommand } from './visit-status.types.ts'
@@ -90,9 +90,9 @@ export class Visits extends Context.Service<
      * 접수 검증(`validateCheckIn`)이 막으면 422 `CHECK_IN_REJECTED`로 모든 이유를 돌려줍니다. 본인확인 판정의 첫
      * 내원·마지막 확인일은 취소하지 않은 이전 내원에서 셉니다. 요양기관기호는 병원 설정입니다.
      *
-     * 내원, 빈 초안 진료(`draftEncounter`), `visit.checked_in`·`encounter.created` 이벤트를 한 트랜잭션에서 씁니다.
-     * 바로 진료로 들어가도(`initialStatus: IN_TREATMENT`) 내원 이벤트는 접수 하나입니다. 예약·제주 지원 스냅샷은 그
-     * 모듈이 생길 때 같은 트랜잭션에 더합니다.
+     * 내원과 `visit.checked_in`을 씁니다. 진료 초안은 쓰지 않고 ID(`encounterId`)만 정해 두며, Clinical의 정책이나
+     * 그 진료를 먼저 연 요청이 만듭니다(결정 M1). 바로 진료로 들어가도(`initialStatus: IN_TREATMENT`) 내원 이벤트는
+     * 접수 하나입니다.
      */
     checkIn(input: CheckInInput): Effect.Effect<Visit, CheckInError, CurrentAccess>
 
@@ -244,18 +244,11 @@ export class Visits extends Context.Service<
           encounterId: newId('encounter', DateTime.toEpochMillis(now)),
         }
         const { visit, events } = yield* Effect.fromResult(decideCheckIn(input, facts, ids, context))
-        const draft = draftEncounter(visit, eventContext(context))
-        yield* transaction.run(
-          Effect.gen(function* () {
-            // 같은 ID가 이미 있으면 저장소가 `VersionMismatch`로 거절합니다. 새로 만드는 것이라 412가 아니라 409입니다.
-            // 실패할 수 있는 내원을 먼저 써, 되돌리지 못하는 메모리 저장소에서도 진료만 남지 않습니다
-            yield* repository
-              .save(visit, { expectedVersion: null, events })
-              .pipe(Effect.catchTag('VersionMismatch', () => Effect.fail(new VisitAlreadyExists({}))))
-            // 진료 ID는 서버가 방금 만들어 겹치지 않습니다. 겹치면 결함입니다
-            yield* encounters.save(draft.encounter, { expectedVersion: null, events: [draft.event] }).pipe(Effect.orDie)
-          }),
-        )
+        // 진료 초안은 Clinical의 정책이 `visit.checked_in`을 받아 내원의 `encounterId`로 만듭니다(결정 M1). 같은 ID가
+        // 이미 있으면 저장소가 `VersionMismatch`로 거절합니다. 새로 만드는 것이라 412가 아니라 409입니다
+        yield* repository
+          .save(visit, { expectedVersion: null, events })
+          .pipe(Effect.catchTag('VersionMismatch', () => Effect.fail(new VisitAlreadyExists({}))))
         return visit
       })
 

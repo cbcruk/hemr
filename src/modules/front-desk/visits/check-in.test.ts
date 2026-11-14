@@ -1,13 +1,18 @@
 import { Effect, Layer, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import type { Transaction } from '../../../shared/db/transaction.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
+import { runPolicyOnce } from '../../../shared/events/policy.ts'
+import type { PolicyCursor } from '../../../shared/events/policy.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
+import { createVisitDraft } from '../../clinical/encounters/encounter-draft.policy.ts'
 import { EncounterRepository } from '../../clinical/encounters/encounter-repository.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import { TEST_TENANT, testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
+import type { VisitRepository } from './visit-repository.ts'
 import { Visits } from './visits.ts'
 import type { CheckInInput } from './visits.ts'
 
@@ -21,7 +26,8 @@ const otherTenant = testMember({
 /** 성인 건보 자격입니다. */
 const NHIS = { qualificationCode: '1', selectedInstitutionCodes: [] }
 
-type Services = Visits | Patients | Outbox | EncounterRepository | CurrentAccess
+type Services =
+  Visits | Patients | Outbox | EncounterRepository | VisitRepository | PolicyCursor | Transaction | CurrentAccess
 
 /** `visits`(기본은 `Visits.layer`)에 환자·병원·저장소를 넣어 `program`을 실행합니다. */
 const run = <A, E>(
@@ -95,18 +101,23 @@ describe.each(['memory', 'sqlite'] as const)('Visits.checkIn (%s)', (store) => {
     ])
   })
 
-  it('creates an empty draft encounter for the visit in the same transaction', async () => {
+  it('접수는 내원만 쓰고, 초안 정책이 내원에서 복사한 빈 초안을 접수한 사람 이름으로 만듭니다', async () => {
     const result = await run(
       Effect.gen(function* () {
         const { checkIn } = yield* registered()
         const visit = yield* checkIn({ coverage: 'SELF_PAY', benefitFlags: { pregnant: true } })
-        const encounter = yield* (yield* EncounterRepository).findById(TEST_TENANT.id, visit.encounterId!)
+        const encounters = yield* EncounterRepository
+        const before = yield* encounters.findById(TEST_TENANT.id, visit.encounterId!)
+        yield* runPolicyOnce(createVisitDraft)
+        const after = yield* encounters.findById(TEST_TENANT.id, visit.encounterId!)
         const pending = yield* (yield* Outbox).pending(10)
-        return { visit, encounter: Option.getOrThrow(encounter), pending }
+        return { visit, before, encounter: Option.getOrThrow(after), pending }
       }),
       store,
     )
+    expect(result.before).toEqual(Option.none())
     expect(result.encounter).toMatchObject({
+      id: result.visit.encounterId,
       visitId: result.visit.id,
       patientId: result.visit.patientId,
       coverage: 'SELF_PAY',
@@ -255,34 +266,5 @@ describe.each(['memory', 'sqlite'] as const)('Visits.checkIn (%s)', (store) => {
     expect(result.again).toMatchObject({ code: 'VISIT_ALREADY_EXISTS' })
     expect(result.hidden).toMatchObject({ code: 'PATIENT_NOT_FOUND' })
     expect(result.stored).toEqual(result.first)
-  })
-})
-
-describe('Visits.checkIn (sqlite) transaction', () => {
-  it('leaves no visit when the encounter cannot be written', async () => {
-    /** 진료 쓰기가 결함으로 실패하는 저장소입니다. */
-    const failing = Layer.effect(
-      EncounterRepository,
-      Effect.gen(function* () {
-        const inner = yield* EncounterRepository
-        return EncounterRepository.of({ ...inner, save: () => Effect.die('encounter write failed') })
-      }),
-    )
-    const result = await run(
-      Effect.gen(function* () {
-        const { checkIn } = yield* registered()
-        const exit = yield* Effect.exit(checkIn({ coverage: 'SELF_PAY' }))
-        const pending = yield* (yield* Outbox).pending(10)
-        return { exit, listed: yield* (yield* Visits).list({}), pending: pending.map((row) => row.event.type) }
-      }),
-      'sqlite',
-      // 진료 저장소만 바꾸고 트랜잭션·내원 저장소는 같은 DB의 것을 씁니다
-      Visits.layer.pipe(
-        Layer.provide(failing.pipe(Layer.provide(EncounterRepository.layerSql))),
-      ) as typeof Visits.layer,
-    )
-    expect(result.exit._tag).toBe('Failure')
-    expect(result.listed).toEqual([])
-    expect(result.pending).toEqual(['patient.created'])
   })
 })

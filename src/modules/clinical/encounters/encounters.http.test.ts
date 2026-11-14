@@ -584,11 +584,24 @@ describe('encounter completion HTTP', () => {
   it('취소한 내원의 진료는 철회 정책이 돌기 전에도 완료할 수 없습니다', async () => {
     const send = app()
     const { visit, encounterId } = await checkedIn(send)
+    // 차트를 열면 초안 정책보다 먼저 초안을 만듭니다(결정 M1)
+    const opened = await send('GET', `/encounters/${encounterId}`)
     await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
     const completed = await send('POST', `/encounters/${encounterId}:complete`, { ifMatch: '"1"', body: {} })
 
+    expect(opened.status).toBe(200)
     expect(completed.status).toBe(409)
     expect(await json(completed)).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
+  })
+
+  it('초안을 만들기 전에 취소한 내원의 진료는 만들지 않아 404입니다', async () => {
+    const send = app()
+    const { visit, encounterId } = await checkedIn(send)
+    await send('POST', `/visits/${visit.id}:cancel`, { as: desk, body: { reason: '취소' } })
+    const opened = await send('GET', `/encounters/${encounterId}`)
+
+    expect(opened.status).toBe(404)
+    expect(await json(opened)).toMatchObject({ code: 'ENCOUNTER_NOT_FOUND' })
   })
 })
 

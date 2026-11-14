@@ -16,6 +16,7 @@ import { PersistenceSqlite } from './persistence.ts'
 import { EventBus } from './shared/events/event-bus.ts'
 import { OutboxRelay } from './shared/events/outbox-relay.ts'
 import { policyWorker } from './shared/events/policy.ts'
+import { createVisitDraft } from './modules/clinical/encounters/encounter-draft.policy.ts'
 import { retractCanceledDraft } from './modules/clinical/encounters/encounter-retraction.policy.ts'
 
 const port = Number(process.env['PORT'] ?? 3000)
@@ -90,7 +91,7 @@ const Events = OutboxRelay.polling().pipe(
 )
 
 /** 등록한 정책을 1초마다 돌립니다(events.md 정책과 사가). 정책마다 outbox 커서를 따로 둡니다. */
-const Policies = policyWorker([retractCanceledDraft])
+const Policies = policyWorker([createVisitDraft, retractCanceledDraft])
 
 /** 진행 중인 시술의 타이머 만료를 1초마다 판정합니다. 클라이언트가 없어도 서버가 `TIMER_ELAPSED`로 바꿉니다. */
 const TimerSweep = ProcedureTimerSweep().pipe(Layer.provide(Procedures.layer))

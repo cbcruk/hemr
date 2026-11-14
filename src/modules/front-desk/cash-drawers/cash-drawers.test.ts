@@ -1,6 +1,11 @@
 import { Effect, Layer, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import type { Transaction } from '../../../shared/db/transaction.ts'
+import { runPolicyOnce } from '../../../shared/events/policy.ts'
+import type { PolicyCursor } from '../../../shared/events/policy.ts'
+import { createVisitDraft } from '../../clinical/encounters/encounter-draft.policy.ts'
+import type { VisitRepository } from '../visits/visit-repository.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { clinicDate } from '../../../shared/time/clinic-date.ts'
@@ -15,7 +20,17 @@ import { CashDrawers } from './cash-drawers.ts'
 
 const desk = testMember({ role: 'FRONT_DESK' })
 
-type Services = CashDrawers | Receipts | Visits | Patients | EncounterRepository | Outbox | CurrentAccess
+type Services =
+  | CashDrawers
+  | Receipts
+  | Visits
+  | Patients
+  | EncounterRepository
+  | Outbox
+  | PolicyCursor
+  | Transaction
+  | VisitRepository
+  | CurrentAccess
 
 const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sqlite') =>
   Effect.runPromise(
@@ -43,6 +58,8 @@ const paidInCash = (amount: number) =>
   Effect.gen(function* () {
     const patient = yield* (yield* Patients).register({ name: '홍길동' })
     const visit = yield* (yield* Visits).checkIn({ patientId: patient.id, coverage: 'SELF_PAY' })
+    // 진료 초안은 접수 정책이 만듭니다(결정 M1)
+    yield* runPolicyOnce(createVisitDraft)
     const encounters = yield* EncounterRepository
     const encounter = Option.getOrThrow(
       yield* encounters.findById(visit.tenantId, visit.encounterId as Id<'encounter'>),

@@ -178,7 +178,7 @@ If-Match: "8"
 - **진료의가 비어 있으면 완료한 사용자로 채웁니다.** `completedAt`은 처음 완료한 시각이고, 정정(#25)해도 바꾸지 않습니다
 - **이벤트:** `encounter.completed { encounterId, visitId, patientId, doctorId, acknowledged }`, 그리고 내원을 옮겼으면 `visit.status_changed`
 - **저장:** 마이그레이션 `0009_encounter_completion`이 `encounters`에 `completed_at`을 더합니다
-- **모듈:** 진료가 내원 커맨드(`Visits`)를 쓰고 접수가 빈 진료를 만들어 서로를 부르므로, 접수가 쓰는 `draftEncounter`·`hasClinicalContent`를 [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)로 옮겨 import 순환을 없앴습니다
+- **모듈:** 진료가 내원 커맨드(`Visits`)를 쓰고 접수가 빈 진료를 만들어 서로를 부르므로, 접수가 쓰는 `draftEncounter`·`hasClinicalContent`를 [encounter-draft.ts](../../src/modules/clinical/encounters/encounter-draft.ts)로 옮겨 import 순환을 없앴습니다. M1부터 접수는 진료를 만들지 않아 `draftEncounter`는 진료 판정으로 옮겼고, 내원 취소가 쓰는 `hasClinicalContent`만 남았습니다
 
 ### 정정·철회·판·고정 구현 결정
 
@@ -240,9 +240,12 @@ POST /amendment-proposals/{id}:dismiss      { reason }                          
 
 구현은 [encounters.ts](../../src/modules/clinical/encounters/encounters.ts)의 `get`·`listForPatient`·`update`, 판정은 [encounter.aggregate.ts](../../src/modules/clinical/encounters/encounter.aggregate.ts)의 `decideUpdate`, 변경 적용은 [encounter-changes.ts](../../src/modules/clinical/encounters/encounter-changes.ts)입니다 (#22).
 
-- **범위:** 접수가 빈 초안 진료를 만들고, 진료 하나(`GET /encounters/{id}`)와 환자의 진료 목록(`GET /patients/{id}/encounters`)을 열고, 초안의 본문·상병을 저장합니다(`PATCH /encounters/{id}`)
+- **범위:** 접수한 내원의 빈 초안 진료를 만들고, 진료 하나(`GET /encounters/{id}`)와 환자의 진료 목록(`GET /patients/{id}/encounters`)을 열고, 초안의 본문·상병을 저장합니다(`PATCH /encounters/{id}`)
   - 미룸: 내원 없는 진료(`POST /encounters`), 활력징후, 서명, `allowedActions`, 목록의 `from`·`to`·`type`·`cursor`, `clinical-summary`, 상병 마스터 검색, 진료 조회의 열람 기록(`access_logs`, conventions.md 감사와 열람 기록). 열람 기록은 환자 조회(patients.md)와 같이 미루고, 진료기록 서명·정정과 함께 붙입니다
-- **접수가 내원과 진료를 한 트랜잭션에서 만듭니다.** 두 모듈의 저장소에 걸친 쓰기라 공통 `Transaction`([transaction.ts](../../src/shared/db/transaction.ts))으로 묶습니다. 저장소 `save`의 트랜잭션은 그 안에서 savepoint가 됩니다. 메모리 저장소는 되돌리지 못해, 실패할 수 있는 내원 쓰기(같은 ID)를 먼저 하고 서버가 만든 ID의 진료를 뒤에 씁니다
+- **접수는 진료 ID만 정하고, 초안은 정책이 만듭니다(결정 M1, #69).** 접수가 내원에 `encounterId`를 담아 쓰고, 정책(`createVisitDraft`)이 `visit.checked_in`을 받아 그 ID로 초안을 만듭니다. 처음(#22)에는 접수가 같은 트랜잭션에서 만들었습니다. 진료와 내원 사이에 같은 순간에 지킬 불변식이 없어 옮겼습니다
+  - **정책보다 먼저 열면 그때 만듭니다.** 진료를 읽거나 고치는 요청이 진료를 못 찾으면 그 ID의 내원으로 같은 초안을 만들어 이어 갑니다. 초안은 내원에서만 정해져 정책이 만든 것과 같고, 늦게 만든 쪽은 이미 있는 진료를 씁니다. `GET`이 쓰기를 할 수 있게 되지만 결과가 정해진 한 번뿐인 쓰기라 받아들였습니다. 되돌릴 조건: 초안이 내원 밖의 값(진료의 등)으로 정해지게 되면 `GET`에서 만들지 않고 클라이언트가 정책을 기다리게 합니다
+  - 정책이 돌기 전에 내원을 취소했으면 초안을 만들지 않고, 그 진료 ID는 404입니다
+  - 환자의 진료 목록에는 정책이 돌기 전(1초쯤) 초안이 없습니다. 빈 초안이라 목록이 달라지는 것 말고는 영향이 없습니다
   - 대안: 진료를 처음 열 때(`GET`) 만들기. 읽기가 쓰기가 되고, 내원 목록에서 `encounterId`를 바로 줄 수 없어 버렸습니다
   - 대안: 내원 저장소가 진료 행도 쓰기. Front Desk가 Clinical 테이블을 알게 되어 버렸습니다
 - **보험구분·표시·기준 시각은 내원에서 복사합니다.** `serviceAt`은 접수 시각입니다. 내원의 보험구분을 바꾸는 커맨드(`:change-coverage`)가 생기면 그 커맨드가 진료도 함께 바꿉니다
@@ -258,7 +261,7 @@ POST /amendment-proposals/{id}:dismiss      { reason }                          
 - **초안이 아니면 409 `ENCOUNTER_NOT_EDITABLE`입니다.** 완료한 뒤의 수정은 정정(`:amend`, #25)입니다
 - **내원 취소는 진료 내용을 봅니다.** 본문이나 상병, 처방 라인이 있는 진료의 내원은 `cascade` 없이 취소할 수 없습니다(409 `VISIT_HAS_CLINICAL_DATA`). 저장된 `hasClinicalData`(수납이 생기기 전까지의 값)에 진료 내용을 더해 판정합니다. 편집기가 비운 본문(`<p><br></p>`, 공백)은 내용이 아니고, 그림(`<img>`)은 내용입니다. 취소한 내원의 빈 초안 진료는 #25부터 철회합니다(front-desk.md 연쇄 취소, M5부터 정책). 그 전에 취소한 내원의 초안은 고칠 수 없고(409 `ENCOUNTER_VISIT_CANCELED`), 정책이 처음 돌 때 outbox 처음부터 읽으므로 그 취소 이벤트로 함께 철회됩니다
   - 취소와 진료 저장이 겹치는 경합: 처음(#22)에는 받아들였고, #25에서 내원 커맨드와 진료 저장이 읽기·판정·쓰기를 한 트랜잭션에서 하게 해 막았습니다. SQLite는 트랜잭션을 하나씩 실행하므로 먼저 들어간 쪽만 이기고, 뒤에 온 쪽은 409(`VISIT_HAS_CLINICAL_DATA` 또는 `ENCOUNTER_VISIT_CANCELED`)입니다
-- **이벤트:** `encounter.created { encounterId, visitId, patientId }`(접수와 같은 트랜잭션), `encounter.updated { encounterId, visitId, patientId, changed }`(`changed`는 `note`·`diagnoses`·`prescriptionLines`)
+- **이벤트:** `encounter.created { encounterId, visitId, patientId }`(정책이나 먼저 연 요청이 만들 때), `encounter.updated { encounterId, visitId, patientId, changed }`(`changed`는 `note`·`diagnoses`·`prescriptionLines`)
 - **목록은 쪽을 나누지 않습니다.** 최근 진료가 먼저입니다(`serviceAt`, ID 내림차순). 되돌릴 조건: 진료가 많은 환자의 목록이 느려지거나 화면이 기간 조회를 쓰면 `from`·`to`·`cursor`를 더합니다
 - **저장:** 마이그레이션 `0007_encounters`가 `encounters`를 만들고 `visits`에 `encounter_id`를 더합니다. 0006 뒤로 실제 접수가 생겨 테이블을 다시 만들지 않고 열을 더했고, 그 전 내원은 `encounterId: null`입니다. 상병·표시는 JSON 열입니다. `visit_id`에 부분 유일 색인을 걸어 내원 하나에 진료 하나를 지킵니다. 철회한 진료도 내원을 계속 차지해, 철회 뒤 같은 내원에 새 진료는 만들 수 없습니다. 그런 흐름이 필요해지면 이 색인을 철회하지 않은 진료로 좁힙니다. 모듈 사이 외래 키는 두지 않습니다(0006과 같음)
 - **권한:** 조회는 `encounter:read`(데스크도 가짐), 저장은 `encounter:write`(면허 권한)입니다. 담당 환자 범위(`scope: OWN`)는 담당 관계가 생길 때 확인합니다

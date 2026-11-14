@@ -6,7 +6,7 @@ import { TEST_TENANT } from '../../identity/auth/testing.ts'
 import { testVisit } from '../../front-desk/visits/testing.ts'
 import type { Visit } from '../../front-desk/visits/visit.ts'
 import type { NewIds } from './encounter-changes.ts'
-import { draftEncounter } from './encounter-draft.ts'
+import { draftEncounter } from './encounter.aggregate.ts'
 import type { Encounter } from './encounter.ts'
 
 /** 판정 함수 테스트의 시각과 행위자입니다. */
