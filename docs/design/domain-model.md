@@ -244,9 +244,8 @@ Alchemy의 뷰는 이벤트를 접어 만든 읽기 모델이라 애그리거트
 #67에서 정한 것 전체:
 
 - **완료 검증 같은 규칙 계산은 판정이 직접 부릅니다.** 서비스가 결과를 `context`로 넘기지 않습니다. 규칙 모듈이 순수 함수라 판정이 순수함을 잃지 않고, 무엇을 어떤 순서로 보는지가 판정 한 곳에 남습니다
-- **서비스에서 `domainEvent(`를 직접 부르는 곳은 없습니다.** 판정 파일 밖에서 이벤트를 만드는 곳은 둘이 남았습니다. 진료 애그리거트의 일부지만 내원 판정이 import하므로, 진료 판정 파일로 옮기면 진료 판정 ↔ 내원 판정이 서로를 import합니다
-  - `draftEncounter`는 M1([#69](https://github.com/cbcruk/hemr/issues/69))에서 접수가 import하지 않게 되어 진료 판정(`decideDraft`)으로 옮겼습니다
-  - [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)(`retractEncounter`): 진료 철회(`decideRetract`)와 내원 연쇄 취소(`decideCancel`)가 같이 씁니다. 연쇄 취소가 컨텍스트를 넘는 예외라 남습니다
+- **서비스에서 `domainEvent(`를 직접 부르는 곳은 없습니다.** 판정 파일 밖에서 이벤트를 만드는 곳은 하나 남았습니다. [encounter-retraction.ts](../../src/modules/clinical/encounters/encounter-retraction.ts)(`retractEncounter`)입니다. 진료 철회(`decideRetract`)와 내원 연쇄 취소(`decideCancel`)가 같이 써서, 진료 판정 파일로 옮기면 진료 판정 ↔ 내원 판정이 서로를 import합니다. 연쇄 취소가 컨텍스트를 넘는 예외라 남습니다
+  - 둘째였던 `draftEncounter`는 M1([#69](https://github.com/cbcruk/hemr/issues/69))에서 접수가 import하지 않게 되어 진료 판정(`decideDraft`)으로 옮겼습니다
 - `conventions.md`에는 판정 함수 절이 없습니다. 규약은 이 문서(코드 배치와 위 절들)와 `CLAUDE.md`에 있습니다
 
 ## 단계
