@@ -1,4 +1,4 @@
-import { Result } from 'effect'
+import { rejected, success } from '../../../shared/decision/testing.ts'
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { TEST_TENANT } from '../../identity/auth/testing.ts'
@@ -62,16 +62,6 @@ const running = (n: number, seconds: number, overrides: Partial<Procedure> = {})
     ...overrides,
   })
 
-const success = <A, E>(result: Result.Result<A, E>): A => {
-  if (Result.isFailure(result)) throw new Error(`거부되었습니다: ${String(result.failure)}`)
-  return result.success
-}
-
-const failure = <A, E>(result: Result.Result<A, E>): E => {
-  if (Result.isSuccess(result)) throw new Error('거부되지 않았습니다')
-  return result.failure
-}
-
 const NEW_ID = 'prc_01JBQ000000000000000000009' as Id<'procedure'>
 
 describe('decideAdd', () => {
@@ -97,21 +87,20 @@ describe('decideAdd', () => {
   it('닫힌 내원과 시술이 가득 찬 내원에는 더하지 않습니다', () => {
     const full = Array.from({ length: MAX_PROCEDURES_PER_VISIT }, (_, index) => procedure(1, { order: index }))
 
-    expect(
-      failure(
-        decideAdd(
-          testVisit({ status: 'COMPLETED' }),
-          [],
-          { name: '부항' },
-          NEW_ID,
-          DEFAULT_PROCEDURE_TIMER_SETTINGS,
-          context,
-        ),
-      )._tag,
-    ).toBe('ProcedureVisitClosed')
-    expect(
-      failure(decideAdd(visit, full, { name: '부항' }, NEW_ID, DEFAULT_PROCEDURE_TIMER_SETTINGS, context))._tag,
-    ).toBe('ProcedureLimitExceeded')
+    rejected(
+      decideAdd(
+        testVisit({ status: 'COMPLETED' }),
+        [],
+        { name: '부항' },
+        NEW_ID,
+        DEFAULT_PROCEDURE_TIMER_SETTINGS,
+        context,
+      ),
+      { _tag: 'ProcedureVisitClosed' },
+    )
+    rejected(decideAdd(visit, full, { name: '부항' }, NEW_ID, DEFAULT_PROCEDURE_TIMER_SETTINGS, context), {
+      _tag: 'ProcedureLimitExceeded',
+    })
   })
 })
 
@@ -132,7 +121,7 @@ describe('decideStart', () => {
   it('이미 진행 중인 시술은 거부합니다', () => {
     const given = running(1, 60)
 
-    expect(failure(decideStart(given, visit, [given], DEFAULT_PROCEDURE_TIMER_SETTINGS, context))).toMatchObject({
+    rejected(decideStart(given, visit, [given], DEFAULT_PROCEDURE_TIMER_SETTINGS, context), {
       _tag: 'ProcedureTransitionInvalid',
       currentStatus: 'RUNNING',
     })
@@ -158,13 +147,14 @@ describe('decideSetDuration', () => {
   })
 
   it('이미 지난 시간보다 짧게 줄이면 422, 완료한 시술은 409로 거부합니다', () => {
-    expect(failure(decideSetDuration(running(1, 120), visit, 100, context))).toMatchObject({
+    rejected(decideSetDuration(running(1, 120), visit, 100, context), {
       _tag: 'ProcedureDurationRejected',
       reason: 'PROCEDURE_DURATION_TOO_SHORT',
     })
-    expect(failure(decideSetDuration(procedure(1, { status: 'DONE' }), visit, 100, context))._tag).toBe(
-      'ProcedureTransitionInvalid',
-    )
+    rejected(decideSetDuration(procedure(1, { status: 'DONE' }), visit, 100, context), {
+      _tag: 'ProcedureTransitionInvalid',
+      currentStatus: 'DONE',
+    })
   })
 
   it('스키마가 막는 시간이 오면 결함으로 멈춥니다', () => {
@@ -177,7 +167,7 @@ describe('decideComplete와 decideFinishRunning', () => {
     expect(success(decideComplete(running(1, 60), context)).changed).toMatchObject([
       { status: 'DONE', completedAt: AT },
     ])
-    expect(failure(decideComplete(procedure(1), context))).toMatchObject({ currentStatus: 'PENDING' })
+    rejected(decideComplete(procedure(1), context), { _tag: 'ProcedureTransitionInvalid', currentStatus: 'PENDING' })
   })
 
   it('내원의 진행 중·만료 시술을 모두 완료하고 대기 시술은 그대로 둡니다', () => {
@@ -197,7 +187,10 @@ describe('decideRestartTimer와 decideReopen', () => {
     expect(success(decideRestartTimer(running(1, 300), visit, context)).changed).toMatchObject([
       { status: 'RUNNING', startedAt: AT, timerEndsAt: '2026-11-13T01:10:00.000Z' },
     ])
-    expect(failure(decideRestartTimer(procedure(1), visit, context))._tag).toBe('ProcedureTransitionInvalid')
+    rejected(decideRestartTimer(procedure(1), visit, context), {
+      _tag: 'ProcedureTransitionInvalid',
+      currentStatus: 'PENDING',
+    })
   })
 
   it('완료한 시술을 대기로 되돌리고, 닫힌 내원에서는 거부합니다', () => {
@@ -206,7 +199,7 @@ describe('decideRestartTimer와 decideReopen', () => {
     expect(success(decideReopen(done, visit, context)).changed).toMatchObject([
       { status: 'PENDING', startedAt: null, timerEndsAt: null, completedAt: null },
     ])
-    expect(failure(decideReopen(done, testVisit({ status: 'CANCELED' }), context))._tag).toBe('ProcedureVisitClosed')
+    rejected(decideReopen(done, testVisit({ status: 'CANCELED' }), context), { _tag: 'ProcedureVisitClosed' })
   })
 })
 
@@ -221,10 +214,10 @@ describe('decideReorder', () => {
   })
 
   it('시술을 빠뜨리거나 두 번 보내면 거부합니다', () => {
-    expect(failure(decideReorder(given, [given[0]!.id, given[1]!.id], context))._tag).toBe('ProcedureOrderInvalid')
-    expect(failure(decideReorder(given, [given[0]!.id, given[0]!.id, given[1]!.id], context))._tag).toBe(
-      'ProcedureOrderInvalid',
-    )
+    rejected(decideReorder(given, [given[0]!.id, given[1]!.id], context), { _tag: 'ProcedureOrderInvalid' })
+    rejected(decideReorder(given, [given[0]!.id, given[0]!.id, given[1]!.id], context), {
+      _tag: 'ProcedureOrderInvalid',
+    })
   })
 })
 
@@ -235,7 +228,7 @@ describe('decideRemove', () => {
       removed: [procedure(1).id],
       events: [{ type: 'procedure.removed' }],
     })
-    expect(failure(decideRemove(running(1, 60), context))._tag).toBe('ProcedureTransitionInvalid')
+    rejected(decideRemove(running(1, 60), context), { _tag: 'ProcedureTransitionInvalid', currentStatus: 'RUNNING' })
   })
 })
 

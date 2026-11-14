@@ -1,4 +1,3 @@
-import { Result } from 'effect'
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { draftEncounter } from '../../clinical/encounters/encounter.aggregate.ts'
@@ -8,6 +7,7 @@ import type { Payment, ReceiptRecord } from '../receipts/receipt.ts'
 import { testVisit } from './testing.ts'
 import { eventContext } from '../../../shared/decision/decision-context.ts'
 import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
+import { rejected, success, withoutIds } from '../../../shared/decision/testing.ts'
 import { decideCancel, decideCheckIn, decideVisitAfterEncounter, decideVisitStatus } from './visit.aggregate.ts'
 import type { CheckInFacts } from './visit.aggregate.ts'
 import type { Visit } from './visit.ts'
@@ -29,19 +29,6 @@ const emptyDraft = (of: Visit): Encounter =>
   draftEncounter({ ...of, encounterId: ENCOUNTER_ID }, eventContext(context)).encounter
 
 const noData = { hasClinicalData: false }
-
-/** 이벤트 ID는 판정할 때마다 새로 만들어 비교에서 뺍니다. */
-const withoutIds = <T extends { id: unknown }>(events: ReadonlyArray<T>) => events.map(({ id: _, ...rest }) => rest)
-
-const success = <A, E>(result: Result.Result<A, E>): A => {
-  if (Result.isFailure(result)) throw new Error(`거부되었습니다: ${String(result.failure)}`)
-  return result.success
-}
-
-const failure = <A, E>(result: Result.Result<A, E>): E => {
-  if (Result.isSuccess(result)) throw new Error('거부되지 않았습니다')
-  return result.failure
-}
 
 describe('decideVisitStatus', () => {
   it('대기 내원에 진료 시작을 보내면 진료 중이 되고 버전이 오르며 상태 변경 이벤트 하나를 냅니다', () => {
@@ -84,10 +71,8 @@ describe('decideVisitStatus', () => {
   it('지금 상태가 받지 않는 커맨드는 현재 상태와 커맨드를 담아 거부합니다', () => {
     const given = visit({ status: 'COMPLETED' })
 
-    const then = failure(decideVisitStatus(given, 'START_TREATMENT', {}, noData, context))
-
-    expect(then).toMatchObject({
-      code: 'VISIT_TRANSITION_INVALID',
+    rejected(decideVisitStatus(given, 'START_TREATMENT', {}, noData, context), {
+      _tag: 'VisitTransitionInvalid',
       currentStatus: 'COMPLETED',
       command: 'START_TREATMENT',
     })
@@ -99,9 +84,10 @@ describe('decideVisitStatus', () => {
     expect(success(decideVisitStatus(given, 'REOPEN', { reason: '정정' }, noData, context)).visit.status).toBe(
       'AWAITING_PAYMENT',
     )
-    expect(
-      failure(decideVisitStatus(given, 'REOPEN', { reason: '정정', then: 'WAITING' }, noData, context)),
-    ).toMatchObject({ code: 'VISIT_DATE_PAST', date: '2026-11-12' })
+    rejected(decideVisitStatus(given, 'REOPEN', { reason: '정정', then: 'WAITING' }, noData, context), {
+      _tag: 'VisitDatePast',
+      date: '2026-11-12',
+    })
   })
 })
 
@@ -179,11 +165,10 @@ describe('decideCancel', () => {
   it('진료 기록이 있으면 연쇄 없이는 상태와 상관없이 거부합니다', () => {
     const given = visit({ status: 'AWAITING_PAYMENT' })
 
-    const then = failure(
+    rejected(
       decideCancel(given, { reason: '취소' }, { hasClinicalData: true, encounter: null, activeReceipt: null }, context),
+      { _tag: 'VisitHasClinicalData', currentStatus: 'AWAITING_PAYMENT' },
     )
-
-    expect(then).toMatchObject({ code: 'VISIT_HAS_CLINICAL_DATA', currentStatus: 'AWAITING_PAYMENT' })
   })
 
   it('연쇄 취소는 서버 안에서 받은 결제를 취소하고 영수증 취소 이벤트를 냅니다', () => {
@@ -220,9 +205,11 @@ describe('decideCancel', () => {
     const given = visit({ status: 'CANCELED' })
     const facts = { hasClinicalData: true, encounter: null, activeReceipt: { receipt: RECEIPT, payments: [card] } }
 
-    const then = failure(decideCancel(given, { reason: '취소', cascade: true }, facts, context))
-
-    expect(then).toMatchObject({ code: 'PAYMENT_REFUND_REQUIRED', receiptId: RECEIPT.id, paymentIds: [card.id] })
+    rejected(decideCancel(given, { reason: '취소', cascade: true }, facts, context), {
+      _tag: 'PaymentRefundRequired',
+      receiptId: RECEIPT.id,
+      paymentIds: [card.id],
+    })
   })
 })
 
@@ -281,10 +268,10 @@ describe('decideCheckIn', () => {
   })
 
   it('건보 접수에 자격 조회 결과가 없으면 접수 검증의 이유를 담아 거부합니다', () => {
-    const then = failure(decideCheckIn({ patientId: facts.patient.id, coverage: 'NHIS' }, facts, ids, context))
-
-    expect(then).toMatchObject({ code: 'CHECK_IN_REJECTED' })
-    expect(then.errors).toContain('NHIS_NOT_ELIGIBLE')
+    rejected(decideCheckIn({ patientId: facts.patient.id, coverage: 'NHIS' }, facts, ids, context), {
+      _tag: 'CheckInRejected',
+      errors: ['NHIS_NOT_ELIGIBLE', 'IDENTITY_VERIFICATION_REQUIRED'],
+    })
   })
 })
 

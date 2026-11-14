@@ -1,3 +1,4 @@
+import { rejected, success } from '../../../shared/decision/testing.ts'
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import {
@@ -10,7 +11,7 @@ import {
   decideUpdate,
 } from './encounter.aggregate.ts'
 import type { CompletionFacts } from './encounter.aggregate.ts'
-import { failure, PRIMARY, success, TEST_CONTEXT, testCompleted, testDraft, testIds, testVisitOf } from './testing.ts'
+import { PRIMARY, TEST_CONTEXT, testCompleted, testDraft, testIds, testVisitOf } from './testing.ts'
 
 /**
  * 진료 판정 함수의 테스트입니다. given(진료와 미리 읽은 사실) / when(커맨드) / then(쓸 진료·판·이벤트, 또는 거부)으로
@@ -69,7 +70,7 @@ describe('decideUpdate', () => {
   it('버전이 다르면 지금 버전을 담아 거부합니다', () => {
     const given = testDraft({ version: 3 })
 
-    expect(failure(decideUpdate(given, addPrimary, 2, facts(), testIds(), TEST_CONTEXT))).toMatchObject({
+    rejected(decideUpdate(given, addPrimary, 2, facts(), testIds(), TEST_CONTEXT), {
       _tag: 'VersionMismatch',
       currentVersion: 3,
     })
@@ -78,7 +79,7 @@ describe('decideUpdate', () => {
   it('완료한 진료는 초안 저장으로 고치지 않습니다', () => {
     const given = testCompleted()
 
-    expect(failure(decideUpdate(given, addPrimary, given.version, facts(), testIds(), TEST_CONTEXT))).toMatchObject({
+    rejected(decideUpdate(given, addPrimary, given.version, facts(), testIds(), TEST_CONTEXT), {
       _tag: 'EncounterNotEditable',
       currentStatus: 'COMPLETED',
     })
@@ -88,7 +89,7 @@ describe('decideUpdate', () => {
     const given = testDraft()
     const billed = facts({ billedBy: RECEIPT })
 
-    expect(failure(decideUpdate(given, addLine, given.version, billed, testIds(), TEST_CONTEXT))).toMatchObject({
+    rejected(decideUpdate(given, addLine, given.version, billed, testIds(), TEST_CONTEXT), {
       _tag: 'EncounterBilled',
       receiptId: RECEIPT,
     })
@@ -101,9 +102,9 @@ describe('decideUpdate', () => {
     const given = testDraft()
     const canceled = facts({ visit: testVisitOf({ status: 'CANCELED' }) })
 
-    expect(failure(decideUpdate(given, addPrimary, given.version, canceled, testIds(), TEST_CONTEXT))._tag).toBe(
-      'EncounterVisitCanceled',
-    )
+    rejected(decideUpdate(given, addPrimary, given.version, canceled, testIds(), TEST_CONTEXT), {
+      _tag: 'EncounterVisitCanceled',
+    })
   })
 })
 
@@ -134,9 +135,9 @@ describe('decideComplete', () => {
   it('주상병이 없으면 위반을 모두 담아 거부합니다', () => {
     const given = testDraft({ version: 2 })
 
-    expect(failure(decideComplete(given, { expectedVersion: 2 }, facts(), TEST_CONTEXT))).toMatchObject({
+    rejected(decideComplete(given, { expectedVersion: 2 }, facts(), TEST_CONTEXT), {
       _tag: 'EncounterCompletionRejected',
-      violations: [{ code: 'PRIMARY_DIAGNOSIS_MISSING' }],
+      violations: [{ code: 'PRIMARY_DIAGNOSIS_MISSING', message: 'Choose one primary diagnosis.' }],
     })
   })
 })
@@ -169,50 +170,50 @@ describe('decideAmend', () => {
   it('고정한 진료는 정정하지 않습니다', () => {
     const given = testCompleted({ locked: true })
 
-    expect(
-      failure(
-        decideAmend(
-          given,
-          { reason: '오타', changes: memo, expectedVersion: given.version },
-          facts(),
-          testIds(),
-          TEST_CONTEXT,
-        ),
-      )._tag,
-    ).toBe('EncounterLocked')
+    rejected(
+      decideAmend(
+        given,
+        { reason: '오타', changes: memo, expectedVersion: given.version },
+        facts(),
+        testIds(),
+        TEST_CONTEXT,
+      ),
+      { _tag: 'EncounterLocked' },
+    )
   })
 
   it('정정한 결과가 완료 검증에 막히면 거부합니다', () => {
     const given = testCompleted()
     const changes = { diagnoses: { remove: [PRIMARY.id] } }
 
-    expect(
-      failure(
-        decideAmend(
-          given,
-          { reason: '상병 삭제', changes, expectedVersion: given.version },
-          facts(),
-          testIds(),
-          TEST_CONTEXT,
-        ),
+    rejected(
+      decideAmend(
+        given,
+        { reason: '상병 삭제', changes, expectedVersion: given.version },
+        facts(),
+        testIds(),
+        TEST_CONTEXT,
       ),
-    ).toMatchObject({ _tag: 'EncounterCompletionRejected', violations: [{ code: 'PRIMARY_DIAGNOSIS_MISSING' }] })
+      {
+        _tag: 'EncounterCompletionRejected',
+        violations: [{ code: 'PRIMARY_DIAGNOSIS_MISSING', message: 'Choose one primary diagnosis.' }],
+      },
+    )
   })
 
   it('초안은 정정하지 않습니다', () => {
     const given = testDraft()
 
-    expect(
-      failure(
-        decideAmend(
-          given,
-          { reason: '오타', changes: memo, expectedVersion: given.version },
-          facts(),
-          testIds(),
-          TEST_CONTEXT,
-        ),
+    rejected(
+      decideAmend(
+        given,
+        { reason: '오타', changes: memo, expectedVersion: given.version },
+        facts(),
+        testIds(),
+        TEST_CONTEXT,
       ),
-    ).toMatchObject({ _tag: 'EncounterNotEditable', currentStatus: 'DRAFT' })
+      { _tag: 'EncounterNotEditable', currentStatus: 'DRAFT' },
+    )
   })
 })
 
@@ -234,10 +235,10 @@ describe('decideRetract', () => {
   it('고정했거나 수납한 진료는 철회하지 않습니다', () => {
     const input = { reason: '다른 환자', expectedVersion: 3 }
 
-    expect(failure(decideRetract(testCompleted({ locked: true }), input, { billedBy: null }, TEST_CONTEXT))._tag).toBe(
-      'EncounterLocked',
-    )
-    expect(failure(decideRetract(testCompleted(), input, { billedBy: RECEIPT }, TEST_CONTEXT))).toMatchObject({
+    rejected(decideRetract(testCompleted({ locked: true }), input, { billedBy: null }, TEST_CONTEXT), {
+      _tag: 'EncounterLocked',
+    })
+    rejected(decideRetract(testCompleted(), input, { billedBy: RECEIPT }, TEST_CONTEXT), {
       _tag: 'EncounterBilled',
       receiptId: RECEIPT,
     })
@@ -292,7 +293,7 @@ describe('decideRetractCanceledDraft', () => {
   })
 
   it('초안이 아닌 진료는 철회하지 않습니다', () => {
-    expect(failure(decideRetractCanceledDraft(testCompleted(), '취소', TEST_CONTEXT))).toMatchObject({
+    rejected(decideRetractCanceledDraft(testCompleted(), '취소', TEST_CONTEXT), {
       _tag: 'EncounterNotEditable',
       currentStatus: 'COMPLETED',
     })
@@ -315,6 +316,9 @@ describe('decideLock', () => {
   it('초안은 고정하지 않습니다', () => {
     const given = testDraft()
 
-    expect(failure(decideLock(given, true, given.version, TEST_CONTEXT))._tag).toBe('EncounterNotEditable')
+    rejected(decideLock(given, true, given.version, TEST_CONTEXT), {
+      _tag: 'EncounterNotEditable',
+      currentStatus: 'DRAFT',
+    })
   })
 })

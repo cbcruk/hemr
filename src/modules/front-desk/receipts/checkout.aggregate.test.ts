@@ -1,3 +1,4 @@
+import { rejected, success } from '../../../shared/decision/testing.ts'
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { testVisit } from '../visits/testing.ts'
@@ -6,7 +7,7 @@ import { decideCheckout } from './checkout.aggregate.ts'
 import type { CheckoutCommand, CheckoutFacts } from './checkout.aggregate.ts'
 import { selectDues } from './receipt.aggregate.ts'
 import { quoteIdOf } from './receipt-charges.ts'
-import { failure, success, TEST_CONTEXT, TEST_RECEIPT_IDS, testEncounter, testPayment, testReceipt } from './testing.ts'
+import { TEST_CONTEXT, TEST_RECEIPT_IDS, testEncounter, testPayment, testReceipt } from './testing.ts'
 
 /**
  * 수납 판정 함수의 테스트입니다. given(내원과 미리 읽은 사실) / when(수납 커맨드) / then(완료한 내원과 새 영수증, 또는
@@ -89,26 +90,27 @@ describe('decideCheckout', () => {
     const stale = quoteOf(given)
     const changed = facts({ encounters: [testEncounter(12_000)] })
 
-    const then = failure(
+    rejected(
       decideCheckout(given, { quoteId: stale, payments: [cash(12_000)] }, changed, TEST_RECEIPT_IDS, TEST_CONTEXT),
+      { _tag: 'QuoteStale', quoteId: quoteOf(given, changed.encounters) },
     )
-
-    expect(then).toMatchObject({ _tag: 'QuoteStale', quoteId: quoteOf(given, changed.encounters) })
   })
 
   it.each(['COMPLETED', 'CANCELED'] as const)('%s 내원은 금액을 보기 전에 거부합니다', (status) => {
     const given = visit({ status })
 
-    const then = failure(decideCheckout(given, { quoteId: quoteOf(given) }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT))
-
-    expect(then).toMatchObject({ _tag: 'VisitTransitionInvalid', currentStatus: status, command: 'CHECKOUT' })
+    rejected(decideCheckout(given, { quoteId: quoteOf(given) }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT), {
+      _tag: 'VisitTransitionInvalid',
+      currentStatus: status,
+      command: 'CHECKOUT',
+    })
   })
 
   it('다시 열었지만 유효한 영수증이 남은 내원은 그 영수증을 담아 거부합니다', () => {
     const given = visit()
     const active = testReceipt()
 
-    const then = failure(
+    rejected(
       decideCheckout(
         given,
         { quoteId: quoteOf(given) },
@@ -116,9 +118,8 @@ describe('decideCheckout', () => {
         TEST_RECEIPT_IDS,
         TEST_CONTEXT,
       ),
+      { _tag: 'ReceiptAlreadyExists', receiptId: active.id },
     )
-
-    expect(then).toMatchObject({ _tag: 'ReceiptAlreadyExists', receiptId: active.id })
   })
 
   it('다른 환자의 미리 기록한 결제는 적용하지 않고 그 결제를 담아 거부합니다', () => {
@@ -130,7 +131,7 @@ describe('decideCheckout', () => {
       patientId: 'pat_01JBQ000000000000000000002' as Id<'patient'>,
     })
 
-    const then = failure(
+    rejected(
       decideCheckout(
         given,
         { quoteId: quoteOf(given), paymentIds: [others.id] },
@@ -138,29 +139,28 @@ describe('decideCheckout', () => {
         TEST_RECEIPT_IDS,
         TEST_CONTEXT,
       ),
+      { _tag: 'CheckoutPaymentInvalid', paymentIds: [others.id] },
     )
-
-    expect(then).toMatchObject({ _tag: 'CheckoutPaymentInvalid', paymentIds: [others.id] })
   })
 
   it('밖에서 승인되는 카드를 수납 요청의 결제로 보내면 결산 오류로 거부합니다', () => {
     const given = visit()
     const card = { method: 'CARD' as const, amount: { taxable: 0, taxExempt: 10_000 } }
 
-    const then = failure(
+    rejected(
       decideCheckout(given, { quoteId: quoteOf(given), payments: [card] }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT),
+      { _tag: 'CheckoutRejected', errors: ['PAYMENT_METHOD_NOT_ALLOWED'], warnings: [] },
     )
-
-    expect(then._tag).toBe('CheckoutRejected')
-    expect(then).toHaveProperty('errors', expect.arrayContaining(['PAYMENT_METHOD_NOT_ALLOWED']))
   })
 
   it('한 푼도 받지 않고 미수를 확인받지 않으면 미수 경고로 거부하고, 확인받으면 미수 영수증을 만듭니다', () => {
     const given = visit()
 
-    const rejected = failure(
-      decideCheckout(given, { quoteId: quoteOf(given) }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT),
-    )
+    rejected(decideCheckout(given, { quoteId: quoteOf(given) }, facts(), TEST_RECEIPT_IDS, TEST_CONTEXT), {
+      _tag: 'CheckoutRejected',
+      errors: [],
+      warnings: ['OUTSTANDING'],
+    })
     const accepted = success(
       decideCheckout(
         given,
@@ -171,7 +171,6 @@ describe('decideCheckout', () => {
       ),
     )
 
-    expect(rejected).toMatchObject({ _tag: 'CheckoutRejected', errors: [], warnings: ['OUTSTANDING'] })
     expect(accepted.receipt.receipt.settlement).toMatchObject({
       result: 'OUTSTANDING',
       outstanding: 10_000,

@@ -1,9 +1,10 @@
+import { rejected, success } from '../../../shared/decision/testing.ts'
 import { describe, expect, it } from 'vitest'
 import type { Id } from '../../../shared/ids/ids.types.ts'
 import { testVisit } from '../visits/testing.ts'
 import { decideRecordPayment, decideRefund } from './payment.aggregate.ts'
 import type { RecordPaymentCommand } from './payment.aggregate.ts'
-import { failure, success, TEST_CONTEXT, testPayment, testReceipt } from './testing.ts'
+import { TEST_CONTEXT, testPayment, testReceipt } from './testing.ts'
 
 /**
  * 결제 판정 함수의 테스트입니다. given(결제와 적용한 영수증) / when(커맨드) / then(다음 결제·영수증과 이벤트, 또는
@@ -49,7 +50,7 @@ describe('decideRecordPayment', () => {
   it('다른 환자의 내원이면 거부합니다', () => {
     const others = testVisit({ patientId: 'pat_01JBQ000000000000000000002' as Id<'patient'> })
 
-    expect(failure(decideRecordPayment(command, others, PAYMENT_ID, TEST_CONTEXT))._tag).toBe('PaymentVisitMismatch')
+    rejected(decideRecordPayment(command, others, PAYMENT_ID, TEST_CONTEXT), { _tag: 'PaymentVisitMismatch' })
   })
 })
 
@@ -92,19 +93,19 @@ describe('decideRefund', () => {
   it('원 결제 수단에 맞지 않는 환불 수단은 허용하는 수단을 담아 거부합니다', () => {
     const given = testPayment({ method: 'CARD' })
 
-    const then = failure(decideRefund(given, receipt, refund, TEST_CONTEXT))
-
-    expect(then).toMatchObject({
+    rejected(decideRefund(given, receipt, refund, TEST_CONTEXT), {
       _tag: 'RefundRejected',
       errors: ['METHOD_NOT_ALLOWED'],
       allowedMethods: ['CARD_CANCEL'],
+      refundable: { taxable: 0, taxExempt: 10_000 },
     })
   })
 
   it.each(['REFUNDED', 'VOIDED'] as const)('%s 결제는 환불하지 않습니다', (status) => {
-    const then = failure(decideRefund(testPayment({ status }), receipt, refund, TEST_CONTEXT))
-
-    expect(then).toMatchObject({ _tag: 'PaymentNotRefundable', paymentStatus: status })
+    rejected(decideRefund(testPayment({ status }), receipt, refund, TEST_CONTEXT), {
+      _tag: 'PaymentNotRefundable',
+      paymentStatus: status,
+    })
   })
 
   it('적용한 영수증이 유효하지 않으면 결함으로 멈춥니다', () => {

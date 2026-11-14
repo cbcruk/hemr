@@ -1,4 +1,4 @@
-import { Result } from 'effect'
+import { rejected, success } from '../../../shared/decision/testing.ts'
 import { describe, expect, it } from 'vitest'
 import type { DecisionContext } from '../../../shared/decision/decision-context.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
@@ -49,16 +49,6 @@ const closedWith = (ledger: ReadonlyArray<LedgerEntry>, date = TODAY) =>
   success(decideClose(cashDrawerView(date, opened({ date }), ledger), 110_000, { ...context, today: date })).drawer!
     .drawer
 
-const success = <A, E>(result: Result.Result<A, E>): A => {
-  if (Result.isFailure(result)) throw new Error(`거부되었습니다: ${String(result.failure)}`)
-  return result.success
-}
-
-const failure = <A, E>(result: Result.Result<A, E>): E => {
-  if (Result.isSuccess(result)) throw new Error('거부되지 않았습니다')
-  return result.failure
-}
-
 describe('decideOpen', () => {
   it('시작 금액으로 열고 시재 변경 이벤트를 냅니다', () => {
     const then = success(decideOpen(TODAY, { openingAmount: 50_000 }, notOpened, null, context))
@@ -85,31 +75,34 @@ describe('decideOpen', () => {
     ])
 
     expect(changed.drawer.status).toBe('REOPENED')
-    expect(failure(decideOpen(TODAY, { carryOver: true }, notOpened, changed, context))._tag).toBe(
-      'CashDrawerCarryOverUnavailable',
-    )
-    expect(failure(decideOpen(TODAY, { carryOver: true }, notOpened, null, context))._tag).toBe(
-      'CashDrawerCarryOverUnavailable',
-    )
+    rejected(decideOpen(TODAY, { carryOver: true }, notOpened, changed, context), {
+      _tag: 'CashDrawerCarryOverUnavailable',
+    })
+    rejected(decideOpen(TODAY, { carryOver: true }, notOpened, null, context), {
+      _tag: 'CashDrawerCarryOverUnavailable',
+    })
   })
 
   it('시작 금액과 이어받기를 둘 다 보내거나 둘 다 빠뜨리면 400입니다', () => {
-    expect(failure(decideOpen(TODAY, {}, notOpened, null, context))).toMatchObject({
+    rejected(decideOpen(TODAY, {}, notOpened, null, context), {
       _tag: 'ValidationFailed',
-      violations: [{ field: 'openingAmount' }],
+      violations: [{ field: 'openingAmount', code: 'INVALID_VALUE' }],
     })
-    expect(failure(decideOpen(TODAY, { openingAmount: 0, carryOver: true }, notOpened, null, context))).toMatchObject({
-      violations: [{ field: 'carryOver' }],
+    rejected(decideOpen(TODAY, { openingAmount: 0, carryOver: true }, notOpened, null, context), {
+      _tag: 'ValidationFailed',
+      violations: [{ field: 'carryOver', code: 'INVALID_VALUE' }],
     })
   })
 
   it('내일 시재와 이미 연 시재는 열지 않습니다', () => {
-    expect(failure(decideOpen('2026-11-14', { openingAmount: 0 }, notOpened, null, context))._tag).toBe(
-      'CashDrawerDateInFuture',
-    )
-    expect(
-      failure(decideOpen(TODAY, { openingAmount: 0 }, cashDrawerView(TODAY, opened(), []), null, context)),
-    ).toMatchObject({ _tag: 'CashDrawerTransitionInvalid', currentStatus: 'OPEN', command: 'OPEN' })
+    rejected(decideOpen('2026-11-14', { openingAmount: 0 }, notOpened, null, context), {
+      _tag: 'CashDrawerDateInFuture',
+    })
+    rejected(decideOpen(TODAY, { openingAmount: 0 }, cashDrawerView(TODAY, opened(), []), null, context), {
+      _tag: 'CashDrawerTransitionInvalid',
+      currentStatus: 'OPEN',
+      command: 'OPEN',
+    })
   })
 })
 
@@ -136,13 +129,18 @@ describe('decideClose와 decideReopen', () => {
   })
 
   it('열지 않은 시재는 마감하지 않고, 마감한 시재만 사유와 함께 다시 엽니다', () => {
-    expect(failure(decideClose(notOpened, 0, context))).toMatchObject({ currentStatus: 'NOT_OPENED', command: 'CLOSE' })
+    rejected(decideClose(notOpened, 0, context), {
+      _tag: 'CashDrawerTransitionInvalid',
+      currentStatus: 'NOT_OPENED',
+      command: 'CLOSE',
+    })
 
     const closed = cashDrawerView(TODAY, closedWith([]), [])
     const reopened = success(decideReopen(closed, '다시 셈', context)).drawer!.drawer
 
     expect(reopened.reopened).toEqual({ reason: '다시 셈', at: context.at, by: USER })
-    expect(failure(decideReopen(cashDrawerView(TODAY, reopened, []), '또', context))).toMatchObject({
+    rejected(decideReopen(cashDrawerView(TODAY, reopened, []), '또', context), {
+      _tag: 'CashDrawerTransitionInvalid',
       currentStatus: 'REOPENED',
       command: 'REOPEN',
     })
@@ -171,13 +169,12 @@ describe('decideRecordExpense와 decideRemoveExpense', () => {
   })
 
   it('열리지 않은 시재에는 기록하지 않고, 없는 항목은 거부합니다', () => {
-    expect(failure(decideRecordExpense(notOpened, category, input, EXPENSE_ID, context))).toMatchObject({
+    rejected(decideRecordExpense(notOpened, category, input, EXPENSE_ID, context), {
       _tag: 'CashDrawerNotOpen',
       currentStatus: 'NOT_OPENED',
+      date: TODAY,
     })
-    expect(failure(decideRecordExpense(openState, null, input, EXPENSE_ID, context))._tag).toBe(
-      'ExpenseCategoryInvalid',
-    )
+    rejected(decideRecordExpense(openState, null, input, EXPENSE_ID, context), { _tag: 'ExpenseCategoryInvalid' })
   })
 
   it('지출을 지운 기록으로 남기고, 없거나 이미 지운 지출은 404입니다', () => {
@@ -187,15 +184,17 @@ describe('decideRecordExpense와 decideRemoveExpense', () => {
     const removed: Expense = then.expense!.expense
 
     expect(removed).toMatchObject({ deleted: { at: context.at, by: USER }, version: 2 })
-    expect(failure(decideRemoveExpense(removed, openState, context))._tag).toBe('ExpenseNotFound')
-    expect(failure(decideRemoveExpense(null, null, context))._tag).toBe('ExpenseNotFound')
+    rejected(decideRemoveExpense(removed, openState, context), { _tag: 'ExpenseNotFound' })
+    rejected(decideRemoveExpense(null, null, context), { _tag: 'ExpenseNotFound' })
   })
 
   it('마감한 날의 지출은 지우지 않습니다', () => {
     const expense = success(decideRecordExpense(openState, category, input, EXPENSE_ID, context)).expense.expense
 
-    expect(failure(decideRemoveExpense(expense, cashDrawerView(TODAY, closedWith([]), []), context))._tag).toBe(
-      'CashDrawerNotOpen',
-    )
+    rejected(decideRemoveExpense(expense, cashDrawerView(TODAY, closedWith([]), []), context), {
+      _tag: 'CashDrawerNotOpen',
+      currentStatus: 'CLOSED',
+      date: TODAY,
+    })
   })
 })
