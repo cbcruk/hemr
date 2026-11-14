@@ -1,8 +1,12 @@
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import type { Transaction } from '../../../shared/db/transaction.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
+import { runPolicyOnce } from '../../../shared/events/policy.ts'
+import type { PolicyCursor } from '../../../shared/events/policy.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
+import { moveVisitAfterEncounter } from '../../front-desk/visits/visit-after-encounter.policy.ts'
 import { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { Visits } from '../../front-desk/visits/visits.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
@@ -10,25 +14,18 @@ import { testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
 import { Encounters } from './encounters.ts'
-import { Procedures } from '../treatment-room/procedures.ts'
 
 const doctor = testMember({ role: 'OWNER_DOCTOR' })
 
-type Services = Encounters | Visits | VisitRepository | Patients | Outbox | CurrentAccess
+type Services = Encounters | Visits | VisitRepository | Patients | Outbox | PolicyCursor | Transaction | CurrentAccess
 
 /** 진료·내원·환자·저장소를 넣어 원장으로 `program`을 실행합니다. */
-const run = <A, E>(
-  program: Effect.Effect<A, E, Services>,
-  store: 'memory' | 'sqlite',
-  visitRepository?: Layer.Layer<VisitRepository, never, VisitRepository>,
-) =>
+const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sqlite') =>
   Effect.runPromise(
     program.pipe(
       Effect.provideService(CurrentAccess, doctor.access),
       Effect.provide(
-        // 진료가 쓰는 내원 저장소만 `visitRepository`로 바꿀 수 있습니다. 접수는 늘 원래 저장소입니다
-        (visitRepository === undefined ? Encounters.layer : Encounters.layer.pipe(Layer.provide(visitRepository))).pipe(
-          Layer.provideMerge(Procedures.layer),
+        Encounters.layer.pipe(
           Layer.provideMerge(Visits.layer),
           Layer.provideMerge(Patients.layer),
           Layer.provideMerge(doctor.seed),
@@ -53,11 +50,12 @@ const chartedEncounter = Effect.gen(function* () {
 })
 
 describe.each(['memory', 'sqlite'] as const)('Encounters.complete (%s)', (store) => {
-  it('writes encounter.completed and visit.status_changed', async () => {
+  it('완료는 encounter.completed를 쓰고, 내원 정책이 뒤따라 visit.status_changed를 씁니다', async () => {
     const result = await run(
       Effect.gen(function* () {
         const { visit, encounterId } = yield* chartedEncounter
         yield* (yield* Encounters).complete(encounterId, { expectedVersion: 2 })
+        yield* runPolicyOnce(moveVisitAfterEncounter)
         const pending = yield* (yield* Outbox).pending(20)
         return {
           visit,
@@ -81,13 +79,14 @@ describe.each(['memory', 'sqlite'] as const)('Encounters.complete (%s)', (store)
       patientId: result.visit.patientId,
       doctorId: doctor.user.id,
       acknowledged: [],
+      nextVisitStatus: null,
     })
     expect(result.events[4]!.data).toMatchObject({ from: 'WAITING', to: 'IN_TREATMENT' })
   })
 })
 
 describe.each(['memory', 'sqlite'] as const)('Encounters.complete visit flow (%s)', (store) => {
-  it('leaves checked-out and past-date visits where they are', async () => {
+  it('수납 완료·지난 날짜의 내원은 완료 뒤에도 내원 정책이 그대로 둡니다', async () => {
     const result = await run(
       Effect.gen(function* () {
         const repository = yield* VisitRepository
@@ -97,19 +96,23 @@ describe.each(['memory', 'sqlite'] as const)('Encounters.complete visit flow (%s
         yield* repository.save({ ...checkedOut.visit, status: 'COMPLETED', version: 2 }, { expectedVersion: 1 })
         yield* repository.save({ ...past.visit, date: '2026-01-01', version: 2 }, { expectedVersion: 1 })
         const encounters = yield* Encounters
-        return {
+        const completed = {
           checkedOut: yield* encounters.complete(checkedOut.encounterId, { expectedVersion: 2 }),
           past: yield* encounters.complete(past.encounterId, { expectedVersion: 2 }),
+        }
+        yield* runPolicyOnce(moveVisitAfterEncounter)
+        return {
+          completed,
+          checkedOut: Option.getOrThrow(yield* repository.findById(checkedOut.visit.tenantId, checkedOut.visit.id)),
+          past: Option.getOrThrow(yield* repository.findById(past.visit.tenantId, past.visit.id)),
         }
       }),
       store,
     )
 
-    expect(result.checkedOut).toMatchObject({
-      encounter: { status: 'COMPLETED' },
-      visit: { status: 'COMPLETED', version: 2 },
-    })
-    expect(result.past).toMatchObject({ encounter: { status: 'COMPLETED' }, visit: { status: 'WAITING', version: 2 } })
+    expect(result.completed.checkedOut).toEqual({ encounter: expect.objectContaining({ status: 'COMPLETED' }) })
+    expect(result.checkedOut).toMatchObject({ status: 'COMPLETED', version: 2 })
+    expect(result.past).toMatchObject({ status: 'WAITING', version: 2 })
   })
 })
 
@@ -131,35 +134,5 @@ describe('Encounters on a visit canceled before cancel retracted encounters', ()
 
     expect(result.update).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
     expect(result.complete).toMatchObject({ code: 'ENCOUNTER_VISIT_CANCELED' })
-  })
-})
-
-describe('Encounters.complete (sqlite)', () => {
-  it('rolls the completion back when moving the visit fails', async () => {
-    const failing = Layer.effect(
-      VisitRepository,
-      Effect.gen(function* () {
-        const inner = yield* VisitRepository
-        return VisitRepository.of({ ...inner, save: () => Effect.die('visit move failed') })
-      }),
-    )
-    const result = await run(
-      Effect.gen(function* () {
-        const { encounterId } = yield* chartedEncounter
-        const exit = yield* Effect.exit((yield* Encounters).complete(encounterId, { expectedVersion: 2 }))
-        const pending = yield* (yield* Outbox).pending(20)
-        return {
-          exit,
-          encounter: yield* (yield* Encounters).get(encounterId),
-          pending: pending.map((row) => row.event.type),
-        }
-      }),
-      'sqlite',
-      failing,
-    )
-
-    expect(result.exit._tag).toBe('Failure')
-    expect(result.encounter).toMatchObject({ status: 'DRAFT', completedAt: null, version: 2 })
-    expect(result.pending).not.toContain('encounter.completed')
   })
 })

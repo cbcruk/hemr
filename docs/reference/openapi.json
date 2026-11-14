@@ -3484,7 +3484,7 @@
         ],
         "responses": {
           "200": {
-            "description": "완료한 진료와 내원입니다.",
+            "description": "완료한 진료입니다. 내원 이동과 시술 종료는 `encounter.completed`를 받는 정책이 뒤따라 합니다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3492,25 +3492,13 @@
                   "properties": {
                     "encounter": {
                       "$ref": "#/components/schemas/Encounter"
-                    },
-                    "visit": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/components/schemas/Visit"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "완료 뒤의 내원입니다. 내원 없는 진료는 `null`입니다."
                     }
                   },
                   "required": [
-                    "encounter",
-                    "visit"
+                    "encounter"
                   ],
                   "additionalProperties": false,
-                  "description": "완료한 진료와 내원입니다."
+                  "description": "완료한 진료입니다. 내원 이동과 시술 종료는 `encounter.completed`를 받는 정책이 뒤따라 합니다."
                 }
               }
             },

@@ -1,19 +1,25 @@
 import { Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { PersistenceMemory, PersistenceSqlite } from '../../../persistence.ts'
+import type { Transaction } from '../../../shared/db/transaction.ts'
 import { Outbox } from '../../../shared/events/outbox.ts'
+import { runPolicyOnce } from '../../../shared/events/policy.ts'
+import type { PolicyCursor } from '../../../shared/events/policy.ts'
 import type { Id } from '../../../shared/ids/ids.types.ts'
+import type { VisitRepository } from '../../front-desk/visits/visit-repository.ts'
 import { Visits } from '../../front-desk/visits/visits.ts'
 import { CurrentAccess } from '../../identity/auth/access.ts'
 import { testMember } from '../../identity/auth/testing.ts'
 import { TestPatientCrypto } from '../../patients/patient-crypto.ts'
 import { Patients } from '../../patients/patients.ts'
 import { Encounters } from '../encounters/encounters.ts'
+import { finishProceduresAfterEncounter } from './procedure-finish.policy.ts'
 import { ProcedureTimerSweep, Procedures } from './procedures.ts'
 
 const doctor = testMember({ role: 'OWNER_DOCTOR' })
 
-type Services = Procedures | Encounters | Visits | Patients | Outbox | CurrentAccess
+type Services =
+  Procedures | Encounters | Visits | Patients | Outbox | PolicyCursor | Transaction | VisitRepository | CurrentAccess
 
 const run = <A, E>(program: Effect.Effect<A, E, Services>, store: 'memory' | 'sqlite', sweep = false) =>
   Effect.runPromise(
@@ -229,6 +235,7 @@ describe.each(['memory', 'sqlite'] as const)('Procedures (%s)', (store) => {
           { expectedVersion: 1 },
         )
         yield* encounters.complete(encounterId, { nextVisitStatus: 'AWAITING_PAYMENT', expectedVersion: 2 })
+        yield* runPolicyOnce(finishProceduresAfterEncounter)
         return (yield* procedures.listForVisit(visit.id)).map((each) => each.status)
       }),
       store,
@@ -251,6 +258,7 @@ describe.each(['memory', 'sqlite'] as const)('Procedures (%s)', (store) => {
           { expectedVersion: 1 },
         )
         yield* encounters.complete(encounterId, { expectedVersion: 2 })
+        yield* runPolicyOnce(finishProceduresAfterEncounter)
         return (yield* procedures.listForVisit(visit.id)).map((each) => each.status)
       }),
       store,
@@ -274,6 +282,7 @@ describe.each(['memory', 'sqlite'] as const)('Procedures (%s)', (store) => {
           { expectedVersion: 1 },
         )
         yield* encounters.complete(encounterId, { nextVisitStatus: 'AWAITING_PAYMENT', expectedVersion: 2 })
+        yield* runPolicyOnce(finishProceduresAfterEncounter)
         const pending = yield* (yield* Outbox).pending(100)
         return {
           statuses: (yield* procedures.listForVisit(visit.id)).map((each) => each.status),

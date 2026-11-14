@@ -117,18 +117,22 @@ export const runPolicyOnce = <E extends { readonly _tag: string }, R>(
     return handled
   }).pipe(Effect.withSpan('Policy.runOnce', { attributes: { policy: policy.name } }))
 
+/** 정책들이 쓰는 서비스를 합친 것입니다. 정책마다 나눠(분배) 모읍니다. */
+type RequirementsOf<T> = T extends Policy<{ readonly _tag: string }, infer R> ? R : never
+type PolicyRequirements<P extends ReadonlyArray<Policy<{ readonly _tag: string }, any>>> = RequirementsOf<P[number]>
+
 /**
  * 정책들을 `pollInterval`마다 돌리는 백그라운드 작업입니다. 정책마다 따로 돌아, 한 정책이 결함으로 멈춰도 다른 정책은
  * 계속합니다. 한 회차에 `batchSize`만큼 처리했으면 밀린 이벤트가 더 있을 수 있어 기다리지 않고 바로 다음 회차를
  * 돕니다. 워커는 프로세스에 하나만 둡니다 (D9).
  */
-export const policyWorker = <R>(
-  policies: ReadonlyArray<Policy<{ readonly _tag: string }, R>>,
+export const policyWorker = <const P extends ReadonlyArray<Policy<{ readonly _tag: string }, any>>>(
+  policies: P,
   settings: PolicyRunnerSettings = DEFAULT_POLICY_RUNNER_SETTINGS,
 ) =>
   Layer.effectDiscard(
     Effect.forEach(
-      policies,
+      policies as ReadonlyArray<Policy<{ readonly _tag: string }, PolicyRequirements<P>>>,
       (policy) =>
         runPolicyOnce(policy, settings).pipe(
           Effect.repeat({ while: (handled) => handled === settings.batchSize }),
